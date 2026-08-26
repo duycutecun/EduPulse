@@ -86,12 +86,4 @@ CREATE POLICY "Public full access today_tasks" ON public.today_tasks FOR ALL USI
 CREATE POLICY "Public full access study_logs" ON public.study_logs FOR ALL USING (true);
 CREATE POLICY "Public full access leaderboard" ON public.leaderboard FOR ALL USING (true);
 
--- Chèn dữ liệu mẫu ban đầu cho Bảng vàng Sĩ tử
-INSERT INTO public.leaderboard (name, target, streak, weekly_hours, emoji, badge, cheers, exam_tag)
-VALUES 
-  ('Nguyễn Hoàng Minh', 'Bách Khoa HN — IT1', 48, 42.5, '🦁', '👑 Thủ Khoa Tuần', 342, 'TSA'),
-  ('Trần Thảo Linh', 'ĐH Ngoại Thương — NTH01', 42, 38.0, '🦊', '🥈 Á Khoa', 289, 'THPTQG'),
-  ('Lê Quốc Bảo', 'ĐHQG HN — Khoa học máy tính', 35, 36.5, '🐯', '🥉 Chiến Thần Cày', 215, 'HSA'),
-  ('Phạm Quỳnh Anh', 'ĐH Y Hà Nội — Y Đa Khoa', 29, 34.0, '🦉', '⭐ Siêu Kiên Trì', 178, 'THPTQG'),
-  ('Đặng Tuấn Kiệt', 'ĐH Bách Khoa HCM — Điện tử', 26, 31.5, '🐼', '🔥 Bứt Phá', 145, 'TSA')
-ON CONFLICT DO NOTHING;
+-- Bảng vàng không có dữ liệu mẫu — dữ liệu thực từ người dùng thật.

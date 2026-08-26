@@ -53,68 +53,7 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _initLeaderboard() async {
-    _users = [
-      CommunityUser(
-        rank: 1,
-        name: 'Nguyễn Hoàng Minh',
-        target: 'Bách Khoa HN — IT1',
-        streak: 48,
-        weeklyHours: 42.5,
-        emoji: '🦁',
-        badge: '👑 Thủ Khoa Tuần',
-        cheers: 342,
-      ),
-      CommunityUser(
-        rank: 2,
-        name: 'Trần Thảo Linh',
-        target: 'ĐH Ngoại Thương — NTH01',
-        streak: 42,
-        weeklyHours: 38.0,
-        emoji: '🦊',
-        badge: '🥈 Á Khoa',
-        cheers: 289,
-      ),
-      CommunityUser(
-        rank: 3,
-        name: 'Lê Quốc Bảo',
-        target: 'ĐHQG HN — Khoa học máy tính',
-        streak: 35,
-        weeklyHours: 36.5,
-        emoji: '🐯',
-        badge: '🥉 Chiến Thần Cày',
-        cheers: 215,
-      ),
-      CommunityUser(
-        rank: 4,
-        name: 'Phạm Quỳnh Anh',
-        target: 'ĐH Y Hà Nội — Y Đa Khoa',
-        streak: 29,
-        weeklyHours: 34.0,
-        emoji: '🦉',
-        badge: '⭐ Siêu Kiên Trì',
-        cheers: 178,
-      ),
-      CommunityUser(
-        rank: 5,
-        name: 'Đặng Tuấn Kiệt',
-        target: 'ĐH Bách Khoa HCM — Điện tử',
-        streak: 26,
-        weeklyHours: 31.5,
-        emoji: '🐼',
-        badge: '🔥 Bứt Phá',
-        cheers: 145,
-      ),
-      CommunityUser(
-        rank: 6,
-        name: 'Sĩ tử 2026 (Bạn)',
-        target: _userTarget.isNotEmpty ? _userTarget : 'ĐH Bách Khoa Hà Nội > 27đ',
-        streak: 12,
-        weeklyHours: 24.5,
-        emoji: '🚀',
-        badge: '✨ Đang Bứt Phá',
-        cheers: 98,
-      ),
-    ];
+    _users = [];
 
     if (SupabaseService.isConfigured) {
       final cloudUsers = await SupabaseService.fetchLeaderboard();
@@ -132,9 +71,6 @@ class _AccountScreenState extends State<AccountScreen> {
     setState(() {
       _userName = name;
       _userTarget = target;
-      if (_users.length > 5) {
-        _users[5].target = target;
-      }
     });
     widget.onDataChanged();
     SupabaseService.syncProfile();

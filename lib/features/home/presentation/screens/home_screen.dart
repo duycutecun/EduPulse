@@ -65,11 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (json == null) return null;
       return TodayTask.fromJsonString(json);
     }).whereType<TodayTask>().toList();
-    if (_tasks.isEmpty) {
-      _addTask('Luyện 30 câu trắc nghiệm Hàm số', '📐 Toán', 'high', 45);
-      _addTask('Học 20 từ vựng Collocations chủ đề Education', '🇬🇧 Anh', 'medium', 30);
-      _addTask('Đọc & tóm tắt ý chính Người lái đò Sông Đà', '📖 Văn', 'low', 30);
-    }
+    // No mock data — user starts with a clean slate
   }
 
   void _addTask(String title, String subject, String priority, int minutes) {
