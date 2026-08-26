@@ -74,6 +74,12 @@ ALTER TABLE public.study_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leaderboard ENABLE ROW LEVEL SECURITY;
 
 -- Tạo chính sách cho phép truy cập công khai (Dành cho bản Demo / Anon Key)
+DROP POLICY IF EXISTS "Public full access user_profiles" ON public.user_profiles;
+DROP POLICY IF EXISTS "Public full access exams" ON public.exams;
+DROP POLICY IF EXISTS "Public full access today_tasks" ON public.today_tasks;
+DROP POLICY IF EXISTS "Public full access study_logs" ON public.study_logs;
+DROP POLICY IF EXISTS "Public full access leaderboard" ON public.leaderboard;
+
 CREATE POLICY "Public full access user_profiles" ON public.user_profiles FOR ALL USING (true);
 CREATE POLICY "Public full access exams" ON public.exams FOR ALL USING (true);
 CREATE POLICY "Public full access today_tasks" ON public.today_tasks FOR ALL USING (true);
