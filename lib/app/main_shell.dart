@@ -6,7 +6,6 @@ import '../core/utils/storage_service.dart';
 import '../shared/widgets/mesh_background.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
-import '../features/exams/data/preset_exams.dart';
 import '../features/exams/presentation/screens/exams_screen.dart';
 import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
 import '../features/study/presentation/screens/study_screen.dart';
@@ -40,14 +39,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void _loadInitialData() {
     final ids = StorageService.getExamIds();
     if (ids.isEmpty) {
-      final defaultExams = [PresetExams.all[0], PresetExams.all[1]];
-      for (final e in defaultExams) {
-        StorageService.setExamJson(e.id, e.toJsonString());
-      }
-      StorageService.setExamIds(defaultExams.map((e) => e.id).toList());
-      StorageService.setPrimaryExamId(defaultExams[0].id);
-      _exams = defaultExams;
-      _primaryExamId = defaultExams[0].id;
+      _exams = [];
+      _primaryExamId = null;
     } else {
       _exams = ids.map((id) {
         final json = StorageService.getExamJson(id);

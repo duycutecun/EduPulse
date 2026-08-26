@@ -65,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (json == null) return null;
       return TodayTask.fromJsonString(json);
     }).whereType<TodayTask>().toList();
-    // No mock data — user starts with a clean slate
   }
 
   void _addTask(String title, String subject, String priority, int minutes) {
@@ -203,10 +202,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ? _urgencyColor(widget.primaryExam!.daysLeft)
         : AppColors.appleIndigo;
 
-    // Estimate total preparation progress (out of 365 days max)
     final progress = widget.primaryExam != null
         ? (1.0 - (widget.primaryExam!.daysLeft / 365.0)).clamp(0.05, 0.98)
-        : 0.5;
+        : 0.0;
 
     return GestureDetector(
       onTap: widget.onExamTap,
@@ -271,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.primaryExam?.name ?? 'Chưa chọn kỳ thi chính',
+                              widget.primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
                               style: TextStyle(
                                 fontSize: 16.5,
                                 fontWeight: FontWeight.w900,
@@ -285,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               widget.primaryExam != null
                                   ? '📅 ${_formatDate(widget.primaryExam!.dateTime)}'
-                                  : 'Chạm để chọn kỳ thi mục tiêu →',
+                                  : 'Chạm vào đây để chọn hoặc thêm kỳ thi →',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -335,46 +333,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
 
                   // Progress Bar Towards Exam
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Chặng đường ôn luyện',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark ? Colors.white60 : Colors.black54,
-                              fontWeight: FontWeight.w600,
+                  if (widget.primaryExam != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Chặng đường ôn luyện',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDark ? Colors.white60 : Colors.black54,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${(progress * 100).toInt()}%',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark ? AppColors.neonCyan : AppColors.appleIndigo,
-                              fontWeight: FontWeight.w800,
+                            Text(
+                              '${(progress * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDark ? AppColors.neonCyan : AppColors.appleIndigo,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 5,
-                          backgroundColor: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.black.withValues(alpha: 0.06),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            urgencyColor,
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 5,
+                            backgroundColor: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.black.withValues(alpha: 0.06),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              urgencyColor,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -673,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(7, (i) {
-              final isCompleted = i <= currentDayIndex;
+              final isCompleted = widget.streak > 0 && i <= currentDayIndex;
               final isToday = i == currentDayIndex;
 
               return Column(
