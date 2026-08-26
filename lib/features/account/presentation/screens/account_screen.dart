@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _AccountScreenState extends State<AccountScreen> {
   late String _supabaseAnonKey;
   late bool _isDark;
   bool _isSyncing = false;
+  bool _isRestoring = false;
 
   // Leaderboard data
   String _selectedFilter = 'Tất cả';
@@ -57,7 +59,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
     if (SupabaseService.isConfigured) {
       final cloudUsers = await SupabaseService.fetchLeaderboard();
-      if (cloudUsers != null && cloudUsers.isNotEmpty) {
+      if (cloudUsers != null && cloudUsers.isNotEmpty && mounted) {
         setState(() {
           _users = cloudUsers;
         });
@@ -105,7 +107,7 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  Future<void> _manualSync() async {
+  Future<void> _manualBackup() async {
     if (!SupabaseService.isConfigured) {
       _showSupabaseDialog(Theme.of(context).brightness == Brightness.dark);
       return;
@@ -118,14 +120,109 @@ class _AccountScreenState extends State<AccountScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            ok
-                ? '☁️ Đồng bộ đám mây Supabase hoàn tất!'
-                : '⚠️ Đồng bộ thất bại. Kiểm tra kết nối mạng!',
+          content: Row(
+            children: [
+              Text(ok ? '✅ ' : '⚠️ '),
+              Expanded(
+                child: Text(
+                  ok
+                      ? '☁️ Đã sao lưu toàn bộ dữ liệu (Nhiệm vụ, Kỳ thi, Streak) lên đám mây!'
+                      : '⚠️ Sao lưu thất bại. Kiểm tra kết nối mạng!',
+                ),
+              ),
+            ],
           ),
+          backgroundColor: ok ? AppColors.appleGreen : AppColors.appleRed,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
+  }
+
+  Future<void> _manualRestore() async {
+    if (!SupabaseService.isConfigured) {
+      _showSupabaseDialog(Theme.of(context).brightness == Brightness.dark);
+      return;
+    }
+
+    setState(() => _isRestoring = true);
+    final ok = await SupabaseService.restoreAll();
+    setState(() => _isRestoring = false);
+
+    if (ok) {
+      _loadData();
+      widget.onDataChanged();
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Text(ok ? '✅ ' : '⚠️ '),
+              Expanded(
+                child: Text(
+                  ok
+                      ? '📥 Đã khôi phục dữ liệu từ đám mây về thiết bị!'
+                      : '⚠️ Khôi phục thất bại hoặc chưa có bản sao lưu trên đám mây.',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ok ? AppColors.appleBlue : AppColors.appleRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _openAuthScreen() {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (ctx) => AuthScreen(
+          onAuthSuccess: () {
+            Navigator.pop(ctx);
+            _loadData();
+            _manualBackup(); // Tự động backup ngay khi đăng nhập
+            setState(() {});
+          },
+          onSkip: () => Navigator.pop(ctx),
+        ),
+      ),
+    );
+  }
+
+  void _handleSignOut() async {
+    showCupertinoDialog(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Đăng xuất tài khoản?'),
+        content: const Text(
+          'Dữ liệu cục bộ trên máy này vẫn được giữ nguyên. Hãy đảm bảo bạn đã bấm "Sao lưu" trước khi đăng xuất.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: false,
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await SupabaseService.signOut();
+              if (mounted) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('👋 Đã đăng xuất khỏi tài khoản.')),
+                );
+              }
+            },
+            child: const Text('Đăng xuất'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _toggleTheme(bool val) {
@@ -137,6 +234,7 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _cheerUser(int index) {
+    if (index >= _users.length) return;
     setState(() {
       final u = _users[index];
       if (!u.hasCheered) {
@@ -294,18 +392,237 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Widget _buildProfileAndSettings(bool isDark) {
     final hasSupabase = SupabaseService.isConfigured;
+    final isLoggedIn = SupabaseService.isLoggedIn;
+    final user = SupabaseService.currentUser;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Profile Card
+        // 1. AUTH CARD (Đăng nhập / Đăng ký hoặc Trạng thái tài khoản)
+        if (isLoggedIn && user != null) ...[
+          // Logged in Banner
+          GlassCard(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.appleGreen.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(CupertinoIcons.shield_fill, color: AppColors.appleGreen, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'TÀI KHOẢN ĐÁM MÂY',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.appleGreen,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: AppColors.appleGreen.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  '🟢 ĐÃ KẾT NỐI',
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.appleGreen),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            user.email ?? 'Tài khoản EduPulse',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _handleSignOut,
+                      icon: const Icon(CupertinoIcons.square_arrow_right, color: AppColors.appleRed, size: 22),
+                      tooltip: 'Đăng xuất',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Backup & Restore Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _isSyncing ? null : _manualBackup,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [AppColors.appleIndigo, AppColors.appleBlue],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: _isSyncing
+                                ? const CupertinoActivityIndicator(color: Colors.white)
+                                : const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(CupertinoIcons.cloud_upload_fill, color: Colors.white, size: 15),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Sao lưu ngay',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _isRestoring ? null : _manualRestore,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? Colors.white12 : Colors.black12,
+                            ),
+                          ),
+                          child: Center(
+                            child: _isRestoring
+                                ? const CupertinoActivityIndicator()
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        CupertinoIcons.cloud_download,
+                                        size: 15,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Khôi phục',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          // Guest Mode Prompt Card
+          GestureDetector(
+            onTap: _openAuthScreen,
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [
+                          const Color(0xFF261D4C).withValues(alpha: 0.9),
+                          const Color(0xFF161E38).withValues(alpha: 0.9),
+                        ]
+                      : [
+                          const Color(0xFF5E5CE6).withValues(alpha: 0.12),
+                          const Color(0xFF0A84FF).withValues(alpha: 0.08),
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(
+                  color: AppColors.appleIndigo.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.appleIndigo.withValues(alpha: 0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(CupertinoIcons.person_badge_plus_fill, color: AppColors.appleIndigo, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tạo tài khoản & Sao lưu',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white : Colors.black87,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Đăng nhập để đồng bộ tiến độ học tập trên nhiều thiết bị',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(CupertinoIcons.chevron_right, color: AppColors.appleIndigo, size: 18),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+
+        // 2. PROFILE CARD (Tên & Mục tiêu)
         GlassCard(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [AppColors.appleIndigo, AppColors.appleBlue],
@@ -322,7 +639,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ],
                 ),
                 child: const Center(
-                  child: Text('🎓', style: TextStyle(fontSize: 30)),
+                  child: Text('🎓', style: TextStyle(fontSize: 28)),
                 ),
               ),
               const SizedBox(width: 14),
@@ -333,7 +650,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     Text(
                       _userName,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
                         color: isDark ? Colors.white : Colors.black87,
                         letterSpacing: -0.4,
@@ -343,15 +660,15 @@ class _AccountScreenState extends State<AccountScreen> {
                     Text(
                       _userTarget.isNotEmpty ? '🎯 Mục tiêu: $_userTarget' : 'Chưa đặt mục tiêu trường',
                       style: TextStyle(
-                        fontSize: 12.5,
+                        fontSize: 12,
                         color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.appleGreen.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(6),
@@ -359,7 +676,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       child: const Text(
                         '⚡ Sĩ tử EduPulse 2026',
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                           color: AppColors.appleGreen,
                         ),
@@ -370,14 +687,14 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               IconButton(
                 onPressed: () => _showEditProfileDialog(isDark),
-                icon: const Icon(CupertinoIcons.pencil_circle_fill, color: AppColors.appleBlue, size: 28),
+                icon: const Icon(CupertinoIcons.pencil_circle_fill, color: AppColors.appleBlue, size: 26),
               ),
             ],
           ),
         ),
         const SizedBox(height: 18),
 
-        // Section: Cloud Database & AI
+        // 3. Section: Cloud Database & AI
         _sectionTitle('ĐÁM MÂY & TRÍ TUỆ NHÂN TẠO', isDark),
         const SizedBox(height: 8),
         GlassCard(
@@ -390,21 +707,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 title: 'Supabase Cloud Database',
                 subtitle: hasSupabase
                     ? '🟢 Đã kết nối PostgreSQL Cloud'
-                    : '⚠️ Chưa kết nối (Bấm để thiết lập)',
+                    : '⚠️ Chưa kết nối (Bấm để thiết lập URL & Key)',
                 trailing: const Icon(CupertinoIcons.chevron_right, size: 16, color: AppColors.textMutedDark),
                 onTap: () => _showSupabaseDialog(isDark),
-                isDark: isDark,
-              ),
-              _divider(isDark),
-              _buildSettingTile(
-                icon: CupertinoIcons.arrow_2_circlepath,
-                iconColor: AppColors.neonCyan,
-                title: 'Đồng bộ đám mây ngay',
-                subtitle: _isSyncing ? 'Đang tải dữ liệu...' : 'Đẩy tiến độ & mục tiêu lên máy chủ',
-                trailing: _isSyncing
-                    ? const CupertinoActivityIndicator()
-                    : const Icon(CupertinoIcons.chevron_right, size: 16, color: AppColors.textMutedDark),
-                onTap: _isSyncing ? null : _manualSync,
                 isDark: isDark,
               ),
               _divider(isDark),
@@ -422,7 +727,7 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         const SizedBox(height: 18),
 
-        // Section: Preferences
+        // 4. Section: Preferences
         _sectionTitle('TÙY CHỈNH & GIAO DIỆN', isDark),
         const SizedBox(height: 8),
         GlassCard(
@@ -433,7 +738,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 icon: CupertinoIcons.moon_fill,
                 iconColor: AppColors.appleIndigo,
                 title: 'Giao diện Tối (Dark Mode)',
-                subtitle: 'Bảo vệ mắt khi cày đêm',
+                subtitle: 'Bảo vệ mắt khi cày đề đêm',
                 trailing: CupertinoSwitch(
                   value: _isDark,
                   onChanged: _toggleTheme,
@@ -445,7 +750,7 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         const SizedBox(height: 18),
 
-        // Section: Storage & About
+        // 5. Section: Storage & System
         _sectionTitle('DỮ LIỆU & HỆ THỐNG', isDark),
         const SizedBox(height: 8),
         GlassCard(
@@ -516,168 +821,178 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         const SizedBox(height: 18),
 
-        // Podium Top 3
-        _buildPodium(isDark),
-        const SizedBox(height: 18),
+        // Podium Top 3 (nếu có dữ liệu)
+        if (_users.length >= 3) ...[
+          _buildPodium(isDark),
+          const SizedBox(height: 18),
+        ],
 
-        // Full Leaderboard
-        Text(
-          'Bảng Xếp Hạng Toàn Quốc',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
+        // Leaderboard title
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Bảng Xếp Hạng Toàn Quốc',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            IconButton(
+              onPressed: _initLeaderboard,
+              icon: const Icon(CupertinoIcons.arrow_clockwise, size: 18),
+              tooltip: 'Làm mới',
+            ),
+          ],
         ),
         const SizedBox(height: 10),
 
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _users.length,
-          separatorBuilder: (c, i) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final user = _users[index];
-            final isMe = user.name.contains('(Bạn)');
-
-            return GlassCard(
-              borderRadius: 16,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              borderColor: isMe ? AppColors.neonCyan.withValues(alpha: 0.5) : null,
-              child: Row(
-                children: [
-                  // Rank
-                  SizedBox(
-                    width: 28,
-                    child: Text(
-                      '#${user.rank}',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: user.rank == 1
-                            ? AppColors.appleOrange
-                            : (user.rank == 2
-                                ? AppColors.neonCyan
-                                : (user.rank == 3
-                                    ? AppColors.applePurple
-                                    : (isDark ? Colors.white54 : Colors.black45))),
+        if (_users.isNotEmpty) ...[
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _users.length,
+            separatorBuilder: (c, i) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final user = _users[index];
+              return GlassCard(
+                borderRadius: 16,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      child: Text(
+                        '#${user.rank}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: user.rank == 1
+                              ? AppColors.appleOrange
+                              : (user.rank == 2
+                                  ? AppColors.neonCyan
+                                  : (user.rank == 3
+                                      ? AppColors.applePurple
+                                      : (isDark ? Colors.white54 : Colors.black45))),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  // Emoji
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isDark ? Colors.white12 : Colors.black12,
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark ? Colors.white12 : Colors.black12,
+                      ),
+                      child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 19))),
                     ),
-                    child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 19))),
-                  ),
-                  const SizedBox(width: 10),
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            user.target,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
+                            const Text('🔥', style: TextStyle(fontSize: 12)),
+                            const SizedBox(width: 2),
                             Text(
-                              user.name,
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.bold,
-                                color: isMe ? AppColors.neonCyan : null,
-                              ),
+                              '${user.streak}d',
+                              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                             ),
-                            if (isMe) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: AppColors.neonCyan.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: const Text(
-                                  'BẠN',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.neonCyan,
-                                  ),
-                                ),
-                              ),
-                            ]
                           ],
                         ),
-                        const SizedBox(height: 2),
                         Text(
-                          user.target,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? Colors.white54 : Colors.black45,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          '${user.weeklyHours}h/tuần',
+                          style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white38 : Colors.black38),
                         ),
                       ],
                     ),
-                  ),
-                  // Streak & Hours
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🔥', style: TextStyle(fontSize: 12)),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${user.streak}d',
-                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${user.weeklyHours}h/tuần',
-                        style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white38 : Colors.black38),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                  // Cheer
-                  GestureDetector(
-                    onTap: () => _cheerUser(index),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: user.hasCheered
-                            ? AppColors.appleRed.withValues(alpha: 0.2)
-                            : (isDark ? Colors.white10 : Colors.black12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(user.hasCheered ? '❤️' : '🤍', style: const TextStyle(fontSize: 12)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${user.cheers}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: user.hasCheered ? AppColors.appleRed : (isDark ? Colors.white60 : Colors.black54),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => _cheerUser(index),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: user.hasCheered
+                              ? AppColors.appleRed.withValues(alpha: 0.2)
+                              : (isDark ? Colors.white10 : Colors.black12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(user.hasCheered ? '❤️' : '🤍', style: const TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${user.cheers}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: user.hasCheered ? AppColors.appleRed : (isDark ? Colors.white60 : Colors.black54),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ] else ...[
+          GlassCard(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Column(
+                children: [
+                  const Text('🏆', style: TextStyle(fontSize: 36)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Bảng vàng đang chờ sĩ tử!',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Đăng nhập và tích cực duy trì chuỗi Streak mỗi ngày để xuất hiện trên bảng vinh danh toàn quốc.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                      height: 1.4,
                     ),
                   ),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ],
     );
   }
