@@ -5,7 +5,6 @@ import '../constants/app_colors.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
-    AppColors.currentBrightness = Brightness.light;
     return _build(
       brightness: Brightness.light,
       bg: AppColors.bgPage,
@@ -19,7 +18,6 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme {
-    AppColors.currentBrightness = Brightness.dark;
     return _build(
       brightness: Brightness.dark,
       bg: AppColors.bgPage,
