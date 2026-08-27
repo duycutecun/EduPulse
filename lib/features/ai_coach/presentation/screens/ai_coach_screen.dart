@@ -27,22 +27,13 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   String? _selectedImageName;
   String _apiKey = '';
 
-  final List<String> _quickPrompts = [
-    '📷 Giải chi tiết đề thi trong ảnh',
-    '📐 Phân tích dạng bài Hàm số',
-    '⚡ Tổng hợp công thức Dao động cơ',
-    '🗺️ Lộ trình luyện thi 90 ngày',
-    '🧠 Phương pháp Active Recall',
-    '🔥 Cho tôi động lực bứt phá!',
-  ];
-
   @override
   void initState() {
     super.initState();
     _apiKey = StorageService.getGeminiApiKey();
     _messages.add(ChatMessage(
       id: _uuid.v4(),
-      text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n\nChọn câu hỏi gợi ý bên dưới hoặc tải ảnh bài tập!',
+      text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
       isUser: false,
       timestamp: DateTime.now(),
     ));
@@ -140,7 +131,6 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     return Column(
       children: [
         _buildHeader(),
-        if (_messages.length <= 1) _buildQuickPrompts(),
         Expanded(
           child: ListView.builder(
             controller: _scrollCtrl,
@@ -209,33 +199,6 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               onPressed: () { setState(() => _messages.removeRange(1, _messages.length)); },
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickPrompts() {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        scrollDirection: Axis.horizontal,
-        itemCount: _quickPrompts.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final p = _quickPrompts[i];
-          return GestureDetector(
-            onTap: () => _sendMessage(p),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.green, width: 2),
-              ),
-              child: Text(p, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.green)),
-            ),
-          );
-        },
       ),
     );
   }
