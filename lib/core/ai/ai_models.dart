@@ -28,19 +28,24 @@ class AIModel {
   /// Danh sách model có sẵn để người dùng chọn (mặc định lên đầu).
   static const List<AIModel> definitions = [
     AIModel(
-      slug: 'meta-llama/llama-3.3-70b-instruct:free',
-      label: 'Llama 3.3 70B (Free)',
-      description: 'Đa năng, cân bằng tốc độ & chất lượng',
+      slug: 'openrouter/free',
+      label: 'Auto (Free)',
+      description: 'Tự chọn model miễn phí tốt nhất',
     ),
     AIModel(
-      slug: 'deepseek/deepseek-chat-v3-0324:free',
-      label: 'DeepSeek V3 (Free)',
-      description: 'Lý luận mạnh, chi phí thấp',
+      slug: 'minimax/minimax-m3:free',
+      label: 'MiniMax M3 (Free)',
+      description: 'Đa năng, hỗ trợ đa ngôn ngữ',
     ),
     AIModel(
-      slug: 'qwen/qwen3-235b-a22b:free',
-      label: 'Qwen3 235B (Free)',
-      description: 'Đa ngôn ngữ, mạnh lập luận',
+      slug: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+      label: 'Nemotron Ultra (Free)',
+      description: '550B参数, lý luận mạnh',
+    ),
+    AIModel(
+      slug: 'z-ai/glm-5.2:free',
+      label: 'GLM 5.2 (Free)',
+      description: 'Zhipu AI, đa năng',
     ),
     AIModel(
       slug: 'openai/gpt-4o-mini',
@@ -53,11 +58,6 @@ class AIModel {
       label: 'Gemini Flash',
       description: 'Google · hỗ trợ đọc ảnh',
       supportsVision: true,
-    ),
-    AIModel(
-      slug: 'moonshotai/kimi-k2-instruct:free',
-      label: 'Kimi K2 (Free)',
-      description: 'Lý luận sâu, chú ý chi tiết',
     ),
   ];
 
@@ -78,8 +78,9 @@ class AIModel {
 IconData aiModelIcon(String slug) {
   if (slug.startsWith('openai')) return Icons.bolt;
   if (slug.startsWith('google')) return Icons.auto_awesome;
-  if (slug.startsWith('meta-llama')) return Icons.flutter_dash;
-  if (slug.startsWith('deepseek')) return Icons.waves;
-  if (slug.startsWith('qwen')) return Icons.workspaces_outline;
+  if (slug.startsWith('minimax')) return Icons.psychology;
+  if (slug.startsWith('nvidia')) return Icons.memory;
+  if (slug.startsWith('z-ai')) return Icons.smart_toy_outlined;
+  if (slug.startsWith('openrouter')) return Icons.auto_fix_high;
   return Icons.smart_toy_outlined;
 }
