@@ -114,18 +114,18 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.border, width: 2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
         title: const Text('Cấu hình Gemini API Key', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Nhập khóa API từ aistudio.google.com', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text('Nhập khóa API từ aistudio.google.com', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 12),
             TextField(controller: keyCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'AIzaSy...')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () { final k = keyCtrl.text.trim(); StorageService.setGeminiApiKey(k); setState(() => _apiKey = k); Navigator.pop(ctx); },
             child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
@@ -159,7 +159,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     final hasKey = _apiKey.isNotEmpty;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.cardWhite,
         border: Border(bottom: BorderSide(color: AppColors.border, width: 2)),
       ),
@@ -178,7 +178,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               children: [
                 Row(
                   children: [
-                    const Text('AI Coach', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    Text('AI Coach', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                     const SizedBox(width: 6),
                     GestureDetector(
                       onTap: _showApiKeyDialog,
@@ -198,14 +198,14 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                 ),
                 Text(
                   _isLoading ? 'Đang phân tích...' : 'Giải bài & OCR 24/7',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
               ],
             ),
           ),
           if (_messages.length > 1)
             IconButton(
-              icon: const Icon(Icons.refresh, size: 20, color: AppColors.textMuted),
+              icon: Icon(Icons.refresh, size: 20, color: AppColors.textMuted),
               onPressed: () { setState(() => _messages.removeRange(1, _messages.length)); },
             ),
         ],
@@ -293,7 +293,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: () { Clipboard.setData(ClipboardData(text: msg.text)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép'))); },
-                child: const Icon(Icons.copy, size: 14, color: AppColors.textMuted),
+                child: Icon(Icons.copy, size: 14, color: AppColors.textMuted),
               ),
             ],
           ],
@@ -322,7 +322,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                 const SizedBox(width: 8),
                 Text(_selectedImageName ?? 'Ảnh', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 const SizedBox(width: 8),
-                GestureDetector(onTap: _clearImage, child: const Icon(Icons.close, size: 18, color: AppColors.textMuted)),
+                GestureDetector(onTap: _clearImage, child: Icon(Icons.close, size: 18, color: AppColors.textMuted)),
               ],
             ),
           ),
@@ -342,10 +342,10 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                   controller: _ctrl,
                   focusNode: _focusNode,
                   enabled: !_isLoading,
-                  style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: _selectedImageBytes != null ? 'Ghi chú cho ảnh...' : 'Hỏi AI bài tập...',
-                    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),

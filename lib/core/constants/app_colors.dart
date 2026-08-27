@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Duolingo Green (Primary)
+  // Global brightness set by AppTheme before each build.
+  // Theme-dependent colors resolve against this.
+  static Brightness currentBrightness = Brightness.light;
+  static bool get _dark => currentBrightness == Brightness.dark;
+
+  // ─── Fixed Functional Colors (same in light & dark) ─────────────────────
   static const Color green = Color(0xFF58CC02);
   static const Color greenDark = Color(0xFF58A700);
   static const Color greenLight = Color(0xFFD7FFB8);
 
-  // Functional Colors
   static const Color blue = Color(0xFF1CB0F6);
   static const Color blueDark = Color(0xFF1899D6);
   static const Color red = Color(0xFFFF4B4B);
@@ -16,17 +20,49 @@ class AppColors {
   static const Color yellow = Color(0xFFFFC800);
   static const Color purple = Color(0xFFCE82FF);
 
-  // Neutrals
-  static const Color bgPage = Color(0xFFF7F7F7);
-  static const Color cardWhite = Color(0xFFFFFFFF);
-  static const Color border = Color(0xFFE5E5E5);
-  static const Color borderDark = Color(0xFFD7D7D7);
-  static const Color textPrimary = Color(0xFF4B4B4B);
-  static const Color textSecondary = Color(0xFF777777);
-  static const Color textMuted = Color(0xFFAFAFAF);
-  static const Color divider = Color(0xFFE5E5E5);
+  // ─── Theme-dependent Neutrals ───────────────────────────────────────────
+  // Light: #F7F7F7 page / white cards / light borders / dark text (Duolingo)
+  // Dark:  Duolingo-style dark navy, dark cards, dim text
+  static const Color _bgPageLight = Color(0xFFF7F7F7);
+  static const Color _bgPageDark = Color(0xFF121F24);
 
-  // Legacy aliases (kept for compatibility)
+  static const Color _cardLight = Color(0xFFFFFFFF);
+  static const Color _cardDark = Color(0xFF232A31);
+
+  static const Color _borderLight = Color(0xFFE5E5E5);
+  static const Color _borderDark = Color(0xFF3D464D);
+
+  static const Color _borderStrongLight = Color(0xFFD7D7D7);
+  static const Color _borderStrongDark = Color(0xFF4A545C);
+
+  static const Color _textPrimaryLight = Color(0xFF4B4B4B);
+  static const Color _textPrimaryDark = Color(0xFFFFFFFF);
+
+  static const Color _textSecondaryLight = Color(0xFF777777);
+  static const Color _textSecondaryDark = Color(0xFFC6CACF);
+
+  static const Color _textMutedLight = Color(0xFFAFAFAF);
+  static const Color _textMutedDark = Color(0xFF8B9097);
+
+  static const Color _dividerLight = Color(0xFFE5E5E5);
+  static const Color _dividerDark = Color(0xFF3D464D);
+
+  static const Color _tertiaryLight = Color(0xFFF0F0F0);
+  static const Color _tertiaryDark = Color(0xFF1D252C);
+
+  // ─── Resolved theme-dependent getters ───────────────────────────────────
+  static Color get bgPage => _dark ? _bgPageDark : _bgPageLight;
+  static Color get cardWhite => _dark ? _cardDark : _cardLight;
+  static Color get border => _dark ? _borderDark : _borderLight;
+  static Color get borderDark => _dark ? _borderStrongDark : _borderStrongLight;
+  static Color get textPrimary => _dark ? _textPrimaryDark : _textPrimaryLight;
+  static Color get textSecondary => _dark ? _textSecondaryDark : _textSecondaryLight;
+  static Color get textMuted => _dark ? _textMutedDark : _textMutedLight;
+  static Color get divider => _dark ? _dividerDark : _dividerLight;
+  static Color get tertiaryBg => _dark ? _tertiaryDark : _tertiaryLight;
+
+  // ─── Legacy aliases (kept for compatibility) ─────────────────────────────
+  // Fixed-color aliases
   static const Color iosBlue = green;
   static const Color iosGreen = green;
   static const Color iosIndigo = green;
@@ -54,29 +90,30 @@ class AppColors {
   static const Color brandStart = green;
   static const Color brandEnd = greenDark;
 
-  static const Color iosSystemBg = bgPage;
-  static const Color iosGroupedBg = bgPage;
-  static const Color iosSecondaryGrouped = cardWhite;
-  static const Color iosTertiaryGrouped = Color(0xFFF0F0F0);
-  static const Color iosElevated = cardWhite;
-  static const Color iosBarBg = cardWhite;
+  // Theme-dependent aliases
+  static Color get iosSystemBg => bgPage;
+  static Color get iosGroupedBg => bgPage;
+  static Color get iosSecondaryGrouped => cardWhite;
+  static Color get iosTertiaryGrouped => tertiaryBg;
+  static Color get iosElevated => cardWhite;
+  static Color get iosBarBg => cardWhite;
 
-  static const Color iosSystemBgLight = bgPage;
-  static const Color iosSecondaryGroupedLight = cardWhite;
-  static const Color iosTertiaryGroupedLight = Color(0xFFF0F0F0);
-  static const Color iosBarBgLight = cardWhite;
+  static Color get iosSystemBgLight => bgPage;
+  static Color get iosSecondaryGroupedLight => cardWhite;
+  static Color get iosTertiaryGroupedLight => tertiaryBg;
+  static Color get iosBarBgLight => cardWhite;
 
-  static const Color iosSeparator = border;
-  static const Color iosBorder = border;
-  static const Color iosBorderLight = border;
+  static Color get iosSeparator => border;
+  static Color get iosBorder => border;
+  static Color get iosBorderLight => border;
 
-  static const Color textMainDark = textPrimary;
-  static const Color textMutedDark = textSecondary;
-  static const Color textSubtleDark = textMuted;
+  static Color get textMainDark => textPrimary;
+  static Color get textMutedDark => textSecondary;
+  static Color get textSubtleDark => textMuted;
 
-  static const Color textMainLight = textPrimary;
-  static const Color textMutedLight = textSecondary;
-  static const Color textSubtleLight = textMuted;
+  static Color get textMainLight => textPrimary;
+  static Color get textMutedLight => textSecondary;
+  static Color get textSubtleLight => textMuted;
 
   static const Color examUrgent = red;
   static const Color examSoon = orange;
@@ -84,14 +121,14 @@ class AppColors {
 
   static const Color primary500 = green;
   static const Color primary600 = greenDark;
-  static const Color darkCard = cardWhite;
-  static const Color darkBorder = border;
-  static const Color darkBg = bgPage;
-  static const Color darkSidebar = cardWhite;
-  static const Color darkSecondary = Color(0xFFF0F0F0);
-  static const Color darkInput = Color(0xFFF0F0F0);
-  static const Color textMutedDark2 = textSecondary;
-  static const Color textSubtleDark2 = textMuted;
+  static Color get darkCard => cardWhite;
+  static Color get darkBorder => border;
+  static Color get darkBg => bgPage;
+  static Color get darkSidebar => cardWhite;
+  static Color get darkSecondary => tertiaryBg;
+  static Color get darkInput => tertiaryBg;
+  static Color get textMutedDark2 => textSecondary;
+  static Color get textSubtleDark2 => textMuted;
   static const Color riskCritical = red;
   static const Color riskWarning = orange;
   static const Color riskNormal = green;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/constants/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/storage_service.dart';
 import 'core/utils/supabase_service.dart';
@@ -19,8 +20,34 @@ class EduPulseApp extends StatefulWidget {
 }
 
 class _EduPulseAppState extends State<EduPulseApp> {
-  void _toggleTheme() {
-    setState(() {});
+  String _mode = 'system';
+
+  @override
+  void initState() {
+    super.initState();
+    _mode = StorageService.getThemeMode();
+  }
+
+  ThemeMode get _themeMode {
+    switch (_mode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  void _setThemeMode(String mode) {
+    setState(() {
+      _mode = mode;
+      StorageService.setThemeMode(mode);
+    });
+  }
+
+  void _syncBrightness(Brightness brightness) {
+    AppColors.currentBrightness = brightness;
   }
 
   @override
@@ -29,8 +56,16 @@ class _EduPulseAppState extends State<EduPulseApp> {
       title: 'EduPulse',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _themeMode,
+      builder: (context, child) {
+        final brightness = Theme.of(context).brightness;
+        _syncBrightness(brightness);
+        return child!;
+      },
       home: MainShellScreen(
-        onToggleTheme: _toggleTheme,
+        onThemeModeChanged: _setThemeMode,
+        themeMode: _mode,
       ),
     );
   }

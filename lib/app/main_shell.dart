@@ -10,11 +10,13 @@ import '../features/study/presentation/screens/study_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
-  final VoidCallback onToggleTheme;
+  final String themeMode;
+  final ValueChanged<String> onThemeModeChanged;
 
   const MainShellScreen({
     super.key,
-    required this.onToggleTheme,
+    required this.themeMode,
+    required this.onThemeModeChanged,
   });
 
   @override
@@ -136,7 +138,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
               const AiCoachScreen(),
               const StudyScreen(),
               AccountScreen(
-                onThemeChanged: widget.onToggleTheme,
+                themeMode: widget.themeMode,
+                onThemeModeChanged: widget.onThemeModeChanged,
                 onDataChanged: _loadInitialData,
               ),
             ],
@@ -157,7 +160,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     ];
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.cardWhite,
         border: Border(
           top: BorderSide(color: AppColors.border, width: 2),

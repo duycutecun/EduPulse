@@ -86,7 +86,7 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
                     const Spacer(),
                     GestureDetector(
                       onTap: widget.onNextSound,
-                      child: const Text(
+                      child: Text(
                         'Đổi âm thanh',
                         style: TextStyle(fontSize: 11, color: AppColors.textMuted, decoration: TextDecoration.underline),
                       ),

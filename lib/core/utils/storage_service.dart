@@ -65,8 +65,8 @@ class StorageService {
   }
 
   // Theme
-  static bool isDarkMode() => _prefs?.getBool('dark_mode') ?? true;
-  static void setDarkMode(bool v) => _prefs?.setBool('dark_mode', v);
+  static String getThemeMode() => _prefs?.getString('theme_mode') ?? 'system';
+  static void setThemeMode(String v) => _prefs?.setString('theme_mode', v);
 
   // Profile
   static String getUserName() =>

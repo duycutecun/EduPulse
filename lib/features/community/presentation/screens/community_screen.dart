@@ -43,7 +43,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Bảng Vàng Sĩ Tử', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
@@ -107,7 +107,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       child: const Center(child: Text('💌', style: TextStyle(fontSize: 22))),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -124,10 +124,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Bảng Xếp Hạng Toàn Quốc', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              Text('Bảng Xếp Hạng Toàn Quốc', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
               const SizedBox(height: 12),
               if (_users.isEmpty)
-                const GlassCard(
+                GlassCard(
                   padding: EdgeInsets.all(24),
                   child: Column(
                     children: [
@@ -161,7 +161,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                           const SizedBox(width: 8),
                           Container(
                             width: 40, height: 40,
-                            decoration: const BoxDecoration(color: AppColors.bgPage, shape: BoxShape.circle),
+                            decoration: BoxDecoration(color: AppColors.bgPage, shape: BoxShape.circle),
                             child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 20))),
                           ),
                           const SizedBox(width: 12),
@@ -171,7 +171,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                               children: [
                                 Text(user.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isMe ? AppColors.green : AppColors.textPrimary)),
                                 const SizedBox(height: 2),
-                                Text(user.target, style: const TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(user.target, style: TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
                               ],
                             ),
                           ),
@@ -182,7 +182,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 const Text('🔥', style: TextStyle(fontSize: 12)),
                                 Text('${user.streak}d', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                               ]),
-                              Text('${user.weeklyHours}h/tuần', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                              Text('${user.weeklyHours}h/tuần', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                             ],
                           ),
                           const SizedBox(width: 10),
@@ -239,7 +239,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
           child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 24))),
         ),
         const SizedBox(height: 6),
-        Text(user.name.split(' ').last, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(user.name.split(' ').last, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 6),
         Container(
           height: height, width: double.infinity,

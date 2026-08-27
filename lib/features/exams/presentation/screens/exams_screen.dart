@@ -47,7 +47,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -196,7 +196,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         Expanded(
                           child: Text(
                             exam.name,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                           ),
                         ),
                         if (isPrimary)
@@ -216,11 +216,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(CupertinoIcons.calendar, size: 13, color: AppColors.textMuted),
+                        Icon(CupertinoIcons.calendar, size: 13, color: AppColors.textMuted),
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(exam.dateTime),
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         const SizedBox(width: 10),
                         Container(
@@ -261,12 +261,12 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 children: [
                   Text(
                     exam.name,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _formatDate(exam.dateTime),
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -296,9 +296,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
           children: [
             const Text('🎯', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
             const SizedBox(height: 4),
-            Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           ],
         ),
       ),
@@ -315,7 +315,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 2),
+          side: BorderSide(color: AppColors.border, width: 2),
         ),
         title: const Text('Thêm kỳ thi mới', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
@@ -336,7 +336,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () {
@@ -366,14 +366,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 2),
+          side: BorderSide(color: AppColors.border, width: 2),
         ),
         title: const Text('Xóa kỳ thi?', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text('Xóa "$name" khỏi danh sách theo dõi?'),
         actions: [
           TextButton(
             onPressed: () { result = false; Navigator.pop(ctx); },
-            child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () { result = true; Navigator.pop(ctx); },

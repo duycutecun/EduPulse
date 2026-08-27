@@ -154,12 +154,12 @@ class _AuthScreenState extends State<AuthScreen>
                   child: const Center(child: Text('🎓', style: TextStyle(fontSize: 44))),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'EduPulse',
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Trợ lý Sĩ tử • Đếm ngược Kỳ thi',
                   style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                 ),
@@ -252,13 +252,13 @@ class _AuthScreenState extends State<AuthScreen>
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.border, width: 2),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text('Tiếp tục không cần tài khoản', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Chế độ khách: dữ liệu chỉ lưu trên thiết bị.\nĐăng ký để sao lưu & dùng trên nhiều thiết bị.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 11.5, color: AppColors.textMuted, height: 1.4),
@@ -355,14 +355,14 @@ class _AuthScreenState extends State<AuthScreen>
         controller: ctrl,
         keyboardType: keyboard,
         obscureText: obscure,
-        style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+        style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, size: 18, color: AppColors.textMuted),
           suffixIcon: suffix != null
               ? Padding(padding: const EdgeInsets.only(right: 12), child: suffix)
               : null,
           hintText: label,
-          hintStyle: const TextStyle(fontSize: 13.5, color: AppColors.textMuted),
+          hintStyle: TextStyle(fontSize: 13.5, color: AppColors.textMuted),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         ),

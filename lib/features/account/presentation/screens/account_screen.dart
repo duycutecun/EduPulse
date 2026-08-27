@@ -8,12 +8,14 @@ import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class AccountScreen extends StatefulWidget {
-  final VoidCallback onThemeChanged;
+  final String themeMode;
+  final ValueChanged<String> onThemeModeChanged;
   final VoidCallback onDataChanged;
 
   const AccountScreen({
     super.key,
-    required this.onThemeChanged,
+    required this.themeMode,
+    required this.onThemeModeChanged,
     required this.onDataChanged,
   });
 
@@ -28,7 +30,7 @@ class _AccountScreenState extends State<AccountScreen> {
   late String _apiKey;
   late String _supabaseUrl;
   late String _supabaseAnonKey;
-  late bool _isDark;
+  late String _themeMode;
   bool _isSyncing = false;
   bool _isRestoring = false;
   String _selectedFilter = 'Tất cả';
@@ -48,7 +50,7 @@ class _AccountScreenState extends State<AccountScreen> {
     _apiKey = StorageService.getGeminiApiKey();
     _supabaseUrl = StorageService.getSupabaseUrl();
     _supabaseAnonKey = StorageService.getSupabaseAnonKey();
-    _isDark = StorageService.isDarkMode();
+    _themeMode = StorageService.getThemeMode();
   }
 
   void _initLeaderboard() async {
@@ -127,11 +129,11 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.border, width: 2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
         title: const Text('Đăng xuất?', style: TextStyle(fontWeight: FontWeight.w800)),
         content: const Text('Dữ liệu cục bộ vẫn được giữ. Hãy sao lưu trước khi đăng xuất.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () async { Navigator.pop(ctx); await SupabaseService.signOut(); if (mounted) { setState(() {}); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đăng xuất'))); } },
             child: const Text('Đăng xuất', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)),
@@ -141,10 +143,62 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  void _toggleTheme(bool val) {
-    StorageService.setDarkMode(val);
-    setState(() => _isDark = val);
-    widget.onThemeChanged();
+  void _setThemeMode(String mode) {
+    setState(() => _themeMode = mode);
+    widget.onThemeModeChanged(mode);
+  }
+
+  String get _themeModeLabel {
+    switch (_themeMode) {
+      case 'light':
+        return 'Sáng';
+      case 'dark':
+        return 'Tối';
+      default:
+        return 'Theo hệ thống';
+    }
+  }
+
+  void _showThemeDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final options = <String, String>{
+          'system': 'Theo hệ thống',
+          'light': 'Sáng',
+          'dark': 'Tối',
+        };
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.border, width: 2),
+          ),
+          title: const Text('Màu giao diện', style: TextStyle(fontWeight: FontWeight.w800)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.entries.map((e) {
+              final selected = _themeMode == e.key;
+              return ListTile(
+                leading: Icon(
+                  e.key == 'light'
+                      ? Icons.light_mode
+                      : e.key == 'dark'
+                          ? Icons.dark_mode
+                          : Icons.brightness_auto,
+                  color: AppColors.green,
+                ),
+                title: Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600)),
+                trailing: selected ? const Icon(Icons.check_circle, color: AppColors.green) : null,
+                onTap: () {
+                  _setThemeMode(e.key);
+                  Navigator.pop(ctx);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
   }
 
   void _cheerUser(int index) {
@@ -240,8 +294,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(user.email ?? 'EduPulse', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                          const Text('Đã kết nối đám mây', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          Text(user.email ?? 'EduPulse', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                          Text('Đã kết nối đám mây', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                         ],
                       ),
                     ),
@@ -283,7 +337,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           child: Center(
                             child: _isRestoring
                                 ? const CupertinoActivityIndicator()
-                                : const Text('Khôi phục', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                                : Text('Khôi phục', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                           ),
                         ),
                       ),
@@ -308,7 +362,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     child: const Icon(Icons.person_add, color: AppColors.green, size: 24),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -344,11 +398,11 @@ class _AccountScreenState extends State<AccountScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_userName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    Text(_userName, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                     const SizedBox(height: 2),
                     Text(
                       _userTarget.isNotEmpty ? 'Mục tiêu: $_userTarget' : 'Chưa đặt mục tiêu',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
@@ -382,7 +436,7 @@ class _AccountScreenState extends State<AccountScreen> {
         const SizedBox(height: 8),
         GlassCard(
           padding: EdgeInsets.zero,
-          child: _settingTile(Icons.dark_mode, AppColors.purple, 'Dark Mode', null, null, trailing: CupertinoSwitch(value: _isDark, onChanged: _toggleTheme)),
+          child: _settingTile(Icons.dark_mode, AppColors.purple, 'Màu giao diện', _themeModeLabel, _showThemeDialog),
         ),
         const SizedBox(height: 18),
         _sectionTitle('HỆ THỐNG'),
@@ -439,7 +493,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 SizedBox(width: 28, child: Text('#${user.rank}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: user.rank <= 3 ? AppColors.orange : AppColors.textMuted))),
                 Container(
                   width: 36, height: 36,
-                  decoration: const BoxDecoration(color: AppColors.bgPage, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.bgPage, shape: BoxShape.circle),
                   child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 18))),
                 ),
                 const SizedBox(width: 10),
@@ -447,8 +501,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                      Text(user.target, style: const TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(user.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                      Text(user.target, style: TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
@@ -476,7 +530,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ))
         else
-          const GlassCard(
+          GlassCard(
             padding: EdgeInsets.all(24),
             child: Center(
               child: Column(
@@ -541,7 +595,7 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
-      child: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: AppColors.textMuted)),
+      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: AppColors.textMuted)),
     );
   }
 
@@ -554,14 +608,14 @@ class _AccountScreenState extends State<AccountScreen> {
         decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: iconColor, size: 19),
       ),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-      subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)) : null,
-      trailing: trailing ?? const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
+      title: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+      subtitle: subtitle != null ? Text(subtitle, style: TextStyle(fontSize: 11, color: AppColors.textMuted)) : null,
+      trailing: trailing ?? Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
     );
   }
 
   Widget _divider() {
-    return const Divider(height: 1, thickness: 2, indent: 52, color: AppColors.border);
+    return Divider(height: 1, thickness: 2, indent: 52, color: AppColors.border);
   }
 
   void _showEditProfileDialog() {
@@ -570,7 +624,7 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.border, width: 2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
         title: const Text('Chỉnh sửa hồ sơ', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -581,7 +635,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () { if (nameCtrl.text.trim().isNotEmpty) _updateProfile(nameCtrl.text.trim(), targetCtrl.text.trim()); Navigator.pop(ctx); },
             child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
@@ -597,12 +651,12 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.border, width: 2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
         title: const Text('Cấu hình Supabase', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Nhập Project URL & Anon Key từ Supabase Dashboard.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text('Nhập Project URL & Anon Key từ Supabase Dashboard.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 12),
             TextField(controller: urlCtrl, decoration: const InputDecoration(hintText: 'https://xxx.supabase.co')),
             const SizedBox(height: 10),
@@ -610,7 +664,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () { _updateSupabase(urlCtrl.text.trim(), keyCtrl.text.trim()); Navigator.pop(ctx); },
             child: const Text('Lưu & Kết nối', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
@@ -625,18 +679,18 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.border, width: 2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
         title: const Text('Cấu hình Gemini API Key', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Nhập khóa API từ aistudio.google.com', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text('Nhập khóa API từ aistudio.google.com', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 12),
             TextField(controller: keyCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'AIzaSy...')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () { _updateApiKey(keyCtrl.text.trim()); Navigator.pop(ctx); },
             child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),

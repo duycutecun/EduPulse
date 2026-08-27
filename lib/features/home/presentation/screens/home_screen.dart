@@ -140,14 +140,14 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               'Chào $userName!',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
+            Text(
               'Hôm nay là ngày tuyệt vời để học',
               style: TextStyle(
                 fontSize: 14,
@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         widget.primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -236,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         widget.primaryExam != null
                             ? '📅 ${_formatDate(widget.primaryExam!.dateTime)}'
                             : 'Chạm vào đây để chọn kỳ thi →',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary,
@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Chặng đường ôn luyện',
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                   ),
@@ -316,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: AppColors.cardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 2),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: Offset(0, 3)),
         ],
       ),
@@ -324,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -346,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _timerColon() {
-    return const Text(
+    return Text(
       ':',
       style: TextStyle(
         fontSize: 20,
@@ -368,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
                   Text('📋', style: TextStyle(fontSize: 18)),
                   SizedBox(width: 8),
@@ -426,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ..._tasks.map((task) => _buildTaskItem(task)),
           ] else ...[
             const SizedBox(height: 14),
-            const Center(
+            Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Text(
@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           '⏱ ${task.estimateMinutes} phút',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -657,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               nudges[today],
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -685,7 +685,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.border, width: 2),
+              side: BorderSide(color: AppColors.border, width: 2),
             ),
             title: const Text('Thêm nhiệm vụ', style: TextStyle(fontWeight: FontWeight.w800)),
             content: SingleChildScrollView(
@@ -770,7 +770,7 @@ class _HomeScreenState extends State<HomeScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+                child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
               ),
               TextButton(
                 onPressed: () {

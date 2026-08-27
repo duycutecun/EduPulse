@@ -26,7 +26,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.darkTheme,
-        home: MainShellScreen(onToggleTheme: () {}),
+        home: MainShellScreen(themeMode: 'dark', onThemeModeChanged: (_) {}),
       ),
     );
     await tester.pump(const Duration(milliseconds: 200));
@@ -73,7 +73,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.darkTheme,
-        home: MainShellScreen(onToggleTheme: () {}),
+        home: MainShellScreen(themeMode: 'dark', onThemeModeChanged: (_) {}),
       ),
     );
     await tester.pump(const Duration(milliseconds: 200));
@@ -107,7 +107,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.darkTheme,
-        home: MainShellScreen(onToggleTheme: () {}),
+        home: MainShellScreen(themeMode: 'dark', onThemeModeChanged: (_) {}),
       ),
     );
     await tester.pump(const Duration(milliseconds: 200));

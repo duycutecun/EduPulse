@@ -55,13 +55,13 @@ class WeeklyChartWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(children: [
+                    Row(children: [
                       Icon(Icons.access_time, size: 16, color: AppColors.blue),
                       SizedBox(width: 6),
                       Text('Tuần này', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
                     ]),
                     const SizedBox(height: 6),
-                    Text('${totalWeeklyHours.toStringAsFixed(1)}h', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    Text('${totalWeeklyHours.toStringAsFixed(1)}h', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                   ],
                 ),
               ),
@@ -73,7 +73,7 @@ class WeeklyChartWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(children: [
+                    Row(children: [
                       Icon(Icons.trending_up, size: 16, color: AppColors.green),
                       SizedBox(width: 6),
                       Text('Trung bình', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
@@ -95,7 +95,7 @@ class WeeklyChartWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Giờ học trong tuần', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  Text('Giờ học trong tuần', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
@@ -149,7 +149,7 @@ class WeeklyChartWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Phân bổ theo môn', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              Text('Phân bổ theo môn', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
               const SizedBox(height: 16),
               ...subjectMap.entries.map((entry) {
                 final percent = (entry.value / (totalWeeklyHours > 0 ? totalWeeklyHours : 28.5)).clamp(0.0, 1.0);
@@ -160,8 +160,8 @@ class WeeklyChartWidget extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(entry.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                          Text('${entry.value.toStringAsFixed(1)}h (${(percent * 100).toInt()}%)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                          Text(entry.key, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                          Text('${entry.value.toStringAsFixed(1)}h (${(percent * 100).toInt()}%)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
                         ],
                       ),
                       const SizedBox(height: 6),

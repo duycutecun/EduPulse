@@ -213,7 +213,7 @@ class _StudyScreenState extends State<StudyScreen> {
                   children: [
                     Text(
                       '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
@@ -221,7 +221,7 @@ class _StudyScreenState extends State<StudyScreen> {
                     ),
                     Text(
                       'PHIÊN $_pomRound',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
@@ -259,7 +259,7 @@ class _StudyScreenState extends State<StudyScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.border, width: 2),
                   ),
-                  child: const Icon(CupertinoIcons.arrow_counterclockwise, color: AppColors.textPrimary, size: 20),
+                  child: Icon(CupertinoIcons.arrow_counterclockwise, color: AppColors.textPrimary, size: 20),
                 ),
               ),
               const SizedBox(width: 24),
@@ -291,7 +291,7 @@ class _StudyScreenState extends State<StudyScreen> {
           const SizedBox(height: 16),
           Text(
             _pomRunning ? 'Đang trong phiên học!' : 'Bắt đầu để tính thời gian',
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
           ),
         ],
       ),
@@ -370,7 +370,7 @@ class _StudyScreenState extends State<StudyScreen> {
           ),
           const SizedBox(height: 16),
           if (_logs.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Column(
                 children: [
@@ -406,7 +406,7 @@ class _StudyScreenState extends State<StudyScreen> {
               ],
             ),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
+            Text(label, style: TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -455,13 +455,13 @@ class _StudyScreenState extends State<StudyScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(log.subject, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  Text(log.subject, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   if (log.note != null && log.note!.isNotEmpty)
-                    Text(log.note!, style: const TextStyle(fontSize: 12, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(log.note!, style: TextStyle(fontSize: 12, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
-            Text('${log.date.day}/${log.date.month}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            Text('${log.date.day}/${log.date.month}', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
         ),
       ),
@@ -478,7 +478,7 @@ class _StudyScreenState extends State<StudyScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 2),
+          side: BorderSide(color: AppColors.border, width: 2),
         ),
         title: const Text('Ghi nhật ký học', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
@@ -492,7 +492,7 @@ class _StudyScreenState extends State<StudyScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () {
               if (subjectCtrl.text.isNotEmpty) {
