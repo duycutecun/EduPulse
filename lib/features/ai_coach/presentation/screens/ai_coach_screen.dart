@@ -2,8 +2,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/ai/ai_models.dart';
+import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/gemini_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/animated_pulse.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -25,12 +26,12 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
 
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
-  String _apiKey = '';
+  AIModel _model = AIModel.defaultModel;
 
   @override
   void initState() {
     super.initState();
-    _apiKey = StorageService.getGeminiApiKey();
+    _model = AIModel.fromSlug(StorageService.getAiModel());
     _messages.add(ChatMessage(
       id: _uuid.v4(),
       text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
@@ -82,7 +83,12 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     setState(() { _messages.add(userMsg); _messages.add(loadingMsg); _isLoading = true; });
     _scrollToBottom();
 
-    final response = await GeminiService.chat(apiKey: StorageService.getGeminiApiKey(), history: _messages.where((m) => !m.isLoading).toList(), userMessage: messageText, imageBytes: attachedImage);
+    final response = await AiRouter.chat(
+      model: _model,
+      history: _messages.where((m) => !m.isLoading).toList(),
+      userMessage: messageText,
+      imageBytes: attachedImage,
+    );
 
     setState(() {
       _messages.remove(loadingMsg);
@@ -100,29 +106,70 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     });
   }
 
-  void _showApiKeyDialog() {
-    final keyCtrl = TextEditingController(text: _apiKey);
-    showDialog(
+  void _showModelPicker() {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
-        title: const Text('Cấu hình Gemini API Key', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Nhập khóa API từ aistudio.google.com', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            const SizedBox(height: 12),
-            TextField(controller: keyCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'AIzaSy...')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
-          TextButton(
-            onPressed: () { final k = keyCtrl.text.trim(); StorageService.setGeminiApiKey(k); setState(() => _apiKey = k); Navigator.pop(ctx); },
-            child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
-          ),
-        ],
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 18, 20, 6),
+                child: Text(
+                  'Chọn model AI',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Nhiều model miễn phí, tự động chuyển khi hết lượt.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: AIModel.definitions.length,
+                  itemBuilder: (ctx, i) {
+                    final m = AIModel.definitions[i];
+                    final selected = m.slug == _model.slug;
+                    return ListTile(
+                      leading: Icon(aiModelIcon(m.slug),
+                          color: selected ? AppColors.green : AppColors.textMuted),
+                      title: Text(
+                        m.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: selected ? AppColors.green : AppColors.textPrimary,
+                        ),
+                      ),
+                      subtitle: Text(m.description,
+                          style: const TextStyle(fontSize: 11)),
+                      trailing: selected
+                          ? const Icon(Icons.check_circle, color: AppColors.green)
+                          : null,
+                      onTap: () {
+                        setState(() => _model = m);
+                        StorageService.setAiModel(m.slug);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -146,7 +193,6 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildHeader() {
-    final hasKey = _apiKey.isNotEmpty;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
       decoration: BoxDecoration(
@@ -171,23 +217,29 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                     Text('AI Coach', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                     const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: _showApiKeyDialog,
+                      onTap: _showModelPicker,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: (hasKey ? AppColors.green : AppColors.orange).withValues(alpha: 0.15),
+                          color: AppColors.green.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
-                          hasKey ? 'SẴN SÀNG' : 'CÀI API',
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: hasKey ? AppColors.green : AppColors.orange),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(aiModelIcon(_model.slug), size: 10, color: AppColors.green),
+                            const SizedBox(width: 3),
+                            Text(_model.label.split(' ').first, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.green)),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
                 Text(
-                  _isLoading ? 'Đang phân tích...' : 'Giải bài & OCR 24/7',
+                  _model.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
               ],

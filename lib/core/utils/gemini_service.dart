@@ -5,7 +5,7 @@ import '../../features/study/domain/models/study_models.dart';
 
 class GeminiService {
   static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
 
   static Future<String> chat({
     required String apiKey,

@@ -2,6 +2,8 @@
   "outputDirectory": "build/web",
   "cleanUrls": true,
   "framework": null,
+  "installCommand": "git clone --depth 1 -b stable https://github.com/flutter/flutter.git /vercel/flutter && /vercel/flutter/bin/flutter config --no-analytics >/dev/null 2>&1 && /vercel/flutter/bin/flutter --version",
+  "buildCommand": "/vercel/flutter/bin/flutter pub get && /vercel/flutter/bin/flutter build web --release --no-wasm-dry-run --dart-define=OPENROUTER_API_KEY=$OPENROUTER_API_KEY",
   "rewrites": [
     {
       "source": "/(.*)",

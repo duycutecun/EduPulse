@@ -78,10 +78,8 @@ class StorageService {
       _prefs?.getString('user_target') ?? '';
   static void setUserTarget(String v) => _prefs?.setString('user_target', v);
 
-  static String getGeminiApiKey() =>
-      _prefs?.getString('gemini_api_key') ?? '';
-  static void setGeminiApiKey(String v) =>
-      _prefs?.setString('gemini_api_key', v);
+  static String getAiModel() => _prefs?.getString('ai_model') ?? '';
+  static void setAiModel(String v) => _prefs?.setString('ai_model', v);
 
   // Today mission
   static List<String> getTodayTaskIds() =>

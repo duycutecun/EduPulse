@@ -27,7 +27,6 @@ class _AccountScreenState extends State<AccountScreen> {
   int _activeSegment = 0;
   late String _userName;
   late String _userTarget;
-  late String _apiKey;
   late String _supabaseUrl;
   late String _supabaseAnonKey;
   late String _themeMode;
@@ -47,7 +46,6 @@ class _AccountScreenState extends State<AccountScreen> {
   void _loadData() {
     _userName = StorageService.getUserName();
     _userTarget = StorageService.getUserTarget();
-    _apiKey = StorageService.getGeminiApiKey();
     _supabaseUrl = StorageService.getSupabaseUrl();
     _supabaseAnonKey = StorageService.getSupabaseAnonKey();
     _themeMode = StorageService.getThemeMode();
@@ -69,11 +67,6 @@ class _AccountScreenState extends State<AccountScreen> {
     setState(() { _userName = name; _userTarget = target; });
     widget.onDataChanged();
     SupabaseService.syncProfile();
-  }
-
-  void _updateApiKey(String key) {
-    StorageService.setGeminiApiKey(key);
-    setState(() => _apiKey = key);
   }
 
   void _updateSupabase(String url, String key) async {
@@ -420,15 +413,13 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        _sectionTitle('ĐÁM MÂY & AI'),
+        _sectionTitle('ĐÁM MÂY'),
         const SizedBox(height: 8),
         GlassCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
               _settingTile(Icons.cloud, AppColors.blue, 'Supabase Cloud', hasSupabase ? 'Đã kết nối' : 'Chưa kết nối', () => _showSupabaseDialog()),
-              _divider(),
-              _settingTile(Icons.auto_awesome, AppColors.orange, 'Gemini API Key', _apiKey.isNotEmpty ? 'Đã liên kết' : 'Chưa nhập', () => _showApiKeyDialog()),
             ],
           ),
         ),
@@ -685,32 +676,6 @@ class _AccountScreenState extends State<AccountScreen> {
           TextButton(
             onPressed: () { _updateSupabase(urlCtrl.text.trim(), keyCtrl.text.trim()); Navigator.pop(ctx); },
             child: const Text('Lưu & Kết nối', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showApiKeyDialog() {
-    final keyCtrl = TextEditingController(text: _apiKey);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
-        title: const Text('Cấu hình Gemini API Key', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Nhập khóa API từ aistudio.google.com', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            const SizedBox(height: 12),
-            TextField(controller: keyCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'AIzaSy...')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
-          TextButton(
-            onPressed: () { _updateApiKey(keyCtrl.text.trim()); Navigator.pop(ctx); },
-            child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
