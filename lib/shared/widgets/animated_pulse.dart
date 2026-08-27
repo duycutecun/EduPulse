@@ -15,10 +15,7 @@ class _TypingDotsIndicatorState extends State<TypingDotsIndicator>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
   }
 
   @override
@@ -39,15 +36,11 @@ class _TypingDotsIndicatorState extends State<TypingDotsIndicator>
             final progress = (_ctrl.value - delay) % 1.0;
             final scale = 0.5 + 0.5 * (1 - (progress - 0.5).abs() * 2).clamp(0.0, 1.0);
             final opacity = 0.4 + 0.6 * scale;
-
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 3),
               width: 7,
               height: 7,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.iosIndigo.withValues(alpha: opacity),
-              ),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.green.withValues(alpha: opacity)),
               transform: Matrix4.diagonal3Values(scale, scale, 1.0),
             );
           },
@@ -65,8 +58,8 @@ class PulsingGlow extends StatefulWidget {
   const PulsingGlow({
     super.key,
     required this.child,
-    this.glowColor = AppColors.iosIndigo,
-    this.maxBlur = 24,
+    this.glowColor = AppColors.green,
+    this.maxBlur = 0,
   });
 
   @override
@@ -81,13 +74,8 @@ class _PulsingGlowState extends State<PulsingGlow>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.3, end: 0.8).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000))..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.3, end: 0.8).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -98,6 +86,7 @@ class _PulsingGlowState extends State<PulsingGlow>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.maxBlur <= 0) return widget.child;
     return AnimatedBuilder(
       animation: _anim,
       builder: (ctx, child) {
@@ -105,7 +94,7 @@ class _PulsingGlowState extends State<PulsingGlow>
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: widget.glowColor.withValues(alpha: _anim.value * 0.5),
+                color: widget.glowColor.withValues(alpha: _anim.value * 0.4),
                 blurRadius: widget.maxBlur * _anim.value,
                 spreadRadius: 2,
               ),

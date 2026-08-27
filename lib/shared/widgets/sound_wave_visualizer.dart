@@ -29,10 +29,7 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
   @override
   void initState() {
     super.initState();
-    _animCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
   }
 
   @override
@@ -43,23 +40,18 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.isPlaying
-              ? AppColors.neonCyan.withValues(alpha: 0.4)
-              : (isDark ? Colors.white12 : Colors.black12),
-          width: 1.2,
+          color: widget.isPlaying ? AppColors.green : AppColors.border,
+          width: 2,
         ),
       ),
       child: Row(
         children: [
-          // Sound icon with pulse
           GestureDetector(
             onTap: widget.onToggle,
             child: Container(
@@ -67,33 +59,15 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
               height: 42,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: widget.isPlaying
-                    ? const LinearGradient(
-                        colors: [AppColors.neonCyan, AppColors.neonPurple],
-                      )
-                    : null,
-                color: widget.isPlaying
-                    ? null
-                    : (isDark ? Colors.white10 : Colors.black12),
-                boxShadow: widget.isPlaying
-                    ? [
-                        BoxShadow(
-                          color: AppColors.neonCyan.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                        )
-                      ]
-                    : null,
+                color: widget.isPlaying ? AppColors.green : AppColors.bgPage,
+                border: Border.all(color: widget.isPlaying ? AppColors.green : AppColors.border, width: 2),
               ),
               child: Center(
-                child: Text(
-                  widget.soundModeIcon,
-                  style: const TextStyle(fontSize: 20),
-                ),
+                child: Text(widget.soundModeIcon, style: const TextStyle(fontSize: 20)),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          // Info & wave
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,34 +76,24 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
                 Row(
                   children: [
                     Text(
-                      'Lo-Fi Focus: ${widget.soundModeName}',
+                      widget.soundModeName,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: widget.isPlaying
-                            ? AppColors.neonCyan
-                            : (isDark ? Colors.white70 : Colors.black87),
+                        fontWeight: FontWeight.w700,
+                        color: widget.isPlaying ? AppColors.green : AppColors.textPrimary,
                       ),
                     ),
                     const Spacer(),
                     GestureDetector(
                       onTap: widget.onNextSound,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          'Đổi âm thanh ↻',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? Colors.white38 : Colors.black45,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
+                      child: const Text(
+                        'Đổi âm thanh',
+                        style: TextStyle(fontSize: 11, color: AppColors.textMuted, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                // Animated sound bars
                 AnimatedBuilder(
                   animation: _animCtrl,
                   builder: (context, child) {
@@ -145,19 +109,7 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
                           height: factor,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(2),
-                            gradient: widget.isPlaying
-                                ? const LinearGradient(
-                                    begin: Alignment.bottomCenter,
-                                    end: Alignment.topCenter,
-                                    colors: [
-                                      AppColors.neonCyan,
-                                      AppColors.neonPurple,
-                                    ],
-                                  )
-                                : null,
-                            color: widget.isPlaying
-                                ? null
-                                : (isDark ? Colors.white12 : Colors.black12),
+                            color: widget.isPlaying ? AppColors.green : AppColors.border,
                           ),
                         );
                       }),

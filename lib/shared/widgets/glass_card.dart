@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
@@ -20,11 +19,11 @@ class GlassCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(18),
     this.margin,
-    this.borderRadius = 22,
-    this.blur = 20,
+    this.borderRadius = 16,
+    this.blur = 0,
     this.customColor,
     this.borderColor,
-    this.borderWidth = 0.8,
+    this.borderWidth = 2,
     this.onTap,
     this.shadows,
     this.borderGradient,
@@ -32,32 +31,17 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = customColor ?? AppColors.cardWhite;
+    final bColor = borderColor ?? AppColors.border;
 
-    final defaultBg = isDark
-        ? (customColor ?? const Color(0xFF1E1E26).withValues(alpha: 0.65))
-        : (customColor ?? Colors.white.withValues(alpha: 0.75));
-
-    final defaultBorder = isDark
-        ? (borderColor ?? Colors.white.withValues(alpha: 0.12))
-        : (borderColor ?? Colors.black.withValues(alpha: 0.08));
-
-    final content = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: defaultBg,
-            borderRadius: BorderRadius.circular(borderRadius),
-            border: borderGradient == null
-                ? Border.all(color: defaultBorder, width: borderWidth)
-                : null,
-          ),
-          child: child,
-        ),
+    final content = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: bColor, width: borderWidth),
       ),
+      child: child,
     );
 
     Widget container = Container(
@@ -67,24 +51,14 @@ class GlassCard extends StatelessWidget {
         boxShadow: shadows ??
             [
               BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.3)
-                    : AppColors.iosBlue.withValues(alpha: 0.06),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
+                color: AppColors.borderDark.withValues(alpha: 0.5),
+                blurRadius: 0,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
               ),
             ],
       ),
-      child: borderGradient == null
-          ? content
-          : Container(
-              padding: EdgeInsets.all(borderWidth),
-              decoration: BoxDecoration(
-                gradient: borderGradient,
-                borderRadius: BorderRadius.circular(borderRadius),
-              ),
-              child: content,
-            ),
+      child: content,
     );
 
     if (onTap != null) {

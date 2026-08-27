@@ -24,7 +24,7 @@ class SupabaseService {
     if (url.isEmpty || anonKey.isEmpty) return false;
 
     try {
-      await Supabase.initialize(url: url, anonKey: anonKey);
+      await Supabase.initialize(url: url, publishableKey: anonKey);
       _client = Supabase.instance.client;
       return true;
     } catch (_) {

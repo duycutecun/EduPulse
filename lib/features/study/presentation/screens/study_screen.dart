@@ -5,8 +5,6 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
-import '../../../../shared/widgets/animated_pulse.dart';
-import '../../../../shared/widgets/sound_wave_visualizer.dart';
 import '../../domain/models/study_models.dart';
 import '../widgets/weekly_chart_widget.dart';
 
@@ -20,9 +18,8 @@ class StudyScreen extends StatefulWidget {
 class _StudyScreenState extends State<StudyScreen> {
   final _uuid = const Uuid();
   List<StudyLog> _logs = [];
-  int _activeTab = 0; // 0: Pomodoro, 1: Biểu đồ, 2: Nhật ký
+  int _activeTab = 0;
 
-  // Pomodoro settings
   int _focusMinutes = 25;
   int _breakMinutes = 5;
   int _pomSeconds = 25 * 60;
@@ -30,16 +27,6 @@ class _StudyScreenState extends State<StudyScreen> {
   bool _isBreak = false;
   int _pomRound = 0;
   Timer? _pomTimer;
-
-  // Ambient sound mode
-  bool _isSoundPlaying = false;
-  int _soundModeIndex = 0;
-  final List<Map<String, String>> _soundModes = [
-    {'name': 'Tiếng mưa rơi nhẹ', 'icon': '🌧️'},
-    {'name': 'Quán Cafe Lo-Fi', 'icon': '☕'},
-    {'name': 'Đêm yên tĩnh', 'icon': '🌙'},
-    {'name': 'Thư viện trường học', 'icon': '📚'},
-  ];
 
   @override
   void initState() {
@@ -58,13 +45,7 @@ class _StudyScreenState extends State<StudyScreen> {
   }
 
   void _addLog(String subject, double hours, String? note) {
-    final log = StudyLog(
-      id: _uuid.v4(),
-      date: DateTime.now(),
-      subject: subject,
-      hours: hours,
-      note: note,
-    );
+    final log = StudyLog(id: _uuid.v4(), date: DateTime.now(), subject: subject, hours: hours, note: note);
     StorageService.setStudyLogJson(log.id, log.toJsonString());
     final ids = StorageService.getStudyLogIds()..add(log.id);
     StorageService.setStudyLogIds(ids);
@@ -107,7 +88,7 @@ class _StudyScreenState extends State<StudyScreen> {
             } else {
               _isBreak = true;
               _pomSeconds = _breakMinutes * 60;
-              _addLog('Pomodoro Tập trung', _focusMinutes / 60.0, 'Hoàn thành phiên $_pomRound');
+              _addLog('Pomodoro', _focusMinutes / 60.0, 'Phiên $_pomRound');
             }
           });
         }
@@ -124,12 +105,6 @@ class _StudyScreenState extends State<StudyScreen> {
     });
   }
 
-  void _nextSound() {
-    setState(() {
-      _soundModeIndex = (_soundModeIndex + 1) % _soundModes.length;
-    });
-  }
-
   @override
   void dispose() {
     _pomTimer?.cancel();
@@ -138,46 +113,36 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Column(
       children: [
-        // Tab switcher
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF1D1C2A).withValues(alpha: 0.7)
-                  : Colors.black.withValues(alpha: 0.05),
+              color: AppColors.bgPage,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
-                width: 0.5,
-              ),
+              border: Border.all(color: AppColors.border, width: 2),
             ),
             child: Row(
               children: [
-                _tabBtn(0, '⏰ Pomodoro', isDark),
-                _tabBtn(1, '📊 Biểu đồ', isDark),
-                _tabBtn(2, '📓 Nhật ký', isDark),
+                _tabBtn(0, 'Pomodoro'),
+                _tabBtn(1, 'Biểu đồ'),
+                _tabBtn(2, 'Nhật ký'),
               ],
             ),
           ),
         ),
         Expanded(
           child: _activeTab == 0
-              ? _buildPomodoroTab(isDark)
-              : (_activeTab == 1
-                  ? _buildChartTab(isDark)
-                  : _buildLogTab(isDark)),
+              ? _buildPomodoroTab()
+              : (_activeTab == 1 ? _buildChartTab() : _buildLogTab()),
         ),
       ],
     );
   }
 
-  Widget _tabBtn(int index, String label, bool isDark) {
+  Widget _tabBtn(int index, String label) {
     final isActive = _activeTab == index;
     return Expanded(
       child: GestureDetector(
@@ -186,28 +151,16 @@ class _StudyScreenState extends State<StudyScreen> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive
-                ? (isDark ? const Color(0xFF322F4C) : Colors.white)
-                : Colors.transparent,
+            color: isActive ? AppColors.green : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-                      blurRadius: 6,
-                    ),
-                  ]
-                : null,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-              color: isActive
-                  ? (isDark ? Colors.white : Colors.black87)
-                  : (isDark ? Colors.white54 : Colors.black45),
+              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+              color: isActive ? Colors.white : AppColors.textMuted,
             ),
           ),
         ),
@@ -215,116 +168,84 @@ class _StudyScreenState extends State<StudyScreen> {
     );
   }
 
-  Widget _buildPomodoroTab(bool isDark) {
+  Widget _buildPomodoroTab() {
     final minutes = _pomSeconds ~/ 60;
     final seconds = _pomSeconds % 60;
     final totalSec = _isBreak ? (_breakMinutes * 60) : (_focusMinutes * 60);
     final progress = totalSec > 0 ? (1 - (_pomSeconds / totalSec)).clamp(0.0, 1.0) : 0.0;
-    final activeColor = _isBreak ? AppColors.appleGreen : AppColors.neonCyan;
+    final activeColor = _isBreak ? AppColors.green : AppColors.blue;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       child: Column(
         children: [
-          // Mode presets
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _modeChip(25, 5, '25/5 Chuẩn', isDark),
+              _modeChip(25, 5, '25/5'),
               const SizedBox(width: 8),
-              _modeChip(50, 10, '50/10 Sâu', isDark),
+              _modeChip(50, 10, '50/10'),
               const SizedBox(width: 8),
-              _modeChip(90, 20, '90/20 Max', isDark),
+              _modeChip(90, 20, '90/20'),
             ],
           ),
-          const SizedBox(height: 20),
-
-          // Lo-Fi Sound Visualizer
-          SoundWaveVisualizer(
-            isPlaying: _isSoundPlaying,
-            soundModeName: _soundModes[_soundModeIndex]['name']!,
-            soundModeIcon: _soundModes[_soundModeIndex]['icon']!,
-            onToggle: () => setState(() => _isSoundPlaying = !_isSoundPlaying),
-            onNextSound: _nextSound,
+          const SizedBox(height: 28),
+          SizedBox(
+            width: 220,
+            height: 220,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 14,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: AppColors.border,
+                    valueColor: AlwaysStoppedAnimation<Color>(activeColor),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'PHIÊN $_pomRound',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
-
-          // Status Tag
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: activeColor.withValues(alpha: 0.18),
+              color: activeColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: activeColor.withValues(alpha: 0.4), width: 0.8),
             ),
             child: Text(
-              _isBreak
-                  ? '☕ Nghỉ giải lao ($_breakMinutes phút)'
-                  : '🎯 Phiên tập trung ($_focusMinutes phút)',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: activeColor,
-              ),
+              _isBreak ? '☕ Nghỉ giải lao' : '🎯 Đang tập trung',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: activeColor),
             ),
           ),
           const SizedBox(height: 28),
-
-          // Apple Activity Ring Style Timer
-          PulsingGlow(
-            glowColor: activeColor,
-            maxBlur: _pomRunning ? 36 : 0,
-            child: SizedBox(
-              width: 220,
-              height: 220,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 12,
-                      strokeCap: StrokeCap.round,
-                      backgroundColor: isDark
-                          ? const Color(0xFF222036)
-                          : Colors.black.withValues(alpha: 0.06),
-                      valueColor: AlwaysStoppedAnimation<Color>(activeColor),
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          fontSize: 46,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -2,
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      Text(
-                        'VÒNG $_pomRound',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                          color: isDark ? Colors.white54 : Colors.black45,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-
-          // Controls
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -334,19 +255,11 @@ class _StudyScreenState extends State<StudyScreen> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF232236)
-                        : Colors.black.withValues(alpha: 0.05),
+                    color: AppColors.cardWhite,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                    ),
+                    border: Border.all(color: AppColors.border, width: 2),
                   ),
-                  child: Icon(
-                    CupertinoIcons.arrow_counterclockwise,
-                    color: isDark ? Colors.white : Colors.black87,
-                    size: 20,
-                  ),
+                  child: const Icon(CupertinoIcons.arrow_counterclockwise, color: AppColors.textPrimary, size: 20),
                 ),
               ),
               const SizedBox(width: 24),
@@ -356,17 +269,13 @@ class _StudyScreenState extends State<StudyScreen> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: _isBreak
-                          ? [AppColors.appleGreen, const Color(0xFF24B846)]
-                          : [AppColors.appleIndigo, AppColors.neonCyan],
-                    ),
+                    color: _pomRunning ? AppColors.red : AppColors.green,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: activeColor.withValues(alpha: 0.45),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+                        color: (_pomRunning ? AppColors.redDark : AppColors.greenDark),
+                        blurRadius: 0,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -379,138 +288,110 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text(
-            _pomRunning
-                ? '⚡ Đang trong phiên học — Đặt điện thoại xa tầm tay nhé!'
-                : 'Bắt đầu phiên để tính thời gian và duy trì chuỗi học',
-            style: TextStyle(
-              fontSize: 12.5,
-              color: isDark ? Colors.white54 : Colors.black45,
-              fontStyle: FontStyle.italic,
-            ),
+            _pomRunning ? 'Đang trong phiên học!' : 'Bắt đầu để tính thời gian',
+            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
           ),
         ],
       ),
     );
   }
 
-  Widget _modeChip(int focus, int brk, String label, bool isDark) {
+  Widget _modeChip(int focus, int brk, String label) {
     final sel = _focusMinutes == focus;
     return GestureDetector(
       onTap: () => _setPomodoroMode(focus, brk),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: sel
-              ? AppColors.appleIndigo
-              : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04)),
+          color: sel ? AppColors.green : AppColors.cardWhite,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: sel ? AppColors.appleIndigo : (isDark ? Colors.white12 : Colors.black12),
-          ),
+          border: Border.all(color: sel ? AppColors.green : AppColors.border, width: 2),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
-            fontWeight: sel ? FontWeight.bold : FontWeight.w500,
-            color: sel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+            fontSize: 13,
+            fontWeight: sel ? FontWeight.w800 : FontWeight.w600,
+            color: sel ? Colors.white : AppColors.textPrimary,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildChartTab(bool isDark) {
+  Widget _buildChartTab() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: WeeklyChartWidget(logs: _logs),
     );
   }
 
-  Widget _buildLogTab(bool isDark) {
+  Widget _buildLogTab() {
     final totalHours = _logs.fold(0.0, (sum, l) => sum + l.hours);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       child: Column(
         children: [
-          // Stat Highlights
           Row(
             children: [
-              _statLiquidCard('${totalHours.toStringAsFixed(1)}h', 'Tổng thời gian học', AppColors.appleIndigo, '⚡', isDark),
+              _statCard('${totalHours.toStringAsFixed(1)}h', 'Tổng giờ học', AppColors.blue, Icons.access_time),
               const SizedBox(width: 12),
-              _statLiquidCard('${_logs.length}', 'Buổi học hoàn thành', AppColors.appleGreen, '🎯', isDark),
+              _statCard('${_logs.length}', 'Buổi học', AppColors.green, Icons.check_circle),
             ],
           ),
           const SizedBox(height: 14),
-
-          // Add Log Button
           GestureDetector(
-            onTap: () => _showAddLogDialog(isDark),
+            onTap: () => _showAddLogDialog(),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.appleIndigo, AppColors.neonCyan],
-                ),
+                color: AppColors.green,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.appleIndigo.withValues(alpha: 0.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
+                boxShadow: const [
+                  BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4)),
                 ],
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(CupertinoIcons.plus_circle_fill, color: Colors.white, size: 18),
+                  Icon(Icons.add_circle, color: Colors.white, size: 18),
                   SizedBox(width: 8),
-                  Text(
-                    'Ghi Nhật Ký Học Tập',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14.5),
-                  ),
+                  Text('GHI NHẬT KÝ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-
-          // Logs List
           if (_logs.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
               child: Column(
                 children: [
-                  const Text('📚', style: TextStyle(fontSize: 48)),
-                  const SizedBox(height: 10),
+                  Text('📚', style: TextStyle(fontSize: 48)),
+                  SizedBox(height: 10),
                   Text(
-                    'Chưa có nhật ký học tập nào.\nGhi chép mỗi ngày để tạo thói quen bền vững!',
+                    'Chưa có nhật ký.\nGhi chép mỗi ngày!',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.black45,
-                      fontSize: 13.5,
-                      height: 1.4,
-                    ),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.4),
                   ),
                 ],
               ),
             )
           else
-            ..._logs.map((log) => _buildLiquidLogItem(log, isDark)),
+            ..._logs.map((log) => _buildLogItem(log)),
         ],
       ),
     );
   }
 
-  Widget _statLiquidCard(String val, String label, Color color, String icon, bool isDark) {
+  Widget _statCard(String val, String label, Color color, IconData icon) {
     return Expanded(
       child: GlassCard(
         padding: const EdgeInsets.all(16),
@@ -520,32 +401,19 @@ class _StudyScreenState extends State<StudyScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(val,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: color,
-                      letterSpacing: -0.5,
-                    )),
-                Text(icon, style: const TextStyle(fontSize: 18)),
+                Text(val, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+                Icon(icon, size: 18, color: color),
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                color: isDark ? Colors.white54 : Colors.black45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLiquidLogItem(StudyLog log, bool isDark) {
+  Widget _buildLogItem(StudyLog log) {
     return Dismissible(
       key: Key(log.id),
       direction: DismissDirection.endToStart,
@@ -555,131 +423,84 @@ class _StudyScreenState extends State<StudyScreen> {
         padding: const EdgeInsets.only(right: 16),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: AppColors.appleRed.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(18),
+          color: AppColors.red.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(CupertinoIcons.trash, color: AppColors.appleRed),
+        child: const Icon(CupertinoIcons.trash, color: AppColors.red),
       ),
-      child: Container(
+      child: GlassCard(
+        padding: const EdgeInsets.all(14),
         margin: const EdgeInsets.only(bottom: 10),
-        child: GlassCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.appleIndigo, AppColors.neonCyan],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    '${log.hours.toStringAsFixed(1)}h',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                  ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.green,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 2)),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '${log.hours.toStringAsFixed(1)}h',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      log.subject,
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    if (log.note != null && log.note!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        log.note!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white54 : Colors.black45,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(log.subject, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  if (log.note != null && log.note!.isNotEmpty)
+                    Text(log.note!, style: const TextStyle(fontSize: 12, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
               ),
-              Text(
-                '${log.date.day}/${log.date.month}',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white54 : Colors.black45,
-                ),
-              ),
-            ],
-          ),
+            ),
+            Text('${log.date.day}/${log.date.month}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ],
         ),
       ),
     );
   }
 
-  void _showAddLogDialog(bool isDark) {
+  void _showAddLogDialog() {
     final subjectCtrl = TextEditingController();
     final hoursCtrl = TextEditingController(text: '1.0');
     final noteCtrl = TextEditingController();
 
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Ghi Nhật Ký Học'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Column(
-            children: [
-              CupertinoTextField(
-                controller: subjectCtrl,
-                placeholder: 'Môn học (VD: Toán Giải tích, Lý Sóng)',
-                autofocus: true,
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: hoursCtrl,
-                placeholder: 'Số giờ học (VD: 1.5)',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: noteCtrl,
-                placeholder: 'Nội dung ôn luyện (tùy chọn)',
-              ),
-            ],
-          ),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border, width: 2),
+        ),
+        title: const Text('Ghi nhật ký học', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: subjectCtrl, decoration: const InputDecoration(hintText: 'Môn học'), autofocus: true),
+            const SizedBox(height: 8),
+            TextField(controller: hoursCtrl, decoration: const InputDecoration(hintText: 'Số giờ'), keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Ghi chú (tùy chọn)')),
+          ],
         ),
         actions: [
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
             onPressed: () {
               if (subjectCtrl.text.isNotEmpty) {
-                _addLog(
-                  subjectCtrl.text.trim(),
-                  double.tryParse(hoursCtrl.text) ?? 1.0,
-                  noteCtrl.text.isEmpty ? null : noteCtrl.text,
-                );
+                _addLog(subjectCtrl.text.trim(), double.tryParse(hoursCtrl.text) ?? 1.0, noteCtrl.text.isEmpty ? null : noteCtrl.text);
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Lưu'),
+            child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

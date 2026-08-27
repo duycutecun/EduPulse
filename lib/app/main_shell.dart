@@ -1,5 +1,3 @@
-import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/utils/storage_service.dart';
@@ -112,159 +110,93 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBody: true,
+      backgroundColor: AppColors.bgPage,
       body: MeshBackground(
         child: SafeArea(
           bottom: false,
-          child: Stack(
+          child: IndexedStack(
+            index: _currentIndex,
             children: [
-              // Screen Body
-              IndexedStack(
-                index: _currentIndex,
-                children: [
-                  HomeScreen(
-                    primaryExam: _primaryExam,
-                    onExamTap: () => _switchTab(1),
-                    onOpenStudy: () => _switchTab(3),
-                    onOpenAiCoach: () => _switchTab(2),
-                    streak: _streak,
-                    streakRecord: _streakRecord,
-                  ),
-                  ExamsScreen(
-                    exams: _exams,
-                    primaryExamId: _primaryExamId,
-                    onSetPrimary: _setPrimaryExam,
-                    onAddExam: _addExam,
-                    onDeleteExam: _deleteExam,
-                  ),
-                  const AiCoachScreen(),
-                  const StudyScreen(),
-                  AccountScreen(
-                    onThemeChanged: widget.onToggleTheme,
-                    onDataChanged: _loadInitialData,
-                  ),
-                ],
+              HomeScreen(
+                primaryExam: _primaryExam,
+                onExamTap: () => _switchTab(1),
+                onOpenStudy: () => _switchTab(3),
+                onOpenAiCoach: () => _switchTab(2),
+                streak: _streak,
+                streakRecord: _streakRecord,
               ),
-
-              // Floating Capsule Bottom Navigation Dock
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 20 + MediaQuery.of(context).padding.bottom * 0.4,
-                child: _buildFloatingDock(isDark),
+              ExamsScreen(
+                exams: _exams,
+                primaryExamId: _primaryExamId,
+                onSetPrimary: _setPrimaryExam,
+                onAddExam: _addExam,
+                onDeleteExam: _deleteExam,
+              ),
+              const AiCoachScreen(),
+              const StudyScreen(),
+              AccountScreen(
+                onThemeChanged: widget.onToggleTheme,
+                onDataChanged: _loadInitialData,
               ),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  Widget _buildFloatingDock(bool isDark) {
-    final tabs = [
-      {'icon': CupertinoIcons.house_fill, 'label': 'Hôm nay'},
-      {'icon': CupertinoIcons.flag_fill, 'label': 'Kỳ thi'},
-      {'icon': CupertinoIcons.wand_stars_inverse, 'label': 'AI Coach'},
-      {'icon': CupertinoIcons.timer, 'label': 'Tập trung'},
-      {'icon': CupertinoIcons.person_crop_circle_fill, 'label': 'Cá nhân'},
+  Widget _buildBottomNav() {
+    final items = [
+      {'icon': Icons.school_outlined, 'activeIcon': Icons.school, 'label': 'Học'},
+      {'icon': Icons.flag_outlined, 'activeIcon': Icons.flag, 'label': 'Mục tiêu'},
+      {'icon': Icons.auto_awesome_outlined, 'activeIcon': Icons.auto_awesome, 'label': 'AI'},
+      {'icon': Icons.timer_outlined, 'activeIcon': Icons.timer, 'label': 'Tập trung'},
+      {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Tôi'},
     ];
 
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.12),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: AppColors.cardWhite,
+        border: Border(
+          top: BorderSide(color: AppColors.border, width: 2),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF161526).withValues(alpha: 0.88)
-                  : Colors.white.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.14)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(tabs.length, (i) {
-                final active = _currentIndex == i;
-                final item = tabs[i];
-
-                return GestureDetector(
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: List.generate(items.length, (i) {
+              final active = _currentIndex == i;
+              final item = items[i];
+              return Expanded(
+                child: GestureDetector(
                   onTap: () => _switchTab(i),
                   behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: active ? 12 : 8,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: active
-                          ? const LinearGradient(
-                              colors: [AppColors.appleIndigo, AppColors.appleBlue],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                          : null,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: active
-                          ? [
-                              BoxShadow(
-                                color: AppColors.appleIndigo.withValues(alpha: 0.35),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          item['icon'] as IconData,
-                          size: 20,
-                          color: active
-                              ? Colors.white
-                              : (isDark ? Colors.white54 : Colors.black45),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        active ? item['activeIcon'] as IconData : item['icon'] as IconData,
+                        size: 26,
+                        color: active ? AppColors.green : AppColors.textMuted,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item['label'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                          color: active ? AppColors.green : AppColors.textMuted,
                         ),
-                        if (active) ...[
-                          const SizedBox(width: 5),
-                          Text(
-                            item['label'] as String,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                );
-              }),
-            ),
+                ),
+              );
+            }),
           ),
         ),
       ),

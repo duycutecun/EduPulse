@@ -19,26 +19,16 @@ class EduPulseApp extends StatefulWidget {
 }
 
 class _EduPulseAppState extends State<EduPulseApp> {
-  late bool _isDark;
-
-  @override
-  void initState() {
-    super.initState();
-    _isDark = StorageService.isDarkMode();
-  }
-
   void _toggleTheme() {
-    setState(() {
-      _isDark = StorageService.isDarkMode();
-    });
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'EduPulse — Trợ lý Sĩ tử & Đếm ngược Kỳ thi',
+      title: 'EduPulse',
       debugShowCheckedModeBanner: false,
-      theme: _isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
+      theme: AppTheme.lightTheme,
       home: MainShellScreen(
         onToggleTheme: _toggleTheme,
       ),
