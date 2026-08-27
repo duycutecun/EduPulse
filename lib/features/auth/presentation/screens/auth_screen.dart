@@ -101,7 +101,8 @@ class _AuthScreenState extends State<AuthScreen>
       return;
     }
     setState(() => _isLoading = true);
-    final result = await SupabaseService.signUp(email: email, password: pw, name: name);
+    final result =
+        await SupabaseService.signUp(email: email, password: pw, name: name);
     setState(() => _isLoading = false);
     _showMessage(result.message, result.success);
     if (result.success) {
@@ -149,22 +150,33 @@ class _AuthScreenState extends State<AuthScreen>
                   decoration: const BoxDecoration(
                     color: AppColors.green,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4))],
+                    boxShadow: [
+                      BoxShadow(
+                          color: AppColors.greenDark,
+                          blurRadius: 0,
+                          offset: Offset(0, 4))
+                    ],
                   ),
-                  child: const Center(child: Text('🎓', style: TextStyle(fontSize: 44))),
+                  child: const Center(
+                      child: Text('🎓', style: TextStyle(fontSize: 44))),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'EduPulse',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                  style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Trợ lý Sĩ tử • Đếm ngược Kỳ thi',
-                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 32),
-
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.cardWhite,
@@ -190,7 +202,8 @@ class _AuthScreenState extends State<AuthScreen>
                           dividerColor: Colors.transparent,
                           labelColor: Colors.white,
                           unselectedLabelColor: AppColors.textMuted,
-                          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          labelStyle: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 14),
                           tabs: const [
                             Tab(text: 'Đăng nhập'),
                             Tab(text: 'Đăng ký'),
@@ -211,29 +224,41 @@ class _AuthScreenState extends State<AuthScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 AnimatedBuilder(
                   animation: _tabController,
                   builder: (context, _) {
                     final isLogin = _tabController.index == 0;
                     return GestureDetector(
-                      onTap: _isLoading ? null : (isLogin ? _doLogin : _doRegister),
+                      onTap: _isLoading
+                          ? null
+                          : (isLogin ? _doLogin : _doRegister),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: _isLoading ? AppColors.border : AppColors.green,
+                          color:
+                              _isLoading ? AppColors.border : AppColors.green,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: _isLoading
                               ? null
-                              : const [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4))],
+                              : const [
+                                  BoxShadow(
+                                      color: AppColors.greenDark,
+                                      blurRadius: 0,
+                                      offset: Offset(0, 4))
+                                ],
                         ),
                         child: Center(
                           child: _isLoading
-                              ? const CupertinoActivityIndicator(color: Colors.white)
+                              ? const CupertinoActivityIndicator(
+                                  color: Colors.white)
                               : Text(
                                   isLogin ? 'ĐĂNG NHẬP' : 'TẠO TÀI KHOẢN',
-                                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5),
                                 ),
                         ),
                       ),
@@ -241,7 +266,6 @@ class _AuthScreenState extends State<AuthScreen>
                   },
                 ),
                 const SizedBox(height: 16),
-
                 GestureDetector(
                   onTap: widget.onSkip,
                   child: Container(
@@ -253,7 +277,11 @@ class _AuthScreenState extends State<AuthScreen>
                       border: Border.all(color: AppColors.border, width: 2),
                     ),
                     child: Center(
-                      child: Text('Tiếp tục không cần tài khoản', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                      child: Text('Tiếp tục không cần tài khoản',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary)),
                     ),
                   ),
                 ),
@@ -261,7 +289,8 @@ class _AuthScreenState extends State<AuthScreen>
                 Text(
                   'Chế độ khách: dữ liệu chỉ lưu trên thiết bị.\nĐăng ký để sao lưu & dùng trên nhiều thiết bị.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11.5, color: AppColors.textMuted, height: 1.4),
+                  style: TextStyle(
+                      fontSize: 11.5, color: AppColors.textMuted, height: 1.4),
                 ),
                 const SizedBox(height: 32),
               ],
@@ -279,7 +308,11 @@ class _AuthScreenState extends State<AuthScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          _authField(ctrl: _loginEmailCtrl, label: 'Email', icon: Icons.email, keyboard: TextInputType.emailAddress),
+          _authField(
+              ctrl: _loginEmailCtrl,
+              label: 'Email',
+              icon: Icons.email,
+              keyboard: TextInputType.emailAddress),
           const SizedBox(height: 12),
           _authField(
             ctrl: _loginPwCtrl,
@@ -288,13 +321,18 @@ class _AuthScreenState extends State<AuthScreen>
             obscure: _obscurePw,
             suffix: GestureDetector(
               onTap: () => setState(() => _obscurePw = !_obscurePw),
-              child: Icon(_obscurePw ? Icons.visibility : Icons.visibility_off, size: 18, color: AppColors.textMuted),
+              child: Icon(_obscurePw ? Icons.visibility : Icons.visibility_off,
+                  size: 18, color: AppColors.textMuted),
             ),
           ),
           const SizedBox(height: 10),
           GestureDetector(
             onTap: _doResetPassword,
-            child: const Text('Quên mật khẩu?', style: TextStyle(fontSize: 12, color: AppColors.blue, fontWeight: FontWeight.w700)),
+            child: const Text('Quên mật khẩu?',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.blue,
+                    fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -307,9 +345,14 @@ class _AuthScreenState extends State<AuthScreen>
       child: Column(
         children: [
           const SizedBox(height: 8),
-          _authField(ctrl: _regNameCtrl, label: 'Tên / Biệt danh', icon: Icons.person),
+          _authField(
+              ctrl: _regNameCtrl, label: 'Tên / Biệt danh', icon: Icons.person),
           const SizedBox(height: 10),
-          _authField(ctrl: _regEmailCtrl, label: 'Email', icon: Icons.email, keyboard: TextInputType.emailAddress),
+          _authField(
+              ctrl: _regEmailCtrl,
+              label: 'Email',
+              icon: Icons.email,
+              keyboard: TextInputType.emailAddress),
           const SizedBox(height: 10),
           _authField(
             ctrl: _regPwCtrl,
@@ -318,7 +361,8 @@ class _AuthScreenState extends State<AuthScreen>
             obscure: _obscurePw,
             suffix: GestureDetector(
               onTap: () => setState(() => _obscurePw = !_obscurePw),
-              child: Icon(_obscurePw ? Icons.visibility : Icons.visibility_off, size: 18, color: AppColors.textMuted),
+              child: Icon(_obscurePw ? Icons.visibility : Icons.visibility_off,
+                  size: 18, color: AppColors.textMuted),
             ),
           ),
           const SizedBox(height: 10),
@@ -329,7 +373,10 @@ class _AuthScreenState extends State<AuthScreen>
             obscure: _obscureConfirm,
             suffix: GestureDetector(
               onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
-              child: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off, size: 18, color: AppColors.textMuted),
+              child: Icon(
+                  _obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                  size: 18,
+                  color: AppColors.textMuted),
             ),
           ),
         ],
@@ -359,12 +406,14 @@ class _AuthScreenState extends State<AuthScreen>
         decoration: InputDecoration(
           prefixIcon: Icon(icon, size: 18, color: AppColors.textMuted),
           suffixIcon: suffix != null
-              ? Padding(padding: const EdgeInsets.only(right: 12), child: suffix)
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 12), child: suffix)
               : null,
           hintText: label,
           hintStyle: TextStyle(fontSize: 13.5, color: AppColors.textMuted),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         ),
       ),
     );

@@ -42,9 +42,9 @@ class AppTheme {
   }) {
     final baseTextTheme = GoogleFonts.nunitoTextTheme(
       ThemeData(brightness: brightness).textTheme.apply(
-        bodyColor: textPrimary,
-        displayColor: textPrimary,
-      ),
+            bodyColor: textPrimary,
+            displayColor: textPrimary,
+          ),
     );
 
     final colorScheme = ColorScheme(
@@ -144,7 +144,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: card,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: TextStyle(color: muted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

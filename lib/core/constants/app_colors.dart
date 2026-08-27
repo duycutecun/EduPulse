@@ -62,7 +62,8 @@ class AppColors {
   static Color get border => _dark ? _borderDark : _borderLight;
   static Color get borderDark => _dark ? _borderStrongDark : _borderStrongLight;
   static Color get textPrimary => _dark ? _textPrimaryDark : _textPrimaryLight;
-  static Color get textSecondary => _dark ? _textSecondaryDark : _textSecondaryLight;
+  static Color get textSecondary =>
+      _dark ? _textSecondaryDark : _textSecondaryLight;
   static Color get textMuted => _dark ? _textMutedDark : _textMutedLight;
   static Color get divider => _dark ? _dividerDark : _dividerLight;
   static Color get tertiaryBg => _dark ? _tertiaryDark : _tertiaryLight;

@@ -42,11 +42,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
       _exams = [];
       _primaryExamId = null;
     } else {
-      _exams = ids.map((id) {
-        final json = StorageService.getExamJson(id);
-        if (json == null) return null;
-        return ExamModel.fromJsonString(json);
-      }).whereType<ExamModel>().toList();
+      _exams = ids
+          .map((id) {
+            final json = StorageService.getExamJson(id);
+            if (json == null) return null;
+            return ExamModel.fromJsonString(json);
+          })
+          .whereType<ExamModel>()
+          .toList();
       _primaryExamId = StorageService.getPrimaryExamId();
     }
 
@@ -152,11 +155,31 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   Widget _buildBottomNav() {
     final items = [
-      {'icon': Icons.school_outlined, 'activeIcon': Icons.school, 'label': 'Học'},
-      {'icon': Icons.flag_outlined, 'activeIcon': Icons.flag, 'label': 'Mục tiêu'},
-      {'icon': Icons.auto_awesome_outlined, 'activeIcon': Icons.auto_awesome, 'label': 'AI'},
-      {'icon': Icons.timer_outlined, 'activeIcon': Icons.timer, 'label': 'Tập trung'},
-      {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Tôi'},
+      {
+        'icon': Icons.school_outlined,
+        'activeIcon': Icons.school,
+        'label': 'Học'
+      },
+      {
+        'icon': Icons.flag_outlined,
+        'activeIcon': Icons.flag,
+        'label': 'Mục tiêu'
+      },
+      {
+        'icon': Icons.auto_awesome_outlined,
+        'activeIcon': Icons.auto_awesome,
+        'label': 'AI'
+      },
+      {
+        'icon': Icons.timer_outlined,
+        'activeIcon': Icons.timer,
+        'label': 'Tập trung'
+      },
+      {
+        'icon': Icons.person_outline,
+        'activeIcon': Icons.person,
+        'label': 'Tôi'
+      },
     ];
 
     return Container(
@@ -182,7 +205,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        active ? item['activeIcon'] as IconData : item['icon'] as IconData,
+                        active
+                            ? item['activeIcon'] as IconData
+                            : item['icon'] as IconData,
                         size: 26,
                         color: active ? AppColors.green : AppColors.textMuted,
                       ),
@@ -191,7 +216,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
                         item['label'] as String,
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight:
+                              active ? FontWeight.w800 : FontWeight.w600,
                           color: active ? AppColors.green : AppColors.textMuted,
                         ),
                       ),

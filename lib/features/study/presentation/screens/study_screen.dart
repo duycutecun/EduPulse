@@ -36,16 +36,24 @@ class _StudyScreenState extends State<StudyScreen> {
 
   void _loadLogs() {
     final ids = StorageService.getStudyLogIds();
-    _logs = ids.map((id) {
-      final json = StorageService.getStudyLogJson(id);
-      if (json == null) return null;
-      return StudyLog.fromJsonString(json);
-    }).whereType<StudyLog>().toList();
+    _logs = ids
+        .map((id) {
+          final json = StorageService.getStudyLogJson(id);
+          if (json == null) return null;
+          return StudyLog.fromJsonString(json);
+        })
+        .whereType<StudyLog>()
+        .toList();
     _logs.sort((a, b) => b.date.compareTo(a.date));
   }
 
   void _addLog(String subject, double hours, String? note) {
-    final log = StudyLog(id: _uuid.v4(), date: DateTime.now(), subject: subject, hours: hours, note: note);
+    final log = StudyLog(
+        id: _uuid.v4(),
+        date: DateTime.now(),
+        subject: subject,
+        hours: hours,
+        note: note);
     StorageService.setStudyLogJson(log.id, log.toJsonString());
     final ids = StorageService.getStudyLogIds()..add(log.id);
     StorageService.setStudyLogIds(ids);
@@ -172,7 +180,8 @@ class _StudyScreenState extends State<StudyScreen> {
     final minutes = _pomSeconds ~/ 60;
     final seconds = _pomSeconds % 60;
     final totalSec = _isBreak ? (_breakMinutes * 60) : (_focusMinutes * 60);
-    final progress = totalSec > 0 ? (1 - (_pomSeconds / totalSec)).clamp(0.0, 1.0) : 0.0;
+    final progress =
+        totalSec > 0 ? (1 - (_pomSeconds / totalSec)).clamp(0.0, 1.0) : 0.0;
     final activeColor = _isBreak ? AppColors.green : AppColors.blue;
 
     return SingleChildScrollView(
@@ -242,7 +251,10 @@ class _StudyScreenState extends State<StudyScreen> {
             ),
             child: Text(
               _isBreak ? '☕ Nghỉ giải lao' : '🎯 Đang tập trung',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: activeColor),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: activeColor),
             ),
           ),
           const SizedBox(height: 28),
@@ -259,7 +271,8 @@ class _StudyScreenState extends State<StudyScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.border, width: 2),
                   ),
-                  child: Icon(CupertinoIcons.arrow_counterclockwise, color: AppColors.textPrimary, size: 20),
+                  child: Icon(CupertinoIcons.arrow_counterclockwise,
+                      color: AppColors.textPrimary, size: 20),
                 ),
               ),
               const SizedBox(width: 24),
@@ -273,14 +286,18 @@ class _StudyScreenState extends State<StudyScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: (_pomRunning ? AppColors.redDark : AppColors.greenDark),
+                        color: (_pomRunning
+                            ? AppColors.redDark
+                            : AppColors.greenDark),
                         blurRadius: 0,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: Icon(
-                    _pomRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                    _pomRunning
+                        ? CupertinoIcons.pause_fill
+                        : CupertinoIcons.play_fill,
                     color: Colors.white,
                     size: 30,
                   ),
@@ -308,7 +325,8 @@ class _StudyScreenState extends State<StudyScreen> {
         decoration: BoxDecoration(
           color: sel ? AppColors.green : AppColors.cardWhite,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sel ? AppColors.green : AppColors.border, width: 2),
+          border: Border.all(
+              color: sel ? AppColors.green : AppColors.border, width: 2),
         ),
         child: Text(
           label,
@@ -340,9 +358,11 @@ class _StudyScreenState extends State<StudyScreen> {
         children: [
           Row(
             children: [
-              _statCard('${totalHours.toStringAsFixed(1)}h', 'Tổng giờ học', AppColors.blue, Icons.access_time),
+              _statCard('${totalHours.toStringAsFixed(1)}h', 'Tổng giờ học',
+                  AppColors.blue, Icons.access_time),
               const SizedBox(width: 12),
-              _statCard('${_logs.length}', 'Buổi học', AppColors.green, Icons.check_circle),
+              _statCard('${_logs.length}', 'Buổi học', AppColors.green,
+                  Icons.check_circle),
             ],
           ),
           const SizedBox(height: 14),
@@ -355,7 +375,10 @@ class _StudyScreenState extends State<StudyScreen> {
                 color: AppColors.green,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
-                  BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4)),
+                  BoxShadow(
+                      color: AppColors.greenDark,
+                      blurRadius: 0,
+                      offset: Offset(0, 4)),
                 ],
               ),
               child: const Row(
@@ -363,7 +386,11 @@ class _StudyScreenState extends State<StudyScreen> {
                 children: [
                   Icon(Icons.add_circle, color: Colors.white, size: 18),
                   SizedBox(width: 8),
-                  Text('GHI NHẬT KÝ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+                  Text('GHI NHẬT KÝ',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14)),
                 ],
               ),
             ),
@@ -379,7 +406,8 @@ class _StudyScreenState extends State<StudyScreen> {
                   Text(
                     'Chưa có nhật ký.\nGhi chép mỗi ngày!',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                        color: AppColors.textMuted, fontSize: 13, height: 1.4),
                   ),
                 ],
               ),
@@ -401,12 +429,20 @@ class _StudyScreenState extends State<StudyScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(val, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+                Text(val,
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: color)),
                 Icon(icon, size: 18, color: color),
               ],
             ),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -440,13 +476,19 @@ class _StudyScreenState extends State<StudyScreen> {
                 color: AppColors.green,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
-                  BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 2)),
+                  BoxShadow(
+                      color: AppColors.greenDark,
+                      blurRadius: 0,
+                      offset: Offset(0, 2)),
                 ],
               ),
               child: Center(
                 child: Text(
                   '${log.hours.toStringAsFixed(1)}h',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white),
                 ),
               ),
             ),
@@ -455,13 +497,22 @@ class _StudyScreenState extends State<StudyScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(log.subject, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  Text(log.subject,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
                   if (log.note != null && log.note!.isNotEmpty)
-                    Text(log.note!, style: TextStyle(fontSize: 12, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(log.note!,
+                        style:
+                            TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
-            Text('${log.date.day}/${log.date.month}', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            Text('${log.date.day}/${log.date.month}',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
         ),
       ),
@@ -480,27 +531,44 @@ class _StudyScreenState extends State<StudyScreen> {
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border, width: 2),
         ),
-        title: const Text('Ghi nhật ký học', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Ghi nhật ký học',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: subjectCtrl, decoration: const InputDecoration(hintText: 'Môn học'), autofocus: true),
+            TextField(
+                controller: subjectCtrl,
+                decoration: const InputDecoration(hintText: 'Môn học'),
+                autofocus: true),
             const SizedBox(height: 8),
-            TextField(controller: hoursCtrl, decoration: const InputDecoration(hintText: 'Số giờ'), keyboardType: TextInputType.number),
+            TextField(
+                controller: hoursCtrl,
+                decoration: const InputDecoration(hintText: 'Số giờ'),
+                keyboardType: TextInputType.number),
             const SizedBox(height: 8),
-            TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Ghi chú (tùy chọn)')),
+            TextField(
+                controller: noteCtrl,
+                decoration:
+                    const InputDecoration(hintText: 'Ghi chú (tùy chọn)')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () {
               if (subjectCtrl.text.isNotEmpty) {
-                _addLog(subjectCtrl.text.trim(), double.tryParse(hoursCtrl.text) ?? 1.0, noteCtrl.text.isEmpty ? null : noteCtrl.text);
+                _addLog(
+                    subjectCtrl.text.trim(),
+                    double.tryParse(hoursCtrl.text) ?? 1.0,
+                    noteCtrl.text.isEmpty ? null : noteCtrl.text);
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+            child: const Text('Lưu',
+                style: TextStyle(
+                    color: AppColors.green, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
