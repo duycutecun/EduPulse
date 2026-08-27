@@ -46,10 +46,6 @@ class _EduPulseAppState extends State<EduPulseApp> {
     });
   }
 
-  void _syncBrightness(Brightness brightness) {
-    AppColors.currentBrightness = brightness;
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -58,15 +54,29 @@ class _EduPulseAppState extends State<EduPulseApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      builder: (context, child) {
-        final brightness = Theme.of(context).brightness;
-        _syncBrightness(brightness);
-        return child!;
-      },
-      home: MainShellScreen(
-        onThemeModeChanged: _setThemeMode,
-        themeMode: _mode,
+      home: _ThemeBrightnessSyncer(
+        child: MainShellScreen(
+          onThemeModeChanged: _setThemeMode,
+          themeMode: _mode,
+        ),
       ),
     );
+  }
+}
+
+// Widget placed BELOW the MaterialApp's Theme layer so its build depends on
+// Theme.of(context). It therefore rebuilds whenever the resolved theme
+// brightness changes (light/dark/system) and keeps the global
+// AppColors.currentBrightness in sync, which all screens read via the
+// theme-dependent AppColors getters.
+class _ThemeBrightnessSyncer extends StatelessWidget {
+  final Widget child;
+
+  const _ThemeBrightnessSyncer({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    AppColors.currentBrightness = Theme.of(context).brightness;
+    return child;
   }
 }
