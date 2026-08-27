@@ -107,9 +107,10 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   void _showModelPicker() {
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: cs.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -119,18 +120,18 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 18, 20, 6),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
                 child: Text(
                   'Chọn model AI',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: cs.onSurface),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
                   'Nhiều model miễn phí, tự động chuyển khi hết lượt.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -143,16 +144,16 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                     final selected = m.slug == _model.slug;
                     return ListTile(
                       leading: Icon(aiModelIcon(m.slug),
-                          color: selected ? AppColors.green : AppColors.textMuted),
+                          color: selected ? AppColors.green : cs.onSurface.withValues(alpha: 0.5)),
                       title: Text(
                         m.label,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: selected ? AppColors.green : AppColors.textPrimary,
+                          color: selected ? AppColors.green : cs.onSurface,
                         ),
                       ),
                       subtitle: Text(m.description,
-                          style: const TextStyle(fontSize: 11)),
+                          style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5))),
                       trailing: selected
                           ? const Icon(Icons.check_circle, color: AppColors.green)
                           : null,
@@ -193,11 +194,12 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildHeader() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 2)),
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor, width: 2)),
       ),
       child: Row(
         children: [
@@ -214,7 +216,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               children: [
                 Row(
                   children: [
-                    Text('AI Coach', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    Text('AI Coach', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: cs.onSurface)),
                     const SizedBox(width: 6),
                     GestureDetector(
                       onTap: _showModelPicker,
@@ -240,14 +242,14 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                   _model.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
               ],
             ),
           ),
           if (_messages.length > 1)
             IconButton(
-              icon: Icon(Icons.refresh, size: 20, color: AppColors.textMuted),
+              icon: Icon(Icons.refresh, size: 20, color: cs.onSurface.withValues(alpha: 0.5)),
               onPressed: () { setState(() => _messages.removeRange(1, _messages.length)); },
             ),
         ],
@@ -256,6 +258,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildBubble(ChatMessage msg) {
+    final cs = Theme.of(context).colorScheme;
     if (msg.isLoading) {
       return Align(
         alignment: Alignment.centerLeft,
@@ -263,9 +266,9 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.cardWhite,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border, width: 2),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 2),
           ),
           child: const TypingDotsIndicator(),
         ),
@@ -280,14 +283,14 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.green : AppColors.cardWhite,
+          color: isUser ? AppColors.green : cs.surface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),
             bottomLeft: Radius.circular(isUser ? 18 : 4),
             bottomRight: Radius.circular(isUser ? 4 : 18),
           ),
-          border: isUser ? null : Border.all(color: AppColors.border, width: 2),
+          border: isUser ? null : Border.all(color: Theme.of(context).dividerColor, width: 2),
           boxShadow: isUser
               ? [const BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))]
               : null,
@@ -302,13 +305,13 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             if (msg.text.isNotEmpty)
               Text(
                 msg.text.replaceAll('**', ''),
-                style: TextStyle(fontSize: 14, color: isUser ? Colors.white : AppColors.textPrimary, height: 1.45),
+                style: TextStyle(fontSize: 14, color: isUser ? Colors.white : cs.onSurface, height: 1.45),
               ),
             if (!isUser) ...[
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: () { Clipboard.setData(ClipboardData(text: msg.text)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép'))); },
-                child: Icon(Icons.copy, size: 14, color: AppColors.textMuted),
+                child: Icon(Icons.copy, size: 14, color: cs.onSurface.withValues(alpha: 0.4)),
               ),
             ],
           ],
@@ -318,6 +321,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildInputBar() {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -326,7 +330,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.cardWhite,
+              color: cs.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.green, width: 2),
             ),
@@ -335,9 +339,9 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               children: [
                 ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.memory(_selectedImageBytes!, width: 32, height: 32, fit: BoxFit.cover)),
                 const SizedBox(width: 8),
-                Text(_selectedImageName ?? 'Ảnh', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                Text(_selectedImageName ?? 'Ảnh', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cs.onSurface)),
                 const SizedBox(width: 8),
-                GestureDetector(onTap: _clearImage, child: Icon(Icons.close, size: 18, color: AppColors.textMuted)),
+                GestureDetector(onTap: _clearImage, child: Icon(Icons.close, size: 18, color: cs.onSurface.withValues(alpha: 0.5))),
               ],
             ),
           ),
@@ -345,9 +349,9 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
           margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.cardWhite,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: AppColors.border, width: 2),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 2),
           ),
           child: Row(
             children: [
@@ -357,10 +361,10 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                   controller: _ctrl,
                   focusNode: _focusNode,
                   enabled: !_isLoading,
-                  style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 14, color: cs.onSurface),
                   decoration: InputDecoration(
                     hintText: _selectedImageBytes != null ? 'Ghi chú cho ảnh...' : 'Hỏi AI bài tập...',
-                    hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4), fontSize: 13),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -378,7 +382,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _isLoading ? AppColors.border : AppColors.green,
+                    color: _isLoading ? Theme.of(context).dividerColor : AppColors.green,
                     shape: BoxShape.circle,
                     boxShadow: _isLoading ? null : const [
                       BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
