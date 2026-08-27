@@ -7,6 +7,7 @@ import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/animated_pulse.dart';
+import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class AiCoachScreen extends StatefulWidget {
@@ -107,10 +108,9 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   void _showModelPicker() {
-    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.cardWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -120,48 +120,76 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 18, 20, 6),
                 child: Text(
                   'Chọn model AI',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: cs.onSurface),
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
                   'Nhiều model miễn phí, tự động chuyển khi hết lượt.',
-                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5)),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 8),
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   itemCount: AIModel.definitions.length,
                   itemBuilder: (ctx, i) {
                     final m = AIModel.definitions[i];
                     final selected = m.slug == _model.slug;
-                    return ListTile(
-                      leading: Icon(aiModelIcon(m.slug),
-                          color: selected ? AppColors.green : cs.onSurface.withValues(alpha: 0.5)),
-                      title: Text(
-                        m.label,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: selected ? AppColors.green : cs.onSurface,
-                        ),
-                      ),
-                      subtitle: Text(m.description,
-                          style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5))),
-                      trailing: selected
-                          ? const Icon(Icons.check_circle, color: AppColors.green)
-                          : null,
+                    return GlassCard(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      borderColor: selected ? AppColors.green : AppColors.border,
+                      customColor: selected ? AppColors.green.withValues(alpha: 0.08) : AppColors.cardWhite,
                       onTap: () {
                         setState(() => _model = m);
                         StorageService.setAiModel(m.slug);
                         Navigator.pop(ctx);
                       },
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: selected ? AppColors.green : AppColors.bgPage,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(aiModelIcon(m.slug),
+                                size: 18, color: selected ? Colors.white : AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  m.label,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: selected ? AppColors.green : AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  m.description,
+                                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (selected)
+                            const Icon(Icons.check_circle, color: AppColors.green, size: 20),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -194,19 +222,22 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildHeader() {
-    final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor, width: 2)),
+        color: AppColors.cardWhite,
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 2)),
       ),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.green,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))],
+            ),
             child: const Center(child: Icon(Icons.auto_awesome, color: Colors.white, size: 20)),
           ),
           const SizedBox(width: 12),
@@ -216,41 +247,54 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               children: [
                 Row(
                   children: [
-                    Text('AI Coach', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: cs.onSurface)),
-                    const SizedBox(width: 6),
+                    Text('AI Coach',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: _showModelPicker,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
+                          color: AppColors.green.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(aiModelIcon(_model.slug), size: 10, color: AppColors.green),
-                            const SizedBox(width: 3),
-                            Text(_model.label.split(' ').first, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.green)),
+                            Icon(aiModelIcon(_model.slug), size: 11, color: AppColors.green),
+                            const SizedBox(width: 4),
+                            Text(_model.label.split(' ').first,
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.green)),
                           ],
                         ),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 2),
                 Text(
                   _model.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
             ),
           ),
           if (_messages.length > 1)
-            IconButton(
-              icon: Icon(Icons.refresh, size: 20, color: cs.onSurface.withValues(alpha: 0.5)),
-              onPressed: () { setState(() => _messages.removeRange(1, _messages.length)); },
+            GestureDetector(
+              onTap: () { setState(() => _messages.removeRange(1, _messages.length)); },
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.bgPage,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.border, width: 2),
+                ),
+                child: Icon(Icons.refresh, size: 18, color: AppColors.textMuted),
+              ),
             ),
         ],
       ),
@@ -258,62 +302,91 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildBubble(ChatMessage msg) {
-    final cs = Theme.of(context).colorScheme;
     if (msg.isLoading) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: Container(
+        child: GlassCard(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Theme.of(context).dividerColor, width: 2),
-          ),
+          shadows: const [],
           child: const TypingDotsIndicator(),
         ),
       );
     }
 
     final isUser = msg.isUser;
+    if (isUser) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.80),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: BoxDecoration(
+            color: AppColors.green,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(18),
+              bottomRight: Radius.circular(4),
+            ),
+            boxShadow: const [
+              BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (msg.imageBytes != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.memory(msg.imageBytes!, fit: BoxFit.cover, height: 150),
+                ),
+                if (msg.text.isNotEmpty) const SizedBox(height: 8),
+              ],
+              if (msg.text.isNotEmpty)
+                Text(
+                  msg.text.replaceAll('**', ''),
+                  style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.45),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.80),
+      alignment: Alignment.centerLeft,
+      child: GlassCard(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        decoration: BoxDecoration(
-          color: isUser ? AppColors.green : cs.surface,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(isUser ? 18 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 18),
-          ),
-          border: isUser ? null : Border.all(color: Theme.of(context).dividerColor, width: 2),
-          boxShadow: isUser
-              ? [const BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))]
-              : null,
-        ),
+        borderRadius: 18,
+        shadows: const [],
         child: Column(
-          crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (msg.imageBytes != null) ...[
-              ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.memory(msg.imageBytes!, fit: BoxFit.cover, height: 150)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.memory(msg.imageBytes!, fit: BoxFit.cover, height: 150),
+              ),
               if (msg.text.isNotEmpty) const SizedBox(height: 8),
             ],
             if (msg.text.isNotEmpty)
               Text(
                 msg.text.replaceAll('**', ''),
-                style: TextStyle(fontSize: 14, color: isUser ? Colors.white : cs.onSurface, height: 1.45),
+                style: TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.45),
               ),
-            if (!isUser) ...[
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () { Clipboard.setData(ClipboardData(text: msg.text)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép'))); },
-                child: Icon(Icons.copy, size: 14, color: cs.onSurface.withValues(alpha: 0.4)),
-              ),
-            ],
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: msg.text));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã sao chép')),
+                );
+              },
+              child: Icon(Icons.copy, size: 14, color: AppColors.textMuted),
+            ),
           ],
         ),
       ),
@@ -321,50 +394,81 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildInputBar() {
-    final cs = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (_selectedImageBytes != null)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.green, width: 2),
-            ),
+          GlassCard(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            borderColor: AppColors.green,
+            shadows: const [],
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.memory(_selectedImageBytes!, width: 32, height: 32, fit: BoxFit.cover)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(_selectedImageBytes!, width: 36, height: 36, fit: BoxFit.cover),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _selectedImageName ?? 'Ảnh',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Text(_selectedImageName ?? 'Ảnh', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cs.onSurface)),
-                const SizedBox(width: 8),
-                GestureDetector(onTap: _clearImage, child: Icon(Icons.close, size: 18, color: cs.onSurface.withValues(alpha: 0.5))),
+                GestureDetector(
+                  onTap: _clearImage,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.red.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, size: 14, color: AppColors.red),
+                  ),
+                ),
               ],
             ),
           ),
         Container(
           margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Theme.of(context).dividerColor, width: 2),
+            color: AppColors.cardWhite,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border, width: 2),
+            boxShadow: const [
+              BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: Offset(0, 3)),
+            ],
           ),
           child: Row(
             children: [
-              IconButton(icon: const Icon(Icons.camera_alt, size: 22, color: AppColors.blue), onPressed: _pickImage),
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.blue.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.camera_alt, size: 20, color: AppColors.blue),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _ctrl,
                   focusNode: _focusNode,
                   enabled: !_isLoading,
-                  style: TextStyle(fontSize: 14, color: cs.onSurface),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: _selectedImageBytes != null ? 'Ghi chú cho ảnh...' : 'Hỏi AI bài tập...',
-                    hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4), fontSize: 13),
+                    hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -375,20 +479,24 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                   onSubmitted: _sendMessage,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: _isLoading ? null : () => _sendMessage(_ctrl.text),
                 child: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _isLoading ? Theme.of(context).dividerColor : AppColors.green,
+                    color: _isLoading ? AppColors.border : AppColors.green,
                     shape: BoxShape.circle,
                     boxShadow: _isLoading ? null : const [
                       BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
                     ],
                   ),
-                  child: const Icon(Icons.send, color: Colors.white, size: 18),
+                  child: Icon(
+                    Icons.send,
+                    color: _isLoading ? AppColors.textMuted : Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
