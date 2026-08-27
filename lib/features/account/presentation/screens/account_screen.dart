@@ -148,56 +148,57 @@ class _AccountScreenState extends State<AccountScreen> {
     widget.onThemeModeChanged(mode);
   }
 
-  String get _themeModeLabel {
-    switch (_themeMode) {
-      case 'light':
-        return 'Sáng';
-      case 'dark':
-        return 'Tối';
-      default:
-        return 'Theo hệ thống';
-    }
-  }
-
-  void _showThemeDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final options = <String, String>{
-          'system': 'Theo hệ thống',
-          'light': 'Sáng',
-          'dark': 'Tối',
-        };
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border, width: 2),
-          ),
-          title: const Text('Màu giao diện', style: TextStyle(fontWeight: FontWeight.w800)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.entries.map((e) {
-              final selected = _themeMode == e.key;
-              return ListTile(
-                leading: Icon(
-                  e.key == 'light'
-                      ? Icons.light_mode
-                      : e.key == 'dark'
-                          ? Icons.dark_mode
-                          : Icons.brightness_auto,
-                  color: AppColors.green,
-                ),
-                title: Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: selected ? const Icon(Icons.check_circle, color: AppColors.green) : null,
-                onTap: () {
-                  _setThemeMode(e.key);
-                  Navigator.pop(ctx);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
+  /// Inline 3-button segmented toggle: Sáng / Hệ thống / Tối
+  Widget _buildThemeToggle() {
+    final items = [
+      {'key': 'light',  'icon': Icons.light_mode,       'label': 'Sáng'},
+      {'key': 'system', 'icon': Icons.brightness_auto,  'label': 'Auto'},
+      {'key': 'dark',   'icon': Icons.dark_mode,        'label': 'Tối'},
+    ];
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.bgPage,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: items.map((item) {
+          final active = _themeMode == item['key'] as String;
+          return GestureDetector(
+            onTap: () => _setThemeMode(item['key'] as String),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: active ? AppColors.purple : Colors.transparent,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    item['icon'] as IconData,
+                    size: 14,
+                    color: active ? Colors.white : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    item['label'] as String,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      color: active ? Colors.white : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -435,8 +436,24 @@ class _AccountScreenState extends State<AccountScreen> {
         _sectionTitle('GIAO DIỆN'),
         const SizedBox(height: 8),
         GlassCard(
-          padding: EdgeInsets.zero,
-          child: _settingTile(Icons.dark_mode, AppColors.purple, 'Màu giao diện', _themeModeLabel, _showThemeDialog),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AppColors.purple.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.dark_mode, color: AppColors.purple, size: 19),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Giao diện', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              ),
+              _buildThemeToggle(),
+            ],
+          ),
         ),
         const SizedBox(height: 18),
         _sectionTitle('HỆ THỐNG'),

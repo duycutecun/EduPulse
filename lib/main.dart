@@ -54,7 +54,7 @@ class _EduPulseAppState extends State<EduPulseApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: _ThemeBrightnessSyncer(
+      home: _BrightnessSyncer(
         child: MainShellScreen(
           onThemeModeChanged: _setThemeMode,
           themeMode: _mode,
@@ -64,19 +64,17 @@ class _EduPulseAppState extends State<EduPulseApp> {
   }
 }
 
-// Widget placed BELOW the MaterialApp's Theme layer so its build depends on
-// Theme.of(context). It therefore rebuilds whenever the resolved theme
-// brightness changes (light/dark/system) and keeps the global
-// AppColors.currentBrightness in sync, which all screens read via the
-// theme-dependent AppColors getters.
-class _ThemeBrightnessSyncer extends StatelessWidget {
+// Keeps AppColors._darkFallback in sync with the resolved theme.
+// This is used by widgets that can't easily receive a BuildContext
+// (e.g. static color helpers called outside build).
+class _BrightnessSyncer extends StatelessWidget {
   final Widget child;
-
-  const _ThemeBrightnessSyncer({required this.child});
+  const _BrightnessSyncer({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    AppColors.currentBrightness = Theme.of(context).brightness;
+    AppColors.darkFallback = Theme.of(context).brightness == Brightness.dark;
     return child;
   }
 }
+

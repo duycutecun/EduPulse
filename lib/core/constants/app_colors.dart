@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Global brightness set by AppTheme before each build.
-  // Theme-dependent colors resolve against this.
-  static Brightness currentBrightness = Brightness.light;
-  static bool get _dark => currentBrightness == Brightness.dark;
+  // Call isDark(context) inside build() to get the correct brightness.
+  // Never store this statically — IndexedStack keeps all screens alive and
+  // a static value would become stale after a theme change.
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  // Internal shorthand used by resolved getters that require a context.
+  // Set this via AppColors.darkFallback = ... in the root build() call.
+  static bool darkFallback = false;
+  static bool get _dark => darkFallback;
 
   // ─── Fixed Functional Colors (same in light & dark) ─────────────────────
   static const Color green = Color(0xFF58CC02);
