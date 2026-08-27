@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
-import '../../../../shared/widgets/animated_pulse.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
 import 'package:uuid/uuid.dart';
@@ -121,15 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildQuickActionCards(isDark),
           const SizedBox(height: 14),
 
-          // 3. STREAK PROGRESS CARD
-          _buildStreakCard(isDark),
-          const SizedBox(height: 14),
-
-          // 4. TODAY'S MISSIONS CHECKLIST
+          // 3. TODAY'S MISSIONS CHECKLIST
           _buildTodayMissions(isDark),
           const SizedBox(height: 14),
 
-          // 5. MOTIVATIONAL NUDGE
+          // 4. MOTIVATIONAL NUDGE
           _buildSmartNudge(isDark),
         ],
       ),
@@ -583,145 +578,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStreakCard(bool isDark) {
-    final daysOfWeek = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    final currentDayIndex = (DateTime.now().weekday - 1) % 7;
-
-    return GlassCard(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              PulsingGlow(
-                glowColor: AppColors.appleOrange,
-                maxBlur: 16,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9500), Color(0xFFFF3B30)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(child: Text('🔥', style: TextStyle(fontSize: 22))),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '${widget.streak}',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.appleOrange,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'ngày học liên tiếp',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '🏆 Kỷ lục cao nhất: ${widget.streakRecord} ngày',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark ? Colors.white54 : Colors.black45,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.appleOrange.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'GIỮ LỬA 🔥',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.appleOrange,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // 7-day mini week tracker
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (i) {
-              final isCompleted = widget.streak > 0 && i <= currentDayIndex;
-              final isToday = i == currentDayIndex;
-
-              return Column(
-                children: [
-                  Text(
-                    daysOfWeek[i],
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
-                      color: isToday
-                          ? AppColors.appleOrange
-                          : (isDark ? Colors.white38 : Colors.black38),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isCompleted
-                          ? AppColors.appleOrange.withValues(alpha: isToday ? 1.0 : 0.25)
-                          : (isDark ? Colors.white10 : Colors.black12),
-                      border: isToday
-                          ? Border.all(color: Colors.white, width: 1.5)
-                          : null,
-                    ),
-                    child: Center(
-                      child: isCompleted
-                          ? Text(
-                              isToday ? '🔥' : '✓',
-                              style: TextStyle(
-                                fontSize: isToday ? 13 : 11,
-                                fontWeight: FontWeight.bold,
-                                color: isToday ? Colors.white : AppColors.appleOrange,
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTodayMissions(bool isDark) {
     final filtered = _selectedSubjectFilter == 'Tất cả'
         ? _tasks
@@ -944,7 +800,7 @@ class _HomeScreenState extends State<HomeScreen> {
       '🧠 Làm đề thi thử trong khung giờ thật giúp não bộ làm quen với áp lực thi cử.',
       '⏰ Pomodoro: Tập trung sâu 25 phút, nghỉ 5 phút — thử ngay trong tab Tập trung!',
       '🎯 Chia nhỏ mục tiêu: Mỗi ngày hoàn thành 3 nhiệm vụ là bạn đã vượt lên 80% thí sinh khác.',
-      '🔥 Duy trì chuỗi Streak mỗi ngày — sự kiên định tạo nên thủ khoa.',
+      '🔥 Kiên định từng ngày — sự bền bỉ tạo nên thủ khoa.',
     ];
     final today = DateTime.now().day % nudges.length;
 
