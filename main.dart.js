@@ -28965,12 +28965,10 @@ aIy(a){var s=$.bJ
 return s==null?null:A.bo(s.a.h(0,"task_"+a))},
 aIB(a,b){var s=$.bJ
 return s==null?null:s.d7("String","task_"+a,b)},
-aIw(){var s=$.bJ
-s=s==null?null:A.bo(s.a.h(0,"supabase_url"))
-return s==null?"":s},
-aIv(){var s=$.bJ
-s=s==null?null:A.bo(s.a.h(0,"supabase_anon_key"))
-return s==null?"":s},
+aIw(){var s=$.bJ,r=s==null?null:A.bo(s.a.h(0,"supabase_url"))
+return r==null||r.length===0?"https://nygkogzdemplbfydhspd.supabase.co":r},
+aIv(){var s=$.bJ,r=s==null?null:A.bo(s.a.h(0,"supabase_anon_key"))
+return r==null||r.length===0?"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55Z2tvZ3pkZW1wbGJmeWRoc3BkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTMxMjEsImV4cCI6MjEwMzMyOTEyMX0.ta2-6xtXtz_Ix3m5J1YpMtMKVevg194l4f5_slvTOec":r},
 rd(){var s="user_uuid",r=$.bJ,q=r==null?null:A.bo(r.a.h(0,s))
 if(q==null||q.length===0){q="user_"+Date.now()
 r=$.bJ
