@@ -441,8 +441,8 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             color: AppColors.cardWhite,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.border, width: 2),
-            boxShadow: const [
-              BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: Offset(0, 3)),
+            boxShadow: [
+              BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: const Offset(0, 3)),
             ],
           ),
           child: Row(
