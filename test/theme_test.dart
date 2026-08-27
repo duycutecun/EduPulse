@@ -14,6 +14,7 @@ void main() {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: mode,
+      themeAnimationDuration: Duration.zero,
       home: Builder(
         builder: (context) {
           AppColors.darkFallback = Theme.of(context).brightness == Brightness.dark;
@@ -70,5 +71,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(AppColors.darkFallback, isTrue);
     expect(find.text('dark-bg'), findsOneWidget);
+  });
+
+  testWidgets(
+      'root sets darkFallback synchronously so one tap changes the WHOLE ui',
+      (WidgetTester tester) async {
+    // Reproduces lib/main.dart: the root state resolves dark BEFORE setState,
+    // so the very first build of the switched frame reads the new colors.
+    Future<void> switchMode(String mode, Brightness resolved) async {
+      AppColors.darkFallback = resolved == Brightness.dark; // root _setThemeMode
+      await tester.pumpWidget(buildApp(ThemeMode.values.firstWhere(
+        (m) => m.name == mode,
+        orElse: () => ThemeMode.dark,
+      )));
+    }
+
+    // Start light
+    await tester.pumpWidget(buildApp(ThemeMode.light));
+    expect(find.text('light-bg'), findsOneWidget);
+
+    // ONE switch to dark -> bg AND text must both change in the same frame.
+    await switchMode('dark', Brightness.dark);
+    expect(find.text('dark-bg'), findsOneWidget);
+    expect(AppColors.bgPage, const Color(0xFF121F24));
+    expect(AppColors.textPrimary, const Color(0xFFFFFFFF));
   });
 }

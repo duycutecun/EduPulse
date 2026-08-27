@@ -40,10 +40,27 @@ class _EduPulseAppState extends State<EduPulseApp> {
   }
 
   void _setThemeMode(String mode) {
+    // Resolve the target dark/light BEFORE the rebuild so every widget that
+    // reads a theme-dependent AppColors.* getter in the very first frame of
+    // the switch already sees the correct value (fixes the "two taps" lag
+    // where only the background changed on the first press).
+    AppColors.darkFallback = _resolvesDark(mode);
     setState(() {
       _mode = mode;
       StorageService.setThemeMode(mode);
     });
+  }
+
+  bool _resolvesDark(String mode) {
+    switch (mode) {
+      case 'light':
+        return false;
+      case 'dark':
+        return true;
+      default:
+        return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark;
+    }
   }
 
   @override
@@ -54,6 +71,7 @@ class _EduPulseAppState extends State<EduPulseApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
+      themeAnimationDuration: Duration.zero,
       home: _BrightnessSyncer(
         child: MainShellScreen(
           onThemeModeChanged: _setThemeMode,
