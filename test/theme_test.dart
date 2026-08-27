@@ -4,10 +4,11 @@ import 'package:edupulse/core/theme/app_theme.dart';
 import 'package:edupulse/core/constants/app_colors.dart';
 
 void main() {
-  // Reproduces the mechanism used in lib/main.dart: a widget placed BELOW the
-  // MaterialApp Theme layer whose build depends on Theme.of(context), so it
-  // rebuilds when the resolved theme brightness changes and keeps the global
-  // AppColors.currentBrightness in sync.
+  // Reproduces the mechanism used in lib/main.dart's _BrightnessSyncer: a
+  // widget placed BELOW the MaterialApp Theme layer whose build depends on
+  // Theme.of(context), so it rebuilds when the resolved theme brightness
+  // changes and keeps AppColors.darkFallback in sync for the many static
+  // color helpers called outside a build() context.
   Widget buildApp(ThemeMode mode) {
     return MaterialApp(
       theme: AppTheme.lightTheme,
@@ -15,14 +16,12 @@ void main() {
       themeMode: mode,
       home: Builder(
         builder: (context) {
-          AppColors.currentBrightness = Theme.of(context).brightness;
+          AppColors.darkFallback = Theme.of(context).brightness == Brightness.dark;
           return Scaffold(
             backgroundColor: AppColors.bgPage,
             body: Center(
               child: Text(
-                AppColors.currentBrightness == Brightness.dark
-                    ? 'dark-bg'
-                    : 'light-bg',
+                AppColors.darkFallback ? 'dark-bg' : 'light-bg',
                 style: TextStyle(color: AppColors.textPrimary),
               ),
             ),
@@ -32,13 +31,13 @@ void main() {
     );
   }
 
-  test('theme-dependent colors resolve from the global brightness', () {
-    AppColors.currentBrightness = Brightness.dark;
+  test('theme-dependent colors resolve from the darkFallback flag', () {
+    AppColors.darkFallback = true;
     expect(AppColors.bgPage, const Color(0xFF121F24));
     expect(AppColors.textPrimary, const Color(0xFFFFFFFF));
     expect(AppColors.border, const Color(0xFF3D464D));
 
-    AppColors.currentBrightness = Brightness.light;
+    AppColors.darkFallback = false;
     expect(AppColors.bgPage, const Color(0xFFF7F7F7));
     expect(AppColors.textPrimary, const Color(0xFF4B4B4B));
     expect(AppColors.border, const Color(0xFFE5E5E5));
@@ -48,7 +47,7 @@ void main() {
       (WidgetTester tester) async {
     // Start in dark
     await tester.pumpWidget(buildApp(ThemeMode.dark));
-    expect(AppColors.currentBrightness, Brightness.dark);
+    expect(AppColors.darkFallback, isTrue);
     expect(AppColors.bgPage, const Color(0xFF121F24));
     expect(AppColors.textPrimary, const Color(0xFFFFFFFF));
     expect(find.text('dark-bg'), findsOneWidget);
@@ -60,8 +59,8 @@ void main() {
         Theme.of(tester.element(find.byType(Scaffold))).brightness;
     expect(actualThemeBrightness, Brightness.light,
         reason: 'MaterialApp must resolve light theme');
-    expect(AppColors.currentBrightness, Brightness.light,
-        reason: 'global brightness must follow the resolved theme');
+    expect(AppColors.darkFallback, isFalse,
+        reason: 'darkFallback must follow the resolved theme');
     expect(AppColors.bgPage, const Color(0xFFF7F7F7));
     expect(AppColors.textPrimary, const Color(0xFF4B4B4B));
     expect(find.text('light-bg'), findsOneWidget);
@@ -69,7 +68,7 @@ void main() {
     // And back to dark
     await tester.pumpWidget(buildApp(ThemeMode.dark));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(AppColors.currentBrightness, Brightness.dark);
+    expect(AppColors.darkFallback, isTrue);
     expect(find.text('dark-bg'), findsOneWidget);
   });
 }

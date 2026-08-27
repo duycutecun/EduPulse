@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config.dart';
 
 class StorageService {
   static SharedPreferences? _prefs;
@@ -98,13 +99,21 @@ class StorageService {
   }
 
   // Supabase Cloud Config
-  static String getSupabaseUrl() =>
-      _prefs?.getString('supabase_url') ?? '';
+  // Giá trị người dùng nhập cục bộ được ưu tiên; nếu chưa có thì dùng config
+  // mặc định trong lib/core/config.dart (giúp app kết nối ngay khi khởi động).
+  static String getSupabaseUrl() {
+    final stored = _prefs?.getString('supabase_url');
+    return (stored == null || stored.isEmpty) ? AppConfig.supabaseUrl : stored;
+  }
   static void setSupabaseUrl(String v) =>
       _prefs?.setString('supabase_url', v);
 
-  static String getSupabaseAnonKey() =>
-      _prefs?.getString('supabase_anon_key') ?? '';
+  static String getSupabaseAnonKey() {
+    final stored = _prefs?.getString('supabase_anon_key');
+    return (stored == null || stored.isEmpty)
+        ? AppConfig.supabaseAnonKey
+        : stored;
+  }
   static void setSupabaseAnonKey(String v) =>
       _prefs?.setString('supabase_anon_key', v);
 
