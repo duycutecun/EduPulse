@@ -11,6 +11,7 @@ class ExamsScreen extends StatefulWidget {
   final String? primaryExamId;
   final Function(ExamModel) onSetPrimary;
   final Function(ExamModel) onAddExam;
+  final Function(ExamModel) onUpdateExam;
   final Function(String) onDeleteExam;
 
   const ExamsScreen({
@@ -19,6 +20,7 @@ class ExamsScreen extends StatefulWidget {
     required this.primaryExamId,
     required this.onSetPrimary,
     required this.onAddExam,
+    required this.onUpdateExam,
     required this.onDeleteExam,
   });
 
@@ -29,6 +31,12 @@ class ExamsScreen extends StatefulWidget {
 class _ExamsScreenState extends State<ExamsScreen> {
   final _uuid = const Uuid();
   int _selectedFilter = 0;
+
+  static const _availableEmojis = [
+    '📚', '📝', '🎓', '🏆', '🎯', '📊', '🧮', '🔬',
+    '🧪', '📐', '📏', '✏️', '🖊️', '📖', '🎒', '🏫',
+    '⭐', '🔥', '💪', '🧠', '👨‍🎓', '👩‍🎓', '🥇', '🎖️',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +179,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
       ),
       child: GestureDetector(
         onTap: () => widget.onSetPrimary(exam),
+        onLongPress: () => _showEditDialog(exam),
         child: GlassCard(
           padding: const EdgeInsets.all(18),
           borderColor: isPrimary ? AppColors.green : AppColors.border,
@@ -309,52 +318,284 @@ class _ExamsScreenState extends State<ExamsScreen> {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     DateTime selectedDate = DateTime.now().add(const Duration(days: 30));
+    String selectedEmoji = '📝';
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
-        ),
-        title: const Text('Thêm kỳ thi mới', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(hintText: 'Tên kỳ thi (VD: Thi thử Toán)'),
-              autofocus: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.border, width: 2),
+          ),
+          title: const Text('Thêm kỳ thi mới', style: TextStyle(fontWeight: FontWeight.w800)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () => _showEmojiPicker(ctx, (emoji) {
+                    setDialogState(() => selectedEmoji = emoji);
+                  }),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 2),
+                    ),
+                    child: Center(child: Text(selectedEmoji, style: const TextStyle(fontSize: 32))),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text('Nhấn để chọn biểu tượng', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(hintText: 'Tên kỳ thi (VD: Thi thử Toán)'),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.light(primary: AppColors.green),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) setDialogState(() => selectedDate = picked);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.border, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.calendar, size: 18, color: AppColors.green),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Ngày thi: ${_formatDate(selectedDate)}',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.edit_calendar, size: 16, color: AppColors.textMuted),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: descCtrl,
-              decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (nameCtrl.text.isNotEmpty) {
+                  widget.onAddExam(ExamModel(
+                    id: _uuid.v4(),
+                    name: nameCtrl.text.trim(),
+                    dateTime: selectedDate,
+                    type: ExamType.custom,
+                    description: descCtrl.text.isEmpty ? null : descCtrl.text,
+                    emoji: selectedEmoji,
+                  ));
+                }
+                Navigator.pop(ctx);
+              },
+              child: const Text('Thêm', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+      ),
+    );
+  }
+
+  void _showEditDialog(ExamModel exam) {
+    final nameCtrl = TextEditingController(text: exam.name);
+    final descCtrl = TextEditingController(text: exam.description ?? '');
+    DateTime selectedDate = exam.dateTime;
+    String selectedEmoji = exam.emoji;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.border, width: 2),
           ),
-          TextButton(
-            onPressed: () {
-              if (nameCtrl.text.isNotEmpty) {
-                widget.onAddExam(ExamModel(
-                  id: _uuid.v4(),
-                  name: nameCtrl.text.trim(),
-                  dateTime: selectedDate,
-                  type: ExamType.custom,
-                  description: descCtrl.text.isEmpty ? null : descCtrl.text,
-                  emoji: '📝',
-                ));
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Thêm', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+          title: const Text('Chỉnh sửa kỳ thi', style: TextStyle(fontWeight: FontWeight.w800)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () => _showEmojiPicker(ctx, (emoji) {
+                    setDialogState(() => selectedEmoji = emoji);
+                  }),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 2),
+                    ),
+                    child: Center(child: Text(selectedEmoji, style: const TextStyle(fontSize: 32))),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text('Nhấn để thay đổi biểu tượng', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(hintText: 'Tên kỳ thi'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.light(primary: AppColors.green),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) setDialogState(() => selectedDate = picked);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.border, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.calendar, size: 18, color: AppColors.green),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Ngày thi: ${_formatDate(selectedDate)}',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.edit_calendar, size: 16, color: AppColors.textMuted),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (nameCtrl.text.isNotEmpty) {
+                  widget.onUpdateExam(ExamModel(
+                    id: exam.id,
+                    name: nameCtrl.text.trim(),
+                    dateTime: selectedDate,
+                    type: exam.type,
+                    description: descCtrl.text.isEmpty ? null : descCtrl.text,
+                    emoji: selectedEmoji,
+                  ));
+                }
+                Navigator.pop(ctx);
+              },
+              child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEmojiPicker(BuildContext context, Function(String) onSelected) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 18, 20, 10),
+              child: Text('Chọn biểu tượng', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            ),
+            SizedBox(
+              height: 200,
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemCount: _availableEmojis.length,
+                itemBuilder: (ctx, i) {
+                  return GestureDetector(
+                    onTap: () {
+                      onSelected(_availableEmojis[i]);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1),
+                      ),
+                      child: Center(
+                        child: Text(_availableEmojis[i], style: const TextStyle(fontSize: 28)),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

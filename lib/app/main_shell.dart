@@ -99,6 +99,16 @@ class _MainShellScreenState extends State<MainShellScreen> {
     });
   }
 
+  void _updateExam(ExamModel exam) {
+    StorageService.setExamJson(exam.id, exam.toJsonString());
+    setState(() {
+      final index = _exams.indexWhere((e) => e.id == exam.id);
+      if (index != -1) {
+        _exams[index] = exam;
+      }
+    });
+  }
+
   ExamModel? get _primaryExam {
     try {
       return _exams.firstWhere((e) => e.id == _primaryExamId);
@@ -136,6 +146,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 primaryExamId: _primaryExamId,
                 onSetPrimary: _setPrimaryExam,
                 onAddExam: _addExam,
+                onUpdateExam: _updateExam,
                 onDeleteExam: _deleteExam,
               ),
               const AiCoachScreen(),
