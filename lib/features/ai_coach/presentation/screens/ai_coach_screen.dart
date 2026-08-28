@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
@@ -345,10 +346,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                 if (msg.text.isNotEmpty) const SizedBox(height: 8),
               ],
               if (msg.text.isNotEmpty)
-                Text(
-                  msg.text.replaceAll('**', ''),
-                  style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.45),
-                ),
+                _buildRichText(msg.text, isUser: true),
             ],
           ),
         ),
@@ -373,10 +371,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               if (msg.text.isNotEmpty) const SizedBox(height: 8),
             ],
             if (msg.text.isNotEmpty)
-              Text(
-                msg.text.replaceAll('**', ''),
-                style: TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.45),
-              ),
+              _buildRichText(msg.text, isUser: false),
             const SizedBox(height: 6),
             GestureDetector(
               onTap: () {
@@ -391,6 +386,97 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildRichText(String text, {required bool isUser}) {
+    final textColor = isUser ? Colors.white : AppColors.textPrimary;
+    final regex = RegExp(r'\$\$(.*?)\$\$|(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)');
+    final matches = regex.allMatches(text).toList();
+
+    if (matches.isEmpty) {
+      return Text(
+        text.replaceAll('**', ''),
+        style: TextStyle(fontSize: 14, color: textColor, height: 1.45),
+      );
+    }
+
+    final List<InlineSpan> spans = [];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        final plainText = text.substring(lastEnd, match.start).replaceAll('**', '');
+        if (plainText.isNotEmpty) {
+          spans.add(TextSpan(
+            text: plainText,
+            style: TextStyle(fontSize: 14, color: textColor, height: 1.45),
+          ));
+        }
+      }
+
+      final latex = match.group(1) ?? match.group(2) ?? '';
+      if (latex.isNotEmpty) {
+        spans.add(WidgetSpan(
+          child: _buildLatexWidget(latex, textColor: textColor),
+          alignment: PlaceholderAlignment.middle,
+        ));
+      }
+
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < text.length) {
+      final remaining = text.substring(lastEnd).replaceAll('**', '');
+      if (remaining.isNotEmpty) {
+        spans.add(TextSpan(
+          text: remaining,
+          style: TextStyle(fontSize: 14, color: textColor, height: 1.45),
+        ));
+      }
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
+    );
+  }
+
+  Widget _buildLatexWidget(String latex, {required Color textColor}) {
+    try {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          color: textColor == Colors.white
+              ? Colors.white.withValues(alpha: 0.15)
+              : AppColors.bgPage,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: textColor == Colors.white
+                ? Colors.white.withValues(alpha: 0.3)
+                : AppColors.border,
+            width: 1,
+          ),
+        ),
+        child: Math.tex(
+          latex,
+          textStyle: TextStyle(
+            fontSize: 15,
+            color: textColor,
+          ),
+          onErrorFallback: (error) {
+            return Text(
+              '\$$latex\$',
+              style: TextStyle(fontSize: 14, color: textColor, fontStyle: FontStyle.italic),
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      return Text(
+        '\$$latex\$',
+        style: TextStyle(fontSize: 14, color: textColor, fontStyle: FontStyle.italic),
+      );
+    }
   }
 
   Widget _buildInputBar() {
