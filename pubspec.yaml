@@ -17,7 +17,6 @@ dependencies:
   http: ^1.1.0
   file_picker: ^8.0.0
   supabase_flutter: ^2.8.0
-  flutter_math_fork: ^0.7.0
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
@@ -441,42 +440,125 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   Widget _buildLatexWidget(String latex, {required Color textColor}) {
-    try {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
+    final converted = _convertLatexToUnicode(latex);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: textColor == Colors.white
+            ? Colors.white.withValues(alpha: 0.15)
+            : AppColors.bgPage,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
           color: textColor == Colors.white
-              ? Colors.white.withValues(alpha: 0.15)
-              : AppColors.bgPage,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: textColor == Colors.white
-                ? Colors.white.withValues(alpha: 0.3)
-                : AppColors.border,
-            width: 1,
-          ),
+              ? Colors.white.withValues(alpha: 0.3)
+              : AppColors.border,
+          width: 1,
         ),
-        child: Math.tex(
-          latex,
-          textStyle: TextStyle(
-            fontSize: 15,
-            color: textColor,
-          ),
-          onErrorFallback: (error) {
-            return Text(
-              '\$$latex\$',
-              style: TextStyle(fontSize: 14, color: textColor, fontStyle: FontStyle.italic),
-            );
-          },
+      ),
+      child: Text(
+        converted,
+        style: TextStyle(
+          fontSize: 15,
+          color: textColor,
+          fontWeight: FontWeight.w600,
         ),
-      );
-    } catch (e) {
-      return Text(
-        '\$$latex\$',
-        style: TextStyle(fontSize: 14, color: textColor, fontStyle: FontStyle.italic),
-      );
-    }
+      ),
+    );
+  }
+
+  String _convertLatexToUnicode(String latex) {
+    String result = latex;
+
+    // Fractions: \frac{a}{b} → a/b
+    result = result.replaceAllMapped(
+      RegExp(r'\\frac\{([^}]+)\}\{([^}]+)\}'),
+      (m) => '${m.group(1)}/${m.group(2)}',
+    );
+
+    // Square root: \sqrt{x} → √x
+    result = result.replaceAllMapped(
+      RegExp(r'\\sqrt\{([^}]+)\}'),
+      (m) => '√(${m.group(1)})',
+    );
+
+    // Powers: x^{2} → x², x^{3} → x³
+    final superscriptMap = {'0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾'};
+    result = result.replaceAllMapped(
+      RegExp(r'\^{([^}]+)}'),
+      (m) {
+        final inner = m.group(1)!;
+        return inner.split('').map((c) => superscriptMap[c] ?? c).join();
+      },
+    );
+
+    // Subscripts: x_{1} → x₁
+    final subscriptMap = {'0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉', '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎'};
+    result = result.replaceAllMapped(
+      RegExp(r'_{([^}]+)}'),
+      (m) {
+        final inner = m.group(1)!;
+        return inner.split('').map((c) => subscriptMap[c] ?? c).join();
+      },
+    );
+
+    // Greek letters
+    result = result.replaceAll('\\alpha', 'α');
+    result = result.replaceAll('\\beta', 'β');
+    result = result.replaceAll('\\gamma', 'γ');
+    result = result.replaceAll('\\delta', 'δ');
+    result = result.replaceAll('\\epsilon', 'ε');
+    result = result.replaceAll('\\theta', 'θ');
+    result = result.replaceAll('\\lambda', 'λ');
+    result = result.replaceAll('\\mu', 'μ');
+    result = result.replaceAll('\\pi', 'π');
+    result = result.replaceAll('\\sigma', 'σ');
+    result = result.replaceAll('\\phi', 'φ');
+    result = result.replaceAll('\\omega', 'ω');
+    result = result.replaceAll('\\Delta', 'Δ');
+    result = result.replaceAll('\\Sigma', 'Σ');
+    result = result.replaceAll('\\Omega', 'Ω');
+
+    // Math symbols
+    result = result.replaceAll('\\times', '×');
+    result = result.replaceAll('\\div', '÷');
+    result = result.replaceAll('\\pm', '±');
+    result = result.replaceAll('\\mp', '∓');
+    result = result.replaceAll('\\leq', '≤');
+    result = result.replaceAll('\\geq', '≥');
+    result = result.replaceAll('\\neq', '≠');
+    result = result.replaceAll('\\approx', '≈');
+    result = result.replaceAll('\\equiv', '≡');
+    result = result.replaceAll('\\infty', '∞');
+    result = result.replaceAll('\\partial', '∂');
+    result = result.replaceAll('\\nabla', '∇');
+    result = result.replaceAll('\\forall', '∀');
+    result = result.replaceAll('\\exists', '∃');
+    result = result.replaceAll('\\in', '∈');
+    result = result.replaceAll('\\notin', '∉');
+    result = result.replaceAll('\\subset', '⊂');
+    result = result.replaceAll('\\supset', '⊃');
+    result = result.replaceAll('\\cup', '∪');
+    result = result.replaceAll('\\cap', '∩');
+    result = result.replaceAll('\\emptyset', '∅');
+    result = result.replaceAll('\\rightarrow', '→');
+    result = result.replaceAll('\\leftarrow', '←');
+    result = result.replaceAll('\\Rightarrow', '⇒');
+    result = result.replaceAll('\\Leftarrow', '⇐');
+    result = result.replaceAll('\\leftrightarrow', '↔');
+    result = result.replaceAll('\\cdot', '·');
+    result = result.replaceAll('\\ldots', '…');
+    result = result.replaceAll('\\cdots', '⋯');
+
+    // Summation and integral
+    result = result.replaceAll('\\sum', '∑');
+    result = result.replaceAll('\\prod', '∏');
+    result = result.replaceAll('\\int', '∫');
+
+    // Clean up remaining backslashes
+    result = result.replaceAll('\\', '');
+
+    return result;
   }
 
   Widget _buildInputBar() {
