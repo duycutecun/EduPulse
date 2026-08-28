@@ -37,14 +37,14 @@ jobs:
           name: edupulse-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Upload to Firebase App Distribution
-        if: ${{ secrets.FIREBASE_ANDROID_APP_ID != '' }}
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          file: build/app/outputs/flutter-apk/app-release.apk
-          groups: testers
+      - name: Upload APK to Firebase
+        if: ${{ secrets.FIREBASE_TOKEN != '' }}
+        run: |
+          npm install -g firebase-tools
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --groups testers
 
   build-ios:
     runs-on: macos-latest
@@ -70,11 +70,11 @@ jobs:
           name: edupulse-ipa
           path: build/ios/ipa/*.ipa
 
-      - name: Upload to Firebase App Distribution
-        if: ${{ secrets.FIREBASE_IOS_APP_ID != '' }}
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          file: build/ios/ipa/*.ipa
-          groups: testers
+      - name: Upload IPA to Firebase
+        if: ${{ secrets.FIREBASE_TOKEN != '' }}
+        run: |
+          npm install -g firebase-tools
+          firebase appdistribution:distribute build/ios/ipa/*.ipa \
+            --app ${{ secrets.FIREBASE_IOS_APP_ID }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --groups testers
