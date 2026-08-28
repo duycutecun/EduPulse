@@ -24,8 +24,6 @@ class _AccountScreenState extends State<AccountScreen> {
   int _activeSegment = 0;
   late String _userName;
   late String _userTarget;
-  late String _supabaseUrl;
-  late String _supabaseAnonKey;
   bool _isSyncing = false;
   bool _isRestoring = false;
   String _selectedFilter = 'Tất cả';
@@ -42,8 +40,6 @@ class _AccountScreenState extends State<AccountScreen> {
   void _loadData() {
     _userName = StorageService.getUserName();
     _userTarget = StorageService.getUserTarget();
-    _supabaseUrl = StorageService.getSupabaseUrl();
-    _supabaseAnonKey = StorageService.getSupabaseAnonKey();
   }
 
   void _initLeaderboard() async {
@@ -64,21 +60,8 @@ class _AccountScreenState extends State<AccountScreen> {
     SupabaseService.syncProfile();
   }
 
-  void _updateSupabase(String url, String key) async {
-    StorageService.setSupabaseUrl(url);
-    StorageService.setSupabaseAnonKey(key);
-    setState(() { _supabaseUrl = url; _supabaseAnonKey = key; });
-    final success = await SupabaseService.init(customUrl: url, customKey: key);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success ? 'Đã kết nối Supabase!' : 'Lỗi kết nối!'),
-        backgroundColor: success ? AppColors.green : AppColors.red,
-      ));
-    }
-  }
-
   Future<void> _manualBackup() async {
-    if (!SupabaseService.isConfigured) { _showSupabaseDialog(); return; }
+    if (!SupabaseService.isConfigured) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng'))); } return; }
     setState(() => _isSyncing = true);
     final ok = await SupabaseService.syncAll();
     setState(() => _isSyncing = false);
@@ -91,7 +74,7 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _manualRestore() async {
-    if (!SupabaseService.isConfigured) { _showSupabaseDialog(); return; }
+    if (!SupabaseService.isConfigured) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng'))); } return; }
     setState(() => _isRestoring = true);
     final ok = await SupabaseService.restoreAll();
     setState(() => _isRestoring = false);
@@ -200,7 +183,6 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _buildProfileAndSettings() {
-    final hasSupabase = SupabaseService.isConfigured;
     final isLoggedIn = SupabaseService.isLoggedIn;
     final user = SupabaseService.currentUser;
 
@@ -358,17 +340,6 @@ class _AccountScreenState extends State<AccountScreen> {
                   bg: AppColors.blueSoft,
                 ),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        _sectionTitle('ĐÁM MÂY'),
-        const SizedBox(height: 8),
-        GlassCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              _settingTile(Icons.cloud, AppColors.blue, 'Supabase Cloud', hasSupabase ? 'Đã kết nối' : 'Chưa kết nối', () => _showSupabaseDialog()),
             ],
           ),
         ),
@@ -575,35 +546,6 @@ class _AccountScreenState extends State<AccountScreen> {
           TextButton(
             onPressed: () { if (nameCtrl.text.trim().isNotEmpty) _updateProfile(nameCtrl.text.trim(), targetCtrl.text.trim()); Navigator.pop(ctx); },
             child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSupabaseDialog() {
-    final urlCtrl = TextEditingController(text: _supabaseUrl);
-    final keyCtrl = TextEditingController(text: _supabaseAnonKey);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
-        title: const Text('Cấu hình Supabase', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Nhập Project URL & Anon Key từ Supabase Dashboard.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            const SizedBox(height: 12),
-            TextField(controller: urlCtrl, decoration: const InputDecoration(hintText: 'https://xxx.supabase.co')),
-            const SizedBox(height: 10),
-            TextField(controller: keyCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'eyJhbG...')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
-          TextButton(
-            onPressed: () { _updateSupabase(urlCtrl.text.trim(), keyCtrl.text.trim()); Navigator.pop(ctx); },
-            child: const Text('Lưu & Kết nối', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
