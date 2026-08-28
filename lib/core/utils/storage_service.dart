@@ -81,6 +81,10 @@ class StorageService {
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
   static void setAiModel(String v) => _prefs?.setString('ai_model', v);
 
+  // Gemini API Key (dùng cho model Gemini trực tiếp, do người dùng nhập).
+  static String getGeminiApiKey() => _prefs?.getString('gemini_api_key') ?? '';
+  static void setGeminiApiKey(String v) => _prefs?.setString('gemini_api_key', v);
+
   // Today mission
   static List<String> getTodayTaskIds() =>
       _prefs?.getStringList('today_task_ids') ?? [];

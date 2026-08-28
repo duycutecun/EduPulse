@@ -59,6 +59,12 @@ class AIModel {
       description: 'Google · hỗ trợ đọc ảnh',
       supportsVision: true,
     ),
+    AIModel(
+      slug: 'gemini/gemini-3.7-flash',
+      label: 'Gemini 3.7 Flash (Key)',
+      description: 'Google · dùng trực tiếp key của bạn, đọc ảnh',
+      supportsVision: true,
+    ),
   ];
 
   /// Model mặc định khi chưa chọn.
@@ -77,7 +83,7 @@ class AIModel {
 /// Nhận diện logo/icon hiển thị cho từng model.
 IconData aiModelIcon(String slug) {
   if (slug.startsWith('openai')) return Icons.bolt_rounded;
-  if (slug.startsWith('google')) return Icons.auto_awesome_rounded;
+  if (slug.startsWith('google') || slug.startsWith('gemini')) return Icons.auto_awesome_rounded;
   if (slug.startsWith('minimax')) return Icons.psychology_rounded;
   if (slug.startsWith('nvidia')) return Icons.memory_rounded;
   if (slug.startsWith('z-ai')) return Icons.smart_toy_rounded;
