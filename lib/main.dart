@@ -12,56 +12,8 @@ void main() async {
   runApp(const EduPulseApp());
 }
 
-class EduPulseApp extends StatefulWidget {
+class EduPulseApp extends StatelessWidget {
   const EduPulseApp({super.key});
-
-  @override
-  State<EduPulseApp> createState() => _EduPulseAppState();
-}
-
-class _EduPulseAppState extends State<EduPulseApp> {
-  String _mode = 'system';
-
-  @override
-  void initState() {
-    super.initState();
-    _mode = StorageService.getThemeMode();
-  }
-
-  ThemeMode get _themeMode {
-    switch (_mode) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      default:
-        return ThemeMode.system;
-    }
-  }
-
-  void _setThemeMode(String mode) {
-    // Resolve the target dark/light BEFORE the rebuild so every widget that
-    // reads a theme-dependent AppColors.* getter in the very first frame of
-    // the switch already sees the correct value (fixes the "two taps" lag
-    // where only the background changed on the first press).
-    AppColors.darkFallback = _resolvesDark(mode);
-    setState(() {
-      _mode = mode;
-      StorageService.setThemeMode(mode);
-    });
-  }
-
-  bool _resolvesDark(String mode) {
-    switch (mode) {
-      case 'light':
-        return false;
-      case 'dark':
-        return true;
-      default:
-        return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
-            Brightness.dark;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,30 +21,22 @@ class _EduPulseAppState extends State<EduPulseApp> {
       title: 'EduPulse',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
-      themeAnimationDuration: Duration.zero,
-      home: _BrightnessSyncer(
-        child: MainShellScreen(
-          onThemeModeChanged: _setThemeMode,
-          themeMode: _mode,
-        ),
+      themeMode: ThemeMode.light,
+      home: const _BrightnessSyncer(
+        child: MainShellScreen(),
       ),
     );
   }
 }
 
-// Keeps AppColors._darkFallback in sync with the resolved theme.
-// This is used by widgets that can't easily receive a BuildContext
-// (e.g. static color helpers called outside build).
+// Forces AppColors.darkFallback to false (app is light-mode only).
 class _BrightnessSyncer extends StatelessWidget {
   final Widget child;
   const _BrightnessSyncer({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    AppColors.darkFallback = Theme.of(context).brightness == Brightness.dark;
+    AppColors.darkFallback = false;
     return child;
   }
 }
-

@@ -10,13 +10,8 @@ import '../features/study/presentation/screens/study_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
-  final String themeMode;
-  final ValueChanged<String> onThemeModeChanged;
-
   const MainShellScreen({
     super.key,
-    required this.themeMode,
-    required this.onThemeModeChanged,
   });
 
   @override
@@ -152,8 +147,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
               const AiCoachScreen(),
               const StudyScreen(),
               AccountScreen(
-                themeMode: widget.themeMode,
-                onThemeModeChanged: widget.onThemeModeChanged,
                 onDataChanged: _loadInitialData,
               ),
             ],

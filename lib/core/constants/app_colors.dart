@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Call isDark(context) inside build() to get the correct brightness.
-  // Never store this statically — IndexedStack keeps all screens alive and
-  // a static value would become stale after a theme change.
+  // Call isDark(context) inside build() to get the current brightness.
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
 
-  // Internal shorthand used by resolved getters that require a context.
-  // Set this via AppColors.darkFallback = ... in the root build() call.
+  // Forced false — the app is light-mode only (dark mode removed).
   static bool darkFallback = false;
-  static bool get _dark => darkFallback;
 
   // ─── Fixed Functional Colors (same in light & dark) ─────────────────────
   static const Color green = Color(0xFF58CC02);
@@ -27,46 +23,36 @@ class AppColors {
   static const Color purple = Color(0xFFCE82FF);
 
   // ─── Theme-dependent Neutrals ───────────────────────────────────────────
-  // Light: #F7F7F7 page / white cards / light borders / dark text (Duolingo)
-  // Dark:  Duolingo-style dark navy, dark cards, dim text
+  // App is light-mode only (dark mode removed). These light values are used
+  // unconditionally.
   static const Color _bgPageLight = Color(0xFFF7F7F7);
-  static const Color _bgPageDark = Color(0xFF121F24);
 
   static const Color _cardLight = Color(0xFFFFFFFF);
-  static const Color _cardDark = Color(0xFF232A31);
 
   static const Color _borderLight = Color(0xFFE5E5E5);
-  static const Color _borderDark = Color(0xFF3D464D);
 
   static const Color _borderStrongLight = Color(0xFFD7D7D7);
-  static const Color _borderStrongDark = Color(0xFF4A545C);
 
   static const Color _textPrimaryLight = Color(0xFF4B4B4B);
-  static const Color _textPrimaryDark = Color(0xFFFFFFFF);
 
   static const Color _textSecondaryLight = Color(0xFF777777);
-  static const Color _textSecondaryDark = Color(0xFFC6CACF);
 
   static const Color _textMutedLight = Color(0xFFAFAFAF);
-  static const Color _textMutedDark = Color(0xFF8B9097);
 
   static const Color _dividerLight = Color(0xFFE5E5E5);
-  static const Color _dividerDark = Color(0xFF3D464D);
 
   static const Color _tertiaryLight = Color(0xFFF0F0F0);
-  static const Color _tertiaryDark = Color(0xFF1D252C);
 
-  // ─── Resolved theme-dependent getters ───────────────────────────────────
-  static Color get bgPage => _dark ? _bgPageDark : _bgPageLight;
-  static Color get cardWhite => _dark ? _cardDark : _cardLight;
-  static Color get border => _dark ? _borderDark : _borderLight;
-  static Color get borderDark => _dark ? _borderStrongDark : _borderStrongLight;
-  static Color get textPrimary => _dark ? _textPrimaryDark : _textPrimaryLight;
-  static Color get textSecondary =>
-      _dark ? _textSecondaryDark : _textSecondaryLight;
-  static Color get textMuted => _dark ? _textMutedDark : _textMutedLight;
-  static Color get divider => _dark ? _dividerDark : _dividerLight;
-  static Color get tertiaryBg => _dark ? _tertiaryDark : _tertiaryLight;
+  // ─── Resolved getters (always light) ────────────────────────────────────
+  static Color get bgPage => _bgPageLight;
+  static Color get cardWhite => _cardLight;
+  static Color get border => _borderLight;
+  static Color get borderDark => _borderStrongLight;
+  static Color get textPrimary => _textPrimaryLight;
+  static Color get textSecondary => _textSecondaryLight;
+  static Color get textMuted => _textMutedLight;
+  static Color get divider => _dividerLight;
+  static Color get tertiaryBg => _tertiaryLight;
 
   // ─── Legacy aliases (kept for compatibility) ─────────────────────────────
   // Fixed-color aliases

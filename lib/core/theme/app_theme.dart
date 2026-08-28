@@ -17,19 +17,6 @@ class AppTheme {
     );
   }
 
-  static ThemeData get darkTheme {
-    return _build(
-      brightness: Brightness.dark,
-      bg: AppColors.bgPage,
-      card: AppColors.cardWhite,
-      border: AppColors.border,
-      textPrimary: AppColors.textPrimary,
-      textSecondary: AppColors.textSecondary,
-      muted: AppColors.textMuted,
-      tertiary: AppColors.tertiaryBg,
-    );
-  }
-
   static ThemeData _build({
     required Brightness brightness,
     required Color bg,
