@@ -22,32 +22,21 @@ class WeeklyChartWidget extends StatelessWidget {
       }
     }
 
-    if (logs.isEmpty) {
-      dailyHours[0] = 3.5;
-      dailyHours[1] = 4.0;
-      dailyHours[2] = 2.5;
-      dailyHours[3] = 5.0;
-      dailyHours[4] = 4.5;
-      dailyHours[5] = 6.0;
-      dailyHours[6] = 3.0;
+    final totalWeeklyHours = dailyHours.fold(0.0, (sum, val) => sum + val);
+    final hasData = totalWeeklyHours > 0;
+
+    if (!hasData) {
+      return _buildEmptyChart(dayNames);
     }
 
     final maxHours =
         dailyHours.reduce((curr, next) => curr > next ? curr : next);
     final safeMax = maxHours > 0 ? maxHours : 8.0;
-    final totalWeeklyHours = dailyHours.fold(0.0, (sum, val) => sum + val);
     final avgDaily = totalWeeklyHours / 7;
 
     final subjectMap = <String, double>{};
     for (final log in logs) {
       subjectMap[log.subject] = (subjectMap[log.subject] ?? 0) + log.hours;
-    }
-    if (subjectMap.isEmpty) {
-      subjectMap['Toán học'] = 8.5;
-      subjectMap['Vật lý'] = 6.0;
-      subjectMap['Hóa học'] = 5.0;
-      subjectMap['Tiếng Anh'] = 4.5;
-      subjectMap['Ngữ văn'] = 4.5;
     }
 
     return Column(
@@ -118,18 +107,19 @@ class WeeklyChartWidget extends StatelessWidget {
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary)),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                        color: AppColors.green.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10)),
-                    child: const Text('Phong độ cao!',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.green)),
-                  ),
+                  if (totalWeeklyHours >= 20)
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: AppColors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: const Text('Phong độ cao!',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.green)),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -199,8 +189,7 @@ class WeeklyChartWidget extends StatelessWidget {
                       color: AppColors.textPrimary)),
               const SizedBox(height: 16),
               ...subjectMap.entries.map((entry) {
-                final percent = (entry.value /
-                        (totalWeeklyHours > 0 ? totalWeeklyHours : 28.5))
+                final percent = (entry.value / totalWeeklyHours)
                     .clamp(0.0, 1.0);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -241,6 +230,44 @@ class WeeklyChartWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmptyChart(List<String> dayNames) {
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.blue.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.bar_chart_rounded,
+                size: 22, color: AppColors.blue),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Chưa có dữ liệu học tập',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(
+                  'Bắt đầu một phiên Pomodoro để thống kê giờ học thực tế của bạn.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

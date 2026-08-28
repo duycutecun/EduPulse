@@ -49,14 +49,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
 
     _streak = StorageService.getStreak();
-    if (_streak == 0) {
-      _streak = 7;
-      _streakRecord = 14;
-      StorageService.setStreak(_streak);
-      StorageService.setStreakRecord(_streakRecord);
-    } else {
-      _streakRecord = StorageService.getStreakRecord();
-    }
+    _streakRecord = StorageService.getStreakRecord();
 
     setState(() {});
   }

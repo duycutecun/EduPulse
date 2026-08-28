@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -14,11 +15,24 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String _selectedFilter = 'Tất cả';
   final List<String> _filters = ['Tất cả', 'THPTQG', 'TSA', 'HSA'];
   late List<CommunityUser> _users;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _users = [];
+    _initLeaderboard();
+  }
+
+  Future<void> _initLeaderboard() async {
+    setState(() => _loading = true);
+    final cloudUsers = await SupabaseService.fetchLeaderboard();
+    if (mounted) {
+      setState(() {
+        _users = cloudUsers ?? [];
+        _loading = false;
+      });
+    }
   }
 
   void _cheerUser(int index) {
@@ -48,23 +62,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     children: [
                       Text('Bảng Vàng Sĩ Tử', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                       SizedBox(height: 4),
-                      Text('Thi đua cùng 12,400+ sĩ tử', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                      Text(
+                        _users.isEmpty
+                            ? 'Bảng xếp hạng sĩ tử'
+                            : 'Thi đua cùng ${_users.length} sĩ tử',
+                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      ),
                     ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.orange.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.orange, width: 2),
-                    ),
-                    child: const Row(
-                      children: [
-                        Text('🔥', style: TextStyle(fontSize: 14)),
-                        SizedBox(width: 4),
-                        Text('LIVE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.orange)),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -126,7 +130,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
               const SizedBox(height: 20),
               Text('Bảng Xếp Hạng Toàn Quốc', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
               const SizedBox(height: 12),
-              if (_users.isEmpty)
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.green)),
+                )
+              else if (_users.isEmpty)
                 GlassCard(
                   padding: EdgeInsets.all(24),
                   child: Column(
@@ -135,7 +144,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       SizedBox(height: 10),
                       Text('Bảng vàng đang chờ!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                       SizedBox(height: 4),
-                      Text('Đăng nhập để xuất hiện trên bảng xếp hạng.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      Text('Hãy là người đầu tiên xuất hiện trên bảng xếp hạng.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
                     ],
                   ),
                 )

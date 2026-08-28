@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../domain/models/exam_model.dart';
-import '../../data/preset_exams.dart';
 
 class ExamsScreen extends StatefulWidget {
   final List<ExamModel> exams;
@@ -40,9 +39,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
   @override
   Widget build(BuildContext context) {
     final myExams = widget.exams;
-    final available = PresetExams.all
-        .where((p) => !myExams.any((e) => e.id == p.id))
-        .toList();
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -106,25 +102,17 @@ class _ExamsScreenState extends State<ExamsScreen> {
             child: Row(
               children: [
                 _filterTab(0, 'Đã chọn (${myExams.length})'),
-                _filterTab(1, 'Sắp thi'),
-                _filterTab(2, 'Thư viện (${available.length})'),
+                _filterTab(1, 'Sắp thi (${myExams.where((e) => e.daysLeft < 90).length})'),
               ],
             ),
           ),
           const SizedBox(height: 18),
-          if (_selectedFilter == 0 || _selectedFilter == 1) ...[
-            if (myExams.isNotEmpty)
-              ...myExams
-                  .where((e) => _selectedFilter == 0 ? true : e.daysLeft < 90)
-                  .map((e) => _buildExamCard(e))
-            else
-              _buildEmptyState('Chưa có kỳ thi nào', 'Hãy chọn từ thư viện hoặc tạo mới!'),
-          ] else ...[
-            if (available.isNotEmpty)
-              ...available.map((e) => _buildPresetCard(e))
-            else
-              _buildEmptyState('Đã thêm tất cả', 'Bạn đã thêm hết kỳ thi có sẵn!'),
-          ],
+          if (myExams.isNotEmpty)
+            ...myExams
+                .where((e) => _selectedFilter == 0 ? true : e.daysLeft < 90)
+                .map((e) => _buildExamCard(e))
+          else
+            _buildEmptyState('Chưa có kỳ thi nào', 'Hãy nhấn nút Thêm để tạo kỳ thi của bạn!'),
         ],
       ),
     );
@@ -249,48 +237,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPresetCard(ExamModel exam) {
-    return GestureDetector(
-      onTap: () => widget.onAddExam(exam),
-      child: GlassCard(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        child: Row(
-          children: [
-            Text(exam.emoji, style: const TextStyle(fontSize: 26)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    exam.name,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(exam.dateTime),
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.green,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: const [
-                  BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 2)),
-                ],
-              ),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
-            ),
-          ],
         ),
       ),
     );
