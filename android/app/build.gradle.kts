@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.edu.edupulse"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
