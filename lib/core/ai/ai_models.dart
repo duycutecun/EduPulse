@@ -76,11 +76,11 @@ class AIModel {
 
 /// Nhận diện logo/icon hiển thị cho từng model.
 IconData aiModelIcon(String slug) {
-  if (slug.startsWith('openai')) return Icons.bolt;
-  if (slug.startsWith('google')) return Icons.auto_awesome;
-  if (slug.startsWith('minimax')) return Icons.psychology;
-  if (slug.startsWith('nvidia')) return Icons.memory;
-  if (slug.startsWith('z-ai')) return Icons.smart_toy_outlined;
-  if (slug.startsWith('openrouter')) return Icons.auto_fix_high;
-  return Icons.smart_toy_outlined;
+  if (slug.startsWith('openai')) return Icons.bolt_rounded;
+  if (slug.startsWith('google')) return Icons.auto_awesome_rounded;
+  if (slug.startsWith('minimax')) return Icons.psychology_rounded;
+  if (slug.startsWith('nvidia')) return Icons.memory_rounded;
+  if (slug.startsWith('z-ai')) return Icons.smart_toy_rounded;
+  if (slug.startsWith('openrouter')) return Icons.route_rounded;
+  return Icons.smart_toy_rounded;
 }

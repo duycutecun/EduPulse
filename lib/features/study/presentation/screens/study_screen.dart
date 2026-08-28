@@ -270,9 +270,16 @@ class _StudyScreenState extends State<StudyScreen> {
                     color: AppColors.cardWhite,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.border, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.borderDark.withValues(alpha: 0.6),
+                        blurRadius: 0,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: Icon(CupertinoIcons.arrow_counterclockwise,
-                      color: AppColors.textPrimary, size: 20),
+                  child: Icon(Icons.refresh_rounded,
+                      color: AppColors.textPrimary, size: 24),
                 ),
               ),
               const SizedBox(width: 24),
@@ -462,7 +469,7 @@ class _StudyScreenState extends State<StudyScreen> {
           color: AppColors.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(CupertinoIcons.trash, color: AppColors.red),
+        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
       ),
       child: GlassCard(
         padding: const EdgeInsets.all(14),

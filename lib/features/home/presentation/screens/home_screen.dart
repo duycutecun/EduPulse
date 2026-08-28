@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -465,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
           color: AppColors.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(CupertinoIcons.trash, color: AppColors.red, size: 18),
+        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
       ),
       child: GestureDetector(
         onTap: () => _toggleTask(task),
@@ -541,14 +540,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         _buildActionButton(
-          icon: Icons.timer,
+          icon: Icons.timer_rounded,
           label: 'TẬP TRUNG NGAY',
           subtitle: 'Đồng hồ Pomodoro',
           onTap: widget.onOpenStudy,
         ),
         const SizedBox(height: 10),
         _buildActionButton(
-          icon: Icons.auto_awesome,
+          icon: Icons.auto_awesome_rounded,
           label: 'HỎI AI BÀI TẬP',
           subtitle: 'Giải đề qua ảnh OCR',
           onTap: widget.onOpenAiCoach,

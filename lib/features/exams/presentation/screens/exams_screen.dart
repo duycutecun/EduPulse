@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -85,7 +84,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(CupertinoIcons.plus, color: Colors.white, size: 16),
+                        Icon(Icons.add_rounded, color: Colors.white, size: 16),
                         SizedBox(width: 4),
                         Text('Thêm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
                       ],
@@ -175,7 +174,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
           color: AppColors.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(CupertinoIcons.trash, color: AppColors.red, size: 22),
+        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 22),
       ),
       child: GestureDetector(
         onTap: () => widget.onSetPrimary(exam),
@@ -225,7 +224,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(CupertinoIcons.calendar, size: 13, color: AppColors.textMuted),
+                        Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.textMuted),
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(exam.dateTime),
@@ -289,7 +288,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 2)),
                 ],
               ),
-              child: const Icon(CupertinoIcons.plus, color: Colors.white, size: 16),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
             ),
           ],
         ),
@@ -389,14 +388,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.calendar, size: 18, color: AppColors.green),
+                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.green),
                         const SizedBox(width: 10),
                         Text(
                           'Ngày thi: ${_formatDate(selectedDate)}',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         ),
                         const Spacer(),
-                        Icon(Icons.edit_calendar, size: 16, color: AppColors.textMuted),
+                        Icon(Icons.edit_calendar_rounded, size: 18, color: AppColors.textMuted),
                       ],
                     ),
                   ),
@@ -505,14 +504,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.calendar, size: 18, color: AppColors.green),
+                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.green),
                         const SizedBox(width: 10),
                         Text(
                           'Ngày thi: ${_formatDate(selectedDate)}',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         ),
                         const Spacer(),
-                        Icon(Icons.edit_calendar, size: 16, color: AppColors.textMuted),
+                        Icon(Icons.edit_calendar_rounded, size: 18, color: AppColors.textMuted),
                       ],
                     ),
                   ),

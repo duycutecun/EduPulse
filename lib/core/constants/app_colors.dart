@@ -22,6 +22,14 @@ class AppColors {
   static const Color yellow = Color(0xFFFFC800);
   static const Color purple = Color(0xFFCE82FF);
 
+  // ─── Soft tinted backgrounds (for dimensional icon tiles & chips) ───────
+  static const Color greenSoft = Color(0xFFD7FFB8);
+  static const Color blueSoft = Color(0xFFDDF4FF);
+  static const Color redSoft = Color(0xFFFFE3E3);
+  static const Color orangeSoft = Color(0xFFFFEBC9);
+  static const Color purpleSoft = Color(0xFFF3E4FF);
+  static const Color yellowSoft = Color(0xFFFFF4C9);
+
   // ─── Theme-dependent Neutrals ───────────────────────────────────────────
   // App is light-mode only (dark mode removed). These light values are used
   // unconditionally.

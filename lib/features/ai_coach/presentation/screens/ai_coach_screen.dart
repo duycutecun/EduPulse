@@ -501,13 +501,16 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.blue.withValues(alpha: 0.12),
+                    color: AppColors.blue,
                     shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(color: AppColors.blueDark, blurRadius: 0, offset: Offset(0, 3)),
+                    ],
                   ),
-                  child: const Icon(Icons.camera_alt, size: 20, color: AppColors.blue),
+                  child: const Icon(Icons.photo_camera_rounded, size: 20, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 8),

@@ -208,14 +208,31 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        active
-                            ? item['activeIcon'] as IconData
-                            : item['icon'] as IconData,
-                        size: 26,
-                        color: active ? AppColors.green : AppColors.textMuted,
+                      Container(
+                        width: 44,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: active ? AppColors.greenSoft : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          active
+                              ? item['activeIcon'] as IconData
+                              : item['icon'] as IconData,
+                          size: 26,
+                          color: active ? AppColors.green : AppColors.textMuted,
+                          shadows: active
+                              ? [
+                                  Shadow(
+                                    color: AppColors.green.withValues(alpha: 0.4),
+                                    blurRadius: 0,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         item['label'] as String,
                         style: TextStyle(

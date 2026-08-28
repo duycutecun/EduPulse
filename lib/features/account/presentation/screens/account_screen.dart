@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -166,8 +167,8 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
       child: Row(
         children: [
-          _segmentBtn(0, Icons.person, 'Hồ sơ'),
-          _segmentBtn(1, Icons.star, 'Bảng vàng'),
+          _segmentBtn(0, Icons.person_rounded, 'Hồ sơ'),
+          _segmentBtn(1, Icons.workspace_premium_rounded, 'Bảng vàng'),
         ],
       ),
     );
@@ -213,10 +214,12 @@ class _AccountScreenState extends State<AccountScreen> {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), shape: BoxShape.circle),
-                      child: const Icon(Icons.cloud_done, color: AppColors.green, size: 22),
+                    const AppIcon(
+                      Icons.cloud_done_rounded,
+                      tileSize: 44,
+                      iconSize: 24,
+                      color: AppColors.green,
+                      bg: AppColors.greenSoft,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -285,10 +288,12 @@ class _AccountScreenState extends State<AccountScreen> {
               borderWidth: 3,
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), shape: BoxShape.circle),
-                    child: const Icon(Icons.person_add, color: AppColors.green, size: 24),
+                  const AppIcon(
+                    Icons.person_add_rounded,
+                    tileSize: 44,
+                    iconSize: 24,
+                    color: AppColors.green,
+                    bg: AppColors.greenSoft,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -343,7 +348,16 @@ class _AccountScreenState extends State<AccountScreen> {
                   ],
                 ),
               ),
-              IconButton(onPressed: () => _showEditProfileDialog(), icon: const Icon(Icons.edit, color: AppColors.blue, size: 22)),
+              GestureDetector(
+                onTap: _showEditProfileDialog,
+                child: AppIcon(
+                  Icons.edit_rounded,
+                  tileSize: 40,
+                  iconSize: 20,
+                  color: AppColors.blue,
+                  bg: AppColors.blueSoft,
+                ),
+              ),
             ],
           ),
         ),
@@ -523,10 +537,12 @@ class _AccountScreenState extends State<AccountScreen> {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: iconColor, size: 19),
+      leading: AppIcon(
+        icon,
+        tileSize: 40,
+        iconSize: 22,
+        color: iconColor,
+        bg: iconColor.withValues(alpha: 0.15),
       ),
       title: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
       subtitle: subtitle != null ? Text(subtitle, style: TextStyle(fontSize: 11, color: AppColors.textMuted)) : null,
@@ -535,7 +551,7 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _divider() {
-    return Divider(height: 1, thickness: 2, indent: 52, color: AppColors.border);
+    return Divider(height: 1, thickness: 2, indent: 56, color: AppColors.border);
   }
 
   void _showEditProfileDialog() {
