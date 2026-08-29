@@ -137,8 +137,8 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 56,
+              height: 56,
               decoration: const BoxDecoration(
                 color: AppColors.green,
                 shape: BoxShape.circle,
@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(5),
                 child: Image.asset('assets/images/mascot.png', fit: BoxFit.contain),
               ),
             ),
