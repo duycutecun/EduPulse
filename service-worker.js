@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'edupulse-shell-v4';
+const CACHE_NAME = 'edupulse-shell-v5';
 
 // Core app shell precached on install.
 const SHELL_ASSETS = [
