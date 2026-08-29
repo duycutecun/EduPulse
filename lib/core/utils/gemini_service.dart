@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../../features/study/domain/models/study_models.dart';
+import 'now_context.dart';
 
 class GeminiService {
   static const String _baseUrl =
@@ -78,14 +79,15 @@ class GeminiService {
         }
       });
     }
-    final textContent = userMessage.trim().isEmpty && imageBytes != null
+    final baseText = userMessage.trim().isEmpty && imageBytes != null
         ? 'Hãy đọc và giải chi tiết bài tập trong bức ảnh này giúp tôi.'
         : userMessage;
-    currentParts.add({
-      'text': webContext != null && webContext.isNotEmpty
-          ? '$textContent\n\n$webContext'
-          : textContent,
-    });
+    // Luôn cho AI biết ngày/tháng/thứ hiện tại.
+    final dateCtx = '\n\n[${NowContext.build()}]';
+    final combined = webContext != null && webContext.isNotEmpty
+        ? '$baseText\n\n$webContext$dateCtx'
+        : '$baseText$dateCtx';
+    currentParts.add({'text': combined});
 
     contents.add({
       'role': 'user',

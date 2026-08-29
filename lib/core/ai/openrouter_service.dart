@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../../core/config.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../../core/utils/now_context.dart';
 
 /// Service gọi model qua OpenRouter (chuẩn OpenAI-compatible).
 ///
@@ -48,9 +49,11 @@ class OpenRouterService {
     }
 
     final resolved = _resolveText(userMessage, imageBytes);
+    // Luôn cho AI biết ngày/tháng/thứ hiện tại.
+    final dateCtx = '\n\n[${NowContext.build()}]';
     final finalText = webContext != null && webContext.isNotEmpty
-        ? '$resolved\n\n$webContext'
-        : resolved;
+        ? '$resolved\n\n$webContext$dateCtx'
+        : '$resolved$dateCtx';
     final currentContent = _buildContent(imageBytes, finalText);
     messages.add({'role': 'user', 'content': currentContent});
 
