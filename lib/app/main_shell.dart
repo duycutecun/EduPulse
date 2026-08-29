@@ -159,32 +159,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   Widget _buildBottomNav() {
-    final items = [
-      {
-        'icon': Icons.school_outlined,
-        'activeIcon': Icons.school,
-        'label': 'Học'
-      },
-      {
-        'icon': Icons.flag_outlined,
-        'activeIcon': Icons.flag,
-        'label': 'Mục tiêu'
-      },
-      {
-        'icon': Icons.auto_awesome_outlined,
-        'activeIcon': Icons.auto_awesome,
-        'label': 'AI'
-      },
-      {
-        'icon': Icons.timer_outlined,
-        'activeIcon': Icons.timer,
-        'label': 'Tập trung'
-      },
-      {
-        'icon': Icons.person_outline,
-        'activeIcon': Icons.person,
-        'label': 'Tôi'
-      },
+    const items = <_NavItem>[
+      _NavItem(Icons.school_outlined, Icons.school, 'Học'),
+      _NavItem(Icons.flag_outlined, Icons.flag, 'Mục tiêu'),
+      _NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
+      _NavItem(Icons.timer_outlined, Icons.timer, 'Tập trung'),
+      _NavItem(Icons.person_outline, Icons.person, 'Tôi'),
     ];
 
     return Container(
@@ -217,9 +197,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          active
-                              ? item['activeIcon'] as IconData
-                              : item['icon'] as IconData,
+                          active ? item.activeIcon : item.icon,
                           size: 26,
                           color: active ? AppColors.green : AppColors.textMuted,
                           shadows: active
@@ -235,7 +213,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        item['label'] as String,
+                        item.label,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight:
@@ -253,6 +231,16 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ),
     );
   }
+}
+
+/// Mô tả một mục trong bottom navigation (icon + nhãn), kiểu hóa tường minh
+/// thay vì dùng Map với `as` cast để tránh lỗi runtime khi kiểu sai.
+class _NavItem {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+
+  const _NavItem(this.icon, this.activeIcon, this.label);
 }
 
 /// Banner cài đặt PWA: Android/Chrome hiện nút "Cài đặt", iOS hiện hướng dẫn

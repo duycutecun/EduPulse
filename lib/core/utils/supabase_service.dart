@@ -3,6 +3,15 @@ import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
 import 'storage_service.dart';
 
+/// Chuyển đổi an toàn giá trị từ JSON (Supabase) sang số, thay cho `as num`
+/// vốn có thể throw nếu DB trả kiểu lạ (vd String). Trả về [fallback] nếu
+/// không parse được.
+double _toDouble(Object? v, [double fallback = 0]) =>
+    v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? fallback;
+
+int _toInt(Object? v, [int fallback = 0]) =>
+    v is num ? v.toInt() : int.tryParse(v?.toString() ?? '') ?? fallback;
+
 class SupabaseService {
   static SupabaseClient? _client;
 
@@ -242,7 +251,7 @@ class SupabaseService {
           name: row['name'] ?? '',
           target: row['target'] ?? '',
           streak: row['streak'] ?? 0,
-          weeklyHours: ((row['weekly_hours'] ?? 0) as num).toDouble(),
+          weeklyHours: _toDouble(row['weekly_hours']),
           emoji: row['emoji'] ?? '🦁',
           badge: row['badge'] ?? '🔥 Sĩ tử',
           cheers: row['cheers'] ?? 0,
@@ -301,10 +310,10 @@ class SupabaseService {
           StorageService.setUserTarget(profileRes['target_school']);
         }
         if (profileRes['streak'] != null) {
-          StorageService.setStreak((profileRes['streak'] as num).toInt());
+          StorageService.setStreak(_toInt(profileRes['streak']));
         }
         if (profileRes['streak_record'] != null) {
-          StorageService.setStreakRecord((profileRes['streak_record'] as num).toInt());
+          StorageService.setStreakRecord(_toInt(profileRes['streak_record']));
         }
       }
 
@@ -326,7 +335,7 @@ class SupabaseService {
             title: row['title'] ?? '',
             subject: row['subject'] ?? '📐 Toán',
             priority: row['priority'] ?? 'medium',
-            estimateMinutes: (row['estimate_minutes'] ?? 45) as int,
+            estimateMinutes: _toInt(row['estimate_minutes'], 45),
             isDone: row['is_done'] ?? false,
           );
           StorageService.setTodayTaskJson(task.id, task.toJsonString());
@@ -351,7 +360,7 @@ class SupabaseService {
           final log = StudyLog(
             id: id,
             subject: row['subject'] ?? '',
-            hours: ((row['hours'] ?? 1.0) as num).toDouble(),
+            hours: _toDouble(row['hours'], 1.0),
             date: DateTime.tryParse(row['logged_at'] ?? '') ?? DateTime.now(),
             note: row['note'] ?? '',
           );

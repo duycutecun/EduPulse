@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -57,7 +58,15 @@ class _AccountScreenState extends State<AccountScreen> {
     StorageService.setUserTarget(target);
     setState(() { _userName = name; _userTarget = target; });
     widget.onDataChanged();
-    SupabaseService.syncProfile();
+    _syncProfileFireAndForget();
+  }
+
+  Future<void> _syncProfileFireAndForget() async {
+    try {
+      await SupabaseService.syncProfile();
+    } catch (_) {
+      // Đồng bộ hồ sơ là background — lỗi không chặn thao tác của người dùng.
+    }
   }
 
   Future<void> _manualBackup() async {
@@ -90,7 +99,12 @@ class _AccountScreenState extends State<AccountScreen> {
   void _openAuthScreen() {
     Navigator.of(context).push(CupertinoPageRoute(
       builder: (ctx) => AuthScreen(
-        onAuthSuccess: () { Navigator.pop(ctx); _loadData(); _manualBackup(); setState(() {}); },
+        onAuthSuccess: () async {
+          Navigator.pop(ctx);
+          _loadData();
+          await _manualBackup();
+          if (mounted) setState(() {});
+        },
         onSkip: () => Navigator.pop(ctx),
       ),
     ));
@@ -361,139 +375,12 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _buildLeaderboardView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _filters.map((f) {
-              final sel = _selectedFilter == f;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedFilter = f),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: sel ? AppColors.green : AppColors.cardWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: sel ? AppColors.green : AppColors.border, width: 2),
-                    ),
-                    child: Text(f, style: TextStyle(fontSize: 12, fontWeight: sel ? FontWeight.w800 : FontWeight.w600, color: sel ? Colors.white : AppColors.textPrimary)),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 18),
-        if (_users.length >= 3) ...[_buildPodium(), const SizedBox(height: 18)],
-        if (_users.isNotEmpty)
-          ..._users.map((user) => GlassCard(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                SizedBox(width: 28, child: Text('#${user.rank}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: user.rank <= 3 ? AppColors.orange : AppColors.textMuted))),
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(color: AppColors.bgPage, shape: BoxShape.circle),
-                  child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 18))),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(user.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                      Text(user.target, style: TextStyle(fontSize: 11, color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 12)),
-                    Text('${user.streak}d', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _cheerUser(_users.indexOf(user)),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: user.hasCheered ? AppColors.red.withValues(alpha: 0.15) : AppColors.bgPage,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: user.hasCheered ? AppColors.red : AppColors.border, width: 2),
-                    ),
-                    child: Text(user.hasCheered ? '❤️ ${user.cheers}' : '🤍 ${user.cheers}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              ],
-            ),
-          ))
-        else
-          GlassCard(
-            padding: EdgeInsets.all(24),
-            child: Center(
-              child: Column(
-                children: [
-                  Text('🏆', style: TextStyle(fontSize: 36)),
-                  SizedBox(height: 10),
-                  Text('Bảng vàng đang chờ!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                  SizedBox(height: 4),
-                  Text('Đăng nhập & duy trì streak để xuất hiện trên bảng xếp hạng.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4)),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildPodium() {
-    if (_users.length < 3) return const SizedBox.shrink();
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(child: _podiumColumn(_users[1], 2, 95, '🥈', AppColors.blue)),
-        const SizedBox(width: 8),
-        Expanded(child: _podiumColumn(_users[0], 1, 125, '👑', AppColors.orange)),
-        const SizedBox(width: 8),
-        Expanded(child: _podiumColumn(_users[2], 3, 85, '🥉', AppColors.purple)),
-      ],
-    );
-  }
-
-  Widget _podiumColumn(CommunityUser user, int rank, double height, String medal, Color color) {
-    return Column(
-      children: [
-        Text(medal, style: const TextStyle(fontSize: 20)),
-        const SizedBox(height: 3),
-        Container(
-          width: 42, height: 42,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 0, offset: const Offset(0, 3))],
-          ),
-          child: Center(child: Text(user.emoji, style: const TextStyle(fontSize: 20))),
-        ),
-        const SizedBox(height: 4),
-        Text(user.name.split(' ').last, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 5),
-        Container(
-          height: height, width: double.infinity,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            border: Border.all(color: color, width: 2),
-          ),
-          child: Center(child: Text('#$rank', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color))),
-        ),
-      ],
+    return LeaderboardView(
+      users: _users,
+      filters: _filters,
+      selectedFilter: _selectedFilter,
+      onFilterSelected: (f) => setState(() => _selectedFilter = f),
+      onCheer: (user) => _cheerUser(_users.indexOf(user)),
     );
   }
 

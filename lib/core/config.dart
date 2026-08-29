@@ -4,16 +4,23 @@
 /// tin riêng trong Cài đặt. Giá trị người dùng lưu cục bộ luôn được ưu tiên
 /// hơn các hằng số mặc định bên dưới.
 ///
-/// ⚠️ ĐIỀN GIÁ TRỊ THẬT CỦA BẠN VÀO ĐÂY:
-///   - `supabaseUrl`:  URL project từ Supabase Dashboard → Project Settings.
-///   - `supabaseAnonKey`: Public anon key (không phải service_role key).
+/// Các bí mật (Supabase, AI keys) KHÔNG hardcode trong repo. Chúng được truyền
+/// lúc build qua `--dart-define=...` (Vercel đọc từ biến môi trường, xem
+/// `build.sh` và `vercel.json`); nếu để trống, app sẽ dùng config do người dùng
+/// nhập trong Cài đặt.
 class AppConfig {
   AppConfig._();
 
-  // Supabase
-  static const String supabaseUrl = 'https://nygkogzdemplbfydhspd.supabase.co';
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55Z2tvZ3pkZW1wbGJmeWRoc3BkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTMxMjEsImV4cCI6MjEwMzMyOTEyMX0.ta2-6xtXtz_Ix3m5J1YpMtMKVevg194l4f5_slvTOec';
+  // Supabase — URL + Public anon key, truyền lúc build qua
+  // `--dart-define=SUPABASE_URL=...` và `--dart-define=SUPABASE_ANON_KEY=...`.
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: '',
+  );
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
 
   // AI Coach — OpenRouter API key (chủ app nhúng; user không cần nhập).
   // OpenRouter cấp quyền truy cập nhiều model (kể cả free `:free`) qua một key

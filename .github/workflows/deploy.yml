@@ -33,7 +33,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web Application
-        run: flutter build web --release --base-href="/${{ github.event.repository.name }}/" --dart-define=OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+        run: flutter build web --release --base-href="/${{ github.event.repository.name }}/" --dart-define=OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }} --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} --dart-define=TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }} --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

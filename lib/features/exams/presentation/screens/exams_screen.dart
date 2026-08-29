@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../domain/models/exam_model.dart';
 
@@ -215,7 +216,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.textMuted),
                         const SizedBox(width: 4),
                         Text(
-                          _formatDate(exam.dateTime),
+                          AppDate.formatDate(exam.dateTime),
                           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         const SizedBox(width: 10),
@@ -344,7 +345,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.green),
                         const SizedBox(width: 10),
                         Text(
-                          'Ngày thi: ${_formatDate(selectedDate)}',
+                          'Ngày thi: ${AppDate.formatDate(selectedDate)}',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         ),
                         const Spacer(),
@@ -460,7 +461,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.green),
                         const SizedBox(width: 10),
                         Text(
-                          'Ngày thi: ${_formatDate(selectedDate)}',
+                          'Ngày thi: ${AppDate.formatDate(selectedDate)}',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         ),
                         const Spacer(),
@@ -577,7 +578,4 @@ class _ExamsScreenState extends State<ExamsScreen> {
     );
     return result;
   }
-
-  String _formatDate(DateTime dt) =>
-      '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
 }

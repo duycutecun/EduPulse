@@ -69,13 +69,7 @@ class AppTheme {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: card,
-        selectedItemColor: AppColors.green,
-        unselectedItemColor: muted,
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: card,
+      dialogTheme: DialogThemeData(        backgroundColor: card,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
