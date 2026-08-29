@@ -30,6 +30,8 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   String? _selectedImageName;
   AIModel _model = AIModel.defaultModel;
 
+  bool get _isIntroOnly => _messages.length == 1;
+
   @override
   void initState() {
     super.initState();
@@ -213,8 +215,25 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
             controller: _scrollCtrl,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            itemCount: _messages.length,
-            itemBuilder: (ctx, i) => _buildBubble(_messages[i]),
+            itemCount: _messages.length + (_isIntroOnly ? 1 : 0),
+            itemBuilder: (ctx, i) {
+              if (_isIntroOnly && i == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Center(
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/mascot.png',
+                        width: 116,
+                        height: 116,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return _buildBubble(_messages[i - (_isIntroOnly ? 1 : 0)]);
+            },
           ),
         ),
         _buildInputBar(),
@@ -239,7 +258,11 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))],
             ),
-            child: const Center(child: Icon(Icons.auto_awesome, color: Colors.white, size: 20)),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Image.asset('assets/images/mascot.png', fit: BoxFit.contain),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

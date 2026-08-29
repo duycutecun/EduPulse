@@ -248,7 +248,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            const Text('🎯', style: TextStyle(fontSize: 48)),
+            ClipOval(
+              child: Image.asset(
+                'assets/images/mascot.png',
+                width: 88,
+                height: 88,
+                fit: BoxFit.contain,
+              ),
+            ),
             const SizedBox(height: 12),
             Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
             const SizedBox(height: 4),
