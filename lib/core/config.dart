@@ -34,4 +34,12 @@ class AppConfig {
     'GEMINI_API_KEY',
     defaultValue: '',
   );
+
+  // Tavily Search API — tra cứu web thời gian thực cho AI Coach (mọi model).
+  // Key do chủ app cấp (tavily.com), truyền lúc build qua
+  // `--dart-define=TAVILY_API_KEY=...` (Vercel đọc từ biến môi trường tương ứng).
+  static const String tavilyApiKey = String.fromEnvironment(
+    'TAVILY_API_KEY',
+    defaultValue: '',
+  );
 }

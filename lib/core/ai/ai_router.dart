@@ -26,15 +26,16 @@ class AiRouter {
     }
 
     // Tự động tra cứu web để AI có thêm thông tin tham khảo.
-    // - Model Gemini có Google Search grounding real-time ngay trong API; nếu
-    //   key không hỗ trợ grounding, apiService tự fallback về webContext này.
-    //   → vẫn fetch Wikipedia làm ngữ cảnh tham khảo cho mọi model.
-    // - Các model OpenRouter không có grounding → dùng webContext Wikipedia.
+    // - Có TAVILY_API_KEY → tra cứu thời gian thực cho MỌI model (kể cả
+    //   OpenRouter). Không có key → fallback Wikipedia (tĩnh).
+    // - Model Gemini còn có Google Search grounding real-time ngay trong API;
+    //   nếu key không hỗ trợ grounding, apiService tự fallback về webContext này.
     // Không chạy khi kèm ảnh (câu hỏi liên quan nội dung ảnh).
     String? webContext;
     if (searchWeb && (imageBytes == null || imageBytes.isEmpty)) {
       try {
-        final lookup = await WebSearchService.lookup(userMessage);
+        final lookup =
+            await WebSearchService.lookup(userMessage, tavilyApiKey: AppConfig.tavilyApiKey);
         webContext = lookup?.toPromptBlock();
       } catch (_) {
         webContext = null;
