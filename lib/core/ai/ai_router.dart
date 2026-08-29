@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 import '../../features/study/domain/models/study_models.dart';
+import '../config.dart';
 import '../utils/gemini_service.dart';
-import '../utils/storage_service.dart';
 import 'ai_models.dart';
 import 'openrouter_service.dart';
 
 /// Định tuyến request chat của AI Coach đến service phù hợp theo model.
 ///
 /// - Các model có slug bắt đầu bằng `gemini/` gọi trực tiếp Gemini API bằng
-///   key người dùng nhập (Tài khoản → Gemini API Key).
+///   key chủ app cấu hình trong `AppConfig.geminiApiKey`.
 /// - Mọi model khác chạy qua OpenRouter (một key duy nhất của app + failover).
 class AiRouter {
   static Future<String> chat({
@@ -25,7 +25,7 @@ class AiRouter {
 
     if (model.slug.startsWith('gemini/')) {
       return GeminiService.chat(
-        apiKey: StorageService.getGeminiApiKey(),
+        apiKey: AppConfig.geminiApiKey,
         history: history,
         userMessage: userMessage,
         imageBytes: imageBytes,

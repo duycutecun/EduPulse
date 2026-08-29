@@ -15,7 +15,7 @@ class GeminiService {
     String? mimeType,
   }) async {
     if (apiKey.isEmpty) {
-      return 'Bạn chưa nhập Gemini API Key. Vào **Tài khoản → Cài đặt → Gemini API Key** để cấu hình AI Coach.';
+      return 'Gemini API Key chưa được cấu hình. Chủ app cần đặt key trong AppConfig (biến GEMINI_API_KEY) rồi build lại.';
     }
 
     final contents = <Map<String, dynamic>>[];

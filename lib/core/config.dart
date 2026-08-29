@@ -26,4 +26,12 @@ class AppConfig {
     'OPENROUTER_API_KEY',
     defaultValue: '',
   );
+
+  // Gemini trực tiếp — key do chủ app cấu hình (liên hệ aistudio.google.com).
+  // Dùng làm key dùng chung cho toàn app, truyền lúc build qua
+  // `--dart-define=GEMINI_API_KEY=...` (Vercel đọc từ biến môi trường tương ứng).
+  static const String geminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+    defaultValue: '',
+  );
 }
