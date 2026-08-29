@@ -20,7 +20,8 @@
 
   <!-- Icons -->
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
 
   <!-- Manifest -->
@@ -43,6 +44,19 @@
 </head>
 <body style="background-color: #F7F7F7; margin: 0; padding: 0; overscroll-behavior-y: none;">
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- Custom offline-first service worker (Flutter's built-in SW is deprecated in recent versions) -->
+  <script>
+    (function () {
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('service-worker.js').catch(function (err) {
+            console.warn('EduPulse service worker registration failed:', err);
+          });
+        });
+      }
+    })();
+  </script>
 
   <!-- PWA install support: Android/Chrome install prompt + iOS add-to-home-screen bridge -->
   <script>
