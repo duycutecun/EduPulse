@@ -10,21 +10,78 @@
   <!-- Mobile Viewport with Safe Area Fit for Notch & Dynamic Island -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-  <!-- Web App meta tags -->
+  <!-- PWA / Web App meta tags -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="EduPulse">
-  <meta name="theme-color" content="#0E0D1B">
+  <meta name="theme-color" content="#58CC02">
+  <meta name="application-name" content="EduPulse">
 
   <!-- Icons -->
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS Launch (splash) images -->
+  <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="icons/splash/splash-640x1136.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="icons/splash/splash-750x1334.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1242x2208.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="icons/splash/splash-828x1792.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1284x2778.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/splash-1206x2622.png">
 
   <title>EduPulse — Trợ lý Sĩ tử & Đếm ngược Kỳ thi</title>
-  <link rel="manifest" href="manifest.json">
 </head>
-<body style="background-color: #0E0D1B; margin: 0; padding: 0; overscroll-behavior-y: none;">
+<body style="background-color: #F7F7F7; margin: 0; padding: 0; overscroll-behavior-y: none;">
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- PWA install support: Android/Chrome install prompt + iOS add-to-home-screen bridge -->
+  <script>
+    (function () {
+      var deferredPrompt = null;
+      var canInstall = false;
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        canInstall = true;
+        window.dispatchEvent(new CustomEvent('pwa-installable'));
+      });
+
+      window.addEventListener('appinstalled', function () {
+        canInstall = false;
+        deferredPrompt = null;
+      });
+
+      // Called from Flutter to check installability
+      window.pwaCanInstall = function () {
+        return canInstall;
+      };
+
+      // Called from Flutter to trigger native install prompt (Android/Chrome)
+      window.pwaInstall = function () {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(function (choice) {
+            if (choice.outcome === 'accepted') {
+              canInstall = false;
+            }
+            deferredPrompt = null;
+          });
+          return true;
+        }
+        return false;
+      };
+    })();
+  </script>
 </body>
 </html>

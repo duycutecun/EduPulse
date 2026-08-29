@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
+import '../core/pwa/pwa_service.dart';
 import '../core/utils/storage_service.dart';
 import '../shared/widgets/mesh_background.dart';
 import '../features/home/presentation/screens/home_screen.dart';
@@ -118,29 +119,36 @@ class _MainShellScreenState extends State<MainShellScreen> {
       body: MeshBackground(
         child: SafeArea(
           bottom: false,
-          child: IndexedStack(
-            index: _currentIndex,
+          child: Column(
             children: [
-              HomeScreen(
-                primaryExam: _primaryExam,
-                onExamTap: () => _switchTab(1),
-                onOpenStudy: () => _switchTab(3),
-                onOpenAiCoach: () => _switchTab(2),
-                streak: _streak,
-                streakRecord: _streakRecord,
-              ),
-              ExamsScreen(
-                exams: _exams,
-                primaryExamId: _primaryExamId,
-                onSetPrimary: _setPrimaryExam,
-                onAddExam: _addExam,
-                onUpdateExam: _updateExam,
-                onDeleteExam: _deleteExam,
-              ),
-              const AiCoachScreen(),
-              const StudyScreen(),
-              AccountScreen(
-                onDataChanged: _loadInitialData,
+              const _InstallBanner(),
+              Expanded(
+                child: IndexedStack(
+                  index: _currentIndex,
+                  children: [
+                    HomeScreen(
+                      primaryExam: _primaryExam,
+                      onExamTap: () => _switchTab(1),
+                      onOpenStudy: () => _switchTab(3),
+                      onOpenAiCoach: () => _switchTab(2),
+                      streak: _streak,
+                      streakRecord: _streakRecord,
+                    ),
+                    ExamsScreen(
+                      exams: _exams,
+                      primaryExamId: _primaryExamId,
+                      onSetPrimary: _setPrimaryExam,
+                      onAddExam: _addExam,
+                      onUpdateExam: _updateExam,
+                      onDeleteExam: _deleteExam,
+                    ),
+                    const AiCoachScreen(),
+                    const StudyScreen(),
+                    AccountScreen(
+                      onDataChanged: _loadInitialData,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -242,6 +250,155 @@ class _MainShellScreenState extends State<MainShellScreen> {
             }),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Banner cài đặt PWA: Android/Chrome hiện nút "Cài đặt", iOS hiện hướng dẫn
+/// "Add to Home Screen". Trên native (app thật) không hiện gì.
+class _InstallBanner extends StatefulWidget {
+  const _InstallBanner();
+
+  @override
+  State<_InstallBanner> createState() => _InstallBannerState();
+}
+
+class _InstallBannerState extends State<_InstallBanner> {
+  bool _dismissed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!PwaService.isWeb) return const SizedBox.shrink();
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: PwaService.installableStream,
+      builder: (context, installable, _) {
+        if (_dismissed) return const SizedBox.shrink();
+        if (!installable && !PwaService.isIosSafari) {
+          return const SizedBox.shrink();
+        }
+
+        final isAndroidInstall = installable && !PwaService.isIosSafari;
+        final bg = isAndroidInstall ? AppColors.greenLight : AppColors.blueSoft;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isAndroidInstall ? AppColors.green : AppColors.blue,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isAndroidInstall
+                    ? Icons.download_rounded
+                    : Icons.add_to_home_screen_rounded,
+                color: isAndroidInstall ? AppColors.greenDark : AppColors.blueDark,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isAndroidInstall
+                      ? 'Cài đặt EduPulse trên thiết bị!'
+                      : 'Thêm EduPulse vào Màn hình chính',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              if (isAndroidInstall)
+                GestureDetector(
+                  onTap: () => PwaService.install(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.green,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Cài đặt',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              if (!isAndroidInstall)
+                GestureDetector(
+                  onTap: () => _showIosHelp(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.blue,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Cách thêm',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => setState(() => _dismissed = true),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showIosHelp() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 2),
+        ),
+        title: const Text(
+          'Thêm EduPulse vào Màn hình chính',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Trên iPhone/iPad:\n\n'
+          '1. Nhấn nút Chia sẻ (hình vuông + mũi tên lên) ở thanh Safari.\n\n'
+          '2. Chọn "Thêm vào Màn hình chính" (Add to Home Screen).\n\n'
+          '3. Nhấn "Thêm" ở góc phải.\n\n'
+          'EduPulse sẽ xuất hiện như một ứng dụng riêng, dùng được cả khi offline.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Đóng',
+              style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ),
     );
   }

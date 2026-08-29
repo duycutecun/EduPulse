@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/constants/app_colors.dart';
+import 'core/pwa/pwa_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/storage_service.dart';
 import 'core/utils/supabase_service.dart';
@@ -7,6 +8,7 @@ import 'app/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PwaService.init();
   await StorageService.init();
   await SupabaseService.init();
   runApp(const EduPulseApp());
