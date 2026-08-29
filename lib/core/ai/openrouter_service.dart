@@ -18,6 +18,9 @@ class OpenRouterService {
       '2. Tóm tắt các giả thiết và yêu cầu. '
       '3. Trình bày phương pháp tư duy & lời giải chi tiết từng bước. '
       '4. Nêu các lưu ý / bẫy trắc nghiệm thường gặp. '
+      'Đôi khi câu hỏi sẽ kèm một khối "THAM KHẢO TỪ WEB" từ Wikipedia. '
+      'Hãy cân nhắc thông tin đó nếu liên quan và hữu ích để trả lời chính xác, phong phú hơn; '
+      'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '
       'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh. '
       'Trả lời bằng tiếng Việt.';
 
@@ -27,6 +30,7 @@ class OpenRouterService {
     required String userMessage,
     Uint8List? imageBytes,
     String? mimeType,
+    String? webContext,
   }) async {
     if (AppConfig.openRouterApiKey.isEmpty) {
       return '❌ Chưa cấu hình OpenRouter API Key (thiếu biến môi trường OPENROUTER_API_KEY khi build).';
@@ -43,7 +47,11 @@ class OpenRouterService {
       });
     }
 
-    final currentContent = _buildContent(imageBytes, _resolveText(userMessage, imageBytes));
+    final resolved = _resolveText(userMessage, imageBytes);
+    final finalText = webContext != null && webContext.isNotEmpty
+        ? '$resolved\n\n$webContext'
+        : resolved;
+    final currentContent = _buildContent(imageBytes, finalText);
     messages.add({'role': 'user', 'content': currentContent});
 
     try {

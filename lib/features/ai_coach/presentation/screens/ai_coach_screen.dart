@@ -38,7 +38,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     _model = AIModel.fromSlug(StorageService.getAiModel());
     _messages.add(ChatMessage(
       id: _uuid.v4(),
-      text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
+      text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n- 🔍 Tra cứu web để biết thêm thông tin\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
       isUser: false,
       timestamp: DateTime.now(),
     ));
@@ -292,6 +292,24 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.green)),
                           ],
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.blue.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.blue.withValues(alpha: 0.3), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.public, size: 11, color: AppColors.blue),
+                          const SizedBox(width: 4),
+                          Text('Web',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.blue)),
+                        ],
                       ),
                     ),
                   ],

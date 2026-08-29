@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import '../../features/study/domain/models/study_models.dart';
 import '../config.dart';
 import '../utils/gemini_service.dart';
+import '../utils/web_search_service.dart';
 import 'ai_models.dart';
 import 'openrouter_service.dart';
 
@@ -17,10 +18,23 @@ class AiRouter {
     required String userMessage,
     Uint8List? imageBytes,
     String? mimeType,
+    bool searchWeb = true,
   }) async {
     // Kiểm tra model hỗ trợ ảnh.
     if (imageBytes != null && imageBytes.isNotEmpty && !model.supportsVision) {
       return '❌ Model "${model.label}" không hỗ trợ đọc ảnh. Hãy chọn model có gắn nhãn "đọc ảnh" (GPT-4o mini, Gemini Flash).';
+    }
+
+    // Tự động tra cứu web để AI có thêm thông tin tham khảo.
+    // Không chạy khi kèm ảnh (câu hỏi liên quan nội dung ảnh).
+    String? webContext;
+    if (searchWeb && (imageBytes == null || imageBytes.isEmpty)) {
+      try {
+        final lookup = await WebSearchService.lookup(userMessage);
+        webContext = lookup?.toPromptBlock();
+      } catch (_) {
+        webContext = null;
+      }
     }
 
     if (model.slug.startsWith('gemini/')) {
@@ -30,6 +44,7 @@ class AiRouter {
         userMessage: userMessage,
         imageBytes: imageBytes,
         mimeType: mimeType,
+        webContext: webContext,
       );
     }
 
@@ -39,6 +54,7 @@ class AiRouter {
       userMessage: userMessage,
       imageBytes: imageBytes,
       mimeType: mimeType,
+      webContext: webContext,
     );
   }
 }

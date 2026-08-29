@@ -13,6 +13,7 @@ class GeminiService {
     required String userMessage,
     Uint8List? imageBytes,
     String? mimeType,
+    String? webContext,
   }) async {
     if (apiKey.isEmpty) {
       return 'Gemini API Key chưa được cấu hình. Chủ app cần đặt key trong AppConfig (biến GEMINI_API_KEY) rồi build lại.';
@@ -32,6 +33,9 @@ class GeminiService {
                   '2. Tóm tắt các giả thiết và yêu cầu. '
                   '3. Trình bày phương pháp tư duy & lời giải chi tiết từng bước. '
                   '4. Nêu các lưu ý / bẫy trắc nghiệm thường gặp. '
+                  'Đôi khi câu hỏi sẽ kèm một khối "THAM KHẢO TỪ WEB" từ Wikipedia. '
+                  'Hãy cân nhắc thông tin đó nếu liên quan và hữu ích để trả lời chính xác, phong phú hơn; '
+                  'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '
                   'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh.'
         }
       ]
@@ -77,7 +81,11 @@ class GeminiService {
     final textContent = userMessage.trim().isEmpty && imageBytes != null
         ? 'Hãy đọc và giải chi tiết bài tập trong bức ảnh này giúp tôi.'
         : userMessage;
-    currentParts.add({'text': textContent});
+    currentParts.add({
+      'text': webContext != null && webContext.isNotEmpty
+          ? '$textContent\n\n$webContext'
+          : textContent,
+    });
 
     contents.add({
       'role': 'user',
