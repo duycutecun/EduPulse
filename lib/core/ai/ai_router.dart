@@ -26,6 +26,10 @@ class AiRouter {
     }
 
     // Tự động tra cứu web để AI có thêm thông tin tham khảo.
+    // - Model Gemini có Google Search grounding real-time ngay trong API; nếu
+    //   key không hỗ trợ grounding, apiService tự fallback về webContext này.
+    //   → vẫn fetch Wikipedia làm ngữ cảnh tham khảo cho mọi model.
+    // - Các model OpenRouter không có grounding → dùng webContext Wikipedia.
     // Không chạy khi kèm ảnh (câu hỏi liên quan nội dung ảnh).
     String? webContext;
     if (searchWeb && (imageBytes == null || imageBytes.isEmpty)) {
