@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-/// Kết quả tra cứu web thời gian thực từ Tavily Search API.
+/// Kết quả tra cứu web thời gian thực.
 class WebLookup {
   final String title;
   final String extract;
@@ -25,33 +25,66 @@ class WebLookup {
 
 /// Tra cứu web thời gian thực cho AI Coach.
 ///
-/// Ưu tiên Tavily Search API (kết quả real-time, thiết kế cho LLM), do app
-/// owner cấp key `TAVILY_API_KEY`. Nếu chưa có key, fallback về Wikipedia
-/// (miễn phí, không tìm được dữ liệu thời gian thực).
+/// - Trên Web: gọi endpoint serverless `/api/search` (cùng origin, key Tavily
+///   giữ phía Vercel — không lộ trong client, không gặp lỗi CORS).
+/// - Trên mobile (không có serverless): fallback Wikipedia (tĩnh).
+/// - Mọi trường hợp khi endpoint lỗi/không có → fallback Wikipedia.
 class WebSearchService {
-  static const String _tavilyUrl = 'https://api.tavily.com/search';
   static const String _userAgent = 'EduPulse/1.0 (study assistant)';
 
-  /// Tra cứu thời gian thực qua Tavily. Trả về `null` nếu thất bại.
+  /// Tra cứu thời gian thực. Trả về `null` nếu không tìm được nguồn.
   static Future<WebLookup?> lookup(String query, {String? tavilyApiKey}) async {
     final q = query.trim();
     if (q.isEmpty) return null;
 
-    // Nếu có Tavily key → tra cứu real-time.
-    if (tavilyApiKey != null && tavilyApiKey.isNotEmpty) {
-      final result = await _tavily(q, tavilyApiKey);
+    if (_onWeb) {
+      final result = await _viaProxy(q);
       if (result != null) return result;
-      // Tavily fail → fallback Wikipedia bên dưới.
+    } else {
+      final result = await _viaServer(q, tavilyApiKey);
+      if (result != null) return result;
+      // Server-direct chỉ dùng khi có key; nếu fail thử Wikipedia.
     }
 
     return _wikipedia(q);
   }
 
-  static Future<WebLookup?> _tavily(String query, String apiKey) async {
+  /// Đang chạy trên nền web (browser) — sử dụng proxies cùng nguồn.
+  static bool get _onWeb {
+    try {
+      return Uri.base.host.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Gọi endpoint serverless cùng origin (chống CORS, key ẩn phía server).
+  static Future<WebLookup?> _viaProxy(String query) async {
+    final base = Uri.base.resolve('/api/search');
+    final url = base.replace(queryParameters: {'q': query});
+    try {
+      final resp = await http.get(url).timeout(const Duration(seconds: 18));
+      if (resp.statusCode != 200) return null;
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final extract = (data['extract'] as String?)?.trim() ?? '';
+      if (extract.isEmpty) return null;
+      return WebLookup(
+        title: (data['title'] as String?)?.trim() ?? 'Kết quả',
+        extract: extract,
+        pageUrl: (data['pageUrl'] as String?)?.trim() ?? 'https://tavily.com',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Gọi thẳng Tavily từ client (không dùng trên web vì CORS).
+  static Future<WebLookup?> _viaServer(String query, String? apiKey) async {
+    if (apiKey == null || apiKey.isEmpty) return null;
     try {
       final resp = await http
           .post(
-            Uri.parse(_tavilyUrl),
+            Uri.parse('https://api.tavily.com/search'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'api_key': apiKey,
@@ -62,28 +95,21 @@ class WebSearchService {
             }),
           )
           .timeout(const Duration(seconds: 15));
-
       if (resp.statusCode != 200) return null;
-
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      // Ưu tiên câu trả lời ngắn (answer) do Tavily tổng hợp.
       final answer = (data['answer'] as String?)?.trim() ?? '';
       if (answer.isNotEmpty) {
         return WebLookup(
-          title: 'Tavily',
-          extract: answer,
-          pageUrl: 'https://tavily.com',
-        );
+            title: 'Tavily', extract: answer, pageUrl: 'https://tavily.com');
       }
-
       final results = (data['results'] as List?) ?? [];
       if (results.isEmpty) return null;
       final first = results.first as Map<String, dynamic>;
-      final content = (first['content'] as String?)?.trim() ?? '';
-      final title = (first['title'] as String?)?.trim() ?? 'Kết quả';
-      final url = (first['url'] as String?)?.trim() ?? '';
-      if (content.isEmpty) return null;
-      return WebLookup(title: title, extract: content, pageUrl: url);
+      return WebLookup(
+        title: (first['title'] as String?)?.trim() ?? 'Kết quả',
+        extract: (first['content'] as String?)?.trim() ?? '',
+        pageUrl: (first['url'] as String?)?.trim() ?? '',
+      );
     } catch (_) {
       return null;
     }
