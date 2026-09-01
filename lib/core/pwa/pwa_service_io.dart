@@ -10,6 +10,10 @@ bool get isWeb => false;
 
 bool get isIosSafari => false;
 
+bool get hasInitialized => false;
+
+bool get offlineWarningFlag => false;
+
 void init() {}
 
 Future<bool> install() async => false;

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 /// hoặc hướng dẫn "Add to Home Screen" trên iOS.
 ///
 /// Trên native (iOS/Android app thật) các hàm đều trả về trạng thái không
-/// installable để UI không hiện banner cài đặt.
+/// installable để UI không hiện banner cài đặt web.
 class PwaService {
   PwaService._();
 
@@ -22,9 +22,15 @@ class PwaService {
   /// Đang chạy trên nền tảng web hay không.
   static bool get isWeb => impl.isWeb;
 
+  /// Trạng thái đã được initialize xong (để UI biết khi nào hiển thị banner).
+  static bool get hasInitialized => impl.hasInitialized;
+
   /// Notifier báo khi trạng thái installable thay đổi (để UI hiện banner).
   static ValueNotifier<bool> get installableStream => impl.installableNotifier;
 
   /// Gọi native install prompt (Android/Chrome). Trả về true nếu prompt đã được gọi.
   static Future<bool> install() => impl.install();
+
+  /// Trạng thái offline warning (chỉ dành iOS Safari khi offline > 30s).
+  static bool get offlineWarningFlag => impl.offlineWarningFlag;
 }
