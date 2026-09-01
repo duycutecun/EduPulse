@@ -97,5 +97,23 @@
       };
     })();
   </script>
+
+  <!-- Offline/online status bridge (for "mất kết nối" banner) -->
+  <script>
+    (function () {
+      window.eduPulseIsOnline = function () {
+        return navigator.onLine;
+      };
+
+      // Báo lại cho Flutter khi trạng thái online/offline thay đổi.
+      function broadcast() {
+        var online = navigator.onLine;
+        window.dispatchEvent(new CustomEvent('edu-pulse-online', { detail: online }));
+      }
+
+      window.addEventListener('online', broadcast);
+      window.addEventListener('offline', broadcast);
+    })();
+  </script>
 </body>
 </html>
