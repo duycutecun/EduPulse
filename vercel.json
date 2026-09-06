@@ -1,6 +1,5 @@
 {
   "outputDirectory": "build/web",
-  "cleanUrls": true,
   "framework": null,
   "installCommand": "git clone --depth 1 -b stable https://github.com/flutter/flutter.git /vercel/flutter && /vercel/flutter/bin/flutter config --no-analytics >/dev/null 2>&1 && /vercel/flutter/bin/flutter --version",
   "buildCommand": "bash build.sh",
@@ -21,11 +20,24 @@
       ]
     },
     {
+      "source": "/service-worker.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
       "source": "/flutter_service_worker.js",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache"
+          "value": "no-cache, no-store, must-revalidate"
         },
         {
           "key": "Service-Worker-Allowed",

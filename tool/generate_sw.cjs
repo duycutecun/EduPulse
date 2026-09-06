@@ -5,7 +5,7 @@
  * Chạy SAU `flutter build web --release` để:
  *   - Precache toàn bộ app shell và static assets (offline 100% ngay từ lần đầu mở trên iOS PWA),
  *   - Tự bump version cache theo hash nội dung build,
- *   - Chiến lược cache thích ứng: Offline-immediate navigation cho iOS Safari PWA.
+ *   - Xử lý triệt để lỗi "response served by service worker has redirections" theo chuẩn W3C.
  */
 'use strict';
 
@@ -22,6 +22,7 @@ const EXCLUDE_PATTERNS = [
   /^flutter_service_worker\.js$/, // SW cũ của Flutter (nếu có)
   /^version\.json$/,             // metadata phiên bản
   /^\.last_build_id$/,           // metadata build
+  /^index\.html$/,               // index.html được đại diện qua './' để tránh redirect
 ];
 
 function isExcluded(rel) {
@@ -53,9 +54,8 @@ function main() {
   }
 
   const files = listFiles(BUILD_DIR, '').sort();
-  // Bao gồm root và index.html rõ ràng
-  const baseAssets = ['./', './index.html'];
-  const uniqueFiles = Array.from(new Set([...baseAssets, ...files.map((f) => './' + f)]));
+  // Precache gốc './' (đại diện index.html không redirect) + toàn bộ file tĩnh
+  const uniqueFiles = Array.from(new Set(['./', ...files.map((f) => './' + f)]));
 
   // Version = hash của toàn bộ file build
   const hasher = crypto.createHash('sha256');
@@ -67,7 +67,7 @@ function main() {
     }
   }
   const version = hasher.digest('hex').slice(0, 12);
-  const CACHE = `edupulse-pwa-v3-${version}`;
+  const CACHE = `edupulse-pwa-v4-${version}`;
   const FONT_CACHE = 'edupulse-fonts-v1';
 
   const precacheJson = JSON.stringify(uniqueFiles);
@@ -79,48 +79,22 @@ const CACHE = ${JSON.stringify(CACHE)};
 const FONT_CACHE = ${JSON.stringify(FONT_CACHE)};
 const PRECACHE = ${precacheJson};
 
-// Install: Precache toàn bộ asset với xử lý lỗi độc lập cho từng asset
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE).then(async (cache) => {
-      // 1. Precache shell cốt lõi
-      try {
-        await cache.addAll(['./', './index.html']);
-      } catch (err) {
-        console.warn('EduPulse SW: Core shell cache warn', err);
-      }
-      // 2. Precache các file tĩnh còn lại một cách an toàn (không bị ngắt nếu 1 file lỗi)
-      await Promise.allSettled(
-        PRECACHE.map(async (url) => {
-          try {
-            const res = await fetch(url, { cache: 'reload' });
-            if (res && (res.ok || res.type === 'opaque')) {
-              await cache.put(url, res);
-            }
-          } catch (e) {
-            // Không chặn install nếu 1 asset không tải được
-          }
-        })
-      );
-    })
-  );
-});
+// Chuẩn hóa response: Loại bỏ cờ 'redirected' theo chuẩn W3C Service Worker
+// Tránh hoàn toàn lỗi trình duyệt "response served by service worker has redirections"
+async function cleanResponse(response) {
+  if (!response) return response;
+  if (response.redirected || (response.status >= 300 && response.status < 400)) {
+    const body = await response.blob();
+    return new Response(body, {
+      status: 200,
+      statusText: 'OK',
+      headers: response.headers,
+    });
+  }
+  return response;
+}
 
-// Activate: dọn dẹp các cache cũ và claim clients ngay lập tức
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE && key !== FONT_CACHE)
-          .map((key) => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
-  );
-});
-
-// Helper: timeout cho fetch mạng
+// Timeout helper cho fetch
 function fetchWithTimeout(request, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Network timeout')), timeoutMs);
@@ -136,6 +110,54 @@ function fetchWithTimeout(request, timeoutMs) {
   });
 }
 
+// Install: Precache an toàn toàn bộ asset
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE).then(async (cache) => {
+      // 1. Precache shell cốt lõi './'
+      try {
+        const rootRes = await fetch('./', { cache: 'reload' });
+        if (rootRes && rootRes.ok) {
+          const cleanRoot = await cleanResponse(rootRes);
+          await cache.put('./', cleanRoot);
+        }
+      } catch (err) {
+        console.warn('EduPulse SW: Core shell precache failed', err);
+      }
+
+      // 2. Precache từng file tĩnh còn lại
+      await Promise.allSettled(
+        PRECACHE.map(async (url) => {
+          if (url === './') return;
+          try {
+            const res = await fetch(url, { cache: 'reload' });
+            if (res && (res.ok || res.type === 'opaque')) {
+              const clean = await cleanResponse(res);
+              await cache.put(url, clean);
+            }
+          } catch (e) {
+            // bỏ qua lỗi file lẻ
+          }
+        })
+      );
+    })
+  );
+});
+
+// Activate: dọn cache cũ và claim clients ngay
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE && key !== FONT_CACHE)
+          .map((key) => caches.delete(key))
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
 // Fetch routing
 self.addEventListener('fetch', (event) => {
   const request = event.request;
@@ -143,88 +165,98 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // 1. Xử lý Google Fonts runtime caching
+  // 1. Google Fonts runtime caching
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(
       caches.open(FONT_CACHE).then(async (cache) => {
         const cached = await cache.match(request);
-        if (cached) return cached;
+        if (cached) return cleanResponse(cached);
         try {
           const res = await fetch(request);
           if (res && res.ok) {
-            cache.put(request, res.clone());
+            const clean = await cleanResponse(res);
+            cache.put(request, clean.clone());
+            return clean;
           }
           return res;
-        } catch (e) {
-          return cached || new Response('', { status: 408 });
+        } catch (_) {
+          return cached ? cleanResponse(cached) : new Response('', { status: 408 });
         }
       })
     );
     return;
   }
 
-  // Bỏ qua các domain API bên ngoài (OpenRouter, Supabase, Tavily...)
+  // Bỏ qua external API (Supabase, OpenRouter, Tavily...)
   if (url.origin !== self.location.origin) return;
 
-  // 2. Navigation Request (mở app / refresh trang):
-  // Trên iOS PWA, khi offline phải lập tức trả về cached index.html
+  // 2. Navigation Request (mở trang / refresh / đổi route SPA):
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        // Nếu thiết bị đã báo offline, trả ngay cache để tránh iOS timeout màn hình trắng
+        // Nếu offline, trả ngay cached app shell
         if (!self.navigator.onLine) {
-          const cached = await caches.match('./index.html') || await caches.match('./');
-          if (cached) return cached;
+          const cached = await caches.match('./');
+          if (cached) return cleanResponse(cached);
         }
 
         try {
-          // Thử mạng với timeout 2.5s
-          const res = await fetchWithTimeout(request, 2500);
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(request.url, copy));
-            return res;
+          // Thử mạng trước (timeout 2s)
+          const res = await fetchWithTimeout(request, 2000);
+          if (res && (res.ok || res.type === 'opaque')) {
+            const clean = await cleanResponse(res);
+            const copy = clean.clone();
+            caches.open(CACHE).then((c) => c.put('./', copy));
+            return clean;
           }
         } catch (_) {
-          // Khi mạng timeout hoặc mất kết nối -> fallback về cache index.html
+          // Network timeout hoặc mất mạng -> fallback cache
         }
 
-        const fallback = await caches.match('./index.html') || await caches.match('./');
-        if (fallback) return fallback;
+        const fallback = await caches.match('./');
+        if (fallback) return cleanResponse(fallback);
 
-        return new Response('EduPulse đang ngoại tuyến. Vui lòng kiểm tra lại kết nối.', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
+        // Fallback tối hậu: fetch trực tiếp root
+        try {
+          const netRoot = await fetch('./');
+          return cleanResponse(netRoot);
+        } catch (e) {
+          return new Response('EduPulse đang ngoại tuyến.', {
+            status: 200,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          });
+        }
       })()
     );
     return;
   }
 
-  // 3. Static Assets (JS, WASM, CSS, Images, Fonts, JSON): Cache-First
+  // 3. Static Assets: Cache-First + Clean Response
   event.respondWith(
     caches.match(request).then(async (cached) => {
       if (cached) {
-        // Cập nhật ngầm trong background nếu đang online
+        // Cập nhật ngầm trong background nếu có mạng
         if (self.navigator.onLine) {
           fetch(request)
-            .then((networkRes) => {
-              if (networkRes && networkRes.ok) {
-                caches.open(CACHE).then((c) => c.put(request, networkRes));
+            .then(async (netRes) => {
+              if (netRes && netRes.ok) {
+                const clean = await cleanResponse(netRes);
+                caches.open(CACHE).then((c) => c.put(request, clean));
               }
             })
             .catch(() => {});
         }
-        return cached;
+        return cleanResponse(cached);
       }
 
-      // Chưa có trong cache -> lấy từ network và lưu lại
-      return fetch(request).then((res) => {
-        if (res && res.ok) {
-          const copy = res.clone();
+      // Chưa có trong cache -> lấy từ network
+      return fetch(request).then(async (res) => {
+        const clean = await cleanResponse(res);
+        if (clean && clean.ok) {
+          const copy = clean.clone();
           caches.open(CACHE).then((c) => c.put(request, copy));
         }
-        return res;
+        return clean;
       });
     })
   );
