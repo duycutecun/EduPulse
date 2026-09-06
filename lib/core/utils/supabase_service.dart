@@ -175,20 +175,19 @@ class SupabaseService {
   }
 
   static Future<bool> syncExams(List<ExamModel> exams, String? primaryId) async {
-    if (!isConfigured) return false;
+    if (!isConfigured || exams.isEmpty) return true;
     try {
-      for (final e in exams) {
-        await _client!.from('exams').upsert({
-          'id': '${_userId}_${e.id}',
-          'user_id': _userId,
-          'name': e.name,
-          'date_time': e.dateTime.toIso8601String(),
-          'emoji': e.emoji,
-          'type': e.type.name,
-          'description': e.description,
-          'is_primary': e.id == primaryId,
-        }, onConflict: 'id');
-      }
+      final payload = exams.map((e) => {
+        'id': '${_userId}_${e.id}',
+        'user_id': _userId,
+        'name': e.name,
+        'date_time': e.dateTime.toIso8601String(),
+        'emoji': e.emoji,
+        'type': e.type.name,
+        'description': e.description,
+        'is_primary': e.id == primaryId,
+      }).toList();
+      await _client!.from('exams').upsert(payload, onConflict: 'id');
       return true;
     } catch (_) {
       return false;
@@ -196,19 +195,18 @@ class SupabaseService {
   }
 
   static Future<bool> syncTasks(List<TodayTask> tasks) async {
-    if (!isConfigured) return false;
+    if (!isConfigured || tasks.isEmpty) return true;
     try {
-      for (final t in tasks) {
-        await _client!.from('today_tasks').upsert({
-          'id': '${_userId}_${t.id}',
-          'user_id': _userId,
-          'title': t.title,
-          'subject': t.subject,
-          'priority': t.priority,
-          'estimate_minutes': t.estimateMinutes,
-          'is_done': t.isDone,
-        }, onConflict: 'id');
-      }
+      final payload = tasks.map((t) => {
+        'id': '${_userId}_${t.id}',
+        'user_id': _userId,
+        'title': t.title,
+        'subject': t.subject,
+        'priority': t.priority,
+        'estimate_minutes': t.estimateMinutes,
+        'is_done': t.isDone,
+      }).toList();
+      await _client!.from('today_tasks').upsert(payload, onConflict: 'id');
       return true;
     } catch (_) {
       return false;
@@ -216,18 +214,17 @@ class SupabaseService {
   }
 
   static Future<bool> syncStudyLogs(List<StudyLog> logs) async {
-    if (!isConfigured) return false;
+    if (!isConfigured || logs.isEmpty) return true;
     try {
-      for (final l in logs) {
-        await _client!.from('study_logs').upsert({
-          'id': '${_userId}_${l.id}',
-          'user_id': _userId,
-          'subject': l.subject,
-          'hours': l.hours,
-          'note': l.note,
-          'logged_at': l.date.toIso8601String(),
-        }, onConflict: 'id');
-      }
+      final payload = logs.map((l) => {
+        'id': '${_userId}_${l.id}',
+        'user_id': _userId,
+        'subject': l.subject,
+        'hours': l.hours,
+        'note': l.note,
+        'logged_at': l.date.toIso8601String(),
+      }).toList();
+      await _client!.from('study_logs').upsert(payload, onConflict: 'id');
       return true;
     } catch (_) {
       return false;
@@ -267,6 +264,17 @@ class SupabaseService {
     if (!isConfigured) return false;
     try {
       await syncProfile();
+
+      // Sync exams
+      final examIds = StorageService.getExamIds();
+      final exams = examIds.map((id) {
+        final json = StorageService.getExamJson(id);
+        if (json == null) return null;
+        return ExamModel.fromJsonString(json);
+      }).whereType<ExamModel>().toList();
+      final primaryId = StorageService.getPrimaryExamId();
+      if (exams.isNotEmpty) await syncExams(exams, primaryId);
+
       // Sync tasks
       final taskIds = StorageService.getTodayTaskIds();
       final tasks = taskIds.map((id) {

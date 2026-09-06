@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -36,12 +37,41 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   void initState() {
     super.initState();
     _model = AIModel.fromSlug(StorageService.getAiModel());
+    _loadChatHistory();
+  }
+
+  void _loadChatHistory() {
+    final saved = StorageService.getAiChatHistory();
+    if (saved != null && saved.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(saved);
+        final loaded = list
+            .map((item) => ChatMessage.fromJson(item as Map<String, dynamic>))
+            .toList();
+        if (loaded.isNotEmpty) {
+          _messages.addAll(loaded);
+          return;
+        }
+      } catch (_) {}
+    }
+
     _messages.add(ChatMessage(
       id: _uuid.v4(),
       text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n- 🔍 Tra cứu web để biết thêm thông tin\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
       isUser: false,
       timestamp: DateTime.now(),
     ));
+  }
+
+  void _saveChatHistory() {
+    try {
+      final validMsgs = _messages.where((m) => !m.isLoading).toList();
+      final capped = validMsgs.length > 40
+          ? validMsgs.sublist(validMsgs.length - 40)
+          : validMsgs;
+      final encoded = jsonEncode(capped.map((m) => m.toJson()).toList());
+      StorageService.setAiChatHistory(encoded);
+    } catch (_) {}
   }
 
   @override
@@ -85,6 +115,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     final loadingMsg = ChatMessage(id: _uuid.v4(), text: '', isUser: false, timestamp: DateTime.now(), isLoading: true);
 
     setState(() { _messages.add(userMsg); _messages.add(loadingMsg); _isLoading = true; });
+    _saveChatHistory();
     _scrollToBottom();
 
     final response = await AiRouter.chat(
@@ -99,6 +130,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
       _messages.add(ChatMessage(id: _uuid.v4(), text: response, isUser: false, timestamp: DateTime.now()));
       _isLoading = false;
     });
+    _saveChatHistory();
     _scrollToBottom();
   }
 
@@ -122,7 +154,12 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   }
 
   void _refreshChat() {
-    setState(() => _messages.removeRange(1, _messages.length));
+    StorageService.clearAiChatHistory();
+    setState(() {
+      if (_messages.length > 1) {
+        _messages.removeRange(1, _messages.length);
+      }
+    });
   }
 
   @override
@@ -139,6 +176,7 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
           child: ListView.builder(
             controller: _scrollCtrl,
             physics: const BouncingScrollPhysics(),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             itemCount: _messages.length + (_isIntroOnly ? 1 : 0),
             itemBuilder: (ctx, i) {

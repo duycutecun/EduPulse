@@ -81,6 +81,12 @@ class StorageService {
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
   static void setAiModel(String v) => _prefs?.setString('ai_model', v);
 
+  // AI Coach Chat History (cục bộ, miễn phí, lưu tối đa 40 tin)
+  static String? getAiChatHistory() => _prefs?.getString('ai_chat_history_v1');
+  static void setAiChatHistory(String json) =>
+      _prefs?.setString('ai_chat_history_v1', json);
+  static void clearAiChatHistory() => _prefs?.remove('ai_chat_history_v1');
+
   // Today mission
   static List<String> getTodayTaskIds() =>
       _prefs?.getStringList('today_task_ids') ?? [];

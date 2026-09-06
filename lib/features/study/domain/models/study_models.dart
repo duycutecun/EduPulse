@@ -95,6 +95,24 @@ class ChatMessage {
     this.imageBytes,
     this.imageName,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'text': text,
+    'isUser': isUser,
+    'timestamp': timestamp.toIso8601String(),
+    'imageName': imageName,
+  };
+
+  factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
+    id: j['id'] ?? '',
+    text: j['text'] ?? '',
+    isUser: j['isUser'] ?? false,
+    timestamp: j['timestamp'] != null
+        ? DateTime.tryParse(j['timestamp']) ?? DateTime.now()
+        : DateTime.now(),
+    imageName: j['imageName'],
+  );
 }
 
 class CommunityUser {

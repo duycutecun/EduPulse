@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -19,6 +20,7 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onOpenAiCoach;
   final int streak;
   final int streakRecord;
+  final bool isActive;
 
   const HomeScreen({
     super.key,
@@ -28,6 +30,7 @@ class HomeScreen extends StatefulWidget {
     required this.onOpenAiCoach,
     required this.streak,
     required this.streakRecord,
+    this.isActive = true,
   });
 
   @override
@@ -36,7 +39,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Timer? _timer;
-  Duration _remaining = Duration.zero;
+  final ValueNotifier<Duration> _remainingNotifier =
+      ValueNotifier<Duration>(Duration.zero);
   List<TodayTask> _tasks = [];
   final _uuid = const Uuid();
 
@@ -44,18 +48,41 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    if (widget.isActive) {
+      _startTimer();
+    }
     _loadTasks();
   }
 
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive) {
+        _updateRemaining();
+        _startTimer();
+      } else {
+        _timer?.cancel();
+        _timer = null;
+      }
+    }
+    if (oldWidget.primaryExam != widget.primaryExam) {
+      _updateRemaining();
+    }
+  }
+
   void _updateRemaining() {
-    if (mounted) {
-      setState(() {
-        if (widget.primaryExam != null) {
-          _remaining = widget.primaryExam!.remaining;
-          if (_remaining.isNegative) _remaining = Duration.zero;
-        }
-      });
+    if (widget.primaryExam != null) {
+      var rem = widget.primaryExam!.remaining;
+      if (rem.isNegative) rem = Duration.zero;
+      _remainingNotifier.value = rem;
+    } else {
+      _remainingNotifier.value = Duration.zero;
     }
   }
 
@@ -89,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {});
 
     if (!wasDone && task.isDone) {
+      HapticFeedback.mediumImpact();
       CelebrationOverlay.show(
         context,
         title: 'HOÀN THÀNH!',
@@ -106,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _remainingNotifier.dispose();
     super.dispose();
   }
 
@@ -124,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
           HeroCountdownCard(
             primaryExam: widget.primaryExam,
             onTap: widget.onExamTap,
-            remaining: _remaining,
+            remainingListenable: _remainingNotifier,
           ),
           const SizedBox(height: 14),
           TodayMissionCard(

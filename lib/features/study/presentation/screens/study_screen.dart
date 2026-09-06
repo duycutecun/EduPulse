@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -22,7 +23,8 @@ class _StudyScreenState extends State<StudyScreen> {
 
   int _focusMinutes = 25;
   int _breakMinutes = 5;
-  int _pomSeconds = 25 * 60;
+  late final ValueNotifier<int> _pomSecondsNotifier =
+      ValueNotifier<int>(_focusMinutes * 60);
   bool _pomRunning = false;
   bool _isBreak = false;
   int _pomRound = 0;
@@ -67,24 +69,24 @@ class _StudyScreenState extends State<StudyScreen> {
 
   void _setPomodoroMode(int focus, int brk) {
     _pomTimer?.cancel();
-    setState(() {
-      _focusMinutes = focus;
-      _breakMinutes = brk;
-      _pomRunning = false;
-      _isBreak = false;
-      _pomSeconds = focus * 60;
-    });
+    _focusMinutes = focus;
+    _breakMinutes = brk;
+    _pomRunning = false;
+    _isBreak = false;
+    _pomSecondsNotifier.value = focus * 60;
+    setState(() {});
   }
 
   void _togglePomodoro() {
+    HapticFeedback.lightImpact();
     if (_pomRunning) {
       _pomTimer?.cancel();
       setState(() => _pomRunning = false);
     } else {
       setState(() => _pomRunning = true);
       _pomTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (_pomSeconds > 0) {
-          setState(() => _pomSeconds--);
+        if (_pomSecondsNotifier.value > 0) {
+          _pomSecondsNotifier.value--;
         } else {
           _pomTimer?.cancel();
           setState(() {
@@ -92,10 +94,10 @@ class _StudyScreenState extends State<StudyScreen> {
             _pomRound++;
             if (_isBreak) {
               _isBreak = false;
-              _pomSeconds = _focusMinutes * 60;
+              _pomSecondsNotifier.value = _focusMinutes * 60;
             } else {
               _isBreak = true;
-              _pomSeconds = _breakMinutes * 60;
+              _pomSecondsNotifier.value = _breakMinutes * 60;
               _addLog('Pomodoro', _focusMinutes / 60.0, 'Phiên $_pomRound');
             }
           });
@@ -106,16 +108,16 @@ class _StudyScreenState extends State<StudyScreen> {
 
   void _resetPomodoro() {
     _pomTimer?.cancel();
-    setState(() {
-      _pomRunning = false;
-      _isBreak = false;
-      _pomSeconds = _focusMinutes * 60;
-    });
+    _pomRunning = false;
+    _isBreak = false;
+    _pomSecondsNotifier.value = _focusMinutes * 60;
+    setState(() {});
   }
 
   @override
   void dispose() {
     _pomTimer?.cancel();
+    _pomSecondsNotifier.dispose();
     super.dispose();
   }
 
@@ -177,11 +179,7 @@ class _StudyScreenState extends State<StudyScreen> {
   }
 
   Widget _buildPomodoroTab() {
-    final minutes = _pomSeconds ~/ 60;
-    final seconds = _pomSeconds % 60;
     final totalSec = _isBreak ? (_breakMinutes * 60) : (_focusMinutes * 60);
-    final progress =
-        totalSec > 0 ? (1 - (_pomSeconds / totalSec)).clamp(0.0, 1.0) : 0.0;
     final activeColor = _isBreak ? AppColors.green : AppColors.blue;
 
     return SingleChildScrollView(
@@ -200,47 +198,57 @@ class _StudyScreenState extends State<StudyScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          SizedBox(
-            width: 220,
-            height: 220,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 14,
-                    strokeCap: StrokeCap.round,
-                    backgroundColor: AppColors.border,
-                    valueColor: AlwaysStoppedAnimation<Color>(activeColor),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+          ValueListenableBuilder<int>(
+            valueListenable: _pomSecondsNotifier,
+            builder: (context, secondsRemaining, _) {
+              final minutes = secondsRemaining ~/ 60;
+              final seconds = secondsRemaining % 60;
+              final progress = totalSec > 0
+                  ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
+                  : 0.0;
+              return SizedBox(
+                width: 220,
+                height: 220,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                    SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 14,
+                        strokeCap: StrokeCap.round,
+                        backgroundColor: AppColors.border,
+                        valueColor: AlwaysStoppedAnimation<Color>(activeColor),
                       ),
                     ),
-                    Text(
-                      'PHIÊN $_pomRound',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        color: AppColors.textMuted,
-                      ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'PHIÊN $_pomRound',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           Container(

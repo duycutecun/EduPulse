@@ -3,8 +3,11 @@ import 'package:flutter/foundation.dart';
 /// Native (iOS/Android app) — không hỗ trợ cài PWA, trả về trạng thái không
 /// installable để UI không hiện banner cài đặt web.
 final ValueNotifier<bool> installableNotifier = ValueNotifier<bool>(false);
+final ValueNotifier<bool> onlineNotifier = ValueNotifier<bool>(true);
 
 bool get isInstallable => false;
+
+bool get isOnline => true;
 
 bool get isWeb => false;
 

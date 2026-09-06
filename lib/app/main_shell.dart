@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/constants/app_colors.dart';
 import '../core/pwa/pwa_service.dart';
 import '../core/utils/storage_service.dart';
+import '../core/utils/supabase_service.dart';
 import '../shared/widgets/mesh_background.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
@@ -30,6 +32,19 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void initState() {
     super.initState();
     _loadInitialData();
+    PwaService.onlineNotifier.addListener(_onNetworkChanged);
+  }
+
+  void _onNetworkChanged() {
+    if (PwaService.isOnline && SupabaseService.isConfigured) {
+      SupabaseService.syncAll();
+    }
+  }
+
+  @override
+  void dispose() {
+    PwaService.onlineNotifier.removeListener(_onNetworkChanged);
+    super.dispose();
   }
 
   void _loadInitialData() {
@@ -107,9 +122,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   void _switchTab(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    if (_currentIndex != index) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   @override
@@ -133,6 +151,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                       onOpenAiCoach: () => _switchTab(2),
                       streak: _streak,
                       streakRecord: _streakRecord,
+                      isActive: _currentIndex == 0,
                     ),
                     ExamsScreen(
                       exams: _exams,

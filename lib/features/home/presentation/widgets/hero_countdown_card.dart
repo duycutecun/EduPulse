@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
@@ -8,20 +9,18 @@ class HeroCountdownCard extends StatelessWidget {
   final ExamModel? primaryExam;
   final VoidCallback onTap;
   final Duration remaining;
+  final ValueListenable<Duration>? remainingListenable;
 
   const HeroCountdownCard({
     super.key,
     required this.primaryExam,
     required this.onTap,
-    required this.remaining,
+    this.remaining = Duration.zero,
+    this.remainingListenable,
   });
 
   @override
   Widget build(BuildContext context) {
-    final days = remaining.inDays;
-    final hours = remaining.inHours % 24;
-    final minutes = remaining.inMinutes % 60;
-    final seconds = remaining.inSeconds % 60;
     final urgencyColor = primaryExam != null
         ? _urgencyColor(primaryExam!.daysLeft)
         : AppColors.textMuted;
@@ -97,18 +96,7 @@ class HeroCountdownCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildTimerTile(days.toString().padLeft(3, '0'), 'NGÀY'),
-                _timerColon(),
-                _buildTimerTile(hours.toString().padLeft(2, '0'), 'GIỜ'),
-                _timerColon(),
-                _buildTimerTile(minutes.toString().padLeft(2, '0'), 'PHÚT'),
-                _timerColon(),
-                _buildTimerTile(seconds.toString().padLeft(2, '0'), 'GIÂY'),
-              ],
-            ),
+            _buildTimerRow(),
             if (primaryExam != null) ...[
               const SizedBox(height: 16),
               Row(
@@ -138,6 +126,36 @@ class HeroCountdownCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTimerRow() {
+    if (remainingListenable != null) {
+      return ValueListenableBuilder<Duration>(
+        valueListenable: remainingListenable!,
+        builder: (context, rem, _) => _renderTiles(rem),
+      );
+    }
+    return _renderTiles(remaining);
+  }
+
+  Widget _renderTiles(Duration rem) {
+    final days = rem.inDays;
+    final hours = rem.inHours % 24;
+    final minutes = rem.inMinutes % 60;
+    final seconds = rem.inSeconds % 60;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildTimerTile(days.toString().padLeft(3, '0'), 'NGÀY'),
+        _timerColon(),
+        _buildTimerTile(hours.toString().padLeft(2, '0'), 'GIỜ'),
+        _timerColon(),
+        _buildTimerTile(minutes.toString().padLeft(2, '0'), 'PHÚT'),
+        _timerColon(),
+        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'GIÂY'),
+      ],
     );
   }
 

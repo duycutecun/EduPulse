@@ -28,8 +28,11 @@ class PwaService {
   /// Đang chạy trên nền tảng web hay không.
   static bool get isWeb => impl.isWeb;
 
-  /// Trạng thái đã được initialize xong (để UI biết khi nào hiển thị banner).
-  static bool get hasInitialized => impl.hasInitialized;
+  /// Trạng thái kết nối internet hiện tại.
+  static bool get isOnline => impl.isOnline;
+
+  /// Notifier báo khi trạng thái kết nối online/offline thay đổi.
+  static ValueNotifier<bool> get onlineNotifier => impl.onlineNotifier;
 
   /// Notifier báo khi trạng thái installable thay đổi (để UI hiện banner).
   static ValueNotifier<bool> get installableStream => impl.installableNotifier;
