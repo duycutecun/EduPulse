@@ -10,6 +10,10 @@ bool get isWeb => false;
 
 bool get isIosSafari => false;
 
+bool get isIos => false;
+
+bool get isStandalone => false;
+
 bool get hasInitialized => false;
 
 bool get offlineWarningFlag => false;

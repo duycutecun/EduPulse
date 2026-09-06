@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:html' as html;
 import 'dart:js_interop';
 import 'package:flutter/material.dart';
 
@@ -13,6 +12,9 @@ external bool _pwaCanInstall();
 
 @JS('window.pwaInstall')
 external bool _pwaInstall();
+
+@JS('window.pwaIsStandalone')
+external bool _pwaIsStandalone();
 
 @JS('window.navigator.onLine')
 external bool get _navigatorOnLine;
@@ -31,8 +33,6 @@ final ValueNotifier<bool> onlineNotifier = ValueNotifier<bool>(true);
 
 bool _online = true;
 
-bool _isIosSafariCache = false;
-
 bool get isInstallable => _installable;
 
 bool get isOnline => _online;
@@ -47,21 +47,39 @@ set offlineWarningFlag(bool value) {
   _hasShownOfflineWarning = value;
 }
 
+/// Thiết bị có phải là iOS (iPhone / iPad / iPod) hay không.
+bool get isIos {
+  try {
+    final ua = _userAgent.toLowerCase();
+    return ua.contains('iphone') || ua.contains('ipad') || ua.contains('ipod');
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Đang chạy trên iOS Safari hay không.
 bool get isIosSafari {
   try {
     final ua = _userAgent.toLowerCase();
-    final isIos = ua.contains('iphone') || ua.contains('ipad') || ua.contains('ipod');
-    // Loại trừ Chrome iOS (crios) và các webview; iOS Safari không có "crios".
-    final isSafari = !ua.contains('crios') && ua.contains('safari');
-    return isIos && isSafari;
+    final isAppleDevice = ua.contains('iphone') || ua.contains('ipad') || ua.contains('ipod');
+    final isThirdPartyBrowser = ua.contains('crios') || ua.contains('fxios') || ua.contains('edgios');
+    final isSafari = !isThirdPartyBrowser && ua.contains('safari');
+    return isAppleDevice && isSafari;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// App đang chạy ở chế độ standalone (PWA đã được cài đặt trên Màn hình chính).
+bool get isStandalone {
+  try {
+    return _pwaIsStandalone();
   } catch (_) {
     return false;
   }
 }
 
 // ---------- Offline tracking state ----------
-
-int _offlineStartTime = 0;
 
 // ---------- Functions ----------
 
@@ -92,11 +110,6 @@ void _pollOnline() {
     if (val != _online) {
       _online = val;
       onlineNotifier.value = val;
-
-      // Khi chuyển từ online → offline, ghi thời gian bắt đầu
-      if (!_online) {
-        _offlineStartTime = DateTime.now().millisecondsSinceEpoch;
-      }
     }
   } catch (_) {
     // Mặc định online khi không đọc được.
@@ -126,15 +139,6 @@ void _notifyOfflineWarning() {
   // Chỉ đánh dấu flag để UI có thể hiển thị banner cảnh báo offline
   // Việc gửi message đến native sẽ phụ thuộc vào môi trường webview cụ thể
   offlineWarningFlag = true;
-}
-
-/// Kiểm tra xem app có đang ở chế độ offline dài thời gian (dùng cho warning)
-/// Trả về true nếu offline hơn 30s và là iOS Safari.
-bool _isProlongedOffline() {
-  if (_online) return false;
-  final now = DateTime.now().millisecondsSinceEpoch;
-  final duration = now - _offlineStartTime;
-  return duration > 30000; // 30 seconds
 }
 
 Future<bool> install() async {

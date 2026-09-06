@@ -244,7 +244,7 @@ class _NavItem {
 }
 
 /// Banner cài đặt PWA: Android/Chrome hiện nút "Cài đặt", iOS hiện hướng dẫn
-/// "Add to Home Screen". Trên native (app thật) không hiện gì.
+/// "Thêm vào MH chính". Khi đã cài đặt (standalone) hoặc trên native sẽ tự ẩn.
 class _InstallBanner extends StatefulWidget {
   const _InstallBanner();
 
@@ -258,17 +258,23 @@ class _InstallBannerState extends State<_InstallBanner> {
   @override
   Widget build(BuildContext context) {
     if (!PwaService.isWeb) return const SizedBox.shrink();
+    if (PwaService.isStandalone) return const SizedBox.shrink();
 
     return ValueListenableBuilder<bool>(
       valueListenable: PwaService.installableStream,
       builder: (context, installable, _) {
         if (_dismissed) return const SizedBox.shrink();
-        if (!installable && !PwaService.isIosSafari) {
+        final isIosPlatform = PwaService.isIos || PwaService.isIosSafari;
+
+        if (!installable && !isIosPlatform) {
           return const SizedBox.shrink();
         }
 
-        final isAndroidInstall = installable && !PwaService.isIosSafari;
+        final isAndroidInstall = installable && !isIosPlatform;
         final bg = isAndroidInstall ? AppColors.greenLight : AppColors.blueSoft;
+        final borderColor = isAndroidInstall ? AppColors.green : AppColors.blue;
+        final iconColor = isAndroidInstall ? AppColors.greenDark : AppColors.blueDark;
+
         return Container(
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -276,7 +282,7 @@ class _InstallBannerState extends State<_InstallBanner> {
             color: bg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isAndroidInstall ? AppColors.green : AppColors.blue,
+              color: borderColor,
               width: 1.5,
             ),
           ),
@@ -286,7 +292,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                 isAndroidInstall
                     ? Icons.download_rounded
                     : Icons.add_to_home_screen_rounded,
-                color: isAndroidInstall ? AppColors.greenDark : AppColors.blueDark,
+                color: iconColor,
                 size: 22,
               ),
               const SizedBox(width: 10),
@@ -294,7 +300,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                 child: Text(
                   isAndroidInstall
                       ? 'Cài đặt EduPulse trên thiết bị!'
-                      : 'Thêm EduPulse vào Màn hình chính',
+                      : 'Cài EduPulse lên Màn hình chính',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -324,7 +330,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                 ),
               if (!isAndroidInstall)
                 GestureDetector(
-                  onTap: () => _showIosHelp(),
+                  onTap: () => _showIosInstallSheet(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
@@ -358,36 +364,240 @@ class _InstallBannerState extends State<_InstallBanner> {
     );
   }
 
-  void _showIosHelp() {
-    showDialog(
+  void _showIosInstallSheet(BuildContext context) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
-        title: const Text(
-          'Thêm EduPulse vào Màn hình chính',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Grabber handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.borderDark,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Header with App Icon & Title
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border, width: 1.5),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset(
+                      'assets/images/mascot.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.school_rounded,
+                        color: AppColors.green,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cài đặt EduPulse trên iOS',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Dùng toàn màn hình như ứng dụng App Store',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Feature chips
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildFeatureBadge(Icons.bolt_rounded, 'Mở tức thì', AppColors.yellow),
+                  _buildFeatureBadge(Icons.wifi_off_rounded, 'Dùng offline', AppColors.blue),
+                  _buildFeatureBadge(Icons.fullscreen_rounded, 'Toàn màn hình', AppColors.green),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Steps container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.bgPage,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border, width: 1),
+                ),
+                child: Column(
+                  children: [
+                    _buildStepRow(
+                      stepNum: '1',
+                      icon: Icons.ios_share,
+                      iconColor: AppColors.blue,
+                      title: 'Nhấn nút Chia sẻ',
+                      subtitle: 'Biểu tượng hình vuông có mũi tên lên ở thanh công cụ Safari.',
+                    ),
+                    Divider(color: AppColors.border, height: 16),
+                    _buildStepRow(
+                      stepNum: '2',
+                      icon: Icons.add_box_outlined,
+                      iconColor: AppColors.green,
+                      title: 'Chọn "Thêm vào MH chính"',
+                      subtitle: 'Cuộn xuống danh sách tùy chọn và nhấn "Add to Home Screen".',
+                    ),
+                    Divider(color: AppColors.border, height: 16),
+                    _buildStepRow(
+                      stepNum: '3',
+                      icon: Icons.check_circle_outline_rounded,
+                      iconColor: AppColors.orange,
+                      title: 'Nhấn "Thêm" ở góc phải',
+                      subtitle: 'EduPulse sẽ xuất hiện trên màn hình chính như ứng dụng gốc!',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Action button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Đã hiểu',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        content: const Text(
-          'Trên iPhone/iPad:\n\n'
-          '1. Nhấn nút Chia sẻ (hình vuông + mũi tên lên) ở thanh Safari.\n\n'
-          '2. Chọn "Thêm vào Màn hình chính" (Add to Home Screen).\n\n'
-          '3. Nhấn "Thêm" ở góc phải.\n\n'
-          'EduPulse sẽ xuất hiện như một ứng dụng riêng, dùng được cả khi offline.',
-          style: TextStyle(fontSize: 13, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Đóng',
-              style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  Widget _buildFeatureBadge(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStepRow({
+    required String stepNum,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

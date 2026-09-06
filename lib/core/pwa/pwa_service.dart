@@ -19,6 +19,12 @@ class PwaService {
   /// Đang chạy trên iOS (Safari) hay không — để hiện hướng dẫn Add to Home Screen.
   static bool get isIosSafari => impl.isIosSafari;
 
+  /// Thiết bị có phải là iOS (iPhone/iPad) hay không.
+  static bool get isIos => impl.isIos;
+
+  /// App đã được cài đặt và đang chạy ở chế độ standalone (PWA đã thêm vào Màn hình chính).
+  static bool get isStandalone => impl.isStandalone;
+
   /// Đang chạy trên nền tảng web hay không.
   static bool get isWeb => impl.isWeb;
 

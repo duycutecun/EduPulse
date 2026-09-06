@@ -7,3 +7,6 @@ set -e
   --dart-define=TAVILY_API_KEY="$TAVILY_API_KEY" \
   --dart-define=SUPABASE_URL="$SUPABASE_URL" \
   --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
+# Generate offline-first service worker (precache toàn bộ asset + version cache).
+node tool/generate_sw.cjs

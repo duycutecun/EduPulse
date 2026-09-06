@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'edupulse-shell-v6';
+const CACHE_NAME = 'edupulse-shell-v7';
 const OFFLINE_CACHE_NAME = 'edupulse-offline-v1';
 
 // Core app shell precached on install.
@@ -15,6 +15,10 @@ const SHELL_ASSETS = [
   './favicon-16x16.png',
   './favicon-32x32.png',
   './icons/apple-touch-icon.png',
+  './icons/apple-touch-icon-180x180.png',
+  './icons/apple-touch-icon-167x167.png',
+  './icons/apple-touch-icon-152x152.png',
+  './icons/apple-touch-icon-120x120.png',
   './icons/Icon-96.png',
   './icons/Icon-144.png',
   './icons/Icon-180.png',
