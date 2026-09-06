@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -75,13 +76,18 @@ class TodayMissionCard extends StatelessWidget {
           ),
           if (tasks.isNotEmpty) ...[
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: AppColors.border,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: progress),
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              builder: (context, pVal, _) => ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: pVal,
+                  minHeight: 8,
+                  backgroundColor: AppColors.border,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -130,62 +136,111 @@ class TodayMissionCard extends StatelessWidget {
         child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
       ),
       child: GestureDetector(
-        onTap: () => onToggle(task),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onToggle(task);
+        },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 220),
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: task.isDone ? AppColors.greenLight.withValues(alpha: 0.4) : AppColors.cardWhite,
+            color: task.isDone
+                ? AppColors.greenLight.withValues(alpha: 0.45)
+                : AppColors.cardWhite,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: task.isDone ? AppColors.green : AppColors.border,
               width: 2,
             ),
+            boxShadow: task.isDone
+                ? null
+                : [
+                    BoxShadow(
+                      color: AppColors.borderDark,
+                      blurRadius: 0,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Row(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: task.isDone ? AppColors.green : Colors.transparent,
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(
-                    color: task.isDone ? AppColors.green : AppColors.textMuted,
-                    width: 2,
-                  ),
-                ),
-                child: task.isDone
-                    ? const Icon(Icons.check, color: Colors.white, size: 15)
-                    : null,
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.0, end: task.isDone ? 1.0 : 0.0),
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutBack,
+                builder: (context, anim, _) {
+                  return Transform.scale(
+                    scale: 0.85 + (anim * 0.15),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color:
+                            task.isDone ? AppColors.green : Colors.transparent,
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                          color: task.isDone
+                              ? AppColors.green
+                              : AppColors.textMuted,
+                          width: 2,
+                        ),
+                        boxShadow: task.isDone
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.green
+                                      .withValues(alpha: 0.3 * anim),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: task.isDone
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 16 * anim.clamp(0.0, 1.0),
+                            )
+                          : null,
+                    ),
+                  );
+                },
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${task.subject} ${task.title}',
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 200),
                       style: TextStyle(
                         fontSize: 14,
-                        color: task.isDone ? AppColors.textMuted : AppColors.textPrimary,
-                        decoration: task.isDone ? TextDecoration.lineThrough : null,
+                        fontFamily: 'Nunito',
+                        color: task.isDone
+                            ? AppColors.textMuted
+                            : AppColors.textPrimary,
+                        decoration:
+                            task.isDone ? TextDecoration.lineThrough : null,
                         fontWeight: FontWeight.w700,
                       ),
+                      child: Text('${task.subject} ${task.title}'),
                     ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
                         Text(
                           '⏱ ${task.estimateMinutes} phút',
-                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.textMuted),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           priorityText,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: priorityColor),
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: priorityColor),
                         ),
                       ],
                     ),

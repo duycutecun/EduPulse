@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../shared/widgets/mascot_avatar.dart';
 
 class HomeHeader extends StatelessWidget {
   final String userName;
@@ -14,20 +15,7 @@ class HomeHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: AppColors.green,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Image.asset('assets/images/mascot.png', fit: BoxFit.contain),
-              ),
-            ),
+            const MascotAvatar(size: 56),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

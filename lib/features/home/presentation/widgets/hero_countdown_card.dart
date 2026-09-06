@@ -5,7 +5,7 @@ import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 
-class HeroCountdownCard extends StatelessWidget {
+class HeroCountdownCard extends StatefulWidget {
   final ExamModel? primaryExam;
   final VoidCallback onTap;
   final Duration remaining;
@@ -20,18 +20,33 @@ class HeroCountdownCard extends StatelessWidget {
   });
 
   @override
+  State<HeroCountdownCard> createState() => _HeroCountdownCardState();
+}
+
+class _HeroCountdownCardState extends State<HeroCountdownCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final primaryExam = widget.primaryExam;
     final urgencyColor = primaryExam != null
-        ? _urgencyColor(primaryExam!.daysLeft)
+        ? _urgencyColor(primaryExam.daysLeft)
         : AppColors.textMuted;
     final progress = primaryExam != null
-        ? (1.0 - (primaryExam!.daysLeft / 365.0)).clamp(0.05, 0.98)
+        ? (1.0 - (primaryExam.daysLeft / 365.0)).clamp(0.05, 0.98)
         : 0.0;
 
     return GestureDetector(
-      onTap: onTap,
-      child: GlassCard(
-        padding: const EdgeInsets.all(20),
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _pressed ? 0.985 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: GlassCard(
+          padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -66,7 +81,7 @@ class HeroCountdownCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         primaryExam != null
-                            ? '📅 ${AppDate.formatDateTime(primaryExam!.dateTime)}'
+                            ? '📅 ${AppDate.formatDateTime(primaryExam.dateTime)}'
                             : 'Chạm vào đây để chọn kỳ thi →',
                         style: TextStyle(
                           fontSize: 13,
@@ -85,7 +100,7 @@ class HeroCountdownCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      primaryExam!.urgencyLabel,
+                      primaryExam.urgencyLabel,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -126,17 +141,18 @@ class HeroCountdownCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTimerRow() {
-    if (remainingListenable != null) {
+    if (widget.remainingListenable != null) {
       return ValueListenableBuilder<Duration>(
-        valueListenable: remainingListenable!,
+        valueListenable: widget.remainingListenable!,
         builder: (context, rem, _) => _renderTiles(rem),
       );
     }
-    return _renderTiles(remaining);
+    return _renderTiles(widget.remaining);
   }
 
   Widget _renderTiles(Duration rem) {
@@ -148,47 +164,63 @@ class HeroCountdownCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildTimerTile(days.toString().padLeft(3, '0'), 'NGÀY'),
+        _buildTimerTile(days.toString().padLeft(3, '0'), 'ngày'),
         _timerColon(),
-        _buildTimerTile(hours.toString().padLeft(2, '0'), 'GIỜ'),
+        _buildTimerTile(hours.toString().padLeft(2, '0'), 'giờ'),
         _timerColon(),
-        _buildTimerTile(minutes.toString().padLeft(2, '0'), 'PHÚT'),
+        _buildTimerTile(minutes.toString().padLeft(2, '0'), 'phút'),
         _timerColon(),
-        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'GIÂY'),
+        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'giây', isAccent: true),
       ],
     );
   }
 
-  Widget _buildTimerTile(String value, String label) {
+  Widget _buildTimerTile(String value, String label, {bool isAccent = false}) {
     return Container(
       width: 68,
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 2),
+        border: Border.all(
+          color: isAccent ? AppColors.green.withValues(alpha: 0.6) : AppColors.border,
+          width: 2,
+        ),
         boxShadow: [
-          BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: Offset(0, 3)),
+          BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 240),
+            transitionBuilder: (child, animation) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.25),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: Text(
+              value,
+              key: ValueKey<String>(value),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: isAccent ? AppColors.greenDark : AppColors.textPrimary,
+              ),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              color: AppColors.green,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+              color: isAccent ? AppColors.green : AppColors.textMuted,
             ),
           ),
         ],

@@ -198,57 +198,61 @@ class _StudyScreenState extends State<StudyScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          ValueListenableBuilder<int>(
-            valueListenable: _pomSecondsNotifier,
-            builder: (context, secondsRemaining, _) {
-              final minutes = secondsRemaining ~/ 60;
-              final seconds = secondsRemaining % 60;
-              final progress = totalSec > 0
-                  ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
-                  : 0.0;
-              return SizedBox(
-                width: 220,
-                height: 220,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 14,
-                        strokeCap: StrokeCap.round,
-                        backgroundColor: AppColors.border,
-                        valueColor: AlwaysStoppedAnimation<Color>(activeColor),
+          _PomodoroBreathingRing(
+            isRunning: _pomRunning,
+            color: activeColor,
+            child: ValueListenableBuilder<int>(
+              valueListenable: _pomSecondsNotifier,
+              builder: (context, secondsRemaining, _) {
+                final minutes = secondsRemaining ~/ 60;
+                final seconds = secondsRemaining % 60;
+                final progress = totalSec > 0
+                    ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
+                    : 0.0;
+                return SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 200,
+                        height: 200,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 14,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: AppColors.border,
+                          valueColor: AlwaysStoppedAnimation<Color>(activeColor),
+                        ),
                       ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'PHIÊN $_pomRound',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                            color: AppColors.textMuted,
+                          Text(
+                            'Phiên $_pomRound',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: AppColors.textMuted,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           Container(
@@ -269,53 +273,31 @@ class _StudyScreenState extends State<StudyScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GestureDetector(
+              _TactileCircleButton(
+                size: 52,
+                color: AppColors.cardWhite,
+                shadowColor: AppColors.borderDark.withValues(alpha: 0.6),
+                border: Border.all(color: AppColors.border, width: 2),
                 onTap: _resetPomodoro,
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.cardWhite,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.borderDark.withValues(alpha: 0.6),
-                        blurRadius: 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.refresh_rounded,
-                      color: AppColors.textPrimary, size: 24),
+                child: Icon(
+                  Icons.refresh_rounded,
+                  color: AppColors.textPrimary,
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 24),
-              GestureDetector(
+              _TactileCircleButton(
+                size: 72,
+                color: _pomRunning ? AppColors.red : AppColors.green,
+                shadowColor:
+                    _pomRunning ? AppColors.redDark : AppColors.greenDark,
                 onTap: _togglePomodoro,
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: _pomRunning ? AppColors.red : AppColors.green,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_pomRunning
-                            ? AppColors.redDark
-                            : AppColors.greenDark),
-                        blurRadius: 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _pomRunning
-                        ? CupertinoIcons.pause_fill
-                        : CupertinoIcons.play_fill,
-                    color: Colors.white,
-                    size: 30,
-                  ),
+                child: Icon(
+                  _pomRunning
+                      ? CupertinoIcons.pause_fill
+                      : CupertinoIcons.play_fill,
+                  color: Colors.white,
+                  size: 30,
                 ),
               ),
             ],
@@ -590,3 +572,151 @@ class _StudyScreenState extends State<StudyScreen> {
     );
   }
 }
+
+/// Nút bấm hình tròn với độ lún vật lý xúc giác 3D (Duolingo tactile press)
+class _TactileCircleButton extends StatefulWidget {
+  final double size;
+  final Color color;
+  final Color shadowColor;
+  final Border? border;
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _TactileCircleButton({
+    required this.size,
+    required this.color,
+    required this.shadowColor,
+    this.border,
+    required this.child,
+    required this.onTap,
+  });
+
+  @override
+  State<_TactileCircleButton> createState() => _TactileCircleButtonState();
+}
+
+class _TactileCircleButtonState extends State<_TactileCircleButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0, _pressed ? 3.5 : 0, 0),
+        width: widget.size,
+        height: widget.size,
+        decoration: BoxDecoration(
+          color: widget.color,
+          shape: BoxShape.circle,
+          border: widget.border,
+          boxShadow: [
+            BoxShadow(
+              color: widget.shadowColor,
+              blurRadius: 0,
+              offset: Offset(0, _pressed ? 0.5 : 4.0),
+            ),
+          ],
+        ),
+        child: Center(child: widget.child),
+      ),
+    );
+  }
+}
+
+/// Vòng thở tập trung thiền định xung quanh đồng hồ Pomodoro:
+/// Khi đang học, quầng sáng co giãn nhịp nhàng (3.8s) giúp duy trì sự bình tĩnh và tập trung sâu.
+class _PomodoroBreathingRing extends StatefulWidget {
+  final bool isRunning;
+  final Color color;
+  final Widget child;
+
+  const _PomodoroBreathingRing({
+    required this.isRunning,
+    required this.color,
+    required this.child,
+  });
+
+  @override
+  State<_PomodoroBreathingRing> createState() => _PomodoroBreathingRingState();
+}
+
+class _PomodoroBreathingRingState extends State<_PomodoroBreathingRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3800),
+    );
+    _anim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOutSine),
+    );
+    if (widget.isRunning) {
+      _ctrl.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PomodoroBreathingRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isRunning && !_ctrl.isAnimating) {
+      _ctrl.repeat(reverse: true);
+    } else if (!widget.isRunning && _ctrl.isAnimating) {
+      _ctrl.stop();
+      _ctrl.animateTo(0.0, duration: const Duration(milliseconds: 300));
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reducedMotion = MediaQuery.of(context).disableAnimations;
+
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) {
+        final auraSize = 210.0 +
+            (reducedMotion || !widget.isRunning ? 0.0 : _anim.value * 26.0);
+        final opacity = reducedMotion || !widget.isRunning
+            ? 0.0
+            : (0.07 + _anim.value * 0.12);
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            if (widget.isRunning && !reducedMotion)
+              Container(
+                width: auraSize,
+                height: auraSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.color.withValues(alpha: opacity),
+                ),
+              ),
+            child!,
+          ],
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+

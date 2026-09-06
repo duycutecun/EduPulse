@@ -210,26 +210,33 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 44,
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutBack,
+                        width: active ? 46 : 42,
                         height: 32,
                         decoration: BoxDecoration(
                           color: active ? AppColors.greenSoft : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          active ? item.activeIcon : item.icon,
-                          size: 26,
-                          color: active ? AppColors.green : AppColors.textMuted,
-                          shadows: active
-                              ? [
-                                  Shadow(
-                                    color: AppColors.green.withValues(alpha: 0.4),
-                                    blurRadius: 0,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : null,
+                        child: AnimatedScale(
+                          scale: active ? 1.08 : 1.0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            active ? item.activeIcon : item.icon,
+                            size: 24,
+                            color: active ? AppColors.green : AppColors.textMuted,
+                            shadows: active
+                                ? [
+                                    Shadow(
+                                      color: AppColors.green.withValues(alpha: 0.4),
+                                      blurRadius: 0,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
