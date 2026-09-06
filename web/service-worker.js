@@ -176,28 +176,55 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
-  const url = new URL(request.url);
+  // Google Fonts caching
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    event.respondWith(
+      caches.open('edupulse-fonts-v1').then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        try {
+          const res = await fetch(request);
+          if (res && res.ok) {
+            cache.put(request, res.clone());
+          }
+          return res;
+        } catch (_) {
+          return cached || new Response('', { status: 408 });
+        }
+      })
+    );
+    return;
+  }
+
   // Only handle same-origin requests. API keys / external AI endpoints are
   // never cached so the app correctly errors when offline for those.
   if (url.origin !== location.origin) return;
 
-  // Navigation (HTML pages): network-first, fall back to cached index.html,
-  // then to offline page if both fail.
+  // Navigation (HTML pages): offline-immediate fallback to cached index.html,
+  // then network-first with fallback.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-        .catch(() => {
-          // Return offline fallback page
-          return new Response(OFFLINE_HTML, {
-            headers: { 'Content-Type': 'text/html; charset=utf-8' }
-          });
-        })
+      (async () => {
+        if (!self.navigator.onLine) {
+          const cached = await caches.match('./index.html') || await caches.match('./');
+          if (cached) return cached;
+        }
+        try {
+          const response = await fetch(request);
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
+            return response;
+          }
+        } catch (_) {
+          // fetch failed
+        }
+        const cached = await caches.match('./index.html') || await caches.match('./');
+        if (cached) return cached;
+        return new Response(OFFLINE_HTML, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      })()
     );
     return;
   }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
+import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../widgets/ai_coach_header.dart';
@@ -105,6 +106,33 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
 
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty && _selectedImageBytes == null) return;
+
+    if (!PwaService.isOnline) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Bạn đang ngoại tuyến. AI Coach cần kết nối mạng để giải đề.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFE65100),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
     final messageText = text.trim();
     _ctrl.clear();
     final attachedImage = _selectedImageBytes;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants/app_colors.dart';
@@ -140,6 +141,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           child: Column(
             children: [
               const _InstallBanner(),
+              const _OfflineBanner(),
               Expanded(
                 child: IndexedStack(
                   index: _currentIndex,
@@ -620,3 +622,112 @@ class _InstallBannerState extends State<_InstallBanner> {
     );
   }
 }
+
+/// Banner trạng thái offline/online:
+/// - Khi mất mạng: hiển thị thông báo nhẹ nhàng dữ liệu được lưu an toàn trên máy
+/// - Khi có mạng lại: hiển thị thông báo đã khôi phục và tự động đồng bộ
+class _OfflineBanner extends StatefulWidget {
+  const _OfflineBanner();
+
+  @override
+  State<_OfflineBanner> createState() => _OfflineBannerState();
+}
+
+class _OfflineBannerState extends State<_OfflineBanner> {
+  bool _wasOffline = false;
+  bool _showReconnected = false;
+  Timer? _reconnectTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    PwaService.onlineNotifier.addListener(_handleStatusChange);
+    _wasOffline = !PwaService.isOnline;
+  }
+
+  @override
+  void dispose() {
+    _reconnectTimer?.cancel();
+    PwaService.onlineNotifier.removeListener(_handleStatusChange);
+    super.dispose();
+  }
+
+  void _handleStatusChange() {
+    final isOnline = PwaService.onlineNotifier.value;
+    if (!isOnline) {
+      _reconnectTimer?.cancel();
+      setState(() {
+        _wasOffline = true;
+        _showReconnected = false;
+      });
+    } else if (_wasOffline) {
+      setState(() {
+        _wasOffline = false;
+        _showReconnected = true;
+      });
+      _reconnectTimer?.cancel();
+      _reconnectTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) {
+          setState(() => _showReconnected = false);
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: PwaService.onlineNotifier,
+      builder: (context, isOnline, _) {
+        if (isOnline && !_showReconnected) {
+          return const SizedBox.shrink();
+        }
+
+        final isOffline = !isOnline;
+        final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.greenLight;
+        final border = isOffline ? const Color(0xFFFED7AA) : AppColors.green;
+        final iconColor = isOffline ? const Color(0xFFEA580C) : AppColors.greenDark;
+        final textColor = isOffline ? const Color(0xFF9A3412) : AppColors.greenDark;
+        final icon = isOffline ? Icons.wifi_off_rounded : Icons.cloud_done_rounded;
+        final text = isOffline
+            ? 'Chế độ ngoại tuyến • Dữ liệu đang được lưu an toàn trên máy'
+            : 'Đã kết nối lại • Đang tự động đồng bộ dữ liệu...';
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: border, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
