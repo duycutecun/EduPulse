@@ -6,7 +6,6 @@ const OFFLINE_CACHE_NAME = 'edupulse-offline-v1';
 // Core app shell precached on install.
 const SHELL_ASSETS = [
   './',
-  './index.html',
   './main.dart.js',
   './flutter.js',
   './flutter_bootstrap.js',
@@ -153,12 +152,38 @@ const OFFLINE_HTML = `
 </html>
 `;
 
+// Chuẩn hóa response: Loại bỏ cờ redirected theo chuẩn W3C Service Worker
+async function cleanResponse(response) {
+  if (!response) return response;
+  if (response.redirected || (response.status >= 300 && response.status < 400)) {
+    const body = await response.blob();
+    return new Response(body, {
+      status: 200,
+      statusText: 'OK',
+      headers: response.headers,
+    });
+  }
+  return response;
+}
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      .catch((err) => console.warn('EduPulse SW precache failed:', err))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        SHELL_ASSETS.map(async (url) => {
+          try {
+            const res = await fetch(url, { cache: 'reload' });
+            if (res && (res.ok || res.type === 'opaque')) {
+              const clean = await cleanResponse(res);
+              await cache.put(url, clean);
+            }
+          } catch (e) {
+            console.warn('EduPulse SW precache failed:', url, e);
+          }
+        })
+      );
+    })
   );
 });
 
@@ -176,51 +201,54 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
+  const url = new URL(request.url);
+
   // Google Fonts caching
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(
       caches.open('edupulse-fonts-v1').then(async (cache) => {
         const cached = await cache.match(request);
-        if (cached) return cached;
+        if (cached) return cleanResponse(cached);
         try {
           const res = await fetch(request);
           if (res && res.ok) {
-            cache.put(request, res.clone());
+            const clean = await cleanResponse(res);
+            cache.put(request, clean.clone());
+            return clean;
           }
           return res;
         } catch (_) {
-          return cached || new Response('', { status: 408 });
+          return cached ? cleanResponse(cached) : new Response('', { status: 408 });
         }
       })
     );
     return;
   }
 
-  // Only handle same-origin requests. API keys / external AI endpoints are
-  // never cached so the app correctly errors when offline for those.
+  // Only handle same-origin requests.
   if (url.origin !== location.origin) return;
 
-  // Navigation (HTML pages): offline-immediate fallback to cached index.html,
-  // then network-first with fallback.
+  // Navigation (HTML pages): offline-immediate fallback to cached './'
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
         if (!self.navigator.onLine) {
-          const cached = await caches.match('./index.html') || await caches.match('./');
-          if (cached) return cached;
+          const cached = await caches.match('./') || await caches.match('./index.html');
+          if (cached) return cleanResponse(cached);
         }
         try {
           const response = await fetch(request);
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
-            return response;
+          if (response && (response.ok || response.type === 'opaque')) {
+            const clean = await cleanResponse(response);
+            const copy = clean.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('./', copy));
+            return clean;
           }
         } catch (_) {
           // fetch failed
         }
-        const cached = await caches.match('./index.html') || await caches.match('./');
-        if (cached) return cached;
+        const cached = await caches.match('./') || await caches.match('./index.html');
+        if (cached) return cleanResponse(cached);
         return new Response(OFFLINE_HTML, {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
@@ -236,17 +264,18 @@ self.addEventListener('fetch', (event) => {
     /\.(js|mjs|wasm|woff2?|ttf|otf|png|ico|svg)$/i.test(url.pathname);
   if (isStatic) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const network = fetch(request)
-          .then((response) => {
-            if (response && response.ok) {
-              const copy = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-            }
-            return response;
-          })
-          .catch(() => cached);
-        return cached || network;
+      caches.match(request).then(async (cached) => {
+        if (cached) {
+          return cleanResponse(cached);
+        }
+        return fetch(request).then(async (response) => {
+          const clean = await cleanResponse(response);
+          if (clean && clean.ok) {
+            const copy = clean.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return clean;
+        });
       })
     );
     return;
@@ -254,7 +283,9 @@ self.addEventListener('fetch', (event) => {
 
   // Default: network-first with cache fallback.
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request)
+      .then((res) => cleanResponse(res))
+      .catch(() => caches.match(request).then((res) => cleanResponse(res)))
   );
 });
 
