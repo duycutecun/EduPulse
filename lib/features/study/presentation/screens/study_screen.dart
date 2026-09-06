@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/mascot_avatar.dart';
 import '../../domain/models/study_models.dart';
 import '../widgets/weekly_chart_widget.dart';
 
@@ -255,19 +256,33 @@ class _StudyScreenState extends State<StudyScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: activeColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              _isBreak ? '☕ Nghỉ giải lao' : '🎯 Đang tập trung',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: activeColor),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              MascotAvatar(
+                size: 38,
+                mood: _pomRunning
+                    ? (_isBreak ? MascotMood.relax : MascotMood.focus)
+                    : MascotMood.idle,
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: activeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _isBreak
+                      ? '☕ Nghỉ giải lao'
+                      : (_pomRunning ? '🎯 Đang tập trung' : '⏳ Sẵn sàng học'),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: activeColor),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 28),
           Row(

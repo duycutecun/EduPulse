@@ -148,7 +148,13 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          HomeHeader(userName: userName, streak: widget.streak),
+          HomeHeader(
+            userName: userName,
+            streak: widget.streak,
+            daysLeft: _remainingNotifier.value.inDays,
+            remainingTasks: _tasks.where((t) => !t.isDone).length,
+            isAllTasksCompleted: _tasks.isNotEmpty && _tasks.every((t) => t.isDone),
+          ),
           const SizedBox(height: 16),
           HeroCountdownCard(
             primaryExam: widget.primaryExam,

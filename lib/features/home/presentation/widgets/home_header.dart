@@ -5,17 +5,41 @@ import '../../../../shared/widgets/mascot_avatar.dart';
 class HomeHeader extends StatelessWidget {
   final String userName;
   final int streak;
+  final int? daysLeft;
+  final int? remainingTasks;
+  final bool? isAllTasksCompleted;
 
-  const HomeHeader({super.key, required this.userName, required this.streak});
+  const HomeHeader({
+    super.key,
+    required this.userName,
+    required this.streak,
+    this.daysLeft,
+    this.remainingTasks,
+    this.isAllTasksCompleted,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isLateNight = now.hour >= 23 || now.hour < 5;
+    final mood = isAllTasksCompleted == true
+        ? MascotMood.celebrate
+        : (isLateNight ? MascotMood.sleepy : MascotMood.idle);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            const MascotAvatar(size: 56),
+            MascotAvatar(
+              size: 56,
+              mood: mood,
+              userName: userName,
+              streak: streak,
+              daysLeft: daysLeft,
+              remainingTasks: remainingTasks,
+              isAllTasksCompleted: isAllTasksCompleted,
+            ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
