@@ -7,6 +7,7 @@ import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../shared/widgets/mascot/mascot_mark.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../widgets/ai_coach_header.dart';
 import '../widgets/chat_bubble.dart';
@@ -212,13 +213,9 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Center(
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/mascot.png',
-                        width: 116,
-                        height: 116,
-                        fit: BoxFit.contain,
-                      ),
+                    child: MascotMark(
+                      size: 116,
+                      mood: MascotMood.idle,
                     ),
                   ),
                 );

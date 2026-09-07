@@ -495,6 +495,9 @@ class _MascotAvatarState extends State<MascotAvatar>
                           .clamp(0.0, 1.0),
                       leftEar: base.leftEar + _earTwitchAnim.value,
                       rightEar: base.rightEar + _earTwitchAnim.value,
+                      // Squash-stretch khi chạm: nhấn bẹp rồi giãn về
+                      headSquash: base.headSquash +
+                          ((_scaleAnim.value - 1.0) * 0.3).clamp(0.0, 0.16),
                     );
 
               return Transform.translate(

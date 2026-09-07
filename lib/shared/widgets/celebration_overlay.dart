@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import 'mascot_avatar.dart';
 
 class CelebrationOverlay extends StatefulWidget {
   final String title;
@@ -39,12 +40,18 @@ class CelebrationOverlay extends StatefulWidget {
 class _CelebrationOverlayState extends State<CelebrationOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  late final Animation<double> _popIn;
+  late final Animation<double> _bounce;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
-      ..forward();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    _popIn = CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 0.45, curve: Curves.easeOutBack));
+    _bounce = Tween<double>(begin: 0.0, end: -14.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0, curve: Curves.easeInOutSine)),
+    );
+    _ctrl.forward();
   }
 
   @override
@@ -69,8 +76,26 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🎉', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 16),
+                AnimatedBuilder(
+                  animation: _ctrl,
+                  builder: (context, child) {
+                    final pop = _popIn.value;
+                    final bounce = _bounce.value;
+                    return Transform.translate(
+                      offset: Offset(0, bounce),
+                      child: Transform.scale(
+                        scale: pop.clamp(0.001, 1.0),
+                        child: MascotAvatar(
+                          size: 84,
+                          mood: MascotMood.celebrate,
+                          enableCompanionModal: false,
+                          onTap: () {},
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
                 Text(
                   widget.title,
                   textAlign: TextAlign.center,

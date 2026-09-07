@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/mascot/mascot_mark.dart';
 import '../../domain/models/exam_model.dart';
 
 class ExamsScreen extends StatefulWidget {
@@ -249,13 +250,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/mascot.png',
-                width: 88,
-                height: 88,
-                fit: BoxFit.contain,
-              ),
+            MascotMark(
+              size: 88,
+              mood: MascotMood.relax,
             ),
             const SizedBox(height: 12),
             Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),

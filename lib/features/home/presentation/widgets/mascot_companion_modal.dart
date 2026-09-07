@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/services/audio_synth_service.dart';
+import '../../../../shared/widgets/mascot/mascot_mark.dart';
 
 /// Định nghĩa phụ kiện trong tủ đồ Mascot
 class MascotAccessoryItem {
@@ -330,9 +331,9 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          'assets/images/mascot.png',
-                          fit: BoxFit.contain,
+                        child: const MascotMark(
+                          size: 96,
+                          mood: MascotMood.excited,
                         ),
                       ),
                     ),

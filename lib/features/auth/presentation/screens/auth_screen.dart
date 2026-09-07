@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/supabase_service.dart';
+import '../../../../shared/widgets/mascot_avatar.dart';
 
 class AuthScreen extends StatefulWidget {
   final VoidCallback onAuthSuccess;
@@ -157,8 +158,12 @@ class _AuthScreenState extends State<AuthScreen>
                           offset: Offset(0, 4))
                     ],
                   ),
-                  child: const Center(
-                      child: Text('🎓', style: TextStyle(fontSize: 44))),
+                  clipBehavior: Clip.antiAlias,
+                  child: const MascotAvatar(
+                    size: 96,
+                    mood: MascotMood.idle,
+                    enableCompanionModal: false,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
