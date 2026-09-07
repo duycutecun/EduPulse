@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/widgets/mascot/mascot_mark.dart';
 
 class AICoachHeader extends StatelessWidget {
   final AIModel model;
@@ -36,10 +35,10 @@ class AICoachHeader extends StatelessWidget {
               boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))],
             ),
             clipBehavior: Clip.antiAlias,
-child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: const MascotMark(size: 32, mood: MascotMood.idle),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Image.asset('assets/images/mascot.png', fit: BoxFit.contain),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

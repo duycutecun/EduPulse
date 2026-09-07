@@ -1,10 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/anim_tokens.dart';
 import 'mascot_painter.dart';
 import 'mascot_pose.dart';
-
-export 'mascot_pose.dart' show MascotMood;
 
 /// Bản linh vật nhẹ — chỉ thở + chớp mắt, không tương tác.
 ///
@@ -30,10 +27,9 @@ class MascotMark extends StatefulWidget {
 }
 
 class _MascotMarkState extends State<MascotMark>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late final AnimationController _floatCtrl;
   late final AnimationController _blinkCtrl;
-  Timer? _nextBlinkTimer;
 
   @override
   void initState() {
@@ -52,8 +48,7 @@ class _MascotMarkState extends State<MascotMark>
       if (status == AnimationStatus.completed) {
         _blinkCtrl.reverse();
       } else if (status == AnimationStatus.dismissed) {
-        _nextBlinkTimer?.cancel();
-        _nextBlinkTimer = Timer(
+        Future.delayed(
           const Duration(milliseconds: 3400),
           () => _blinkCtrl.forward(from: 0.0),
         );
@@ -64,7 +59,6 @@ class _MascotMarkState extends State<MascotMark>
 
   @override
   void dispose() {
-    _nextBlinkTimer?.cancel();
     _floatCtrl.dispose();
     _blinkCtrl.dispose();
     super.dispose();

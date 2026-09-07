@@ -6,7 +6,6 @@ import '../core/pwa/pwa_service.dart';
 import '../core/utils/storage_service.dart';
 import '../core/utils/supabase_service.dart';
 import '../shared/widgets/mesh_background.dart';
-import '../shared/widgets/mascot/mascot_mark.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
 import '../features/exams/presentation/screens/exams_screen.dart';
@@ -439,11 +438,13 @@ class _InstallBannerState extends State<_InstallBanner> {
                       border: Border.all(color: AppColors.border, width: 1.5),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: MascotMark(
-                        size: 36,
-                        mood: MascotMood.idle,
+                    child: Image.asset(
+                      'assets/images/mascot.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.school_rounded,
+                        color: AppColors.green,
+                        size: 32,
                       ),
                     ),
                   ),

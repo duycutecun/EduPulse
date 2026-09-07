@@ -5,10 +5,16 @@ import '../../core/constants/app_colors.dart';
 import '../../core/utils/storage_service.dart';
 import '../../features/home/presentation/widgets/mascot_companion_modal.dart';
 import '../services/audio_synth_service.dart';
-import 'mascot/mascot_painter.dart';
-import 'mascot/mascot_pose.dart';
 
-export 'mascot/mascot_pose.dart' show MascotMood;
+/// Các trạng thái biểu cảm của linh vật Mascot Cú Sĩ tử
+enum MascotMood {
+  idle, // Trạng thái thở bồng bềnh bình thường
+  focus, // Tập trung học tập Pomodoro
+  excited, // Phấn khích khi hoàn thành bài tập / tap combo
+  relax, // Thư giãn nghỉ ngơi giữa hiệp
+  sleepy, // Buồn ngủ khi quá khuya
+  celebrate, // Ăn mừng streak hoặc hoàn thành toàn bộ mục tiêu ngày
+}
 
 /// Dữ liệu một hạt hiệu ứng (particle) bay lên khi tương tác
 class _MascotParticle {
@@ -44,10 +50,6 @@ class MascotAvatar extends StatefulWidget {
   final bool enableCompanionModal;
   final VoidCallback? onTap;
 
-  /// Bật lớp chồng ảnh gốc (`mascot.png`) phía dưới bản vẽ vector để so khớp
-  /// hình dáng khi tinh chỉnh. Mặc định tắt.
-  final bool debugOverlaySource;
-
   const MascotAvatar({
     super.key,
     this.size = 56,
@@ -59,7 +61,6 @@ class MascotAvatar extends StatefulWidget {
     this.isAllTasksCompleted,
     this.enableCompanionModal = true,
     this.onTap,
-    this.debugOverlaySource = false,
   });
 
   @override
@@ -96,10 +97,6 @@ class _MascotAvatarState extends State<MascotAvatar>
   int _quoteIndex = 0;
   int _tapCount = 0;
   Timer? _comboResetTimer;
-
-  // 7. Blink mắt tự nhiên (chớp nhanh mỗi vài giây)
-  late final AnimationController _blinkCtrl;
-  Timer? _blinkTimer;
 
   @override
   void initState() {
@@ -192,32 +189,6 @@ class _MascotAvatarState extends State<MascotAvatar>
         setState(() => _activeParticles.clear());
       }
     });
-
-    // 7. Blink: nhắm nhanh 90ms rồi tự mở lại; lịch ngẫu nhiên 3.2-5.8s
-    _blinkCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 90),
-    );
-    _blinkCtrl.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _blinkCtrl.reverse();
-      }
-    });
-    _scheduleNextBlink();
-  }
-
-  void _scheduleNextBlink() {
-    _blinkTimer?.cancel();
-    _blinkTimer = Timer(
-      Duration(milliseconds: 3200 + _random.nextInt(2600)),
-      () {
-        if (!mounted) return;
-        if (!_tapCtrl.isAnimating) {
-          _blinkCtrl.forward(from: 0.0);
-        }
-        _scheduleNextBlink();
-      },
-    );
   }
 
   @override
@@ -225,12 +196,10 @@ class _MascotAvatarState extends State<MascotAvatar>
     _quoteTimer?.cancel();
     _comboResetTimer?.cancel();
     _earTwitchTimer?.cancel();
-    _blinkTimer?.cancel();
     _floatCtrl.dispose();
     _tapCtrl.dispose();
     _earTwitchCtrl.dispose();
     _particleCtrl.dispose();
-    _blinkCtrl.dispose();
     super.dispose();
   }
 
@@ -477,28 +446,13 @@ class _MascotAvatarState extends State<MascotAvatar>
           },
           behavior: HitTestBehavior.opaque,
           child: AnimatedBuilder(
-            animation: Listenable.merge(
-                [_floatCtrl, _tapCtrl, _earTwitchCtrl, _blinkCtrl]),
-            builder: (context, _) {
+            animation: Listenable.merge([_floatCtrl, _tapCtrl, _earTwitchCtrl]),
+            builder: (context, child) {
               final dy = reducedMotion ? 0.0 : _floatAnim.value;
               final scale = reducedMotion ? 1.0 : _scaleAnim.value;
               final rot = reducedMotion
                   ? 0.0
                   : (_rotateAnim.value + _earTwitchAnim.value + _dragTilt);
-
-              final base = MascotPose.of(widget.mood);
-              final pose = reducedMotion
-                  ? base
-                  : base.copyWith(
-                      eyeOpen: (base.eyeOpen *
-                              (1.0 - 0.88 * _blinkCtrl.value))
-                          .clamp(0.0, 1.0),
-                      leftEar: base.leftEar + _earTwitchAnim.value,
-                      rightEar: base.rightEar + _earTwitchAnim.value,
-                      // Squash-stretch khi chạm: nhấn bẹp rồi giãn về
-                      headSquash: base.headSquash +
-                          ((_scaleAnim.value - 1.0) * 0.3).clamp(0.0, 0.16),
-                    );
 
               return Transform.translate(
                 offset: Offset(0, dy),
@@ -506,19 +460,128 @@ class _MascotAvatarState extends State<MascotAvatar>
                   angle: rot,
                   child: Transform.scale(
                     scale: scale,
-                    child: _mascotCore(
-                      pose: pose,
-                      moodColor: moodColor,
-                      moodShadow: moodShadow,
-                      moodEmote: moodEmote,
-                      accessoryIcon: accessoryIcon,
-                      reducedMotion: reducedMotion,
-                    ),
+                    child: child,
                   ),
                 ),
               );
             },
-            
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Vỏ avatar với màu sắc theo tâm trạng (mood)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  width: widget.size,
+                  height: widget.size,
+                  decoration: BoxDecoration(
+                    color: moodColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: moodShadow,
+                        blurRadius: 0,
+                        offset: const Offset(0, 3.5),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: EdgeInsets.all(widget.size * 0.1),
+                    child: Image.asset(
+                      'assets/images/mascot.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+                // Phụ kiện đang đeo hiển thị góc trên bên phải
+                Positioned(
+                  right: -3,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardWhite,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: moodColor, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      accessoryIcon,
+                      style: TextStyle(fontSize: widget.size * 0.23),
+                    ),
+                  ),
+                ),
+
+                // Badge emote hiển thị mood ở góc dưới bên phải
+                if (moodEmote != null)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardWhite,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: moodColor, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        moodEmote,
+                        style: TextStyle(fontSize: widget.size * 0.24),
+                      ),
+                    ),
+                  ),
+
+                // Hạt hiệu ứng bay lên khi tap (Particles)
+                if (_activeParticles.isNotEmpty && !reducedMotion)
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _particleCtrl,
+                      builder: (context, _) {
+                        final progress = _particleCtrl.value;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: _activeParticles.map((p) {
+                            final dy = -progress * p.speed * 48.0;
+                            final dx = p.startX + (progress * p.driftX);
+                            final opacity = (1.0 - progress).clamp(0.0, 1.0);
+                            final scale = (0.5 + progress * 0.6).clamp(0.0, 1.3);
+
+                            return Positioned(
+                              left: widget.size / 2 + dx,
+                              top: widget.size / 2 + dy,
+                              child: Opacity(
+                                opacity: opacity,
+                                child: Transform.scale(
+                                  scale: scale,
+                                  child: Text(
+                                    p.symbol,
+                                    style: TextStyle(fontSize: p.size),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
 
@@ -595,153 +658,6 @@ class _MascotAvatarState extends State<MascotAvatar>
                   ),
                 ),
               ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// Phần thân chính của mascot: vòng nền mood + bản vẽ mèo vector + phụ kiện
-  /// + emote + hạt hiệu ứng. Được build trong AnimatedBuilder để [pose] (vốn
-  /// phụ thuộc controller chớp mắt / giật tai) repaint đúng từng frame.
-  Widget _mascotCore({
-    required MascotPose pose,
-    required Color moodColor,
-    required Color moodShadow,
-    required String? moodEmote,
-    required String accessoryIcon,
-    required bool reducedMotion,
-  }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Vỏ avatar — vòng nền theo mood (duy trì nhận diện hiện có)
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            color: moodColor,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: moodShadow,
-                blurRadius: 0,
-                offset: const Offset(0, 3.5),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-        ),
-        // Bản vẽ mèo vector (thay cho ảnh PNG) — chữ ký thương hiệu
-        Padding(
-          padding: EdgeInsets.all(widget.size * 0.06),
-          child: RepaintBoundary(
-            child: CustomPaint(
-              size: Size(
-                widget.size * 0.88,
-                widget.size * 0.88,
-              ),
-              painter: MascotPainter(pose: pose),
-            ),
-          ),
-        ),
-        // Lớp chồng ảnh gốc để so khớp hình dáng khi tinh chỉnh
-        if (widget.debugOverlaySource)
-          Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.all(widget.size * 0.12),
-              child: Image.asset(
-                'assets/images/mascot.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-
-        // Phụ kiện đang đeo hiển thị góc trên bên phải
-        Positioned(
-          right: -3,
-          top: -4,
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppColors.cardWhite,
-              shape: BoxShape.circle,
-              border: Border.all(color: moodColor, width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1.5),
-                ),
-              ],
-            ),
-            child: Text(
-              accessoryIcon,
-              style: TextStyle(fontSize: widget.size * 0.23),
-            ),
-          ),
-        ),
-
-        // Badge emote hiển thị mood ở góc dưới bên phải
-        if (moodEmote != null)
-          Positioned(
-            right: -2,
-            bottom: -2,
-            child: Container(
-              padding: const EdgeInsets.all(2.5),
-              decoration: BoxDecoration(
-                color: AppColors.cardWhite,
-                shape: BoxShape.circle,
-                border: Border.all(color: moodColor, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Text(
-                moodEmote,
-                style: TextStyle(fontSize: widget.size * 0.24),
-              ),
-            ),
-          ),
-
-        // Hạt hiệu ứng bay lên khi tap (Particles)
-        if (_activeParticles.isNotEmpty && !reducedMotion)
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _particleCtrl,
-              builder: (context, _) {
-                final progress = _particleCtrl.value;
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: _activeParticles.map((p) {
-                    final dy = -progress * p.speed * 48.0;
-                    final dx = p.startX + (progress * p.driftX);
-                    final opacity = (1.0 - progress).clamp(0.0, 1.0);
-                    final scale = (0.5 + progress * 0.6).clamp(0.0, 1.3);
-
-                    return Positioned(
-                      left: widget.size / 2 + dx,
-                      top: widget.size / 2 + dy,
-                      child: Opacity(
-                        opacity: opacity,
-                        child: Transform.scale(
-                          scale: scale,
-                          child: Text(
-                            p.symbol,
-                            style: TextStyle(fontSize: p.size),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
             ),
           ),
       ],
