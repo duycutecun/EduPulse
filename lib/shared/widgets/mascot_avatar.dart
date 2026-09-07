@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/storage_service.dart';
+import '../../features/home/presentation/widgets/mascot_companion_modal.dart';
+import '../services/audio_synth_service.dart';
 
 /// Các trạng thái biểu cảm của linh vật Mascot Cú Sĩ tử
 enum MascotMood {
@@ -32,11 +34,11 @@ class _MascotParticle {
   });
 }
 
-/// Avatar linh vật Cú Sĩ tử tương tác cao cấp (Cấp 1 & Cấp 2):
-/// - Mood-driven visual states: idle, focus, excited, relax, sleepy, celebrate
-/// - Context-aware speech quotes: thời gian trong ngày, streak, đếm ngược ngày thi, nhiệm vụ
-/// - Multi-tap combo & long-press easter egg: nổ tim ❤️ và sao ✨
-/// - Tactile physics: Spring bounce + haptic chords + reduced motion support
+/// Avatar linh vật Cú Sĩ tử tương tác cao cấp (Cấp 1, Cấp 2 & Cấp 3):
+/// - Chuyển động vi mô: Idle breathing + Periodic ear twitching + Dynamic drag gaze tracking
+/// - Tủ đồ phụ kiện đồng bộ với StorageService
+/// - Context-aware speech quotes + Interactive Sound Synth (Duolingo-style)
+/// - Tap to cheer / Multi-tap combo / Long-press to open "Góc Tâm Tình Sĩ Tử"
 class MascotAvatar extends StatefulWidget {
   final double size;
   final MascotMood mood;
@@ -45,6 +47,7 @@ class MascotAvatar extends StatefulWidget {
   final int? daysLeft;
   final int? remainingTasks;
   final bool? isAllTasksCompleted;
+  final bool enableCompanionModal;
   final VoidCallback? onTap;
 
   const MascotAvatar({
@@ -56,6 +59,7 @@ class MascotAvatar extends StatefulWidget {
     this.daysLeft,
     this.remainingTasks,
     this.isAllTasksCompleted,
+    this.enableCompanionModal = true,
     this.onTap,
   });
 
@@ -74,12 +78,20 @@ class _MascotAvatarState extends State<MascotAvatar>
   late final Animation<double> _scaleAnim;
   late final Animation<double> _rotateAnim;
 
-  // 3. Particles controller
+  // 3. Ear twitching animation (Cấp 3 sinh học)
+  late final AnimationController _earTwitchCtrl;
+  late final Animation<double> _earTwitchAnim;
+  Timer? _earTwitchTimer;
+
+  // 4. Interactive gaze tilt
+  double _dragTilt = 0.0;
+
+  // 5. Particles controller
   late final AnimationController _particleCtrl;
   final List<_MascotParticle> _activeParticles = [];
   final math.Random _random = math.Random();
 
-  // 4. Quotes & Interaction state
+  // 6. Quotes & Interaction state
   String? _currentQuote;
   Timer? _quoteTimer;
   int _quoteIndex = 0;
@@ -137,7 +149,37 @@ class _MascotAvatarState extends State<MascotAvatar>
       ),
     ]).animate(_tapCtrl);
 
-    // 3. Particles controller
+    // 3. Ear twitching (giật tai mèo 4.8s một lần tạo sức sống sinh học)
+    _earTwitchCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _earTwitchAnim = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: -0.09)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -0.09, end: 0.07)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 35,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.07, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 35,
+      ),
+    ]).animate(_earTwitchCtrl);
+
+    _earTwitchTimer = Timer.periodic(const Duration(milliseconds: 4800), (_) {
+      if (!mounted) return;
+      if (!_tapCtrl.isAnimating) {
+        _earTwitchCtrl.forward(from: 0.0);
+      }
+    });
+
+    // 4. Particles controller
     _particleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 850),
@@ -153,13 +195,15 @@ class _MascotAvatarState extends State<MascotAvatar>
   void dispose() {
     _quoteTimer?.cancel();
     _comboResetTimer?.cancel();
+    _earTwitchTimer?.cancel();
     _floatCtrl.dispose();
     _tapCtrl.dispose();
+    _earTwitchCtrl.dispose();
     _particleCtrl.dispose();
     super.dispose();
   }
 
-  /// Phát sinh hạt lấp lánh hoặc tim khi chạm liên tiếp
+  /// Phát sinh hạt lấp lánh hoặc tim khi tương tác
   void _spawnParticles({bool isHeart = false}) {
     final symbols = isHeart
         ? ['❤️', '💖', '✨', '🥰']
@@ -270,10 +314,10 @@ class _MascotAvatarState extends State<MascotAvatar>
 
     if (_tapCount >= 3) {
       // Combo tap easter egg
-      HapticFeedback.heavyImpact();
+      AudioSynthService.playPop();
       _spawnParticles(isHeart: true);
     } else {
-      HapticFeedback.lightImpact();
+      AudioSynthService.playChirp();
       _spawnParticles(isHeart: false);
     }
 
@@ -293,19 +337,23 @@ class _MascotAvatarState extends State<MascotAvatar>
     widget.onTap?.call();
   }
 
+  void _openCompanionModal() {
+    if (!widget.enableCompanionModal) return;
+    MascotCompanionModal.show(
+      context,
+      streak: widget.streak ?? 0,
+      isAllTasksCompleted: widget.isAllTasksCompleted ?? false,
+      onAccessoryChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
+  }
+
   void _onLongPress() {
-    HapticFeedback.mediumImpact();
+    AudioSynthService.playChirp();
     _spawnParticles(isHeart: true);
     _tapCtrl.forward(from: 0.0);
-    setState(() {
-      _currentQuote = 'Tớ luôn đồng hành cùng bạn trên con đường đỗ đạt! Yêu bạn nhiều! 💖';
-    });
-    _quoteTimer?.cancel();
-    _quoteTimer = Timer(const Duration(milliseconds: 4000), () {
-      if (mounted) {
-        setState(() => _currentQuote = null);
-      }
-    });
+    _openCompanionModal();
   }
 
   /// Lấy màu nền theo mood
@@ -362,12 +410,23 @@ class _MascotAvatarState extends State<MascotAvatar>
     }
   }
 
+  /// Lấy phụ kiện đang đeo từ StorageService
+  String _getEquippedAccessoryIcon() {
+    final equippedId = StorageService.getMascotAccessory();
+    final item = kMascotAccessories.firstWhere(
+      (a) => a.id == equippedId,
+      orElse: () => kMascotAccessories.first,
+    );
+    return item.icon;
+  }
+
   @override
   Widget build(BuildContext context) {
     final reducedMotion = MediaQuery.of(context).disableAnimations;
     final moodColor = _getMoodColor();
     final moodShadow = _getMoodShadowColor();
     final moodEmote = _getMoodEmote();
+    final accessoryIcon = _getEquippedAccessoryIcon();
 
     return Stack(
       clipBehavior: Clip.none,
@@ -377,13 +436,23 @@ class _MascotAvatarState extends State<MascotAvatar>
         GestureDetector(
           onTap: _onTap,
           onLongPress: _onLongPress,
+          onHorizontalDragUpdate: (details) {
+            setState(() {
+              _dragTilt = (details.primaryDelta ?? 0.0) * 0.015;
+            });
+          },
+          onHorizontalDragEnd: (_) {
+            setState(() => _dragTilt = 0.0);
+          },
           behavior: HitTestBehavior.opaque,
           child: AnimatedBuilder(
-            animation: Listenable.merge([_floatCtrl, _tapCtrl]),
+            animation: Listenable.merge([_floatCtrl, _tapCtrl, _earTwitchCtrl]),
             builder: (context, child) {
               final dy = reducedMotion ? 0.0 : _floatAnim.value;
               final scale = reducedMotion ? 1.0 : _scaleAnim.value;
-              final rot = reducedMotion ? 0.0 : _rotateAnim.value;
+              final rot = reducedMotion
+                  ? 0.0
+                  : (_rotateAnim.value + _earTwitchAnim.value + _dragTilt);
 
               return Transform.translate(
                 offset: Offset(0, dy),
@@ -422,6 +491,31 @@ class _MascotAvatarState extends State<MascotAvatar>
                     child: Image.asset(
                       'assets/images/mascot.png',
                       fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+                // Phụ kiện đang đeo hiển thị góc trên bên phải
+                Positioned(
+                  right: -3,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardWhite,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: moodColor, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      accessoryIcon,
+                      style: TextStyle(fontSize: widget.size * 0.23),
                     ),
                   ),
                 ),
@@ -510,29 +604,57 @@ class _MascotAvatarState extends State<MascotAvatar>
                   ),
                 );
               },
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 220),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.cardWhite,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: moodColor, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: moodColor.withValues(alpha: 0.18),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  _currentQuote!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    height: 1.3,
+              child: GestureDetector(
+                onTap: _openCompanionModal,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardWhite,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: moodColor, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: moodColor.withValues(alpha: 0.18),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _currentQuote!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          height: 1.3,
+                        ),
+                      ),
+                      if (widget.enableCompanionModal) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Chạm để mở góc tâm tình',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: moodColor,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(Icons.chevron_right_rounded,
+                                size: 12, color: moodColor),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),

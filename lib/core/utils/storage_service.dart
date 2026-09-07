@@ -129,4 +129,31 @@ class StorageService {
     }
     return uid;
   }
+
+  // Mascot Companionship & Wardrobe
+  static String getMascotAccessory() =>
+      _prefs?.getString('mascot_equipped_accessory') ?? 'sprout';
+
+  static void setMascotAccessory(String id) =>
+      _prefs?.setString('mascot_equipped_accessory', id);
+
+  static String? getLastFortuneDate() =>
+      _prefs?.getString('mascot_last_fortune_date');
+
+  static void setLastFortuneDate(String dateStr) =>
+      _prefs?.setString('mascot_last_fortune_date', dateStr);
+
+  static String? getLastFortuneText() =>
+      _prefs?.getString('mascot_last_fortune_text');
+
+  static void setLastFortuneText(String text) =>
+      _prefs?.setString('mascot_last_fortune_text', text);
+
+  static int getMascotBondExp() =>
+      _prefs?.getInt('mascot_bond_exp') ?? 120;
+
+  static void addMascotBondExp(int delta) {
+    final cur = getMascotBondExp();
+    _prefs?.setInt('mascot_bond_exp', cur + delta);
+  }
 }
