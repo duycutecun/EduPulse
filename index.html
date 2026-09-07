@@ -168,5 +168,71 @@
       window.addEventListener('offline', broadcast);
     })();
   </script>
+
+  <!-- Mascot Duolingo-style micro-synth audio (0KB asset, zero network request) -->
+  <script>
+    (function () {
+      let audioCtx = null;
+      function getAudioCtx() {
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      window.playEduPulseSound = function (type) {
+        try {
+          const ctx = getAudioCtx();
+          if (!ctx) return;
+          const t = ctx.currentTime;
+
+          if (type === 'chirp') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(580, t);
+            osc.frequency.exponentialRampToValueAtTime(920, t + 0.1);
+            gain.gain.setValueAtTime(0.12, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.12);
+          } else if (type === 'pop') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(320, t);
+            osc.frequency.exponentialRampToValueAtTime(750, t + 0.08);
+            gain.gain.setValueAtTime(0.14, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.08);
+          } else if (type === 'equip') {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach(function (freq, i) {
+              const noteTime = t + i * 0.06;
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, noteTime);
+              gain.gain.setValueAtTime(0.09, noteTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.18);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(noteTime);
+              osc.stop(noteTime + 0.18);
+            });
+          }
+        } catch (e) {}
+      };
+    })();
+  </script>
 </body>
 </html>
