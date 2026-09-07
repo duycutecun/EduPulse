@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/flip_card.dart';
 
 class SmartNudgeCard extends StatelessWidget {
   const SmartNudgeCard({super.key});
@@ -15,12 +15,20 @@ class SmartNudgeCard extends StatelessWidget {
       'Kiên định từng ngày — bền bỉ tạo nên thủ khoa.',
     ];
     final today = DateTime.now().day % nudges.length;
+    final tip = nudges[today];
 
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      customColor: AppColors.yellow.withValues(alpha: 0.1),
+    return FlipCard(
+      front: _buildFront(),
+      back: _buildBack(tip),
+    );
+  }
+
+  Widget _buildFront() {
+    return GlassLikeCard(
+      color: AppColors.yellow.withValues(alpha: 0.1),
       borderColor: AppColors.yellow,
-      child: Row(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -30,20 +38,94 @@ class SmartNudgeCard extends StatelessWidget {
             ),
             child: const Icon(Icons.lightbulb, color: Colors.white, size: 18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              nudges[today],
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            'Mẹo học hôm nay',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
             ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Chạm để lật',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBack(String tip) {
+    return GlassLikeCard(
+      color: AppColors.yellow.withValues(alpha: 0.14),
+      borderColor: AppColors.yellow,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: AppColors.yellow,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.emoji_objects_rounded,
+                  color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tip,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Chạm để quay lại',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class GlassLikeCard extends StatelessWidget {
+  final Color color;
+  final Color borderColor;
+  final Widget child;
+
+  const GlassLikeCard({
+    super.key,
+    required this.color,
+    required this.borderColor,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 2),
+      ),
+      child: child,
     );
   }
 }

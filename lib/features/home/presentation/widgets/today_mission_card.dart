@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../shared/widgets/animated_count_up.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/heartbeat_combo.dart';
+import '../../../../shared/widgets/progress_ring.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class TodayMissionCard extends StatelessWidget {
@@ -37,24 +40,56 @@ class TodayMissionCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Nhiệm vụ hôm nay',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.green.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$done/${tasks.length}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.green),
+                  HeartbeatCombo(
+                    value: done.toDouble(),
+                    peakScale: 0.05,
+                    glowColor: progress >= 1.0 && tasks.isNotEmpty
+                        ? AppColors.green
+                        : null,
+                    child: ProgressRing(
+                      size: 56,
+                      strokeWidth: 6.5,
+                      progress: progress,
+                      color: AppColors.green,
+                      gradientColors: tasks.isNotEmpty && done == tasks.length
+                          ? const [AppColors.green, AppColors.blue]
+                          : const [AppColors.green, AppColors.greenDark],
+                      glowColor: AppColors.greenLight,
+                      duration: const Duration(milliseconds: 800),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedCountUp(
+                            value: done.toDouble(),
+                            duration: const Duration(milliseconds: 800),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '/${tasks.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   GestureDetector(
                     onTap: onAddTask,
                     child: Container(
@@ -64,10 +99,14 @@ class TodayMissionCard extends StatelessWidget {
                         color: AppColors.green,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: const [
-                          BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
+                          BoxShadow(
+                              color: AppColors.greenDark,
+                              blurRadius: 0,
+                              offset: Offset(0, 3)),
                         ],
                       ),
-                      child: const Icon(Icons.add, color: Colors.white, size: 18),
+                      child:
+                          const Icon(Icons.add, color: Colors.white, size: 18),
                     ),
                   ),
                 ],
@@ -86,7 +125,8 @@ class TodayMissionCard extends StatelessWidget {
                   value: pVal,
                   minHeight: 8,
                   backgroundColor: AppColors.border,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppColors.green),
                 ),
               ),
             ),

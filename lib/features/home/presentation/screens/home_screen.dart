@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/celebration_overlay.dart';
+import '../../../../shared/widgets/confetti_burst.dart';
+import '../../../../shared/widgets/spring_stagger.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../widgets/hero_countdown_card.dart';
@@ -156,25 +158,56 @@ class _HomeScreenState extends State<HomeScreen> {
             isAllTasksCompleted: _tasks.isNotEmpty && _tasks.every((t) => t.isDone),
           ),
           const SizedBox(height: 16),
-          HeroCountdownCard(
-            primaryExam: widget.primaryExam,
-            onTap: widget.onExamTap,
-            remainingListenable: _remainingNotifier,
+          SpringStagger(
+            count: 4,
+            stepDelay: const Duration(milliseconds: 120),
+            itemBuilder: (context, index) {
+              final cards = <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: HeroCountdownCard(
+                    primaryExam: widget.primaryExam,
+                    onTap: widget.onExamTap,
+                    remainingListenable: _remainingNotifier,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      TodayMissionCard(
+                        tasks: _tasks,
+                        onAddTask: _showAddTaskDialog,
+                        onToggle: _toggleTask,
+                        onDelete: _deleteTask,
+                      ),
+                      Positioned.fill(
+                        top: -12,
+                        left: -20,
+                        right: -20,
+                        bottom: -40,
+                        child: ConfettiBurst(
+                          active: _tasks.isNotEmpty &&
+                              _tasks.every((t) => t.isDone),
+                          particles: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: QuickActionCard(
+                    onOpenStudy: widget.onOpenStudy,
+                    onOpenAiCoach: widget.onOpenAiCoach,
+                  ),
+                ),
+                const SmartNudgeCard(),
+              ];
+              return cards[index];
+            },
           ),
-          const SizedBox(height: 14),
-          TodayMissionCard(
-            tasks: _tasks,
-            onAddTask: _showAddTaskDialog,
-            onToggle: _toggleTask,
-            onDelete: _deleteTask,
-          ),
-          const SizedBox(height: 14),
-          QuickActionCard(
-            onOpenStudy: widget.onOpenStudy,
-            onOpenAiCoach: widget.onOpenAiCoach,
-          ),
-          const SizedBox(height: 14),
-          const SmartNudgeCard(),
         ],
       ),
     );

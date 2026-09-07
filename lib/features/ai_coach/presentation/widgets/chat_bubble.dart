@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/animated_pulse.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/typewriter_text.dart';
 import '../../../study/domain/models/study_models.dart';
 import 'latex_widget.dart';
 
@@ -83,8 +84,12 @@ class ChatBubble extends StatelessWidget {
               if (msg.text.isNotEmpty) const SizedBox(height: 8),
             ],
             if (msg.text.isNotEmpty)
-              RichText(
-                text: _buildRichText(msg.text, isUser: false),
+              TypewriterText(
+                id: msg.id,
+                text: msg.text,
+                builder: (partial) => RichText(
+                  text: _buildRichText(partial, isUser: false),
+                ),
               ),
             const SizedBox(height: 6),
             GestureDetector(

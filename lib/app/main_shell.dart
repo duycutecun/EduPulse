@@ -6,12 +6,14 @@ import '../core/pwa/pwa_service.dart';
 import '../core/utils/storage_service.dart';
 import '../core/utils/supabase_service.dart';
 import '../shared/widgets/mesh_background.dart';
+import '../shared/widgets/seasonal_background.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
 import '../features/exams/presentation/screens/exams_screen.dart';
 import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
 import '../features/study/presentation/screens/study_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
+import 'tab_chrome.dart';
 
 class MainShellScreen extends StatefulWidget {
   const MainShellScreen({
@@ -135,140 +137,59 @@ class _MainShellScreenState extends State<MainShellScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
-      body: MeshBackground(
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              const _InstallBanner(),
-              const _OfflineBanner(),
-              Expanded(
-                child: IndexedStack(
-                  index: _currentIndex,
-                  children: [
-                    HomeScreen(
-                      primaryExam: _primaryExam,
-                      onExamTap: () => _switchTab(1),
-                      onOpenStudy: () => _switchTab(3),
-                      onOpenAiCoach: () => _switchTab(2),
-                      streak: _streak,
-                      streakRecord: _streakRecord,
-                      isActive: _currentIndex == 0,
-                    ),
-                    ExamsScreen(
-                      exams: _exams,
-                      primaryExamId: _primaryExamId,
-                      onSetPrimary: _setPrimaryExam,
-                      onAddExam: _addExam,
-                      onUpdateExam: _updateExam,
-                      onDeleteExam: _deleteExam,
-                    ),
-                    const AiCoachScreen(),
-                    const StudyScreen(),
-                    AccountScreen(
-                      onDataChanged: _loadInitialData,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    const items = <_NavItem>[
-      _NavItem(Icons.school_outlined, Icons.school, 'Học'),
-      _NavItem(Icons.flag_outlined, Icons.flag, 'Mục tiêu'),
-      _NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
-      _NavItem(Icons.timer_outlined, Icons.timer, 'Tập trung'),
-      _NavItem(Icons.person_outline, Icons.person, 'Tôi'),
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 2),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: List.generate(items.length, (i) {
-              final active = _currentIndex == i;
-              final item = items[i];
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => _switchTab(i),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+      body: SeasonalBackground(
+        child: MeshBackground(
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                const _InstallBanner(),
+                const _OfflineBanner(),
+                Expanded(
+                  child: TabChrome(
+                    index: _currentIndex,
+                    onChanged: _switchTab,
+                    items: const [
+                      NavItem(Icons.school_outlined, Icons.school, 'Học'),
+                      NavItem(Icons.flag_outlined, Icons.flag, 'Mục tiêu'),
+                      NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome,
+                          'AI'),
+                      NavItem(Icons.timer_outlined, Icons.timer, 'Tập trung'),
+                      NavItem(Icons.person_outline, Icons.person, 'Tôi'),
+                    ],
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOutBack,
-                        width: active ? 46 : 42,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: active ? AppColors.greenSoft : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: AnimatedScale(
-                          scale: active ? 1.08 : 1.0,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutBack,
-                          child: Icon(
-                            active ? item.activeIcon : item.icon,
-                            size: 24,
-                            color: active ? AppColors.green : AppColors.textMuted,
-                            shadows: active
-                                ? [
-                                    Shadow(
-                                      color: AppColors.green.withValues(alpha: 0.4),
-                                      blurRadius: 0,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                        ),
+                      HomeScreen(
+                        primaryExam: _primaryExam,
+                        onExamTap: () => _switchTab(1),
+                        onOpenStudy: () => _switchTab(3),
+                        onOpenAiCoach: () => _switchTab(2),
+                        streak: _streak,
+                        streakRecord: _streakRecord,
+                        isActive: _currentIndex == 0,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight:
-                              active ? FontWeight.w800 : FontWeight.w600,
-                          color: active ? AppColors.green : AppColors.textMuted,
-                        ),
+                      ExamsScreen(
+                        exams: _exams,
+                        primaryExamId: _primaryExamId,
+                        onSetPrimary: _setPrimaryExam,
+                        onAddExam: _addExam,
+                        onUpdateExam: _updateExam,
+                        onDeleteExam: _deleteExam,
+                      ),
+                      const AiCoachScreen(),
+                      const StudyScreen(),
+                      AccountScreen(
+                        onDataChanged: _loadInitialData,
                       ),
                     ],
                   ),
                 ),
-              );
-            }),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
-
-/// Mô tả một mục trong bottom navigation (icon + nhãn), kiểu hóa tường minh
-/// thay vì dùng Map với `as` cast để tránh lỗi runtime khi kiểu sai.
-class _NavItem {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-
-  const _NavItem(this.icon, this.activeIcon, this.label);
 }
 
 /// Banner cài đặt PWA: Android/Chrome hiện nút "Cài đặt", iOS hiện hướng dẫn
@@ -301,7 +222,8 @@ class _InstallBannerState extends State<_InstallBanner> {
         final isAndroidInstall = installable && !isIosPlatform;
         final bg = isAndroidInstall ? AppColors.greenLight : AppColors.blueSoft;
         final borderColor = isAndroidInstall ? AppColors.green : AppColors.blue;
-        final iconColor = isAndroidInstall ? AppColors.greenDark : AppColors.blueDark;
+        final iconColor =
+            isAndroidInstall ? AppColors.greenDark : AppColors.blueDark;
 
         return Container(
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -340,8 +262,8 @@ class _InstallBannerState extends State<_InstallBanner> {
                 GestureDetector(
                   onTap: () => PwaService.install(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.green,
                       borderRadius: BorderRadius.circular(10),
@@ -360,8 +282,8 @@ class _InstallBannerState extends State<_InstallBanner> {
                 GestureDetector(
                   onTap: () => _showIosInstallSheet(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.blue,
                       borderRadius: BorderRadius.circular(10),
@@ -481,16 +403,20 @@ class _InstallBannerState extends State<_InstallBanner> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildFeatureBadge(Icons.bolt_rounded, 'Mở tức thì', AppColors.yellow),
-                  _buildFeatureBadge(Icons.wifi_off_rounded, 'Dùng offline', AppColors.blue),
-                  _buildFeatureBadge(Icons.fullscreen_rounded, 'Toàn màn hình', AppColors.green),
+                  _buildFeatureBadge(
+                      Icons.bolt_rounded, 'Mở tức thì', AppColors.yellow),
+                  _buildFeatureBadge(
+                      Icons.wifi_off_rounded, 'Dùng offline', AppColors.blue),
+                  _buildFeatureBadge(Icons.fullscreen_rounded, 'Toàn màn hình',
+                      AppColors.green),
                 ],
               ),
               const SizedBox(height: 18),
 
               // Steps container
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.bgPage,
                   borderRadius: BorderRadius.circular(18),
@@ -503,7 +429,8 @@ class _InstallBannerState extends State<_InstallBanner> {
                       icon: Icons.ios_share,
                       iconColor: AppColors.blue,
                       title: 'Nhấn nút Chia sẻ',
-                      subtitle: 'Biểu tượng hình vuông có mũi tên lên ở thanh công cụ Safari.',
+                      subtitle:
+                          'Biểu tượng hình vuông có mũi tên lên ở thanh công cụ Safari.',
                     ),
                     Divider(color: AppColors.border, height: 16),
                     _buildStepRow(
@@ -511,7 +438,8 @@ class _InstallBannerState extends State<_InstallBanner> {
                       icon: Icons.add_box_outlined,
                       iconColor: AppColors.green,
                       title: 'Chọn "Thêm vào MH chính"',
-                      subtitle: 'Cuộn xuống danh sách tùy chọn và nhấn "Add to Home Screen".',
+                      subtitle:
+                          'Cuộn xuống danh sách tùy chọn và nhấn "Add to Home Screen".',
                     ),
                     Divider(color: AppColors.border, height: 16),
                     _buildStepRow(
@@ -519,7 +447,8 @@ class _InstallBannerState extends State<_InstallBanner> {
                       icon: Icons.check_circle_outline_rounded,
                       iconColor: AppColors.orange,
                       title: 'Nhấn "Thêm" ở góc phải',
-                      subtitle: 'EduPulse sẽ xuất hiện trên màn hình chính như ứng dụng gốc!',
+                      subtitle:
+                          'EduPulse sẽ xuất hiện trên màn hình chính như ứng dụng gốc!',
                     ),
                   ],
                 ),
@@ -693,9 +622,12 @@ class _OfflineBannerState extends State<_OfflineBanner> {
         final isOffline = !isOnline;
         final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.greenLight;
         final border = isOffline ? const Color(0xFFFED7AA) : AppColors.green;
-        final iconColor = isOffline ? const Color(0xFFEA580C) : AppColors.greenDark;
-        final textColor = isOffline ? const Color(0xFF9A3412) : AppColors.greenDark;
-        final icon = isOffline ? Icons.wifi_off_rounded : Icons.cloud_done_rounded;
+        final iconColor =
+            isOffline ? const Color(0xFFEA580C) : AppColors.greenDark;
+        final textColor =
+            isOffline ? const Color(0xFF9A3412) : AppColors.greenDark;
+        final icon =
+            isOffline ? Icons.wifi_off_rounded : Icons.cloud_done_rounded;
         final text = isOffline
             ? 'Chế độ ngoại tuyến • Dữ liệu đang được lưu an toàn trên máy'
             : 'Đã kết nối lại • Đang tự động đồng bộ dữ liệu...';
@@ -737,4 +669,3 @@ class _OfflineBannerState extends State<_OfflineBanner> {
     );
   }
 }
-
