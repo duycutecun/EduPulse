@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -5,6 +6,7 @@ import '../../../../shared/widgets/animated_count_up.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/heartbeat_combo.dart';
 import '../../../../shared/widgets/progress_ring.dart';
+import '../../../../shared/widgets/spring_press.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class TodayMissionCard extends StatelessWidget {
@@ -90,20 +92,18 @@ class TodayMissionCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  GestureDetector(
+                  SpringPress(
                     onTap: onAddTask,
+                    pressScale: 0.88,
+                    pressTranslate: 2.5,
+                    shadowColor: AppColors.greenDark,
+                    borderRadius: BorderRadius.circular(10),
                     child: Container(
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
                         color: AppColors.green,
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: AppColors.greenDark,
-                              blurRadius: 0,
-                              offset: Offset(0, 3)),
-                        ],
                       ),
                       child:
                           const Icon(Icons.add, color: Colors.white, size: 18),
@@ -175,13 +175,14 @@ class TodayMissionCard extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
       ),
-      child: GestureDetector(
+      child: SpringPress(
+        pressScale: 0.97,
+        pressTranslate: 1.5,
         onTap: () {
           HapticFeedback.selectionClick();
           onToggle(task);
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+        child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
@@ -205,49 +206,61 @@ class TodayMissionCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: task.isDone ? 1.0 : 0.0),
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutBack,
-                builder: (context, anim, _) {
-                  return Transform.scale(
-                    scale: 0.85 + (anim * 0.15),
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color:
-                            task.isDone ? AppColors.green : Colors.transparent,
-                        borderRadius: BorderRadius.circular(7),
-                        border: Border.all(
-                          color: task.isDone
-                              ? AppColors.green
-                              : AppColors.textMuted,
-                          width: 2,
-                        ),
-                        boxShadow: task.isDone
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.green
-                                      .withValues(alpha: 0.3 * anim),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: task.isDone
-                          ? Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 16 * anim.clamp(0.0, 1.0),
-                            )
-                          : null,
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    _CheckBurstRing(isDone: task.isDone, color: AppColors.green),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(
+                          begin: 0.0, end: task.isDone ? 1.0 : 0.0),
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutBack,
+                      builder: (context, anim, _) {
+                        return Transform.scale(
+                          scale: 0.85 + (anim * 0.15),
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: task.isDone
+                                  ? AppColors.green
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(
+                                color: task.isDone
+                                    ? AppColors.green
+                                    : AppColors.textMuted,
+                                width: 2,
+                              ),
+                              boxShadow: task.isDone
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.green
+                                            .withValues(alpha: 0.3 * anim),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: task.isDone
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 16 * anim.clamp(0.0, 1.0),
+                                  )
+                                : null,
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,8 +273,9 @@ class TodayMissionCard extends StatelessWidget {
                         color: task.isDone
                             ? AppColors.textMuted
                             : AppColors.textPrimary,
-                        decoration:
-                            task.isDone ? TextDecoration.lineThrough : null,
+                        decoration: task.isDone
+                            ? TextDecoration.lineThrough
+                            : null,
                         fontWeight: FontWeight.w700,
                       ),
                       child: Text('${task.subject} ${task.title}'),
@@ -293,4 +307,82 @@ class TodayMissionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Vòng sóng lan (burst ring) phát ra khi tick hoàn thành nhiệm vụ —
+/// signature "check-pop" kiểu Duolingo. Vẽ CustomPaint rẻ, không blur.
+class _CheckBurstRing extends StatelessWidget {
+  final bool isDone;
+  final Color color;
+
+  const _CheckBurstRing({required this.isDone, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      // Key đổi theo trạng thái → mỗi lần tick lại chạy từ đầu.
+      key: ValueKey(isDone),
+      tween: Tween<double>(begin: 0.0, end: isDone ? 1.0 : 0.0),
+      duration: const Duration(milliseconds: 550),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, _) {
+        if (!isDone || t >= 0.999) return const SizedBox.shrink();
+        return IgnorePointer(
+          child: CustomPaint(
+            size: const Size(36, 36),
+            painter: _BurstRingPainter(t: t, color: color),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BurstRingPainter extends CustomPainter {
+  final double t;
+  final Color color;
+
+  const _BurstRingPainter({required this.t, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    // Bánhxe sóng lan: bán kính tăng dần, alpha fade out.
+    final radius = 12.0 + t * 10.0;
+    final alpha = (1.0 - t) * 0.5;
+    if (alpha <= 0.01) return;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5 * (1.0 - t * 0.6)
+      ..color = color.withValues(alpha: alpha);
+
+    canvas.drawCircle(center, radius, paint);
+
+    // 6 tia nhỏ bắn ra ngoài (kiểu sparkles).
+    if (t < 0.55) {
+      final sparkT = t / 0.55;
+      final sparkAlpha = (1.0 - sparkT) * 0.65;
+      final sparkPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..color = color.withValues(alpha: sparkAlpha);
+
+      for (int i = 0; i < 6; i++) {
+        final angle = i * math.pi / 3 + 0.26; // lệch nhẹ cho tự nhiên
+        final r1 = 14.0 + sparkT * 4.0;
+        final r2 = r1 + 3.5 * (1.0 - sparkT * 0.5);
+        canvas.drawLine(
+          center + Offset(math.cos(angle) * r1, math.sin(angle) * r1),
+          center + Offset(math.cos(angle) * r2, math.sin(angle) * r2),
+          sparkPaint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BurstRingPainter oldDelegate) =>
+      oldDelegate.t != t || oldDelegate.color != color;
 }

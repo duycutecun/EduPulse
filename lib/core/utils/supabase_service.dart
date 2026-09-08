@@ -263,40 +263,51 @@ class SupabaseService {
   static Future<bool> syncAll() async {
     if (!isConfigured) return false;
     try {
-      await syncProfile();
-
-      // Sync exams
-      final examIds = StorageService.getExamIds();
-      final exams = examIds.map((id) {
-        final json = StorageService.getExamJson(id);
-        if (json == null) return null;
-        return ExamModel.fromJsonString(json);
-      }).whereType<ExamModel>().toList();
-      final primaryId = StorageService.getPrimaryExamId();
-      if (exams.isNotEmpty) await syncExams(exams, primaryId);
-
-      // Sync tasks
-      final taskIds = StorageService.getTodayTaskIds();
-      final tasks = taskIds.map((id) {
-        final json = StorageService.getTodayTaskJson(id);
-        if (json == null) return null;
-        return TodayTask.fromJsonString(json);
-      }).whereType<TodayTask>().toList();
-      if (tasks.isNotEmpty) await syncTasks(tasks);
-
-      // Sync study logs
-      final logIds = StorageService.getStudyLogIds();
-      final logs = logIds.map((id) {
-        final json = StorageService.getStudyLogJson(id);
-        if (json == null) return null;
-        return StudyLog.fromJsonString(json);
-      }).whereType<StudyLog>().toList();
-      if (logs.isNotEmpty) await syncStudyLogs(logs);
-
+      // Chạy đồng bộ trong parallel để giảm total latency (4 RTT → 1 RTT).
+      await Future.wait([
+        syncProfile(),
+        _syncExamsLocal(),
+        _syncTasksLocal(),
+        _syncStudyLogsLocal(),
+      ]);
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  static Future<bool> _syncExamsLocal() async {
+    final examIds = StorageService.getExamIds();
+    final exams = examIds.map((id) {
+      final json = StorageService.getExamJson(id);
+      if (json == null) return null;
+      return ExamModel.fromJsonString(json);
+    }).whereType<ExamModel>().toList();
+    final primaryId = StorageService.getPrimaryExamId();
+    if (exams.isEmpty) return true;
+    return syncExams(exams, primaryId);
+  }
+
+  static Future<bool> _syncTasksLocal() async {
+    final taskIds = StorageService.getTodayTaskIds();
+    final tasks = taskIds.map((id) {
+      final json = StorageService.getTodayTaskJson(id);
+      if (json == null) return null;
+      return TodayTask.fromJsonString(json);
+    }).whereType<TodayTask>().toList();
+    if (tasks.isEmpty) return true;
+    return syncTasks(tasks);
+  }
+
+  static Future<bool> _syncStudyLogsLocal() async {
+    final logIds = StorageService.getStudyLogIds();
+    final logs = logIds.map((id) {
+      final json = StorageService.getStudyLogJson(id);
+      if (json == null) return null;
+      return StudyLog.fromJsonString(json);
+    }).whereType<StudyLog>().toList();
+    if (logs.isEmpty) return true;
+    return syncStudyLogs(logs);
   }
 
   /// Khôi phục toàn bộ dữ liệu từ Supabase Cloud về Local Storage

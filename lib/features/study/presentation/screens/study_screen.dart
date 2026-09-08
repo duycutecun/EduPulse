@@ -7,6 +7,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
+import '../../../../shared/widgets/spring_press.dart';
+import '../../../../shared/widgets/spring_stagger.dart';
 import '../../domain/models/study_models.dart';
 import '../widgets/weekly_chart_widget.dart';
 
@@ -311,6 +313,7 @@ class _StudyScreenState extends State<StudyScreen> {
                   _pomRunning
                       ? CupertinoIcons.pause_fill
                       : CupertinoIcons.play_fill,
+                  key: ValueKey(_pomRunning),
                   color: Colors.white,
                   size: 30,
                 ),
@@ -329,10 +332,14 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _modeChip(int focus, int brk, String label) {
     final sel = _focusMinutes == focus;
-    return GestureDetector(
-      onTap: () => _setPomodoroMode(focus, brk),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+    return SpringPress(
+      pressScale: 0.92,
+      pressTranslate: 1.5,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        _setPomodoroMode(focus, brk);
+      },
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: sel ? AppColors.green : AppColors.cardWhite,
@@ -425,7 +432,11 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             )
           else
-            ..._logs.map((log) => _buildLogItem(log)),
+            SpringStagger(
+              count: _logs.length,
+              stepDelay: const Duration(milliseconds: 60),
+              itemBuilder: (context, i) => _buildLogItem(_logs[i]),
+            ),
         ],
       ),
     );
@@ -433,7 +444,10 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _statCard(String val, String label, Color color, IconData icon) {
     return Expanded(
-      child: GlassCard(
+      child: SpringPress(
+        pressScale: 0.96,
+        pressTranslate: 2.0,
+        child: GlassCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,6 +470,7 @@ class _StudyScreenState extends State<StudyScreen> {
                     color: AppColors.textMuted,
                     fontWeight: FontWeight.w600)),
           ],
+        ),
         ),
       ),
     );
@@ -734,4 +749,5 @@ class _PomodoroBreathingRingState extends State<_PomodoroBreathingRing>
     );
   }
 }
+
 

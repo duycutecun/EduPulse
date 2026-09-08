@@ -25,11 +25,32 @@ class SoundWaveVisualizer extends StatefulWidget {
 class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
     with SingleTickerProviderStateMixin {
   late AnimationController _animCtrl;
+  bool _reducedMotion = false;
 
   @override
   void initState() {
     super.initState();
-    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _updateMotion();
+  }
+
+  void _updateMotion() {
+    _reducedMotion = WidgetsBinding
+            .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    if (widget.isPlaying && !_reducedMotion) {
+      if (!_animCtrl.isAnimating) _animCtrl.repeat();
+    } else {
+      _animCtrl.stop();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant SoundWaveVisualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPlaying != widget.isPlaying) _updateMotion();
   }
 
   @override
@@ -60,10 +81,13 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: widget.isPlaying ? AppColors.green : AppColors.bgPage,
-                border: Border.all(color: widget.isPlaying ? AppColors.green : AppColors.border, width: 2),
+                border: Border.all(
+                    color: widget.isPlaying ? AppColors.green : AppColors.border,
+                    width: 2),
               ),
               child: Center(
-                child: Text(widget.soundModeIcon, style: const TextStyle(fontSize: 20)),
+                child: Text(widget.soundModeIcon,
+                    style: const TextStyle(fontSize: 20)),
               ),
             ),
           ),
@@ -80,7 +104,9 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: widget.isPlaying ? AppColors.green : AppColors.textPrimary,
+                        color: widget.isPlaying
+                            ? AppColors.green
+                            : AppColors.textPrimary,
                       ),
                     ),
                     const Spacer(),
@@ -88,7 +114,10 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
                       onTap: widget.onNextSound,
                       child: Text(
                         'Đổi âm thanh',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted, decoration: TextDecoration.underline),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                            decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
@@ -100,16 +129,27 @@ class _SoundWaveVisualizerState extends State<SoundWaveVisualizer>
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(18, (index) {
-                        final factor = widget.isPlaying
-                            ? (math.sin(_animCtrl.value * 2 * math.pi + index * 0.5).abs() * 18 + 4)
-                            : 3.0;
+                        // Chỉ animate khi đang phát + không reduced-motion,
+                        // ngoài ra thanh đứng yên (tiết kiệm frame khi dừng).
+                        final factor = widget.isPlaying && !_reducedMotion
+                            ? (math.sin(
+                                        _animCtrl.value * 2 * math.pi +
+                                            index * 0.5)
+                                    .abs() *
+                                18 +
+                            4)
+                            : (widget.isPlaying
+                                ? (math.sin(index * 0.5).abs() * 18 + 4)
+                                : 3.0);
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 80),
                           width: 3,
                           height: factor,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(2),
-                            color: widget.isPlaying ? AppColors.green : AppColors.border,
+                            color: widget.isPlaying
+                                ? AppColors.green
+                                : AppColors.border,
                           ),
                         );
                       }),

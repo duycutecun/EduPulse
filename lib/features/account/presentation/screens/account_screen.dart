@@ -6,6 +6,7 @@ import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
+import '../../../../shared/widgets/spring_press.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -174,7 +175,9 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _segmentBtn(int index, IconData icon, String label) {
     final active = _activeSegment == index;
     return Expanded(
-      child: GestureDetector(
+      child: SpringPress(
+        pressScale: 0.94,
+        pressTranslate: 1.0,
         onTap: () => setState(() => _activeSegment = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),

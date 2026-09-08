@@ -7,6 +7,85 @@ import '../../../../shared/widgets/wave_shimmer.dart';
 import '../../../study/domain/models/study_models.dart';
 import 'latex_widget.dart';
 
+/// Bubble trượt vào từ phía bên gửi (user từ phải, AI từ trái) với ease-out
+/// nhẹ + fade.
+///
+/// Tối ưu: dùng Set tĩnh lưu id tin nhắn đã animate — khi ListView tái tạo
+/// State (cuộn ra khỏi viewport rồi cuộn lại), bubble cũ KHÔNG phát lại
+/// animation (không nhấp nháy, không tốn frame khi scroll).
+class _BubbleEntrance extends StatefulWidget {
+  final String msgId;
+  final bool fromRight;
+  final Widget child;
+
+  const _BubbleEntrance({
+    required this.msgId,
+    required this.fromRight,
+    required this.child,
+  });
+
+  @override
+  State<_BubbleEntrance> createState() => _BubbleEntranceState();
+}
+
+class _BubbleEntranceState extends State<_BubbleEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  /// Id đã animate trong phiên — tránh phát lại khi ListView tái tạo State.
+  static final Set<String> _shown = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    final alreadyShown = _shown.contains(widget.msgId);
+    final reducedMotion = _isReducedMotion();
+
+    if (alreadyShown || reducedMotion) {
+      // Không animate: đứng ngay vị trí cuối, không tốn controller.
+      _ctrl = AnimationController(vsync: this, duration: Duration.zero);
+      _ctrl.value = 1.0;
+    } else {
+      _shown.add(widget.msgId);
+      _ctrl = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 320),
+      );
+    }
+
+    final slideBegin = widget.fromRight ? const Offset(0.35, 0) : const Offset(-0.35, 0);
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(begin: slideBegin, end: Offset.zero).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+    );
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  static bool _isReducedMotion() {
+    final dispatcher = WidgetsBinding.instance.platformDispatcher;
+    return dispatcher.accessibilityFeatures.disableAnimations;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 class ChatBubble extends StatelessWidget {
   final ChatMessage msg;
 
@@ -17,7 +96,10 @@ class ChatBubble extends StatelessWidget {
     if (msg.isLoading) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: GlassCard(
+        child: _BubbleEntrance(
+          msgId: msg.id,
+          fromRight: false,
+          child: GlassCard(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           shadows: const [],
@@ -32,6 +114,7 @@ class ChatBubble extends StatelessWidget {
             ),
           ),
         ),
+        ),
       );
     }
 
@@ -39,7 +122,10 @@ class ChatBubble extends StatelessWidget {
     if (isUser) {
       return Align(
         alignment: Alignment.centerRight,
-        child: Container(
+        child: _BubbleEntrance(
+          msgId: msg.id,
+          fromRight: true,
+          child: Container(
           constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.80),
           margin: const EdgeInsets.only(bottom: 12),
@@ -77,12 +163,16 @@ class ChatBubble extends StatelessWidget {
             ],
           ),
         ),
+        ),
       );
     }
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: GlassCard(
+      child: _BubbleEntrance(
+        msgId: msg.id,
+        fromRight: false,
+        child: GlassCard(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         borderRadius: 18,
@@ -117,6 +207,7 @@ class ChatBubble extends StatelessWidget {
               child: Icon(Icons.copy, size: 14, color: AppColors.textMuted),
             ),
           ],
+        ),
         ),
       ),
     );

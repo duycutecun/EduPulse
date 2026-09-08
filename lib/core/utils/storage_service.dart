@@ -45,6 +45,47 @@ class StorageService {
   static int getStreakRecord() => _prefs?.getInt('streak_record') ?? 0;
   static void setStreakRecord(int v) => _prefs?.setInt('streak_record', v);
 
+  // XP / Level
+  static int getXp() => _prefs?.getInt('user_xp') ?? 0;
+  static void setXp(int v) => _prefs?.setInt('user_xp', v);
+
+  static void addXp(int delta) {
+    if (delta <= 0) return;
+    setXp(getXp() + delta);
+  }
+
+  /// Số XP cần từng cấp: 100, 250, 450, 700, 1000, 1350, 1750...
+  static int xpForLevel(int level) {
+    if (level <= 1) return 100;
+    if (level == 2) return 250;
+    if (level == 3) return 450;
+    if (level == 4) return 700;
+    if (level == 5) return 1000;
+    return 1000 + (level - 5) * 350;
+  }
+
+  /// Cấp hiện tại (1-based).
+  static int getLevel() {
+    var xp = getXp();
+    var level = 1;
+    while (xp >= xpForLevel(level)) {
+      xp -= xpForLevel(level);
+      level++;
+    }
+    return level;
+  }
+
+  /// XP đã tích trong cấp hiện tại + tổng XP cần cấp này (0..1).
+  static (int, int) getLevelProgress() {
+    var xp = getXp();
+    var level = 1;
+    while (xp >= xpForLevel(level)) {
+      xp -= xpForLevel(level);
+      level++;
+    }
+    return (xp, xpForLevel(level));
+  }
+
   static String? getLastStudyDate() =>
       _prefs?.getString('last_study_date');
   static void setLastStudyDate(String d) =>

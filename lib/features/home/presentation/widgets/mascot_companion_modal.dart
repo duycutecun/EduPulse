@@ -111,6 +111,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
   String? _todayFortune;
   bool _isDrawingFortune = false;
 
+  // Pet-bounce: vuốt linh vật → nảy + nghiêng đầu (kiểu Duolingo pet).
   late final AnimationController _bounceCtrl;
   late final Animation<double> _bounceAnim;
   double _headTiltAngle = 0.0;
@@ -389,7 +390,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
                     ),
                   ],
                 ),
-              ),
+                ),
             ),
             const SizedBox(height: 26),
 

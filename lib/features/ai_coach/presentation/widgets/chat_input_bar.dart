@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/spring_press.dart';
 
 class ChatInputBar extends StatelessWidget {
   final TextEditingController controller;
@@ -80,17 +81,18 @@ class ChatInputBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              GestureDetector(
+              SpringPress(
                 onTap: onPickImage,
+                pressScale: 0.88,
+                pressTranslate: 2.5,
+                shadowColor: AppColors.blueDark,
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
                     color: AppColors.blue,
                     shape: BoxShape.circle,
-                    boxShadow: const [
-                      BoxShadow(color: AppColors.blueDark, blurRadius: 0, offset: Offset(0, 3)),
-                    ],
                   ),
                   child: const Icon(Icons.photo_camera_rounded, size: 20, color: Colors.white),
                 ),
@@ -116,23 +118,33 @@ class ChatInputBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              GestureDetector(
+              SpringPress(
                 onTap: isLoading ? null : () => onSend(controller.text),
+                pressScale: 0.88,
+                pressTranslate: 2.5,
+                shadowColor: AppColors.greenDark,
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
                     color: isLoading ? AppColors.border : AppColors.green,
                     shape: BoxShape.circle,
-                    boxShadow: isLoading ? null : const [
-                      BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
-                    ],
                   ),
-                  child: Icon(
-                    Icons.send,
-                    color: isLoading ? AppColors.textMuted : Colors.white,
-                    size: 18,
-                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.send,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                 ),
               ),
             ],

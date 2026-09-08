@@ -84,8 +84,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.primaryExam != null) {
       var rem = widget.primaryExam!.remaining;
       if (rem.isNegative) rem = Duration.zero;
-      _remainingNotifier.value = rem;
-    } else {
+      // Chỉ thông báo khi giây thay đổi — tránh rebuild 60x/s khở động màn.
+      if (rem.inSeconds != _remainingNotifier.value.inSeconds) {
+        _remainingNotifier.value = rem;
+      }
+    } else if (_remainingNotifier.value.inSeconds != 0) {
       _remainingNotifier.value = Duration.zero;
     }
   }
@@ -124,12 +127,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!wasDone && task.isDone) {
       HapticFeedback.mediumImpact();
-      CelebrationOverlay.show(
-        context,
-        title: 'HOÀN THÀNH!',
-        subtitle: '+10 XP',
-        onContinue: () {},
-      );
+      StorageService.addXp(10);
+      setState(() {});
+      if (mounted) {
+        CelebrationOverlay.show(
+          context,
+          title: 'HOÀN THÀNH!',
+          subtitle: '+10 XP',
+          onContinue: () {},
+        );
+      }
     }
   }
 
@@ -268,6 +275,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
   void _submit() {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
+      HapticFeedback.vibrate();
       _shakeCtrl.forward(from: 0);
       return;
     }

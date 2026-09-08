@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 /vercel/flutter/bin/flutter pub get
-/vercel/flutter/bin/flutter build web --release --no-wasm-dry-run --no-web-resources-cdn \
+/vercel/flutter/bin/flutter build web --release --wasm --no-wasm-dry-run --no-web-resources-cdn \
   --dart-define=OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
   --dart-define=GEMINI_API_KEY="$GEMINI_API_KEY" \
   --dart-define=TAVILY_API_KEY="$TAVILY_API_KEY" \

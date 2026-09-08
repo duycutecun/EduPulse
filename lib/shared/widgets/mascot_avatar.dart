@@ -110,7 +110,13 @@ class _MascotAvatarState extends State<MascotAvatar>
     _floatAnim = Tween<double>(begin: 0.0, end: -4.0).animate(
       CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOutSine),
     );
-    _floatCtrl.repeat(reverse: true);
+    // Chỉ lặp khi không reduced-motion — tránh chạy controller vô ích
+    // (tiết kiệm frame trên web/WASM khi bật tôn trọng giảm chuyển động).
+    final disableAnims = WidgetsBinding
+        .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    if (!disableAnims) {
+      _floatCtrl.repeat(reverse: true);
+    }
 
     // 2. Tap spring pop animation
     _tapCtrl = AnimationController(

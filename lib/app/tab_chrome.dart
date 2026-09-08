@@ -384,53 +384,78 @@ class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
   }
 }
 
-/// Nội dung icon + nhãn của từng tab: icon có spring bounce khi kích hoạt.
-class _NavTabContent extends StatelessWidget {
+/// Nội dung icon + nhãn của từng tab: icon có spring bounce khi kích hoạt
+/// và phản hồi nhấn (squash khi finger-down, bật lên khi thả).
+class _NavTabContent extends StatefulWidget {
   final bool active;
   final NavItem item;
 
   const _NavTabContent({required this.active, required this.item});
 
   @override
+  State<_NavTabContent> createState() => _NavTabContentState();
+}
+
+class _NavTabContentState extends State<_NavTabContent> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TweenAnimationBuilder<double>(
-          tween: Tween<double>(end: active ? 1.22 : 1.0),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutBack,
-          builder: (context, scale, child) {
-            return Transform.translate(
-              offset: Offset(0, active ? -1.5 : 0),
-              child: Transform.scale(scale: scale, child: child),
-            );
-          },
-          child: Icon(
-            active ? item.activeIcon : item.icon,
-            size: 24,
-            color: active ? AppColors.green : AppColors.textMuted,
-            shadows: active
-                ? [
-                    Shadow(
-                      color: AppColors.green.withValues(alpha: 0.45),
-                      blurRadius: 0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : const [],
+    final active = widget.active;
+    final item = widget.item;
+    final reduced =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+    return Listener(
+      // Dùng Listener (pointer events) thay vì GestureDetector để KHÔNG
+      // cạnh tranh gesture arena với GestureDetector cha (nơi xử lý onTap).
+      // GestureDetector với onTapDown sẽ "ăn" tap của cha → nav chết.
+      onPointerDown: (_) => setState(() => _pressed = true),
+      onPointerUp: (_) => setState(() => _pressed = false),
+      onPointerCancel: (_) => setState(() => _pressed = false),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(
+                end: active
+                    ? 1.22
+                    : (_pressed && !reduced ? 0.82 : 1.0)),
+            duration: Duration(milliseconds: active || !reduced ? 300 : 90),
+            curve: active ? Curves.easeOutBack : Curves.easeOut,
+            builder: (context, scale, child) {
+              return Transform.translate(
+                offset: Offset(0, active ? -1.5 : 0),
+                child: Transform.scale(scale: scale, child: child),
+              );
+            },
+            child: Icon(
+              active ? item.activeIcon : item.icon,
+              size: 24,
+              color: active ? AppColors.green : AppColors.textMuted,
+              shadows: active
+                  ? [
+                      Shadow(
+                        color: AppColors.green.withValues(alpha: 0.45),
+                        blurRadius: 0,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : const [],
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          item.label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-            color: active ? AppColors.green : AppColors.textMuted,
+          const SizedBox(height: 4),
+          Text(
+            item.label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+              color: active ? AppColors.green : AppColors.textMuted,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

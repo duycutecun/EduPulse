@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/spring_press.dart';
+import '../../../../shared/widgets/spring_stagger.dart';
 import '../../domain/models/exam_model.dart';
 
 class ExamsScreen extends StatefulWidget {
@@ -40,6 +43,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
   @override
   Widget build(BuildContext context) {
     final myExams = widget.exams;
+    final filteredExams = _selectedFilter == 0
+        ? myExams
+        : myExams.where((e) => e.daysLeft < 90).toList();
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -109,9 +115,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
           ),
           const SizedBox(height: 18),
           if (myExams.isNotEmpty)
-            ...myExams
-                .where((e) => _selectedFilter == 0 ? true : e.daysLeft < 90)
-                .map((e) => _buildExamCard(e))
+            SpringStagger(
+              count: filteredExams.length,
+              stepDelay: const Duration(milliseconds: 70),
+              itemBuilder: (context, i) => _buildExamCard(filteredExams[i]),
+            )
           else
             _buildEmptyState('Chưa có kỳ thi nào', 'Hãy nhấn nút Thêm để tạo kỳ thi của bạn!'),
         ],
@@ -165,8 +173,13 @@ class _ExamsScreenState extends State<ExamsScreen> {
         ),
         child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 22),
       ),
-      child: GestureDetector(
-        onTap: () => widget.onSetPrimary(exam),
+      child: SpringPress(
+        pressScale: 0.97,
+        pressTranslate: 2.0,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          widget.onSetPrimary(exam);
+        },
         onLongPress: () => _showEditDialog(exam),
         child: GlassCard(
           padding: const EdgeInsets.all(18),
