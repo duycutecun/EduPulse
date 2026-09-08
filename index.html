@@ -32,6 +32,9 @@
   <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
 
+  <!-- Preload mascot image (used by home header, study & splash) -->
+  <link rel="preload" as="image" href="assets/images/mascot.png">
+
   <!-- iOS Launch (splash) images for iPhone & iPad -->
   <!-- iPhone 16 Pro Max / 15 Plus -->
   <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1320x2868.png">
@@ -86,6 +89,12 @@
   </style>
 </head>
 <body style="background-color: #F7F7F7; margin: 0; padding: 0;">
+  <!-- Preconnect to API origins to cut DNS/TLS latency on first AI chat / sync -->
+  <link rel="preconnect" href="https://api.openai.com" crossorigin>
+  <link rel="preconnect" href="https://generativelanguage.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://api.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://api.tavily.com" crossorigin>
+
   <script src="flutter_bootstrap.js" async></script>
 
   <!-- Custom offline-first service worker (Flutter's built-in SW is deprecated in recent versions) -->
