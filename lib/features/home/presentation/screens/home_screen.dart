@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/celebration_overlay.dart';
 import '../../../../shared/widgets/confetti_burst.dart';
+import '../../../../shared/widgets/spring_shake.dart';
 import '../../../../shared/widgets/spring_stagger.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -58,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer =
+        Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
 
   @override
@@ -90,11 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadTasks() {
     final ids = StorageService.getTodayTaskIds();
-    _tasks = ids.map((id) {
-      final json = StorageService.getTodayTaskJson(id);
-      if (json == null) return null;
-      return TodayTask.fromJsonString(json);
-    }).whereType<TodayTask>().toList();
+    _tasks = ids
+        .map((id) {
+          final json = StorageService.getTodayTaskJson(id);
+          if (json == null) return null;
+          return TodayTask.fromJsonString(json);
+        })
+        .whereType<TodayTask>()
+        .toList();
   }
 
   void _addTask(String title, String subject, String priority, int minutes) {
@@ -155,7 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
             streak: widget.streak,
             daysLeft: _remainingNotifier.value.inDays,
             remainingTasks: _tasks.where((t) => !t.isDone).length,
-            isAllTasksCompleted: _tasks.isNotEmpty && _tasks.every((t) => t.isDone),
+            isAllTasksCompleted:
+                _tasks.isNotEmpty && _tasks.every((t) => t.isDone),
           ),
           const SizedBox(height: 16),
           SpringStagger(
@@ -214,119 +220,167 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAddTaskDialog() {
-    final titleCtrl = TextEditingController();
-    String selectedSubject = '📐 Toán';
-    String selectedPriority = 'medium';
-    int selectedMinutes = 45;
-    final subjects = ['📐 Toán', '⚡ Lý', '🧪 Hóa', '📖 Văn', '🇬🇧 Anh', '🧬 Sinh', '💡 Khác'];
-    final durations = [15, 30, 45, 60, 90];
-
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: AppColors.border, width: 2),
-            ),
-            title: const Text('Thêm nhiệm vụ', style: TextStyle(fontWeight: FontWeight.w800)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Tên nhiệm vụ (VD: Giải 1 đề Toán)',
+      builder: (_) => _AddTaskDialog(onAdd: _addTask),
+    );
+  }
+}
+
+class _AddTaskDialog extends StatefulWidget {
+  const _AddTaskDialog({required this.onAdd});
+
+  final void Function(
+      String title, String subject, String priority, int minutes) onAdd;
+
+  @override
+  State<_AddTaskDialog> createState() => _AddTaskDialogState();
+}
+
+class _AddTaskDialogState extends State<_AddTaskDialog>
+    with SingleTickerProviderStateMixin {
+  final _titleCtrl = TextEditingController();
+  late final AnimationController _shakeCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+  String _subject = '📐 Toán';
+  final String _priority = 'medium';
+  int _minutes = 45;
+  final _subjects = [
+    '📐 Toán',
+    '⚡ Lý',
+    '🧪 Hóa',
+    '📖 Văn',
+    '🇬🇧 Anh',
+    '🧬 Sinh',
+    '💡 Khác'
+  ];
+  final _durations = [15, 30, 45, 60, 90];
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _shakeCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) {
+      _shakeCtrl.forward(from: 0);
+      return;
+    }
+    widget.onAdd(title, _subject, _priority, _minutes);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SpringShake(
+      controller: _shakeCtrl,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 2),
+        ),
+        title: const Text('Thêm nhiệm vụ',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _titleCtrl,
+                decoration: const InputDecoration(
+                  hintText: 'Tên nhiệm vụ (VD: Giải 1 đề Toán)',
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              const Text('Chọn môn:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _subjects.map((sub) {
+                  final sel = _subject == sub;
+                  return GestureDetector(
+                    onTap: () => setState(() => _subject = sub),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: sel ? AppColors.green : AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: sel ? AppColors.green : AppColors.border,
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        sub,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: sel ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                    autofocus: true,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('Chọn môn:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: subjects.map((sub) {
-                      final sel = selectedSubject == sub;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedSubject = sub),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: sel ? AppColors.green : AppColors.bgPage,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: sel ? AppColors.green : AppColors.border,
-                              width: 2,
-                            ),
-                          ),
-                          child: Text(
-                            sub,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: sel ? Colors.white : AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('Thời gian:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: durations.map((dur) {
-                      final sel = selectedMinutes == dur;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedMinutes = dur),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: sel ? AppColors.blue : AppColors.bgPage,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: sel ? AppColors.blue : AppColors.border,
-                              width: 2,
-                            ),
-                          ),
-                          child: Text(
-                            '$dur phút',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: sel ? Colors.white : AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
+                  );
+                }).toList(),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (titleCtrl.text.isNotEmpty) {
-                    _addTask(titleCtrl.text.trim(), selectedSubject, selectedPriority, selectedMinutes);
-                  }
-                  Navigator.pop(ctx);
-                },
-                child: const Text('Thêm', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              const Text('Thời gian:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _durations.map((dur) {
+                  final sel = _minutes == dur;
+                  return GestureDetector(
+                    onTap: () => setState(() => _minutes = dur),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: sel ? AppColors.blue : AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: sel ? AppColors.blue : AppColors.border,
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        '$dur phút',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: sel ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
-          );
-        },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: _submit,
+            child: const Text('Thêm',
+                style: TextStyle(
+                    color: AppColors.green, fontWeight: FontWeight.w800)),
+          ),
+        ],
       ),
     );
   }

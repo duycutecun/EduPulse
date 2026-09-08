@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/widgets/animated_pulse.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/typewriter_text.dart';
+import '../../../../shared/widgets/wave_shimmer.dart';
 import '../../../study/domain/models/study_models.dart';
 import 'latex_widget.dart';
 
@@ -19,9 +19,18 @@ class ChatBubble extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: GlassCard(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           shadows: const [],
-          child: const TypingDotsIndicator(),
+          child: const RepaintBoundary(
+            child: WaveShimmer(
+              width: 180,
+              height: 48,
+              blockCount: 2,
+              blockHeight: 12,
+              blockRadius: 6,
+              showParticles: false,
+            ),
+          ),
         ),
       );
     }
@@ -31,7 +40,8 @@ class ChatBubble extends StatelessWidget {
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.80),
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.80),
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
@@ -43,7 +53,10 @@ class ChatBubble extends StatelessWidget {
               bottomRight: Radius.circular(4),
             ),
             boxShadow: const [
-              BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
+              BoxShadow(
+                  color: AppColors.greenDark,
+                  blurRadius: 0,
+                  offset: Offset(0, 3)),
             ],
           ),
           child: Column(
@@ -52,7 +65,8 @@ class ChatBubble extends StatelessWidget {
               if (msg.imageBytes != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.memory(msg.imageBytes!, fit: BoxFit.cover, height: 150),
+                  child: Image.memory(msg.imageBytes!,
+                      fit: BoxFit.cover, height: 150),
                 ),
                 if (msg.text.isNotEmpty) const SizedBox(height: 8),
               ],
@@ -79,7 +93,8 @@ class ChatBubble extends StatelessWidget {
             if (msg.imageBytes != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.memory(msg.imageBytes!, fit: BoxFit.cover, height: 150),
+                child: Image.memory(msg.imageBytes!,
+                    fit: BoxFit.cover, height: 150),
               ),
               if (msg.text.isNotEmpty) const SizedBox(height: 8),
             ],
@@ -124,7 +139,8 @@ class ChatBubble extends StatelessWidget {
 
     for (final match in matches) {
       if (match.start > lastEnd) {
-        final plainText = text.substring(lastEnd, match.start).replaceAll('**', '');
+        final plainText =
+            text.substring(lastEnd, match.start).replaceAll('**', '');
         if (plainText.isNotEmpty) {
           spans.add(TextSpan(
             text: plainText,

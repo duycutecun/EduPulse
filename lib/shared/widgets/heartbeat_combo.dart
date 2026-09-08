@@ -81,7 +81,7 @@ class _HeartbeatComboState extends State<HeartbeatCombo>
 
         Widget content = Transform.scale(
           scale: scale,
-          child: widget.child,
+          child: RepaintBoundary(child: widget.child),
         );
 
         if (glow != null && glowOpacity > 0) {

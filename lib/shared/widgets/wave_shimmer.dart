@@ -110,11 +110,11 @@ class _WaveShimmerPainter extends CustomPainter {
 
     // Sóng ánh sáng di chuyển — vẽ các dải gradient dọc dịch theo sin
     final bandWidth = size.width * 0.4;
-    final bands = 4;
+    const bands = 3;
     for (int b = 0; b < bands; b++) {
       final phase = progress + b / bands;
-      final x = (phase * size.width * 1.4) % (size.width + bandWidth) -
-          bandWidth / 2;
+      final x =
+          (phase * size.width * 1.4) % (size.width + bandWidth) - bandWidth / 2;
       final light = ui.Gradient.linear(
         Offset(x - bandWidth / 2, 0),
         Offset(x + bandWidth / 2, 0),
@@ -135,8 +135,7 @@ class _WaveShimmerPainter extends CustomPainter {
 
     // Các block skeleton (nằm ngang) + thở
     final gap = blockHeight * 0.9;
-    final totalH = blockCount * blockHeight * breathe +
-        (blockCount - 1) * gap;
+    final totalH = blockCount * blockHeight * breathe + (blockCount - 1) * gap;
     final originY = (size.height - totalH) / 2;
     double y = originY;
     for (int i = 0; i < blockCount; i++) {
@@ -152,27 +151,31 @@ class _WaveShimmerPainter extends CustomPainter {
       y += h + gap;
     }
 
-    // Hạt ✨ trôi ngang
+    // Hạt ✨ trôi ngang — chuỗi (phase, y-norm) precompute 1 lần, không blur.
     if (showParticles) {
-      final seed = math.Random(7);
-      for (int p = 0; p < 4; p++) {
-        final ph = (progress + p * 0.21) % 1.0;
+      for (final (phase, yN) in _sparkleTrail) {
+        final ph = (progress + phase) % 1.0;
         final px = ph * size.width * 1.2 - size.width * 0.1;
-        final py = (seed.nextInt(100) / 100) * size.height;
-        final twinkle = 0.5 + 0.5 * math.sin(progress * math.pi * 2 + p * 2);
-        final dot = Paint()
-          ..color = Colors.white.withValues(alpha: 0.55 * twinkle);
-        canvas.drawCircle(Offset(px, py), 2.5, dot);
-        canvas.drawCircle(
-          Offset(px, py),
-          4.5,
-          Paint()
-            ..color = Colors.white.withValues(alpha: 0.18 * twinkle)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-        );
+        final py = yN * size.height;
+        final twinkle =
+            0.5 + 0.5 * math.sin(progress * math.pi * 2 + phase * 9.5);
+        _dot.color = Colors.white.withValues(alpha: 0.55 * twinkle);
+        canvas.drawCircle(Offset(px, py), 2.5, _dot);
+        _dot.color = Colors.white.withValues(alpha: 0.18 * twinkle);
+        canvas.drawCircle(Offset(px, py), 4.5, _dot);
       }
     }
   }
+
+  static final List<(double, double)> _sparkleTrail = [
+    for (var p = 0; p < 4; p++)
+      (
+        p * 0.21,
+        (math.Random(7).nextInt(100)) / 100,
+      ),
+  ];
+
+  final Paint _dot = Paint();
 
   @override
   bool shouldRepaint(covariant _WaveShimmerPainter oldDelegate) =>

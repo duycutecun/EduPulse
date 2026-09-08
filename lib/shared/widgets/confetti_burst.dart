@@ -92,21 +92,23 @@ class _ConfettiBurstState extends State<ConfettiBurst>
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, _) {
-          if (!_fired) return const SizedBox.shrink();
-          return CustomPaint(
-            size: Size.infinite,
-            painter: _ConfettiBurstPainter(
-              t: _ctrl.value,
-              colors: widget.colors,
-              gravity: widget.gravity,
-              spread: widget.spread,
-              count: widget.particles,
-            ),
-          );
-        },
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (context, _) {
+            if (!_fired) return const SizedBox.shrink();
+            return CustomPaint(
+              size: Size.infinite,
+              painter: _ConfettiBurstPainter(
+                t: _ctrl.value,
+                colors: widget.colors,
+                gravity: widget.gravity,
+                spread: widget.spread,
+                count: widget.particles,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -130,7 +132,14 @@ class _ConfettiBurstPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final palette = colors ??
-        const [AppColors.yellow, AppColors.blue, AppColors.purple, Colors.white, AppColors.green, AppColors.orange];
+        const [
+          AppColors.yellow,
+          AppColors.blue,
+          AppColors.purple,
+          Colors.white,
+          AppColors.green,
+          AppColors.orange
+        ];
     final center = Offset(size.width * 0.5, size.height * 0.35);
     final rand = math.Random(7);
 
@@ -156,7 +165,8 @@ class _ConfettiBurstPainter extends CustomPainter {
       canvas.translate(dx, dy);
       canvas.rotate(spin);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rect.translate(-dx, -dy), const Radius.circular(2.5)),
+        RRect.fromRectAndRadius(
+            rect.translate(-dx, -dy), const Radius.circular(2.5)),
         paint,
       );
       canvas.restore();
