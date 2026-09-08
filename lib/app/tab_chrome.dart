@@ -41,8 +41,7 @@ class TabChrome extends StatefulWidget {
   State<TabChrome> createState() => _TabChromeState();
 }
 
-class _TabChromeState extends State<TabChrome>
-    with TickerProviderStateMixin {
+class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
   late final AnimationController _tabCtrl;
   late final CurvedAnimation _tabAnim;
   late final AnimationController _settleCtrl;
@@ -164,8 +163,7 @@ class _TabChromeState extends State<TabChrome>
 
   @override
   Widget build(BuildContext context) {
-    final reduced =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Column(
       children: [
@@ -225,14 +223,14 @@ class _TabChromeState extends State<TabChrome>
         dx = d;
         sc = 1.0 - r * 0.05;
         op = 1.0 - r * 0.55;
-        blur = r * 2.5;
+        blur = 0.0; // tab đang kéo chỉ translate + đổ bóng mờ — không blur (rẻ)
       } else if (i == neighbor) {
         final r = (d.abs() / w).clamp(0.0, 1.0);
         final dir = d < 0 ? 1.0 : -1.0;
         dx = dir * w + d;
         sc = 0.94 + 0.06 * r;
         op = r;
-        blur = (1.0 - r) * 6.0;
+        blur = (1.0 - r) * 1.6; // chặn sigma tối đa — blur full-screen đắt
       } else {
         return _offstage(i, child);
       }
@@ -247,7 +245,8 @@ class _TabChromeState extends State<TabChrome>
         dx = 64.0 * (1.0 - p);
         sc = 0.94 + 0.06 * p;
         op = p;
-        blur = (1.0 - p) * 7.0;
+        blur = (1.0 - p) *
+            1.8; // giảm từ 7σ — blur full-screen mỗi frame là nguồn lag
       } else if (!isFrom && !isTo) {
         return _offstage(i, child);
       }
@@ -269,7 +268,7 @@ class _TabChromeState extends State<TabChrome>
                     sigmaX: blur,
                     sigmaY: blur,
                   ),
-                  child: child,
+                  child: RepaintBoundary(child: child),
                 ),
               ),
             ),
@@ -296,7 +295,7 @@ class _TabChromeState extends State<TabChrome>
                     sigmaX: 0,
                     sigmaY: 0,
                   ),
-                  child: child,
+                  child: RepaintBoundary(child: child),
                 ),
               ),
             ),
