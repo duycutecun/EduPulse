@@ -59,7 +59,7 @@ class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
     _from = widget.index;
     _tabCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 380),
     );
     _tabAnim = CurvedAnimation(
       parent: _tabCtrl,
@@ -68,6 +68,7 @@ class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
     _tabCtrl.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
         _from = widget.index;
+        _settleCtrl.forward(from: 0.0); // orb "pop" khi đáp xuống
       }
     });
     _settleCtrl = AnimationController(
@@ -221,54 +222,56 @@ class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
       if (i == current) {
         final r = (d.abs() / w).clamp(0.0, 1.0);
         dx = d;
-        sc = 1.0 - r * 0.05;
-        op = 1.0 - r * 0.55;
-        blur = 0.0; // tab đang kéo chỉ translate + đổ bóng mờ — không blur (rẻ)
+        sc = 1.0 - r * 0.09;
+        op = 1.0 - r * 0.7;
+        blur = 0.0; // tab đang kéo chỉ translate + fade — không blur (rẻ)
       } else if (i == neighbor) {
         final r = (d.abs() / w).clamp(0.0, 1.0);
         final dir = d < 0 ? 1.0 : -1.0;
         dx = dir * w + d;
-        sc = 0.94 + 0.06 * r;
+        sc = 0.90 + 0.10 * r;
         op = r;
-        blur = (1.0 - r) * 1.6; // chặn sigma tối đa — blur full-screen đắt
+        blur = (1.0 - r) * 1.2; // chặn sigma tối đa — blur full-screen đắt
       } else {
         return _offstage(i, child);
       }
     } else {
       final p = _motion;
       if (isFrom && !isTo) {
-        dx = -28.0 * p;
-        sc = 1.0 - 0.02 * p;
+        dx = -32.0 * p;
+        sc = 1.0 - 0.03 * p;
         op = 1.0;
         blur = 0.0;
       } else if (isTo && !isFrom) {
-        dx = 64.0 * (1.0 - p);
-        sc = 0.94 + 0.06 * p;
+        dx = 72.0 * (1.0 - p);
+        sc = 0.90 + 0.10 * p;
         op = p;
         blur = (1.0 - p) *
-            1.8; // giảm từ 7σ — blur full-screen mỗi frame là nguồn lag
+            1.5; // giảm từ 7σ — blur full-screen mỗi frame là nguồn lag
       } else if (!isFrom && !isTo) {
         return _offstage(i, child);
       }
     }
 
     return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: !(i == current),
-        child: TickerMode(
-          enabled: i == current || (i == _from),
-          child: Opacity(
-            opacity: op.clamp(0.0, 1.0),
-            child: Transform.translate(
-              offset: Offset(dx, 0),
-              child: Transform.scale(
-                scale: sc,
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(
-                    sigmaX: blur,
-                    sigmaY: blur,
+      child: RepaintBoundary(
+        child: IgnorePointer(
+          ignoring: !(i == current),
+          child: TickerMode(
+            enabled: i == current || (i == _from),
+            child: Opacity(
+              opacity: op.clamp(0.0, 1.0),
+              child: Transform.translate(
+                offset: Offset(dx, 0),
+                child: Transform.scale(
+                  scale: sc,
+                  child: ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(
+                      sigmaX: blur,
+                      sigmaY: blur,
+                    ),
+                    child: RepaintBoundary(child: child),
                   ),
-                  child: RepaintBoundary(child: child),
                 ),
               ),
             ),
@@ -280,22 +283,24 @@ class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
 
   Widget _offstage(int i, Widget child) {
     return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: true,
-        child: TickerMode(
-          enabled: i == _from,
-          child: Opacity(
-            opacity: 0.0,
-            child: Transform.translate(
-              offset: Offset.zero,
-              child: Transform.scale(
-                scale: 1.0,
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(
-                    sigmaX: 0,
-                    sigmaY: 0,
+      child: RepaintBoundary(
+        child: IgnorePointer(
+          ignoring: true,
+          child: TickerMode(
+            enabled: i == _from,
+            child: Opacity(
+              opacity: 0.0,
+              child: Transform.translate(
+                offset: Offset.zero,
+                child: Transform.scale(
+                  scale: 1.0,
+                  child: ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(
+                      sigmaX: 0,
+                      sigmaY: 0,
+                    ),
+                    child: RepaintBoundary(child: child),
                   ),
-                  child: RepaintBoundary(child: child),
                 ),
               ),
             ),
@@ -345,6 +350,7 @@ class _TabChromeState extends State<TabChrome> with TickerProviderStateMixin {
                       from: from,
                       to: to,
                       t: reduced ? 1.0 : p,
+                      settle: reduced ? 1.0 : _settleAnim.value,
                       slotWidth: slot,
                       barHeight: 64,
                     ),
@@ -391,8 +397,8 @@ class _NavTabContent extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TweenAnimationBuilder<double>(
-          tween: Tween<double>(end: active ? 1.14 : 1.0),
-          duration: const Duration(milliseconds: 260),
+          tween: Tween<double>(end: active ? 1.22 : 1.0),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutBack,
           builder: (context, scale, child) {
             return Transform.translate(
@@ -435,6 +441,7 @@ class _BezierNavIndicatorPainter extends CustomPainter {
   final int from;
   final int to;
   final double t;
+  final double settle;
   final double slotWidth;
   final double barHeight;
 
@@ -442,6 +449,7 @@ class _BezierNavIndicatorPainter extends CustomPainter {
     required this.from,
     required this.to,
     required this.t,
+    required this.settle,
     required this.slotWidth,
     required this.barHeight,
   });
@@ -457,7 +465,7 @@ class _BezierNavIndicatorPainter extends CustomPainter {
     }
 
     // Điểm điều khiển nâng lên giữa để tạo vồng bezier
-    final C = Offset((A.dx + B.dx) / 2, math.min(A.dy, B.dy) - 18.0);
+    final C = Offset((A.dx + B.dx) / 2, math.min(A.dy, B.dy) - 26.0);
     final pos = _bezier(A, C, B, t);
 
     // Vệt hướng dẫn mờ dọc theo bezier
@@ -489,21 +497,25 @@ class _BezierNavIndicatorPainter extends CustomPainter {
   }
 
   void _drawOrb(Canvas canvas, Offset center) {
-    final orbHeight = 6.0;
-    final orbWidth = 34.0;
+    // Pop khi đáp xuống: phóng to rồi thu về (dùng chung controller settle).
+    final pop = math.sin(settle * math.pi);
+    final s = 1.0 + 0.32 * pop;
+
+    final orbHeight = 6.0 * s;
+    final orbWidth = 34.0 * s;
     final core = RRect.fromRectAndRadius(
       Rect.fromCenter(
         center: center,
         width: orbWidth,
         height: orbHeight,
       ),
-      const Radius.circular(3),
+      Radius.circular(3 * s),
     );
-    // Hào quang mờ bao quanh
+    // Hào quang sprite 2 vòng tròn (thay MaskFilter.blur — rẻ hơn).
     final glow = Paint()
-      ..color = AppColors.greenLight.withValues(alpha: 0.4)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
-    canvas.drawRRect(core.inflate(5), glow);
+      ..color = AppColors.greenLight.withValues(alpha: 0.22 + 0.4 * pop);
+    canvas.drawCircle(center, (orbWidth / 2) + 5, glow);
+    canvas.drawCircle(center, (orbWidth / 2) + 1.5, glow);
     // Lõi pill dốc màu
     final orb = Paint()
       ..shader = ui.Gradient.linear(
@@ -519,5 +531,6 @@ class _BezierNavIndicatorPainter extends CustomPainter {
       oldDelegate.from != from ||
       oldDelegate.to != to ||
       oldDelegate.t != t ||
+      oldDelegate.settle != settle ||
       oldDelegate.slotWidth != slotWidth;
 }

@@ -53,10 +53,10 @@ class SpringConfig {
 
   const SpringConfig({
     this.amplitude = 1.0,
-    this.zeta = 0.55,
+    this.zeta = 0.46,
     this.omega = 11.0,
     this.maxDuration = 700,
-    this.entranceOffset = 46.0,
+    this.entranceOffset = 64.0,
   });
 }
 
@@ -94,8 +94,8 @@ class _SpringItemState extends State<_SpringItem>
     _ctrl = AnimationController(
       vsync: this,
       duration: Duration(
-        milliseconds:
-            widget.spring.maxDuration.round() + widget.spring.maxDuration.round(),
+        milliseconds: widget.spring.maxDuration.round() +
+            widget.spring.maxDuration.round(),
       ),
     )..addListener(() {
         _clock = _ctrl.value * widget.spring.maxDuration / 1000.0;
@@ -104,7 +104,8 @@ class _SpringItemState extends State<_SpringItem>
       _clock = 99.0;
     } else {
       final delay = widget.index * widget.stepDelay.inMilliseconds;
-      _timer = Timer(Duration(milliseconds: delay), () => _ctrl.forward(from: 0.0));
+      _timer =
+          Timer(Duration(milliseconds: delay), () => _ctrl.forward(from: 0.0));
     }
   }
 
@@ -138,17 +139,19 @@ class _SpringItemState extends State<_SpringItem>
     //  - Phase 2: dịch chuyển từ offset về 0 với overshoot
     //  - Phase 3: settle
     final opacity = pos.clamp(0.0, 1.0);
-    final scale = 0.92 + 0.10 * math.sin(math.min(pos, 1.0) * math.pi / 2);
-    final overshoot = (pos - 0.6).clamp(0.0, 0.4) * 6.0;
+    final scale = 0.86 + 0.16 * math.sin(math.min(pos, 1.0) * math.pi / 2);
+    final overshoot = (pos - 0.55).clamp(0.0, 0.45) * 8.0;
     final travel = (1.0 - pos) * s.entranceOffset - overshoot;
 
     Widget child = Opacity(
       opacity: opacity,
       child: Transform.scale(
-        scale: scale.clamp(0.9, 1.06),
+        scale: scale.clamp(0.84, 1.14),
         child: widget.direction == Axis.vertical
-            ? Transform.translate(offset: Offset(0, travel), child: widget.child)
-            : Transform.translate(offset: Offset(travel, 0), child: widget.child),
+            ? Transform.translate(
+                offset: Offset(0, travel), child: widget.child)
+            : Transform.translate(
+                offset: Offset(travel, 0), child: widget.child),
       ),
     );
 

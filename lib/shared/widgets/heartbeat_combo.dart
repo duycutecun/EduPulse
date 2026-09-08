@@ -13,10 +13,10 @@ class HeartbeatCombo extends StatefulWidget {
     super.key,
     required this.value,
     required this.child,
-    this.peakScale = 0.10,
+    this.peakScale = 0.14,
     this.duration = const Duration(milliseconds: 900),
     this.glowColor,
-    this.glowRadius = 14.0,
+    this.glowRadius = 18.0,
   });
 
   /// Giá trị "combo". Khi đổi → phát nhịp tim.

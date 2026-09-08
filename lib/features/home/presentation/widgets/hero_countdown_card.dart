@@ -47,103 +47,111 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         curve: Curves.easeOutCubic,
         child: GlassCard(
           padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.green.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    primaryExam?.emoji ?? '🎯',
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        primaryExam != null
-                            ? '📅 ${AppDate.formatDateTime(primaryExam.dateTime)}'
-                            : 'Chạm vào đây để chọn kỳ thi →',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (primaryExam != null)
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: urgencyColor,
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.green.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
                     ),
                     child: Text(
-                      primaryExam.urgencyLabel,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      primaryExam?.emoji ?? '🎯',
+                      style: const TextStyle(fontSize: 24),
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _buildTimerRow(),
-            if (primaryExam != null) ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Chặng đường ôn luyện',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          primaryExam != null
+                              ? '📅 ${AppDate.formatDateTime(primaryExam.dateTime)}'
+                              : 'Chạm vào đây để chọn kỳ thi →',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text(
-                    '${(progress * 100).toInt()}%',
-                    style: const TextStyle(fontSize: 12, color: AppColors.green, fontWeight: FontWeight.w800),
-                  ),
+                  if (primaryExam != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: urgencyColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        primaryExam.urgencyLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
                 ],
               ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 8,
-                  backgroundColor: AppColors.border,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+              const SizedBox(height: 18),
+              _buildTimerRow(),
+              if (primaryExam != null) ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Chặng đường ôn luyện',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      '${(progress * 100).toInt()}%',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.green,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: AppColors.border,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(AppColors.green),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildTimerRow() {
     if (widget.remainingListenable != null) {
@@ -170,7 +178,8 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         _timerColon(),
         _buildTimerTile(minutes.toString().padLeft(2, '0'), 'phút'),
         _timerColon(),
-        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'giây', isAccent: true),
+        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'giây',
+            isAccent: true),
       ],
     );
   }
@@ -183,11 +192,16 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         color: AppColors.cardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isAccent ? AppColors.green.withValues(alpha: 0.6) : AppColors.border,
+          color: isAccent
+              ? AppColors.green.withValues(alpha: 0.6)
+              : AppColors.border,
           width: 2,
         ),
         boxShadow: [
-          BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: const Offset(0, 3)),
+          BoxShadow(
+              color: AppColors.borderDark,
+              blurRadius: 0,
+              offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -195,12 +209,20 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 240),
             transitionBuilder: (child, animation) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.0, 0.25),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                child: FadeTransition(opacity: animation, child: child),
+              final pop = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutBack,
+              );
+              return ScaleTransition(
+                scale: Tween<double>(begin: 0.72, end: 1.0).animate(pop),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.0, 0.25),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                      parent: animation, curve: Curves.easeOutCubic)),
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
               );
             },
             child: Text(
