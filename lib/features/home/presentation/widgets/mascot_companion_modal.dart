@@ -104,17 +104,11 @@ class MascotCompanionModal extends StatefulWidget {
   State<MascotCompanionModal> createState() => _MascotCompanionModalState();
 }
 
-class _MascotCompanionModalState extends State<MascotCompanionModal>
-    with SingleTickerProviderStateMixin {
+class _MascotCompanionModalState extends State<MascotCompanionModal> {
   late String _equippedAccessory;
   late int _bondExp;
   String? _todayFortune;
   bool _isDrawingFortune = false;
-
-  // Pet-bounce: vuốt linh vật → nảy + nghiêng đầu (kiểu Duolingo pet).
-  late final AnimationController _bounceCtrl;
-  late final Animation<double> _bounceAnim;
-  double _headTiltAngle = 0.0;
 
   final List<String> _fortunes = [
     '🌟 Quẻ Đại Cát: Hôm nay giải đề trúng tủ, công thức nhớ sâu! Tự tin 9+!',
@@ -131,23 +125,6 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
     _equippedAccessory = StorageService.getMascotAccessory();
     _bondExp = StorageService.getMascotBondExp();
     _loadFortune();
-
-    _bounceCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 320),
-    );
-    _bounceAnim = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.15)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.15, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInQuad)),
-        weight: 50,
-      ),
-    ]).animate(_bounceCtrl);
   }
 
   void _loadFortune() {
@@ -208,16 +185,42 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
 
   void _onPetMascot() {
     AudioSynthService.playChirp();
-    _bounceCtrl.forward(from: 0.0);
-    setState(() {
-      _headTiltAngle = (_headTiltAngle == 0.0) ? 0.06 : -_headTiltAngle;
-    });
   }
 
-  @override
-  void dispose() {
-    _bounceCtrl.dispose();
-    super.dispose();
+  void _buyStreakFreeze() {
+    const cost = 100;
+    if (StorageService.getMascotBondExp() < cost) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn chưa đủ EXP — hãy hoàn thành nhiệm vụ & Pomodoro!'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    if (StorageService.getStreakFreezes() >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bạn đã giữ tối đa 3 lá bùa!'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    final ok = StorageService.buyStreakFreeze();
+    AudioSynthService.playEquip();
+    setState(() => _bondExp = StorageService.getMascotBondExp());
+    if (mounted && ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🛡️ Đã mua lá bùa giữ chuỗi!'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -298,21 +301,10 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
             // Large Interactive Mascot Preview
             GestureDetector(
               onTap: _onPetMascot,
-              child: AnimatedBuilder(
-                animation: _bounceAnim,
-                builder: (context, child) {
-                  return Transform.rotate(
-                    angle: _headTiltAngle,
-                    child: Transform.scale(
-                      scale: _bounceAnim.value,
-                      child: child,
-                    ),
-                  );
-                },
-                child: Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
                     // Aura circle
                     Container(
                       width: 120,
@@ -389,8 +381,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
                       ),
                     ),
                   ],
-                ),
-                ),
+              ),
             ),
             const SizedBox(height: 26),
 
@@ -446,6 +437,75 @@ class _MascotCompanionModalState extends State<MascotCompanionModal>
                   Text(
                     'Hoàn thành Pomodoro & nhiệm vụ để tăng cấp gắn kết!',
                     style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Streak Freeze (Lá bùa giữ chuỗi)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.blue, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.blue.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                        child: Text('🛡️', style: TextStyle(fontSize: 22))),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lá bùa giữ chuỗi',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Nghỉ 1 ngày không mất streak 🔥 • Đang giữ: ${StorageService.getStreakFreezes()}/3',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _buyStreakFreeze,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.blue,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        '100 EXP',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

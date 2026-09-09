@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
-import '../../../../shared/widgets/spring_press.dart';
 
 class ChatInputBar extends StatelessWidget {
   final TextEditingController controller;
@@ -12,6 +11,7 @@ class ChatInputBar extends StatelessWidget {
   final String? selectedImageName;
   final VoidCallback onPickImage;
   final VoidCallback onClearImage;
+  final VoidCallback onCreateQuiz;
   final ValueChanged<String> onSend;
 
   const ChatInputBar({
@@ -23,6 +23,7 @@ class ChatInputBar extends StatelessWidget {
     required this.selectedImageName,
     required this.onPickImage,
     required this.onClearImage,
+    required this.onCreateQuiz,
     required this.onSend,
   });
 
@@ -76,17 +77,13 @@ class ChatInputBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.border, width: 2),
             boxShadow: [
-              BoxShadow(color: AppColors.borderDark, blurRadius: 0, offset: const Offset(0, 3)),
+              BoxShadow(color: AppColors.borderStrong, blurRadius: 0, offset: const Offset(0, 3)),
             ],
           ),
           child: Row(
             children: [
-              SpringPress(
+              GestureDetector(
                 onTap: onPickImage,
-                pressScale: 0.88,
-                pressTranslate: 2.5,
-                shadowColor: AppColors.blueDark,
-                borderRadius: BorderRadius.circular(20),
                 child: Container(
                   width: 40,
                   height: 40,
@@ -95,6 +92,19 @@ class ChatInputBar extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.photo_camera_rounded, size: 20, color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onCreateQuiz,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.purple,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.quiz_rounded, size: 20, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 8),
@@ -118,12 +128,8 @@ class ChatInputBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              SpringPress(
+              GestureDetector(
                 onTap: isLoading ? null : () => onSend(controller.text),
-                pressScale: 0.88,
-                pressTranslate: 2.5,
-                shadowColor: AppColors.greenDark,
-                borderRadius: BorderRadius.circular(20),
                 child: Container(
                   width: 40,
                   height: 40,

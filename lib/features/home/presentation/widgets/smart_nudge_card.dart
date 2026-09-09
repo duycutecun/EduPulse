@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/widgets/flip_card.dart';
 
 class SmartNudgeCard extends StatelessWidget {
   const SmartNudgeCard({super.key});
@@ -17,47 +16,6 @@ class SmartNudgeCard extends StatelessWidget {
     final today = DateTime.now().day % nudges.length;
     final tip = nudges[today];
 
-    return FlipCard(
-      front: _buildFront(),
-      back: _buildBack(tip),
-    );
-  }
-
-  Widget _buildFront() {
-    return GlassLikeCard(
-      color: AppColors.yellow.withValues(alpha: 0.1),
-      borderColor: AppColors.yellow,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: AppColors.yellow,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.lightbulb, color: Colors.white, size: 18),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Mẹo học hôm nay',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Chạm để lật',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBack(String tip) {
     return GlassLikeCard(
       color: AppColors.yellow.withValues(alpha: 0.14),
       borderColor: AppColors.yellow,
@@ -80,6 +38,15 @@ class SmartNudgeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    'Mẹo học hôm nay',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     tip,
                     style: TextStyle(
                       fontSize: 13,
@@ -87,11 +54,6 @@ class SmartNudgeCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       height: 1.4,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Chạm để quay lại',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),

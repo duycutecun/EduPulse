@@ -5,7 +5,7 @@ class AppColors {
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
 
-  // Forced false — the app is light-mode only (dark mode removed).
+  // Được đồng bộ từ theme thực tế (xem _BrightnessSyncer / MeshBackground).
   static bool darkFallback = false;
 
   // ─── Fixed Functional Colors (same in light & dark) ─────────────────────
@@ -30,35 +30,46 @@ class AppColors {
   static const Color purpleSoft = Color(0xFFF3E4FF);
   static const Color yellowSoft = Color(0xFFFFF4C9);
 
-  // ─── Theme-dependent Neutrals ───────────────────────────────────────────
-  // App is light-mode only (dark mode removed). These light values are used
-  // unconditionally.
-  static const Color _bgPageLight = Color(0xFFF7F7F7);
+  // ─── Theme-dependent Neutrals (palette public để AppTheme dùng explicit) ──
+  static const Color bgPageLight = Color(0xFFF7F7F7);
+  static const Color bgPageDark = Color(0xFF141414);
 
-  static const Color _cardLight = Color(0xFFFFFFFF);
+  static const Color cardLight = Color(0xFFFFFFFF);
+  static const Color cardDark = Color(0xFF222222);
 
-  static const Color _borderLight = Color(0xFFE5E5E5);
+  static const Color borderLight = Color(0xFFE5E5E5);
+  static const Color borderDark = Color(0xFF3A3A3A);
 
-  static const Color _borderStrongLight = Color(0xFFD7D7D7);
+  static const Color borderStrongLight = Color(0xFFD7D7D7);
+  static const Color borderStrongDark = Color(0xFF4D4D4D);
 
-  static const Color _textPrimaryLight = Color(0xFF4B4B4B);
+  static const Color textPrimaryLight = Color(0xFF4B4B4B);
+  static const Color textPrimaryDark = Color(0xFFEDEDED);
 
-  static const Color _textSecondaryLight = Color(0xFF777777);
+  static const Color textSecondaryLight = Color(0xFF777777);
+  static const Color textSecondaryDark = Color(0xFFB5B5B5);
 
-  static const Color _textMutedLight = Color(0xFFAFAFAF);
+  static const Color textMutedLight = Color(0xFFAFAFAF);
+  static const Color textMutedDark = Color(0xFF8C8C8C);
 
-  static const Color _dividerLight = Color(0xFFE5E5E5);
+  static const Color dividerLight = Color(0xFFE5E5E5);
+  static const Color dividerDark = Color(0xFF3A3A3A);
 
-  static const Color _tertiaryLight = Color(0xFFF0F0F0);
+  static const Color tertiaryLight = Color(0xFFF0F0F0);
+  static const Color tertiaryDark = Color(0xFF1E1E1E);
 
-  // ─── Resolved getters (always light) ────────────────────────────────────
-  static Color get bgPage => _bgPageLight;
-  static Color get cardWhite => _cardLight;
-  static Color get border => _borderLight;
-  static Color get borderDark => _borderStrongLight;
-  static Color get textPrimary => _textPrimaryLight;
-  static Color get textSecondary => _textSecondaryLight;
-  static Color get textMuted => _textMutedLight;
-  static Color get divider => _dividerLight;
-  static Color get tertiaryBg => _tertiaryLight;
+  // ─── Resolved getters (theo darkFallback) ───────────────────────────────
+  static Color get bgPage => darkFallback ? bgPageDark : bgPageLight;
+  static Color get cardWhite => darkFallback ? cardDark : cardLight;
+  static Color get border => darkFallback ? borderDark : borderLight;
+  static Color get borderStrong =>
+      darkFallback ? borderStrongDark : borderStrongLight;
+  static Color get textPrimary =>
+      darkFallback ? textPrimaryDark : textPrimaryLight;
+  static Color get textSecondary =>
+      darkFallback ? textSecondaryDark : textSecondaryLight;
+  static Color get textMuted =>
+      darkFallback ? textMutedDark : textMutedLight;
+  static Color get divider => darkFallback ? dividerDark : dividerLight;
+  static Color get tertiaryBg => darkFallback ? tertiaryDark : tertiaryLight;
 }

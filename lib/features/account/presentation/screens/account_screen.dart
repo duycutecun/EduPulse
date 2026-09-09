@@ -1,12 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
-import '../../../../shared/widgets/spring_press.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -28,9 +29,12 @@ class _AccountScreenState extends State<AccountScreen> {
   late String _userTarget;
   bool _isSyncing = false;
   bool _isRestoring = false;
-  String _selectedFilter = 'Tất cả';
-  final List<String> _filters = ['Tất cả', 'THPTQG', 'TSA', 'HSA'];
   late List<CommunityUser> _users;
+
+  // Nhắc học hằng ngày
+  bool _reminderEnabled = false;
+  int _reminderHour = 19;
+  int _reminderMinute = 0;
 
   @override
   void initState() {
@@ -42,6 +46,9 @@ class _AccountScreenState extends State<AccountScreen> {
   void _loadData() {
     _userName = StorageService.getUserName();
     _userTarget = StorageService.getUserTarget();
+    _reminderEnabled = StorageService.getBool('reminder_enabled') ?? false;
+    _reminderHour = StorageService.getInt('reminder_hour') ?? 19;
+    _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
   }
 
   void _initLeaderboard() async {
@@ -129,15 +136,6 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  void _cheerUser(int index) {
-    if (index >= _users.length) return;
-    setState(() {
-      final u = _users[index];
-      if (!u.hasCheered) { u.cheers += 1; u.hasCheered = true; }
-      else { u.cheers -= 1; u.hasCheered = false; }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -175,12 +173,9 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _segmentBtn(int index, IconData icon, String label) {
     final active = _activeSegment == index;
     return Expanded(
-      child: SpringPress(
-        pressScale: 0.94,
-        pressTranslate: 1.0,
+      child: GestureDetector(
         onTap: () => setState(() => _activeSegment = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
             color: active ? AppColors.green : Colors.transparent,
@@ -312,6 +307,43 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ],
         const SizedBox(height: 18),
+        _buildReminderCard(),
+        const SizedBox(height: 18),
+        GlassCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const AppIcon(
+                    Icons.dark_mode_rounded,
+                    tileSize: 36,
+                    iconSize: 18,
+                    color: AppColors.purple,
+                    bg: AppColors.purpleSoft,
+                  ),
+                  const SizedBox(width: 10),
+                  Text('Giao diện', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ValueListenableBuilder<ThemeMode>(
+                valueListenable: ThemeController.mode,
+                builder: (context, mode, _) => Row(
+                  children: [
+                    _themeOption(ThemeMode.system, 'Hệ thống', Icons.settings_brightness_rounded),
+                    const SizedBox(width: 8),
+                    _themeOption(ThemeMode.light, 'Sáng', Icons.light_mode_rounded),
+                    const SizedBox(width: 8),
+                    _themeOption(ThemeMode.dark, 'Tối', Icons.dark_mode_rounded),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
         GlassCard(
           padding: const EdgeInsets.all(20),
           child: Row(
@@ -360,19 +392,6 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        _sectionTitle('HỆ THỐNG'),
-        const SizedBox(height: 8),
-        GlassCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              _settingTile(Icons.phone_android, AppColors.green, 'Lưu trữ Offline', 'Dữ liệu an toàn trên máy', null),
-              _divider(),
-              _settingTile(Icons.language, AppColors.purple, 'Phiên bản Web', 'EduPulse Web Ready', null),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -380,39 +399,203 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildLeaderboardView() {
     return LeaderboardView(
       users: _users,
-      filters: _filters,
-      selectedFilter: _selectedFilter,
-      onFilterSelected: (f) => setState(() => _selectedFilter = f),
-      onCheer: (user) => _cheerUser(_users.indexOf(user)),
     );
   }
 
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: AppColors.textMuted)),
-    );
-  }
+  /// Thẻ cài đặt nhắc học hằng ngày — chỉ trên mobile native.
+  Widget _buildReminderCard() {
+    if (!NotificationService.isSupported) {
+      return GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const AppIcon(
+              Icons.notifications_active_rounded,
+              tileSize: 36,
+              iconSize: 18,
+              color: AppColors.orange,
+              bg: AppColors.orangeSoft,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Nhắc học hằng ngày chỉ khả dụng trên ứng dụng Android/iOS.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-  Widget _settingTile(IconData icon, Color iconColor, String title, String? subtitle, VoidCallback? onTap, {Widget? trailing}) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: AppIcon(
-        icon,
-        tileSize: 40,
-        iconSize: 22,
-        color: iconColor,
-        bg: iconColor.withValues(alpha: 0.15),
+    final timeLabel =
+        '${_reminderHour.toString().padLeft(2, '0')}:${_reminderMinute.toString().padLeft(2, '0')}';
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const AppIcon(
+                Icons.notifications_active_rounded,
+                tileSize: 36,
+                iconSize: 18,
+                color: AppColors.orange,
+                bg: AppColors.orangeSoft,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Nhắc học hằng ngày',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+              ),
+              Switch(
+                value: _reminderEnabled,
+                activeTrackColor: AppColors.green,
+                onChanged: (v) => _setReminderEnabled(v),
+              ),
+            ],
+          ),
+          if (_reminderEnabled) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _pickReminderTime,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 2),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.schedule_rounded,
+                              size: 18, color: AppColors.orange),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Nhắc lúc: $timeLabel',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary),
+                          ),
+                          const Spacer(),
+                          Icon(Icons.edit_calendar_rounded,
+                              size: 18, color: AppColors.textMuted),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () async {
+                    await NotificationService.cancel();
+                    _setReminderEnabled(false);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.red.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.delete_outline_rounded,
+                        color: AppColors.red, size: 20),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Giữ vững thói quen — một nhắc nhở nhỏ mỗi ngày, streak không bao giờ đứt! 🔥',
+              style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+            ),
+          ],
+        ],
       ),
-      title: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-      subtitle: subtitle != null ? Text(subtitle, style: TextStyle(fontSize: 11, color: AppColors.textMuted)) : null,
-      trailing: trailing ?? Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
     );
   }
 
-  Widget _divider() {
-    return Divider(height: 1, thickness: 2, indent: 56, color: AppColors.border);
+  void _setReminderEnabled(bool v) {
+    setState(() => _reminderEnabled = v);
+    StorageService.setBool('reminder_enabled', v);
+    if (v) {
+      NotificationService.scheduleDaily(
+        hour: _reminderHour,
+        minute: _reminderMinute,
+      );
+    } else {
+      NotificationService.cancel();
+    }
+  }
+
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _reminderHour, minute: _reminderMinute),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme:
+              Theme.of(context).colorScheme.copyWith(primary: AppColors.orange),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _reminderHour = picked.hour;
+      _reminderMinute = picked.minute;
+    });
+    StorageService.setInt('reminder_hour', picked.hour);
+    StorageService.setInt('reminder_minute', picked.minute);
+    if (_reminderEnabled) {
+      NotificationService.scheduleDaily(hour: picked.hour, minute: picked.minute);
+    }
+  }
+
+  Widget _themeOption(ThemeMode mode, String label, IconData icon) {
+    final selected = ThemeController.mode.value == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          ThemeController.set(mode);
+          setState(() {});
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.green : AppColors.bgPage,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? AppColors.green : AppColors.border,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 18, color: selected ? Colors.white : AppColors.textSecondary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showEditProfileDialog() {

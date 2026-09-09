@@ -4,8 +4,6 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
-import '../../../../shared/widgets/spring_press.dart';
-import '../../../../shared/widgets/spring_stagger.dart';
 import '../../domain/models/exam_model.dart';
 
 class ExamsScreen extends StatefulWidget {
@@ -115,10 +113,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
           ),
           const SizedBox(height: 18),
           if (myExams.isNotEmpty)
-            SpringStagger(
-              count: filteredExams.length,
-              stepDelay: const Duration(milliseconds: 70),
-              itemBuilder: (context, i) => _buildExamCard(filteredExams[i]),
+            Column(
+              children: [
+                for (final exam in filteredExams) _buildExamCard(exam),
+              ],
             )
           else
             _buildEmptyState('Chưa có kỳ thi nào', 'Hãy nhấn nút Thêm để tạo kỳ thi của bạn!'),
@@ -132,8 +130,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedFilter = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+        child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: active ? AppColors.green : Colors.transparent,
@@ -173,9 +170,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         ),
         child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 22),
       ),
-      child: SpringPress(
-        pressScale: 0.97,
-        pressTranslate: 2.0,
+      child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
           widget.onSetPrimary(exam);
@@ -339,7 +334,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(primary: AppColors.green),
+                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.green),
                           ),
                           child: child!,
                         );
@@ -455,7 +450,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(primary: AppColors.green),
+                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.green),
                           ),
                           child: child!,
                         );

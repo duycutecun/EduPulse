@@ -115,26 +115,55 @@ class ChatMessage {
   );
 }
 
+/// Một lần ghi điểm đề thi thử (theo môn, thang 10).
+class MockScore {
+  final String id;
+  final DateTime date;
+  final String subject;
+  final double score; // 0..10
+  final String? note;
+
+  MockScore({
+    required this.id,
+    required this.date,
+    required this.subject,
+    required this.score,
+    this.note,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'subject': subject,
+        'score': score,
+        'note': note,
+      };
+
+  factory MockScore.fromJson(Map<String, dynamic> j) => MockScore(
+        id: j['id'],
+        date: DateTime.parse(j['date']),
+        subject: j['subject'] ?? '',
+        score: (j['score'] as num).toDouble(),
+        note: j['note'],
+      );
+
+  String toJsonString() => jsonEncode(toJson());
+  factory MockScore.fromJsonString(String s) =>
+      MockScore.fromJson(jsonDecode(s));
+}
+
 class CommunityUser {
   final int rank;
   final String name;
   String target;
   final int streak;
-  final double weeklyHours;
   final String emoji;
-  final String badge;
-  int cheers;
-  bool hasCheered;
 
   CommunityUser({
     required this.rank,
     required this.name,
     required this.target,
     required this.streak,
-    required this.weeklyHours,
     required this.emoji,
-    required this.badge,
-    this.cheers = 0,
-    this.hasCheered = false,
   });
 }

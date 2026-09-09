@@ -168,9 +168,28 @@ class SupabaseService {
         'streak_record': StorageService.getStreakRecord(),
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
+      // Upsert dòng của mình lên bảng xếp hạng chung (bỏ qua nếu chưa đăng nhập).
+      _upsertLeaderboardRow();
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  /// Ghi dòng của user hiện tại vào bảng `leaderboard` (fire-and-forget).
+  /// Chỉ chạy khi đã đăng nhập — bảng chung không nhận dữ liệu anonymous.
+  static Future<void> _upsertLeaderboardRow() async {
+    if (!isLoggedIn) return;
+    try {
+      await _client!.from('leaderboard').upsert({
+        'user_id': _userId,
+        'name': StorageService.getUserName(),
+        'target': StorageService.getUserTarget(),
+        'streak': StorageService.getStreak(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+    } catch (_) {
+      // Bảng xếp hạng là tính năng phụ — lỗi không ảnh hưởng sync chính.
     }
   }
 
@@ -248,10 +267,7 @@ class SupabaseService {
           name: row['name'] ?? '',
           target: row['target'] ?? '',
           streak: row['streak'] ?? 0,
-          weeklyHours: _toDouble(row['weekly_hours']),
           emoji: row['emoji'] ?? '🦁',
-          badge: row['badge'] ?? '🔥 Sĩ tử',
-          cheers: row['cheers'] ?? 0,
         ));
       }
       return list;

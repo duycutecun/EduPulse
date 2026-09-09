@@ -4,16 +4,31 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
+  /// Dùng palette explicit (không qua darkFallback) để theme luôn đúng
+  /// bất kể thứ tự build.
   static ThemeData get lightTheme {
     return _build(
       brightness: Brightness.light,
-      bg: AppColors.bgPage,
-      card: AppColors.cardWhite,
-      border: AppColors.border,
-      textPrimary: AppColors.textPrimary,
-      textSecondary: AppColors.textSecondary,
-      muted: AppColors.textMuted,
-      tertiary: AppColors.tertiaryBg,
+      bg: AppColors.bgPageLight,
+      card: AppColors.cardLight,
+      border: AppColors.borderLight,
+      textPrimary: AppColors.textPrimaryLight,
+      textSecondary: AppColors.textSecondaryLight,
+      muted: AppColors.textMutedLight,
+      tertiary: AppColors.tertiaryLight,
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return _build(
+      brightness: Brightness.dark,
+      bg: AppColors.bgPageDark,
+      card: AppColors.cardDark,
+      border: AppColors.borderStrong,
+      textPrimary: AppColors.textPrimaryDark,
+      textSecondary: AppColors.textSecondaryDark,
+      muted: AppColors.textMutedDark,
+      tertiary: AppColors.tertiaryDark,
     );
   }
 

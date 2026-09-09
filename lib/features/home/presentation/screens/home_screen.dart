@@ -4,12 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
-import '../../../../shared/widgets/celebration_overlay.dart';
-import '../../../../shared/widgets/confetti_burst.dart';
-import '../../../../shared/widgets/spring_shake.dart';
-import '../../../../shared/widgets/spring_stagger.dart';
 import '../../../exams/domain/models/exam_model.dart';
+import '../../../exams/domain/preset_exams.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/presentation/screens/ai_plan_screen.dart';
 import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/quick_action_card.dart';
@@ -22,8 +20,8 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
   final int streak;
-  final int streakRecord;
   final bool isActive;
+  final VoidCallback? onStreakChanged;
 
   const HomeScreen({
     super.key,
@@ -32,8 +30,8 @@ class HomeScreen extends StatefulWidget {
     required this.onOpenStudy,
     required this.onOpenAiCoach,
     required this.streak,
-    required this.streakRecord,
     this.isActive = true,
+    this.onStreakChanged,
   });
 
   @override
@@ -128,21 +126,29 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!wasDone && task.isDone) {
       HapticFeedback.mediumImpact();
       StorageService.addXp(10);
+      StorageService.registerStudyActivity(); // cập nhật streak theo ngày
+      StorageService.addMascotBondExp(10); // gắn kết linh vật
       setState(() {});
-      if (mounted) {
-        CelebrationOverlay.show(
-          context,
-          title: 'HOÀN THÀNH!',
-          subtitle: '+10 XP',
-          onContinue: () {},
-        );
-      }
+      _notifyStreakChanged();
     }
   }
 
   void _deleteTask(TodayTask task) {
     StorageService.removeTodayTask(task.id);
     setState(() => _tasks.remove(task));
+  }
+
+  /// MainShell đọc lại streak sau khi task thay đổi để header cập nhật 🔥.
+  void _notifyStreakChanged() {
+    if (StorageService.getString('last_study_date') ==
+        _todayKey()) {
+      widget.onStreakChanged?.call();
+    }
+  }
+
+  static String _todayKey() {
+    final d = DateTime.now();
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -171,56 +177,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 _tasks.isNotEmpty && _tasks.every((t) => t.isDone),
           ),
           const SizedBox(height: 16),
-          SpringStagger(
-            count: 4,
-            stepDelay: const Duration(milliseconds: 120),
-            itemBuilder: (context, index) {
-              final cards = <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: HeroCountdownCard(
-                    primaryExam: widget.primaryExam,
-                    onTap: widget.onExamTap,
-                    remainingListenable: _remainingNotifier,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      TodayMissionCard(
-                        tasks: _tasks,
-                        onAddTask: _showAddTaskDialog,
-                        onToggle: _toggleTask,
-                        onDelete: _deleteTask,
-                      ),
-                      Positioned.fill(
-                        top: -12,
-                        left: -20,
-                        right: -20,
-                        bottom: -40,
-                        child: ConfettiBurst(
-                          active: _tasks.isNotEmpty &&
-                              _tasks.every((t) => t.isDone),
-                          particles: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: QuickActionCard(
-                    onOpenStudy: widget.onOpenStudy,
-                    onOpenAiCoach: widget.onOpenAiCoach,
-                  ),
-                ),
-                const SmartNudgeCard(),
-              ];
-              return cards[index];
+          HeroCountdownCard(
+            primaryExam: widget.primaryExam,
+            onTap: widget.onExamTap,
+            remainingListenable: _remainingNotifier,
+          ),
+          const SizedBox(height: 14),
+          TodayMissionCard(
+            tasks: _tasks,
+            onAddTask: _showAddTaskDialog,
+            onToggle: _toggleTask,
+            onDelete: _deleteTask,
+            onAddSample: _showSampleTasksSheet,
+          ),
+          const SizedBox(height: 14),
+          QuickActionCard(
+            onOpenStudy: widget.onOpenStudy,
+            onOpenAiCoach: widget.onOpenAiCoach,
+            onOpenAiPlan: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AiPlanScreen()),
+              );
             },
           ),
+          const SizedBox(height: 14),
+          const SmartNudgeCard(),
         ],
       ),
     );
@@ -230,6 +211,125 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (_) => _AddTaskDialog(onAdd: _addTask),
+    );
+  }
+
+  /// Sheet thêm nhanh nhiệm vụ mẫu theo kỳ thi mục tiêu đang ghim.
+  void _showSampleTasksSheet() {
+    final exam = widget.primaryExam;
+    PresetExam? preset;
+    if (exam != null) {
+      for (final p in PresetExams.all) {
+        if (exam.id == p.id ||
+            exam.name.toLowerCase().contains(p.name.toLowerCase()) ||
+            p.name.toLowerCase().contains(exam.name.toLowerCase())) {
+          preset = p;
+          break;
+        }
+      }
+    }
+    final samples = preset?.sampleTasks ?? PresetExams.all.first.sampleTasks;
+    final presetName = preset?.name ?? PresetExams.all.first.name;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+              child: Text(
+                'Nhiệm vụ mẫu — $presetName',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Chạm để thêm vào nhiệm vụ hôm nay',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...samples.map((t) {
+              final added = _tasks.any(
+                  (task) => task.title.toLowerCase() == t.title.toLowerCase());
+              return GestureDetector(
+                onTap: added
+                    ? null
+                    : () {
+                        _addTask(t.title, t.subject, t.priority, t.minutes);
+                        Navigator.pop(ctx);
+                      },
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgPage,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        added
+                            ? Icons.check_circle_rounded
+                            : Icons.add_circle_outline_rounded,
+                        size: 18,
+                        color: added ? AppColors.green : AppColors.blue,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${t.subject} ${t.title}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: added
+                                    ? AppColors.textMuted
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '⏱ ${t.minutes} phút',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        added ? 'Đã thêm' : 'Thêm',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: added ? AppColors.green : AppColors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 14),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -244,15 +344,10 @@ class _AddTaskDialog extends StatefulWidget {
   State<_AddTaskDialog> createState() => _AddTaskDialogState();
 }
 
-class _AddTaskDialogState extends State<_AddTaskDialog>
-    with SingleTickerProviderStateMixin {
+class _AddTaskDialogState extends State<_AddTaskDialog> {
   final _titleCtrl = TextEditingController();
-  late final AnimationController _shakeCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
   String _subject = '📐 Toán';
-  final String _priority = 'medium';
+  String _priority = 'medium';
   int _minutes = 45;
   final _subjects = [
     '📐 Toán',
@@ -264,11 +359,15 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
     '💡 Khác'
   ];
   final _durations = [15, 30, 45, 60, 90];
+  final Map<String, String> _priorities = const {
+    'high': '🔥 Quan trọng',
+    'medium': '⭐ Vừa',
+    'low': '🌱 Nhẹ',
+  };
 
   @override
   void dispose() {
     _titleCtrl.dispose();
-    _shakeCtrl.dispose();
     super.dispose();
   }
 
@@ -276,7 +375,6 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
       HapticFeedback.vibrate();
-      _shakeCtrl.forward(from: 0);
       return;
     }
     widget.onAdd(title, _subject, _priority, _minutes);
@@ -285,9 +383,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
 
   @override
   Widget build(BuildContext context) {
-    return SpringShake(
-      controller: _shakeCtrl,
-      child: AlertDialog(
+    return AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border, width: 2),
@@ -374,6 +470,40 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 12),
+              const Text('Mức ưu tiên:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _priorities.entries.map((e) {
+                  final sel = _priority == e.key;
+                  return GestureDetector(
+                    onTap: () => setState(() => _priority = e.key),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: sel ? AppColors.orange : AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: sel ? AppColors.orange : AppColors.border,
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        e.value,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: sel ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ],
           ),
         ),
@@ -389,7 +519,6 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
                     color: AppColors.green, fontWeight: FontWeight.w800)),
           ),
         ],
-      ),
     );
   }
 }

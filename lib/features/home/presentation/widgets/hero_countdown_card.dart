@@ -24,8 +24,6 @@ class HeroCountdownCard extends StatefulWidget {
 }
 
 class _HeroCountdownCardState extends State<HeroCountdownCard> {
-  bool _pressed = false;
-
   @override
   Widget build(BuildContext context) {
     final primaryExam = widget.primaryExam;
@@ -37,15 +35,8 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         : 0.0;
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
       onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? 0.985 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
-        child: GlassCard(
+      child: GlassCard(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +140,6 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
             ],
           ),
         ),
-      ),
     );
   }
 
@@ -199,40 +189,19 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         ),
         boxShadow: [
           BoxShadow(
-              color: AppColors.borderDark,
+              color: AppColors.borderStrong,
               blurRadius: 0,
               offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 240),
-            transitionBuilder: (child, animation) {
-              final pop = CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutBack,
-              );
-              return ScaleTransition(
-                scale: Tween<double>(begin: 0.72, end: 1.0).animate(pop),
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.0, 0.25),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                      parent: animation, curve: Curves.easeOutCubic)),
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-              );
-            },
-            child: Text(
-              value,
-              key: ValueKey<String>(value),
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: isAccent ? AppColors.greenDark : AppColors.textPrimary,
-              ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: isAccent ? AppColors.greenDark : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 2),

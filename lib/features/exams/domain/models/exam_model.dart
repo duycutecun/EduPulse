@@ -1,14 +1,12 @@
 import 'dart:convert';
 
 enum ExamType { preset, custom }
-enum ExamPriority { primary, watching, done }
 
 class ExamModel {
   final String id;
   final String name;
   final DateTime dateTime;
   final ExamType type;
-  ExamPriority priority;
   final String? description;
   final String emoji;
 
@@ -17,7 +15,6 @@ class ExamModel {
     required this.name,
     required this.dateTime,
     this.type = ExamType.preset,
-    this.priority = ExamPriority.watching,
     this.description,
     this.emoji = '🎯',
   });
@@ -40,7 +37,6 @@ class ExamModel {
     'name': name,
     'dateTime': dateTime.toIso8601String(),
     'type': type.index,
-    'priority': priority.index,
     'description': description,
     'emoji': emoji,
   };
@@ -50,7 +46,6 @@ class ExamModel {
     name: j['name'],
     dateTime: DateTime.parse(j['dateTime']),
     type: ExamType.values[j['type'] ?? 1],
-    priority: ExamPriority.values[j['priority'] ?? 1],
     description: j['description'],
     emoji: j['emoji'] ?? '🎯',
   );

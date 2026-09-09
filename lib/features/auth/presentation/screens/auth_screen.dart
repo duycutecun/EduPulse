@@ -35,10 +35,17 @@ class _AuthScreenState extends State<AuthScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Rebuild khi đổi tab để nút hành động đổi nhãn (thay cho AnimatedBuilder).
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _loginEmailCtrl.dispose();
     _loginPwCtrl.dispose();
@@ -224,11 +231,9 @@ class _AuthScreenState extends State<AuthScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
-                AnimatedBuilder(
-                  animation: _tabController,
-                  builder: (context, _) {
-                    final isLogin = _tabController.index == 0;
-                    return GestureDetector(
+                Builder(builder: (context) {
+                  final isLogin = _tabController.index == 0;
+                  return GestureDetector(
                       onTap: _isLoading
                           ? null
                           : (isLogin ? _doLogin : _doRegister),

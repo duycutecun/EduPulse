@@ -78,17 +78,25 @@ create policy "logs_own" on public.study_logs
 
 -- ── leaderboard ─────────────────────────────────────────────────
 -- Bảng điểm chung: đọc công khai (không cần đăng nhập).
+-- Mỗi user có đúng 1 dòng (user_id unique) — app upsert theo user_id.
 create table if not exists public.leaderboard (
   id           uuid primary key default gen_random_uuid(),
+  user_id      text unique,
   name         text,
   target       text,
   streak       int default 0,
   weekly_hours numeric default 0,
   emoji        text default '🦁',
-  badge        text default '🔥 Sĩ tử',
-  cheers       int default 0,
   updated_at   timestamptz default now()
 );
+
+-- Migration cho bảng đã tạo từ schema cũ: thêm cột user_id + ràng buộc unique.
+alter table public.leaderboard add column if not exists user_id text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'leaderboard_user_id_key') then
+    alter table public.leaderboard add constraint leaderboard_user_id_key unique (user_id);
+  end if;
+end $$;
 
 alter table public.leaderboard enable row level security;
 
@@ -96,9 +104,12 @@ alter table public.leaderboard enable row level security;
 create policy "leaderboard_public_select" on public.leaderboard
   for select using (true);
 
--- Chỉ user đã đăng nhập mới được ghi vào bảng xếp hạng.
-create policy "leaderboard_auth_insert_update" on public.leaderboard
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+-- User đăng nhập chỉ được ghi/sửa dòng của chính mình.
+drop policy if exists "leaderboard_auth_insert_update" on public.leaderboard;
+create policy "leaderboard_own_write" on public.leaderboard
+  for all to authenticated
+  using (user_id = auth.uid()::text)
+  with check (user_id = auth.uid()::text);
 
 -- ── helper: xoá user khi cần ────────────────────────────────────
 -- delete from public.exams where user_id = '...';

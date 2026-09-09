@@ -6,7 +6,6 @@ import '../core/pwa/pwa_service.dart';
 import '../core/utils/storage_service.dart';
 import '../core/utils/supabase_service.dart';
 import '../shared/widgets/mesh_background.dart';
-import '../shared/widgets/seasonal_background.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
 import '../features/exams/presentation/screens/exams_screen.dart';
@@ -29,7 +28,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
   List<ExamModel> _exams = [];
   String? _primaryExamId;
   int _streak = 0;
-  int _streakRecord = 0;
 
   @override
   void initState() {
@@ -68,7 +66,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
 
     _streak = StorageService.getStreak();
-    _streakRecord = StorageService.getStreakRecord();
 
     setState(() {});
   }
@@ -124,6 +121,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
+  /// Đọc lại streak từ storage (gọi khi task hoàn thành / Pomodoro xong).
+  void _reloadStreak() {
+    if (!mounted) return;
+    setState(() {
+      _streak = StorageService.getStreak();
+    });
+  }
+
   void _switchTab(int index) {
     if (_currentIndex != index) {
       HapticFeedback.selectionClick();
@@ -137,9 +142,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
-      body: SeasonalBackground(
-        child: MeshBackground(
-          child: SafeArea(
+      body: MeshBackground(
+        child: SafeArea(
             bottom: false,
             child: Column(
               children: [
@@ -164,8 +168,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
                         onOpenStudy: () => _switchTab(3),
                         onOpenAiCoach: () => _switchTab(2),
                         streak: _streak,
-                        streakRecord: _streakRecord,
                         isActive: _currentIndex == 0,
+                        onStreakChanged: _reloadStreak,
                       ),
                       ExamsScreen(
                         exams: _exams,
@@ -176,7 +180,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                         onDeleteExam: _deleteExam,
                       ),
                       const AiCoachScreen(),
-                      const StudyScreen(),
+                      StudyScreen(onStreakChanged: _reloadStreak),
                       AccountScreen(
                         onDataChanged: _loadInitialData,
                       ),
@@ -186,7 +190,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
               ],
             ),
           ),
-        ),
       ),
     );
   }
@@ -342,7 +345,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: AppColors.borderStrong,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -375,12 +378,12 @@ class _InstallBannerState extends State<_InstallBanner> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Cài đặt EduPulse trên iOS',
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A1A1A),
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -632,8 +635,7 @@ class _OfflineBannerState extends State<_OfflineBanner> {
             ? 'Chế độ ngoại tuyến • Dữ liệu đang được lưu an toàn trên máy'
             : 'Đã kết nối lại • Đang tự động đồng bộ dữ liệu...';
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+        return Container(
           margin: const EdgeInsets.fromLTRB(12, 6, 12, 2),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(

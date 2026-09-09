@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../domain/models/study_models.dart';
+import '../../domain/weekly_summary.dart';
 
 class WeeklyChartWidget extends StatelessWidget {
   final List<StudyLog> logs;
@@ -10,19 +11,12 @@ class WeeklyChartWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final summary = summarizeWeek(logs);
     final now = DateTime.now();
     final dayNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    final dailyHours = List<double>.filled(7, 0.0);
+    final dailyHours = summary.dailyHours;
 
-    for (final log in logs) {
-      final diff = now.difference(log.date).inDays;
-      if (diff >= 0 && diff < 7) {
-        final weekdayIndex = (log.date.weekday - 1) % 7;
-        dailyHours[weekdayIndex] += log.hours;
-      }
-    }
-
-    final totalWeeklyHours = dailyHours.fold(0.0, (sum, val) => sum + val);
+    final totalWeeklyHours = summary.totalHours;
     final hasData = totalWeeklyHours > 0;
 
     if (!hasData) {
@@ -32,12 +26,9 @@ class WeeklyChartWidget extends StatelessWidget {
     final maxHours =
         dailyHours.reduce((curr, next) => curr > next ? curr : next);
     final safeMax = maxHours > 0 ? maxHours : 8.0;
-    final avgDaily = totalWeeklyHours / 7;
+    final avgDaily = summary.avgDaily;
 
-    final subjectMap = <String, double>{};
-    for (final log in logs) {
-      subjectMap[log.subject] = (subjectMap[log.subject] ?? 0) + log.hours;
-    }
+    final subjectMap = summary.subjectHours;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

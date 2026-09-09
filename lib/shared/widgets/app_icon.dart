@@ -51,7 +51,7 @@ class AppIcon extends StatelessWidget {
         boxShadow: shadow
             ? [
                 BoxShadow(
-                  color: AppColors.borderDark.withValues(alpha: 0.5),
+                  color: AppColors.borderStrong.withValues(alpha: 0.5),
                   blurRadius: 0,
                   offset: Offset(0, tileSize * 0.11),
                 ),

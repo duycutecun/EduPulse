@@ -9,18 +9,10 @@ import 'glass_card.dart';
 /// quản lý state để tái sử dụng được ở nhiều màn hình (Tài khoản, Community).
 class LeaderboardView extends StatelessWidget {
   final List<CommunityUser> users;
-  final List<String> filters;
-  final String selectedFilter;
-  final ValueChanged<String> onFilterSelected;
-  final ValueChanged<CommunityUser> onCheer;
 
   const LeaderboardView({
     super.key,
     required this.users,
-    required this.filters,
-    required this.selectedFilter,
-    required this.onFilterSelected,
-    required this.onCheer,
   });
 
   @override
@@ -28,30 +20,6 @@ class LeaderboardView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: filters.map((f) {
-              final sel = selectedFilter == f;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => onFilterSelected(f),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: sel ? AppColors.green : AppColors.cardWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: sel ? AppColors.green : AppColors.border, width: 2),
-                    ),
-                    child: Text(f, style: TextStyle(fontSize: 12, fontWeight: sel ? FontWeight.w800 : FontWeight.w600, color: sel ? Colors.white : AppColors.textPrimary)),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 18),
         if (users.length >= 3) ...[_buildPodium(), const SizedBox(height: 18)],
         if (users.isNotEmpty)
           ...users.map((user) => GlassCard(
@@ -81,19 +49,6 @@ class LeaderboardView extends StatelessWidget {
                     const Text('🔥', style: TextStyle(fontSize: 12)),
                     Text('${user.streak}d', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                   ],
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => onCheer(user),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: user.hasCheered ? AppColors.red.withValues(alpha: 0.15) : AppColors.bgPage,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: user.hasCheered ? AppColors.red : AppColors.border, width: 2),
-                    ),
-                    child: Text(user.hasCheered ? '❤️ ${user.cheers}' : '🤍 ${user.cheers}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                  ),
                 ),
               ],
             ),

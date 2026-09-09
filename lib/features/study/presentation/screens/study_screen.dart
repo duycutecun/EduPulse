@@ -3,17 +3,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/ai/ai_models.dart';
+import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
-import '../../../../shared/widgets/spring_press.dart';
-import '../../../../shared/widgets/spring_stagger.dart';
 import '../../domain/models/study_models.dart';
+import '../../domain/score_summary.dart';
 import '../widgets/weekly_chart_widget.dart';
 
 class StudyScreen extends StatefulWidget {
-  const StudyScreen({super.key});
+  final VoidCallback? onStreakChanged;
+
+  const StudyScreen({super.key, this.onStreakChanged});
 
   @override
   State<StudyScreen> createState() => _StudyScreenState();
@@ -22,6 +26,7 @@ class StudyScreen extends StatefulWidget {
 class _StudyScreenState extends State<StudyScreen> {
   final _uuid = const Uuid();
   List<StudyLog> _logs = [];
+  List<MockScore> _scores = [];
   int _activeTab = 0;
 
   int _focusMinutes = 25;
@@ -37,6 +42,39 @@ class _StudyScreenState extends State<StudyScreen> {
   void initState() {
     super.initState();
     _loadLogs();
+    _loadScores();
+  }
+
+  void _loadScores() {
+    final ids = StorageService.getMockScoreIds();
+    _scores = ids
+        .map((id) {
+          final json = StorageService.getMockScoreJson(id);
+          if (json == null) return null;
+          return MockScore.fromJsonString(json);
+        })
+        .whereType<MockScore>()
+        .toList();
+    _scores.sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  void _addScore(String subject, double score, String? note) {
+    final s = MockScore(
+      id: _uuid.v4(),
+      date: DateTime.now(),
+      subject: subject,
+      score: score,
+      note: note,
+    );
+    StorageService.setMockScoreJson(s.id, s.toJsonString());
+    final ids = StorageService.getMockScoreIds()..add(s.id);
+    StorageService.setMockScoreIds(ids);
+    setState(() => _scores.insert(0, s));
+  }
+
+  void _deleteScore(MockScore s) {
+    StorageService.removeMockScore(s.id);
+    setState(() => _scores.remove(s));
   }
 
   void _loadLogs() {
@@ -102,6 +140,10 @@ class _StudyScreenState extends State<StudyScreen> {
               _isBreak = true;
               _pomSecondsNotifier.value = _breakMinutes * 60;
               _addLog('Pomodoro', _focusMinutes / 60.0, 'Phiên $_pomRound');
+              // Kết thúc phiên tập trung → streak + EXP gắn kết linh vật.
+              StorageService.registerStudyActivity();
+              StorageService.addMascotBondExp(25);
+              widget.onStreakChanged?.call();
             }
           });
         }
@@ -142,6 +184,7 @@ class _StudyScreenState extends State<StudyScreen> {
                 _tabBtn(0, 'Pomodoro'),
                 _tabBtn(1, 'Biểu đồ'),
                 _tabBtn(2, 'Nhật ký'),
+                _tabBtn(3, 'Điểm thi'),
               ],
             ),
           ),
@@ -149,7 +192,9 @@ class _StudyScreenState extends State<StudyScreen> {
         Expanded(
           child: _activeTab == 0
               ? _buildPomodoroTab()
-              : (_activeTab == 1 ? _buildChartTab() : _buildLogTab()),
+              : (_activeTab == 1
+                  ? _buildChartTab()
+                  : (_activeTab == 2 ? _buildLogTab() : _buildScoreTab())),
         ),
       ],
     );
@@ -160,8 +205,7 @@ class _StudyScreenState extends State<StudyScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _activeTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+        child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isActive ? AppColors.green : Colors.transparent,
@@ -201,61 +245,63 @@ class _StudyScreenState extends State<StudyScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          _PomodoroBreathingRing(
-            isRunning: _pomRunning,
-            color: activeColor,
-            child: ValueListenableBuilder<int>(
-              valueListenable: _pomSecondsNotifier,
-              builder: (context, secondsRemaining, _) {
-                final minutes = secondsRemaining ~/ 60;
-                final seconds = secondsRemaining % 60;
-                final progress = totalSec > 0
-                    ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
-                    : 0.0;
-                return SizedBox(
-                  width: 220,
-                  height: 220,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 200,
-                        height: 200,
-                        child: CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 14,
-                          strokeCap: StrokeCap.round,
-                          backgroundColor: AppColors.border,
-                          valueColor: AlwaysStoppedAnimation<Color>(activeColor),
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 220,
+                height: 220,
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _pomSecondsNotifier,
+                  builder: (context, secondsRemaining, _) {
+                    final minutes = secondsRemaining ~/ 60;
+                    final seconds = secondsRemaining % 60;
+                    final progress = totalSec > 0
+                        ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
+                        : 0.0;
+                    return SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Text(
-                            '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
+                          CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 14,
+                            strokeCap: StrokeCap.round,
+                            backgroundColor: AppColors.border,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(activeColor),
                           ),
-                          Text(
-                            'Phiên $_pomRound',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                              color: AppColors.textMuted,
-                            ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                                style: TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                'Phiên $_pomRound',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(
@@ -293,7 +339,7 @@ class _StudyScreenState extends State<StudyScreen> {
               _TactileCircleButton(
                 size: 52,
                 color: AppColors.cardWhite,
-                shadowColor: AppColors.borderDark.withValues(alpha: 0.6),
+                shadowColor: AppColors.borderStrong.withValues(alpha: 0.6),
                 border: Border.all(color: AppColors.border, width: 2),
                 onTap: _resetPomodoro,
                 child: Icon(
@@ -332,9 +378,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _modeChip(int focus, int brk, String label) {
     final sel = _focusMinutes == focus;
-    return SpringPress(
-      pressScale: 0.92,
-      pressTranslate: 1.5,
+    return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
         _setPomodoroMode(focus, brk);
@@ -432,10 +476,10 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             )
           else
-            SpringStagger(
-              count: _logs.length,
-              stepDelay: const Duration(milliseconds: 60),
-              itemBuilder: (context, i) => _buildLogItem(_logs[i]),
+            Column(
+              children: [
+                for (final log in _logs) _buildLogItem(log),
+              ],
             ),
         ],
       ),
@@ -444,10 +488,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _statCard(String val, String label, Color color, IconData icon) {
     return Expanded(
-      child: SpringPress(
-        pressScale: 0.96,
-        pressTranslate: 2.0,
-        child: GlassCard(
+      child: GlassCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,7 +511,6 @@ class _StudyScreenState extends State<StudyScreen> {
                     color: AppColors.textMuted,
                     fontWeight: FontWeight.w600)),
           ],
-        ),
         ),
       ),
     );
@@ -546,6 +586,469 @@ class _StudyScreenState extends State<StudyScreen> {
     );
   }
 
+  Widget _buildScoreTab() {
+    final summaries = summarizeMockScores(_scores);
+    final avg = overallAverage(_scores);
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _statCard('${_scores.length}', 'Lần thi thử', AppColors.blue,
+                  Icons.assignment_rounded),
+              const SizedBox(width: 12),
+              _statCard(avg > 0 ? avg.toStringAsFixed(1) : '—', 'Điểm TB',
+                  AppColors.green, Icons.stars_rounded),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _showAddScoreDialog,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.green,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                            color: AppColors.greenDark,
+                            blurRadius: 0,
+                            offset: Offset(0, 4)),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_circle, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('GHI ĐIỂM THI THỬ',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _scores.isEmpty ? null : _analyzeScoresWithAi,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: _scores.isEmpty
+                          ? AppColors.border.withValues(alpha: 0.5)
+                          : AppColors.purple,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: _scores.isEmpty
+                          ? null
+                          : const [
+                              BoxShadow(
+                                  color: AppColors.purple,
+                                  blurRadius: 0,
+                                  offset: Offset(0, 4)),
+                            ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.psychology_rounded,
+                            color: Colors.white, size: 18),
+                        const SizedBox(width: 6),
+                        Text('AI PHÂN TÍCH',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_scores.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  const Text('📝', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Chưa có điểm thi thử.\nGhi lại điểm để theo dõi tiến bộ!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppColors.textMuted, fontSize: 13, height: 1.4),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            if (summaries.isNotEmpty) ...[
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Tổng hợp theo môn',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary)),
+                    const SizedBox(height: 12),
+                    ...summaries.map((s) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(s.subject,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary)),
+                                  Text(
+                                    '${s.average.toStringAsFixed(1)} • ${s.rating}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: s.average >= 8
+                                          ? AppColors.green
+                                          : (s.average >= 6.5
+                                              ? AppColors.orange
+                                              : AppColors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: LinearProgressIndicator(
+                                  value: (s.average / 10).clamp(0.0, 1.0),
+                                  minHeight: 8,
+                                  backgroundColor: AppColors.border,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    s.average >= 8
+                                        ? AppColors.green
+                                        : (s.average >= 6.5
+                                            ? AppColors.orange
+                                            : AppColors.red),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+            ..._scores.map((s) => _buildScoreItem(s)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreItem(MockScore s) {
+    final color = s.score >= 8
+        ? AppColors.green
+        : (s.score >= 6.5 ? AppColors.orange : AppColors.red);
+    return Dismissible(
+      key: Key(s.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => _deleteScore(s),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.red.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
+      ),
+      child: GlassCard(
+        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  s.score.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.subject,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  if (s.note != null && s.note!.isNotEmpty)
+                    Text(s.note!,
+                        style:
+                            TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            Text('${s.date.day}/${s.date.month}',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddScoreDialog() {
+    final subjectCtrl = TextEditingController();
+    final scoreCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final subjects = ['📐 Toán', '📖 Văn', '🇬🇧 Anh', '⚡ Lý', '🧪 Hóa', '🧬 Sinh'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 2),
+        ),
+        title: const Text('Ghi điểm thi thử',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            String subject = subjectCtrl.text.isEmpty
+                ? '📐 Toán'
+                : subjectCtrl.text;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: subjects.map((sub) {
+                    final sel = subject == sub;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() {
+                        subjectCtrl.text = sub;
+                        subject = sub;
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: sel ? AppColors.green : AppColors.bgPage,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: sel ? AppColors.green : AppColors.border,
+                            width: 2,
+                          ),
+                        ),
+                        child: Text(
+                          sub,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: sel ? Colors.white : AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: subjectCtrl,
+                    decoration:
+                        const InputDecoration(hintText: 'Hoặc nhập môn khác')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: scoreCtrl,
+                    decoration: const InputDecoration(
+                        hintText: 'Điểm (0–10, VD: 7.5)'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true)),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: noteCtrl,
+                    decoration:
+                        const InputDecoration(hintText: 'Ghi chú (tùy chọn)')),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+            onPressed: () {
+              final score = double.tryParse(
+                  scoreCtrl.text.trim().replaceAll(',', '.'));
+              final subject = subjectCtrl.text.trim();
+              if (subject.isNotEmpty && score != null && score >= 0 && score <= 10) {
+                _addScore(subject, score,
+                    noteCtrl.text.isEmpty ? null : noteCtrl.text.trim());
+              } else if (score == null || score < 0 || score > 10) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(
+                    content: Text('Vui lòng nhập điểm từ 0 đến 10'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Lưu',
+                style: TextStyle(
+                    color: AppColors.green, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _analyzeScoresWithAi() async {
+    if (!PwaService.isOnline) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('AI cần kết nối mạng — hãy thử lại khi online!'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    final prompt = buildScorePrompt(_scores);
+    if (prompt.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '🧠 Phân tích điểm yếu',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 320,
+                child: FutureBuilder<String>(
+                  future: AiRouter.chat(
+                    model: AIModel.defaultModel,
+                    history: const [],
+                    userMessage: prompt,
+                    searchWeb: false,
+                  ),
+                  builder: (ctx, snap) {
+                    if (snap.connectionState != ConnectionState.done) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                                color: AppColors.green),
+                            const SizedBox(height: 12),
+                            Text('AI đang phân tích...',
+                                style: TextStyle(
+                                    fontSize: 13, color: AppColors.textMuted)),
+                          ],
+                        ),
+                      );
+                    }
+                    if (snap.hasError) {
+                      return Center(
+                        child: Text(
+                          'Lỗi: ${snap.error}',
+                          style: const TextStyle(color: AppColors.red),
+                        ),
+                      );
+                    }
+                    return SingleChildScrollView(
+                      child: Text(
+                        snap.data ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Đã hiểu',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAddLogDialog() {
     final subjectCtrl = TextEditingController();
     final hoursCtrl = TextEditingController(text: '1.0');
@@ -604,7 +1107,7 @@ class _StudyScreenState extends State<StudyScreen> {
 }
 
 /// Nút bấm hình tròn với độ lún vật lý xúc giác 3D (Duolingo tactile press)
-class _TactileCircleButton extends StatefulWidget {
+class _TactileCircleButton extends StatelessWidget {
   final double size;
   final Color color;
   final Color shadowColor;
@@ -622,132 +1125,29 @@ class _TactileCircleButton extends StatefulWidget {
   });
 
   @override
-  State<_TactileCircleButton> createState() => _TactileCircleButtonState();
-}
-
-class _TactileCircleButtonState extends State<_TactileCircleButton> {
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
       onTap: () {
         HapticFeedback.lightImpact();
-        widget.onTap();
+        onTap();
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 90),
-        curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0, _pressed ? 3.5 : 0, 0),
-        width: widget.size,
-        height: widget.size,
+      child: Container(
+        width: size,
+        height: size,
         decoration: BoxDecoration(
-          color: widget.color,
+          color: color,
           shape: BoxShape.circle,
-          border: widget.border,
+          border: border,
           boxShadow: [
             BoxShadow(
-              color: widget.shadowColor,
+              color: shadowColor,
               blurRadius: 0,
-              offset: Offset(0, _pressed ? 0.5 : 4.0),
+              offset: const Offset(0, 4.0),
             ),
           ],
         ),
-        child: Center(child: widget.child),
+        child: Center(child: child),
       ),
     );
   }
 }
-
-/// Vòng thở tập trung thiền định xung quanh đồng hồ Pomodoro:
-/// Khi đang học, quầng sáng co giãn nhịp nhàng (3.8s) giúp duy trì sự bình tĩnh và tập trung sâu.
-class _PomodoroBreathingRing extends StatefulWidget {
-  final bool isRunning;
-  final Color color;
-  final Widget child;
-
-  const _PomodoroBreathingRing({
-    required this.isRunning,
-    required this.color,
-    required this.child,
-  });
-
-  @override
-  State<_PomodoroBreathingRing> createState() => _PomodoroBreathingRingState();
-}
-
-class _PomodoroBreathingRingState extends State<_PomodoroBreathingRing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3800),
-    );
-    _anim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOutSine),
-    );
-    if (widget.isRunning) {
-      _ctrl.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _PomodoroBreathingRing oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isRunning && !_ctrl.isAnimating) {
-      _ctrl.repeat(reverse: true);
-    } else if (!widget.isRunning && _ctrl.isAnimating) {
-      _ctrl.stop();
-      _ctrl.animateTo(0.0, duration: const Duration(milliseconds: 300));
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final reducedMotion = MediaQuery.of(context).disableAnimations;
-
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (context, child) {
-        final auraSize = 210.0 +
-            (reducedMotion || !widget.isRunning ? 0.0 : _anim.value * 26.0);
-        final opacity = reducedMotion || !widget.isRunning
-            ? 0.0
-            : (0.07 + _anim.value * 0.12);
-
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            if (widget.isRunning && !reducedMotion)
-              Container(
-                width: auraSize,
-                height: auraSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: widget.color.withValues(alpha: opacity),
-                ),
-              ),
-            child!,
-          ],
-        );
-      },
-      child: widget.child,
-    );
-  }
-}
-
-

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/widgets/duo_hover_button.dart';
 
 class QuickActionCard extends StatelessWidget {
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
+  final VoidCallback onOpenAiPlan;
 
   const QuickActionCard({
     super.key,
     required this.onOpenStudy,
     required this.onOpenAiCoach,
+    required this.onOpenAiPlan,
   });
 
   @override
@@ -24,11 +25,18 @@ class QuickActionCard extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _buildActionButton(
+          icon: Icons.route_rounded,
+          label: 'LỘ TRÌNH AI',
+          subtitle: 'AI lập kế hoạch học tuần',
+          onTap: onOpenAiPlan,
+          isSecondary: true,
+        ),
+        const SizedBox(height: 10),
+        _buildActionButton(
           icon: Icons.auto_awesome_rounded,
           label: 'HỎI AI BÀI TẬP',
           subtitle: 'Giải đề qua ảnh OCR',
           onTap: onOpenAiCoach,
-          isSecondary: true,
         ),
       ],
     );
@@ -41,11 +49,8 @@ class QuickActionCard extends StatelessWidget {
     required VoidCallback onTap,
     bool isSecondary = false,
   }) {
-    return DuoHoverButton(
+    return GestureDetector(
       onTap: onTap,
-      normalColor: isSecondary ? AppColors.cardWhite : AppColors.green,
-      hoverColor: isSecondary ? AppColors.bgPage : AppColors.greenLight,
-      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -58,7 +63,7 @@ class QuickActionCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: isSecondary ? AppColors.borderDark : AppColors.greenDark,
+              color: isSecondary ? AppColors.borderStrong : AppColors.greenDark,
               blurRadius: 0,
               offset: const Offset(0, 4),
             ),

@@ -13,6 +13,12 @@ class StorageService {
     return _prefs!;
   }
 
+  // Onboarding
+  static bool isOnboardingDone() =>
+      _prefs?.getBool('onboarding_done') ?? false;
+  static void setOnboardingDone() =>
+      _prefs?.setBool('onboarding_done', true);
+
   // Exam operations
   static List<String> getExamIds() =>
       _prefs?.getStringList('exam_ids') ?? [];
@@ -44,6 +50,71 @@ class StorageService {
 
   static int getStreakRecord() => _prefs?.getInt('streak_record') ?? 0;
   static void setStreakRecord(int v) => _prefs?.setInt('streak_record', v);
+
+  // Lá bùa giữ chuỗi (streak freeze)
+  static int getStreakFreezes() => _prefs?.getInt('streak_freeze_count') ?? 0;
+  static void setStreakFreezes(int v) =>
+      _prefs?.setInt('streak_freeze_count', v);
+
+  /// Mua lá bùa bằng EXP gắn kết linh vật (tối đa giữ 3 lá).
+  /// Trả về true nếu mua thành công.
+  static bool buyStreakFreeze() {
+    const cost = 100;
+    if (getMascotBondExp() < cost) return false;
+    if (getStreakFreezes() >= 3) return false;
+    addMascotBondExp(-cost);
+    setStreakFreezes(getStreakFreezes() + 1);
+    return true;
+  }
+
+  /// Ghi nhận hoạt động học hôm nay và cập nhật streak theo ngày.
+  ///
+  /// Gọi khi user hoàn thành nhiệm vụ hoặc kết thúc phiên Pomodoro.
+  /// Quy tắc:
+  /// - Chưa học hôm nay → +1 nếu học liền ngày hôm qua (duy trì chuỗi).
+  /// - Bỏ lỡ ĐÚNG 1 ngày và còn lá bùa → tiêu 1 lá bùa, giữ nguyên streak.
+  /// - Bỏ lỡ >= 2 ngày (hoặc hết lá bùa) → reset về 1.
+  /// - Đã học hôm nay → không đổi (tránh cộng nhiều lần trong ngày).
+  /// Kỷ lục streak được cập nhật tự động.
+  static void registerStudyActivity() {
+    final now = DateTime.now();
+    final today = _dayKey(now);
+    final last = getString('last_study_date');
+    if (last == today) return; // đã học hôm nay
+
+    final yesterday = _dayKey(now.subtract(const Duration(days: 1)));
+    final twoDaysAgo = _dayKey(now.subtract(const Duration(days: 2)));
+    setString('last_study_date', today);
+
+    if (last == yesterday) {
+      final streak = getStreak() + 1;
+      setStreak(streak);
+      if (streak > getStreakRecord()) setStreakRecord(streak);
+      return;
+    }
+
+    // Bỏ lỡ đúng 1 ngày: tiêu lá bùa để giữ chuỗi (không tăng streak).
+    if (last == twoDaysAgo && getStreakFreezes() > 0) {
+      setStreakFreezes(getStreakFreezes() - 1);
+      return;
+    }
+
+    // Bỏ lỡ lâu hơn / hết bùa: reset về 1.
+    setStreak(1);
+    if (1 > getStreakRecord()) setStreakRecord(1);
+  }
+
+  static String _dayKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static String? getString(String key) => _prefs?.getString(key);
+  static void setString(String key, String v) => _prefs?.setString(key, v);
+
+  static bool? getBool(String key) => _prefs?.getBool(key);
+  static void setBool(String key, bool v) => _prefs?.setBool(key, v);
+
+  static int? getInt(String key) => _prefs?.getInt(key);
+  static void setInt(String key, int v) => _prefs?.setInt(key, v);
 
   // XP / Level
   static int getXp() => _prefs?.getInt('user_xp') ?? 0;
@@ -86,10 +157,7 @@ class StorageService {
     return (xp, xpForLevel(level));
   }
 
-  static String? getLastStudyDate() =>
-      _prefs?.getString('last_study_date');
-  static void setLastStudyDate(String d) =>
-      _prefs?.setString('last_study_date', d);
+
 
   // Study Logs
   static List<String> getStudyLogIds() =>
@@ -107,8 +175,10 @@ class StorageService {
   }
 
   // Theme
-  static String getThemeMode() => _prefs?.getString('theme_mode') ?? 'system';
-  static void setThemeMode(String v) => _prefs?.setString('theme_mode', v);
+  static String getThemeMode() =>
+      _prefs?.getString('theme_mode') ?? 'system'; // 'system' | 'light' | 'dark'
+  static void setThemeMode(String v) =>
+      _prefs?.setString('theme_mode', v);
 
   // Profile
   static String getUserName() =>
@@ -141,6 +211,21 @@ class StorageService {
     _prefs?.remove('task_$id');
     final ids = getTodayTaskIds()..remove(id);
     setTodayTaskIds(ids);
+  }
+
+  // Mock Scores (điểm thi thử)
+  static List<String> getMockScoreIds() =>
+      _prefs?.getStringList('mock_score_ids') ?? [];
+  static void setMockScoreIds(List<String> ids) =>
+      _prefs?.setStringList('mock_score_ids', ids);
+  static String? getMockScoreJson(String id) =>
+      _prefs?.getString('mock_score_$id');
+  static void setMockScoreJson(String id, String json) =>
+      _prefs?.setString('mock_score_$id', json);
+  static void removeMockScore(String id) {
+    _prefs?.remove('mock_score_$id');
+    final ids = getMockScoreIds()..remove(id);
+    setMockScoreIds(ids);
   }
 
   // Supabase Cloud Config
@@ -192,6 +277,9 @@ class StorageService {
 
   static int getMascotBondExp() =>
       _prefs?.getInt('mascot_bond_exp') ?? 120;
+
+  static void setMascotBondExp(int v) =>
+      _prefs?.setInt('mascot_bond_exp', v);
 
   static void addMascotBondExp(int delta) {
     final cur = getMascotBondExp();
