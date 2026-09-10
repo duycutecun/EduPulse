@@ -1,36 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
   /// Dùng palette explicit (không qua darkFallback) để theme luôn đúng
   /// bất kể thứ tự build.
-  static ThemeData get lightTheme {
-    return _build(
-      brightness: Brightness.light,
-      bg: AppColors.bgPageLight,
-      card: AppColors.cardLight,
-      border: AppColors.borderLight,
-      textPrimary: AppColors.textPrimaryLight,
-      textSecondary: AppColors.textSecondaryLight,
-      muted: AppColors.textMutedLight,
-      tertiary: AppColors.tertiaryLight,
-    );
-  }
+  ///
+  /// Cache static final: không dựng lại text theme mỗi lần đổi theme. Font
+  /// Nunito được bundle local (xem pubspec.yaml) nên không phải tải từ mạng.
+  static final ThemeData lightTheme = _build(
+    brightness: Brightness.light,
+    bg: AppColors.bgPageLight,
+    card: AppColors.cardLight,
+    border: AppColors.borderLight,
+    textPrimary: AppColors.textPrimaryLight,
+    textSecondary: AppColors.textSecondaryLight,
+    muted: AppColors.textMutedLight,
+    tertiary: AppColors.tertiaryLight,
+  );
 
-  static ThemeData get darkTheme {
-    return _build(
-      brightness: Brightness.dark,
-      bg: AppColors.bgPageDark,
-      card: AppColors.cardDark,
-      border: AppColors.borderStrong,
-      textPrimary: AppColors.textPrimaryDark,
-      textSecondary: AppColors.textSecondaryDark,
-      muted: AppColors.textMutedDark,
-      tertiary: AppColors.tertiaryDark,
-    );
-  }
+  static final ThemeData darkTheme = _build(
+    brightness: Brightness.dark,
+    bg: AppColors.bgPageDark,
+    card: AppColors.cardDark,
+    border: AppColors.borderStrong,
+    textPrimary: AppColors.textPrimaryDark,
+    textSecondary: AppColors.textSecondaryDark,
+    muted: AppColors.textMutedDark,
+    tertiary: AppColors.tertiaryDark,
+  );
 
   static ThemeData _build({
     required Brightness brightness,
@@ -42,12 +40,13 @@ class AppTheme {
     required Color muted,
     required Color tertiary,
   }) {
-    final baseTextTheme = GoogleFonts.nunitoTextTheme(
-      ThemeData(brightness: brightness).textTheme.apply(
-            bodyColor: textPrimary,
-            displayColor: textPrimary,
-          ),
-    );
+    final baseTextTheme = ThemeData(brightness: brightness)
+        .textTheme
+        .apply(
+          bodyColor: textPrimary,
+          displayColor: textPrimary,
+          fontFamily: 'Nunito',
+        );
 
     final colorScheme = ColorScheme(
       brightness: brightness,

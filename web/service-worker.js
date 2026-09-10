@@ -1,6 +1,8 @@
 'use strict';
 
-const CACHE_NAME = 'edupulse-shell-v7';
+// Bump tên cache mỗi lần deploy: main.dart.js không có hash nên cần đổi
+// tên để buộc xóa bản cũ đã cache (nếu không, PWA đã cài sẽ giữ mãi JS cũ).
+const CACHE_NAME = 'edupulse-shell-v8';
 const OFFLINE_CACHE_NAME = 'edupulse-offline-v1';
 
 // Core app shell precached on install.
@@ -202,28 +204,6 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-
-  // Google Fonts caching
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(
-      caches.open('edupulse-fonts-v1').then(async (cache) => {
-        const cached = await cache.match(request);
-        if (cached) return cleanResponse(cached);
-        try {
-          const res = await fetch(request);
-          if (res && res.ok) {
-            const clean = await cleanResponse(res);
-            cache.put(request, clean.clone());
-            return clean;
-          }
-          return res;
-        } catch (_) {
-          return cached ? cleanResponse(cached) : new Response('', { status: 408 });
-        }
-      })
-    );
-    return;
-  }
 
   // Only handle same-origin requests.
   if (url.origin !== location.origin) return;

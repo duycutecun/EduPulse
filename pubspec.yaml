@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  google_fonts: ^8.2.1
   uuid: ^4.3.3
   shared_preferences: ^2.2.2
   http: ^1.1.0
@@ -30,3 +29,19 @@ flutter:
 
   assets:
     - assets/images/
+
+  # Nunito bundle local — không tải font từ mạng khi mở app (web/PWA
+  # load nhanh hơn, không bị nháy chữ, dùng được cả khi offline).
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-400.ttf
+          weight: 400
+        - asset: assets/fonts/Nunito-500.ttf
+          weight: 500
+        - asset: assets/fonts/Nunito-600.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-700.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-800.ttf
+          weight: 800

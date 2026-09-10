@@ -41,7 +41,9 @@ class AICoachHeader extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: Padding(
               padding: const EdgeInsets.all(4),
-              child: Image.asset('assets/images/mascot.png', fit: BoxFit.contain),
+              child: Image.asset('assets/images/mascot.png',
+                  fit: BoxFit.contain,
+                  cacheWidth: 120),
             ),
           ),
           const SizedBox(width: 12),

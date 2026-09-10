@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
@@ -15,6 +16,11 @@ int _toInt(Object? v, [int fallback = 0]) =>
 class SupabaseService {
   static SupabaseClient? _client;
 
+  /// Báo khi quá trình khởi tạo cloud hoàn tất (dù thành công hay thất bại).
+  /// Khởi tạo được defer sau frame đầu trong main.dart; các màn hình cần dữ
+  /// liệu cloud (vd Bảng vàng) lắng nghe notifier này để tự refresh.
+  static final ValueNotifier<bool> readyNotifier = ValueNotifier(false);
+
   static bool get isConfigured => _client != null;
 
   static User? get currentUser => _client?.auth.currentUser;
@@ -27,22 +33,27 @@ class SupabaseService {
   // ─── INITIALIZATION ───────────────────────────────────────────────────────
 
   static Future<bool> init({String? customUrl, String? customKey}) async {
-    final url = (customUrl ?? StorageService.getSupabaseUrl()).trim();
-    final anonKey = (customKey ?? StorageService.getSupabaseAnonKey()).trim();
-
-    if (url.isEmpty || anonKey.isEmpty) return false;
-
     try {
-      await Supabase.initialize(url: url, publishableKey: anonKey);
-      _client = Supabase.instance.client;
-      return true;
-    } catch (_) {
+      final url = (customUrl ?? StorageService.getSupabaseUrl()).trim();
+      final anonKey =
+          (customKey ?? StorageService.getSupabaseAnonKey()).trim();
+
+      if (url.isEmpty || anonKey.isEmpty) return false;
+
       try {
+        await Supabase.initialize(url: url, publishableKey: anonKey);
         _client = Supabase.instance.client;
         return true;
       } catch (_) {
-        return false;
+        try {
+          _client = Supabase.instance.client;
+          return true;
+        } catch (_) {
+          return false;
+        }
       }
+    } finally {
+      readyNotifier.value = true;
     }
   }
 

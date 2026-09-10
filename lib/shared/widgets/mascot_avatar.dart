@@ -266,6 +266,8 @@ class _MascotAvatarState extends State<MascotAvatar> {
                   child: Image.asset(
                     'assets/images/mascot.png',
                     fit: BoxFit.contain,
+                    // Decode đúng kích thước hiển thị (x3 cho màn hình retina).
+                    cacheWidth: (widget.size * 3).round(),
                   ),
                 ),
               ),

@@ -71,8 +71,14 @@ class ChatBubble extends StatelessWidget {
               if (msg.imageBytes != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.memory(msg.imageBytes!,
-                      fit: BoxFit.cover, height: 150),
+                  child: Image.memory(
+                    msg.imageBytes!,
+                    fit: BoxFit.cover,
+                    height: 150,
+                    // Ảnh chụp có thể 12MP — decode theo kích thước hiển thị.
+                    cacheWidth: (MediaQuery.sizeOf(context).width * 1.5)
+                        .round(),
+                  ),
                 ),
                 if (msg.text.isNotEmpty) const SizedBox(height: 8),
               ],
@@ -99,8 +105,13 @@ class ChatBubble extends StatelessWidget {
             if (msg.imageBytes != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.memory(msg.imageBytes!,
-                    fit: BoxFit.cover, height: 150),
+                child: Image.memory(
+                  msg.imageBytes!,
+                  fit: BoxFit.cover,
+                  height: 150,
+                  cacheWidth: (MediaQuery.sizeOf(context).width * 1.5)
+                      .round(),
+                ),
               ),
               if (msg.text.isNotEmpty) const SizedBox(height: 8),
             ],

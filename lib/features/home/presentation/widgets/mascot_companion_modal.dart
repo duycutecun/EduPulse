@@ -326,6 +326,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                         child: Image.asset(
                           'assets/images/mascot.png',
                           fit: BoxFit.contain,
+                          cacheWidth: 360,
                         ),
                       ),
                     ),

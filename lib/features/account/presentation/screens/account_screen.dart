@@ -41,6 +41,20 @@ class _AccountScreenState extends State<AccountScreen> {
     super.initState();
     _loadData();
     _initLeaderboard();
+    // Supabase được khởi tạo sau frame đầu — khi xong sẽ tự nạp lại Bảng vàng.
+    SupabaseService.readyNotifier.addListener(_onSupabaseReady);
+  }
+
+  @override
+  void dispose() {
+    SupabaseService.readyNotifier.removeListener(_onSupabaseReady);
+    super.dispose();
+  }
+
+  void _onSupabaseReady() {
+    if (mounted && SupabaseService.isConfigured) {
+      _initLeaderboard();
+    }
   }
 
   void _loadData() {

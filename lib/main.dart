@@ -12,10 +12,20 @@ import 'app/main_shell.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   PwaService.init();
+  // Storage bắt buộc phải sẵn sàng trước khi các màn hình đọc dữ liệu.
   await StorageService.init();
-  await SupabaseService.init();
-  await NotificationService.init();
   runApp(const EduPulseApp());
+
+  // Supabase + notification không chặn frame đầu tiên: khởi tạo ngay sau
+  // khi UI render xong để app mở nhanh hơn trên mọi thiết bị.
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await SupabaseService.init();
+    await NotificationService.init();
+    // Khi đã online, đẩy dữ liệu local lên cloud ngay sau khi kết nối sẵn sàng.
+    if (PwaService.isOnline && SupabaseService.isConfigured) {
+      SupabaseService.syncAll();
+    }
+  });
 }
 
 class EduPulseApp extends StatelessWidget {

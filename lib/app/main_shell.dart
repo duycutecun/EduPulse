@@ -29,9 +29,18 @@ class _MainShellScreenState extends State<MainShellScreen> {
   String? _primaryExamId;
   int _streak = 0;
 
+  // Lazy tab: các tab chỉ được tạo (chạy initState + build lần đầu) khi user
+  // mở lần đầu tiên, sau đó giữ nguyên trong IndexedStack. Tránh khởi động
+  // chậm vì phải dựng đồng thời cả 5 màn hình (AI chat, Nhật ký, Bảng vàng...).
+  final List<bool> _visited = List.filled(5, false);
+  Widget? _cachedAiCoach;
+  Widget? _cachedStudy;
+  Widget? _cachedAccount;
+
   @override
   void initState() {
     super.initState();
+    _visited[0] = true;
     _loadInitialData();
     PwaService.onlineNotifier.addListener(_onNetworkChanged);
   }
@@ -134,7 +143,48 @@ class _MainShellScreenState extends State<MainShellScreen> {
       HapticFeedback.selectionClick();
       setState(() {
         _currentIndex = index;
+        _visited[index] = true;
       });
+    }
+  }
+
+  /// Tạo widget của tab [index]. Các tab chưa từng mở hiển thị rỗng để không
+  /// tốn chi phí initState/build khi khởi động; tab đã mở giữ nguyên state.
+  Widget _tabAt(int index) {
+    switch (index) {
+      case 0:
+        // Tab mặc định — luôn tạo mới để nhận streak/exam cập nhật từ MainShell.
+        return HomeScreen(
+          primaryExam: _primaryExam,
+          onExamTap: () => _switchTab(1),
+          onOpenStudy: () => _switchTab(3),
+          onOpenAiCoach: () => _switchTab(2),
+          streak: _streak,
+          isActive: _currentIndex == 0,
+          onStreakChanged: _reloadStreak,
+        );
+      case 1:
+        // Phụ thuộc danh sách kỳ thi — dựng mới khi đã từng mở để nhận dữ liệu.
+        if (!_visited[1]) return const SizedBox.shrink();
+        return ExamsScreen(
+          exams: _exams,
+          primaryExamId: _primaryExamId,
+          onSetPrimary: _setPrimaryExam,
+          onAddExam: _addExam,
+          onUpdateExam: _updateExam,
+          onDeleteExam: _deleteExam,
+        );
+      case 2:
+        if (!_visited[2]) return const SizedBox.shrink();
+        return _cachedAiCoach ??= const AiCoachScreen();
+      case 3:
+        if (!_visited[3]) return const SizedBox.shrink();
+        return _cachedStudy ??= StudyScreen(onStreakChanged: _reloadStreak);
+      case 4:
+        if (!_visited[4]) return const SizedBox.shrink();
+        return _cachedAccount ??= AccountScreen(onDataChanged: _loadInitialData);
+      default:
+        return const SizedBox.shrink();
     }
   }
 
@@ -161,30 +211,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                       NavItem(Icons.timer_outlined, Icons.timer, 'Tập trung'),
                       NavItem(Icons.person_outline, Icons.person, 'Tôi'),
                     ],
-                    children: [
-                      HomeScreen(
-                        primaryExam: _primaryExam,
-                        onExamTap: () => _switchTab(1),
-                        onOpenStudy: () => _switchTab(3),
-                        onOpenAiCoach: () => _switchTab(2),
-                        streak: _streak,
-                        isActive: _currentIndex == 0,
-                        onStreakChanged: _reloadStreak,
-                      ),
-                      ExamsScreen(
-                        exams: _exams,
-                        primaryExamId: _primaryExamId,
-                        onSetPrimary: _setPrimaryExam,
-                        onAddExam: _addExam,
-                        onUpdateExam: _updateExam,
-                        onDeleteExam: _deleteExam,
-                      ),
-                      const AiCoachScreen(),
-                      StudyScreen(onStreakChanged: _reloadStreak),
-                      AccountScreen(
-                        onDataChanged: _loadInitialData,
-                      ),
-                    ],
+                    children: List.generate(5, _tabAt),
                   ),
                 ),
               ],
@@ -366,6 +393,8 @@ class _InstallBannerState extends State<_InstallBanner> {
                     child: Image.asset(
                       'assets/images/mascot.png',
                       fit: BoxFit.contain,
+                      // Decode ở đúng kích thước hiển thị thay vì 1033x1880 gốc.
+                      cacheWidth: 156,
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.school_rounded,
                         color: AppColors.green,

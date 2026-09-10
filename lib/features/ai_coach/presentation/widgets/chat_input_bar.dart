@@ -43,7 +43,12 @@ class ChatInputBar extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(selectedImageBytes!, width: 36, height: 36, fit: BoxFit.cover),
+                  child: Image.memory(selectedImageBytes!,
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.cover,
+                      // Ảnh chụp từ điện thoại có thể 12MP — decode nhỏ để không giật.
+                      cacheWidth: 108),
                 ),
                 const SizedBox(width: 10),
                 Expanded(

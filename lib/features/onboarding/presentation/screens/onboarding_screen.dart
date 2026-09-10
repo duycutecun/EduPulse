@@ -87,6 +87,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           width: 96,
                           height: 96,
                           fit: BoxFit.contain,
+                          cacheWidth: 288,
                           errorBuilder: (_, __, ___) => Container(
                             width: 96,
                             height: 96,

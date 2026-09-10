@@ -263,6 +263,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 width: 88,
                 height: 88,
                 fit: BoxFit.contain,
+                cacheWidth: 264,
               ),
             ),
             const SizedBox(height: 12),

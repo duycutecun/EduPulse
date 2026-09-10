@@ -519,6 +519,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                         width: 116,
                         height: 116,
                         fit: BoxFit.contain,
+                        cacheWidth: 348,
                       ),
                     ),
                   ),
