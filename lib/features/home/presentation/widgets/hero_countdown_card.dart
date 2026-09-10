@@ -30,116 +30,78 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
     final urgencyColor = primaryExam != null
         ? _urgencyColor(primaryExam.daysLeft)
         : AppColors.textMuted;
-    final progress = primaryExam != null
-        ? (1.0 - (primaryExam.daysLeft / 365.0)).clamp(0.05, 0.98)
-        : 0.0;
 
     return GestureDetector(
       onTap: widget.onTap,
       child: GlassCard(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hàng trên: tên kỳ thi + chip mức độ khẩn cấp.
+            Row(
+              children: [
+                Text(
+                  primaryExam?.emoji ?? '🎯',
+                  style: const TextStyle(fontSize: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (primaryExam != null)
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.green.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+                      color: urgencyColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      primaryExam?.emoji ?? '🎯',
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          primaryExam != null
-                              ? '📅 ${AppDate.formatDateTime(primaryExam.dateTime)}'
-                              : 'Chạm vào đây để chọn kỳ thi →',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (primaryExam != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: urgencyColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        primaryExam.urgencyLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _buildTimerRow(),
-              if (primaryExam != null) ...[
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Chặng đường ôn luyện',
+                      primaryExam.urgencyLabel,
                       style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600),
+                        color: urgencyColor,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    Text(
-                      '${(progress * 100).toInt()}%',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.green,
-                          fontWeight: FontWeight.w800),
-                    ),
-                  ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _buildTimerRow(),
+            if (primaryExam != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '📅 ${AppDate.formatDateTime(primaryExam.dateTime)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
                 ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: AppColors.border,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppColors.green),
+              ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Chạm để chọn kỳ thi →',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
                   ),
                 ),
-              ],
-            ],
-          ),
+              ),
+          ],
         ),
+      ),
     );
   }
 
@@ -162,71 +124,37 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildTimerTile(days.toString().padLeft(3, '0'), 'ngày'),
-        _timerColon(),
+        _buildTimerTile(days.toString(), 'ngày'),
         _buildTimerTile(hours.toString().padLeft(2, '0'), 'giờ'),
-        _timerColon(),
         _buildTimerTile(minutes.toString().padLeft(2, '0'), 'phút'),
-        _timerColon(),
-        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'giây',
-            isAccent: true),
+        _buildTimerTile(seconds.toString().padLeft(2, '0'), 'giây'),
       ],
     );
   }
 
-  Widget _buildTimerTile(String value, String label, {bool isAccent = false}) {
-    return Container(
-      width: 68,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isAccent
-              ? AppColors.green.withValues(alpha: 0.6)
-              : AppColors.border,
-          width: 2,
+  /// Ô thời gian phẳng: chỉ số lớn + nhãn nhỏ, không khung viền.
+  Widget _buildTimerTile(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+            height: 1.1,
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.borderStrong,
-              blurRadius: 0,
-              offset: const Offset(0, 3)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: isAccent ? AppColors.greenDark : AppColors.textPrimary,
-            ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMuted,
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-              color: isAccent ? AppColors.green : AppColors.textMuted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _timerColon() {
-    return Text(
-      ':',
-      style: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w800,
-        color: AppColors.textMuted,
-      ),
+        ),
+      ],
     );
   }
 

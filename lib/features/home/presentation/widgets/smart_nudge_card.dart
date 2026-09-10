@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+/// Mẹo học hàng ngày — dòng chữ gọn trong card phẳng, không icon tròn to màu.
 class SmartNudgeCard extends StatelessWidget {
   const SmartNudgeCard({super.key});
 
@@ -10,84 +11,35 @@ class SmartNudgeCard extends StatelessWidget {
       'Ôn tập 25 phút ngắt quãng (Active Recall) giúp nhớ lâu hơn 70%.',
       'Làm đề thi thử trong khung giờ thật giúp não bộ quen áp lực.',
       'Pomodoro: 25 phút tập trung, 5 phút nghỉ — thử ngay!',
-      'Chia nhỏ mục tiêu: 3 nhiệm vụ/ngày = vượt 80% thí sinh.',
-      'Kiên định từng ngày — bền bỉ tạo nên thủ khoa.',
+      'Chia nhỏ mục tiêu: 3 nhiệm vụ/ngày = tiến độ bền vững.',
+      'Ôn định kỳ mỗi ngày quan trọng hơn học dồn trước kỳ thi.',
     ];
-    final today = DateTime.now().day % nudges.length;
-    final tip = nudges[today];
+    final tip = nudges[DateTime.now().day % nudges.length];
 
-    return GlassLikeCard(
-      color: AppColors.yellow.withValues(alpha: 0.14),
-      borderColor: AppColors.yellow,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: AppColors.yellow,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.emoji_objects_rounded,
-                  color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mẹo học hôm nay',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tip,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class GlassLikeCard extends StatelessWidget {
-  final Color color;
-  final Color borderColor;
-  final Widget child;
-
-  const GlassLikeCard({
-    super.key,
-    required this.color,
-    required this.borderColor,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 2),
+        color: AppColors.yellow.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: child,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('💡', style: TextStyle(fontSize: 15)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              tip,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

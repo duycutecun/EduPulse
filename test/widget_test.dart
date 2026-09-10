@@ -29,8 +29,7 @@ void main() {
 
   Finder navIcon(IconData icon) => find.byIcon(icon);
 
-  testWidgets('Điều hướng 5 tab (Học, Mục tiêu, AI, Tập trung, Tôi)',
-      (WidgetTester tester) async {
+  testWidgets('Điều hướng 3 tab (Học, AI, Tôi)', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -44,30 +43,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     // 1. Home (Học) — active mặc định
-    expect(find.text('Chào Sĩ tử 2k9!'), findsOneWidget);
-    expect(find.text('Hôm nay là ngày tuyệt vời để học'), findsOneWidget);
+    expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
     expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
 
-    // 2. Mục tiêu (Exams)
-    await tester.tap(navIcon(Icons.flag_outlined));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Kỳ Thi Của Tôi'), findsOneWidget);
-
-    // 3. AI Coach
-    await tester.tap(navIcon(Icons.auto_awesome_outlined));
+    // 2. AI Coach — tap nhãn nav (icon trùng với quick action ở Home)
+    await tester.tap(find.text('AI'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('AI Coach'), findsOneWidget);
     expect(navIcon(Icons.photo_camera_rounded), findsOneWidget);
 
-    // 4. Tập trung (Study)
-    await tester.tap(navIcon(Icons.timer_outlined));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Pomodoro'), findsOneWidget);
-    expect(find.text('Biểu đồ'), findsOneWidget);
-    expect(find.text('Nhật ký'), findsOneWidget);
-
-    // 5. Tôi (Account)
-    await tester.tap(navIcon(Icons.person_outline));
+    // 3. Tôi (Account)
+    await tester.tap(find.text('Tôi'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sĩ tử 2k9'), findsOneWidget);
   });
@@ -86,9 +72,9 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Vào Study tab
-    await tester.tap(navIcon(Icons.timer_outlined));
-    await tester.pump(const Duration(milliseconds: 300));
+    // Vào trang Tập trung qua nút quick action trên Home
+    await tester.tap(find.text('Tập trung'));
+    await tester.pumpAndSettle();
 
     // Đổi chế độ sang 50/10
     await tester.tap(find.text('50/10'));

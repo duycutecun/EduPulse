@@ -42,17 +42,17 @@ class TabChrome extends StatelessWidget {
   }
 
   Widget _buildNav(BuildContext context) {
+    // Hairline divider mảnh kiểu iOS thay vì border dày 2px.
+    final divider = AppColors.border.withValues(alpha: 0.6);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 2),
-        ),
+        border: Border(top: BorderSide(color: divider, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 60,
           child: Row(
             children: List.generate(items.length, (i) {
               final active = i == index;
@@ -69,14 +69,14 @@ class TabChrome extends StatelessWidget {
                     children: [
                       Icon(
                         active ? item.activeIcon : item.icon,
-                        size: 24,
+                        size: 23,
                         color: active ? AppColors.green : AppColors.textMuted,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         item.label,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight:
                               active ? FontWeight.w800 : FontWeight.w600,
                           color:

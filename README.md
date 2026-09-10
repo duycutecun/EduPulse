@@ -4,7 +4,7 @@
 
 ## ✨ Tính Năng Cốt Lõi
 
-Ứng dụng được tổ chức thành 5 tab chính (`main_shell.dart`):
+Ứng dụng được tổ chức thành **3 tab chính** (`main_shell.dart`): **Học · AI · Tôi** — "Mục tiêu" (kỳ thi) và "Tập trung" (Pomodoro/Nhật ký) mở dưới dạng trang riêng từ trang chủ:
 
 ### 0. 🎉 Onboarding lần đầu
 - Màn hình chào mừng: chọn **kỳ thi mục tiêu** (THPTQG / TSA / HSA / HSG) → app tự tạo kỳ thi đếm ngược + seed **nhiệm vụ mẫu** cho ngày hôm nay (`onboarding_screen.dart`, preset tại `preset_exams.dart`)
@@ -17,7 +17,7 @@
 - **Linh vật đồng hành** — EXP gắn kết, mở khóa trang phục theo mốc streak, tính năng "Bốc Quẻ Sĩ Tử" (`mascot_companion_modal.dart`)
 - Mẹo học tập thông minh + lối tắt nhanh vào Pomodoro / AI Coach
 
-### 2. 🚩 Mục tiêu (Kỳ thi)
+### 2. 🚩 Mục tiêu (Kỳ thi) — trang riêng từ Home
 - Đếm ngược cho **các kỳ thi mẫu có sẵn** (THPTQG, TSA, HSA, HSG) và **kỳ thi tự tạo**
 - Chọn **kỳ thi chính**, theo dõi/cập nhật/xóa, nhãn mức độ khẩn cấp ("Sắp thi" < 30 ngày...)
 
@@ -30,7 +30,7 @@
 - **Điểm yếu từ lịch sử chat** 📊 — nút phân tích chỉ ra chủ đề yếu lặp lại trong 15 câu hỏi gần nhất + gợi ý việc cần làm
 - **Lộ trình AI** 🗺️ — chọn quỹ thời gian (1–4h/ngày) và độ dài (3/7/14 ngày) → AI sinh kế hoạch học → một chạm đổ vào Nhiệm vụ hôm nay (`ai_plan_screen.dart` + `ai_plan.dart`)
 
-### 4. ⏱️ Tập trung (Study)
+### 4. ⏱️ Tập trung (Study) — trang riêng từ Home
 - **Đồng hồ Pomodoro** — tùy chỉnh thời lượng tập trung / nghỉ và số phiên
 - **Nhật ký học tập** theo môn + biểu đồ giờ học hàng tuần theo tuần lịch T2–CN (`weekly_chart_widget.dart`)
 - **Điểm thi thử** 📝 — ghi điểm từng lần thi theo môn, tổng hợp TB/mới nhất/cao nhất, **AI phân tích môn yếu** & gợi ý kế hoạch ôn (`score_summary.dart`)

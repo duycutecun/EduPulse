@@ -23,7 +23,7 @@ class GlassCard extends StatelessWidget {
     this.blur = 0,
     this.customColor,
     this.borderColor,
-    this.borderWidth = 2,
+    this.borderWidth = 1,
     this.onTap,
     this.shadows,
     this.borderGradient,
@@ -44,19 +44,12 @@ class GlassCard extends StatelessWidget {
       child: child,
     );
 
+    // Phong cách tối giản: phẳng, không shadow, border hairline mỏng.
     Widget container = Container(
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: shadows ??
-            [
-              BoxShadow(
-                color: AppColors.borderStrong.withValues(alpha: 0.5),
-                blurRadius: 0,
-                offset: const Offset(0, 4),
-                spreadRadius: 0,
-              ),
-            ],
+        boxShadow: shadows,
       ),
       child: content,
     );

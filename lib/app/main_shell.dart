@@ -5,12 +5,11 @@ import '../core/constants/app_colors.dart';
 import '../core/pwa/pwa_service.dart';
 import '../core/utils/storage_service.dart';
 import '../core/utils/supabase_service.dart';
-import '../shared/widgets/mesh_background.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
-import '../features/exams/presentation/screens/exams_screen.dart';
+import '../features/exams/presentation/screens/exams_page.dart';
 import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
-import '../features/study/presentation/screens/study_screen.dart';
+import '../features/study/presentation/screens/study_page.dart';
 import '../features/account/presentation/screens/account_screen.dart';
 import 'tab_chrome.dart';
 
@@ -31,10 +30,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   // Lazy tab: các tab chỉ được tạo (chạy initState + build lần đầu) khi user
   // mở lần đầu tiên, sau đó giữ nguyên trong IndexedStack. Tránh khởi động
-  // chậm vì phải dựng đồng thời cả 5 màn hình (AI chat, Nhật ký, Bảng vàng...).
-  final List<bool> _visited = List.filled(5, false);
+  // chậm vì phải dựng đồng thời cả 3 màn hình (AI chat, Bảng vàng...).
+  final List<bool> _visited = List.filled(3, false);
   Widget? _cachedAiCoach;
-  Widget? _cachedStudy;
   Widget? _cachedAccount;
 
   @override
@@ -148,6 +146,33 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
+  /// Mở "Mục tiêu" (kỳ thi) và "Tập trung" (Pomodoro/Nhật ký) dưới dạng
+  /// full-screen page có nút back — giữ nội dung gốc, chỉ gọn điều hướng.
+  void _openExamsPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ExamsPage(
+          exams: _exams,
+          primaryExamId: _primaryExamId,
+          onSetPrimary: _setPrimaryExam,
+          onAddExam: _addExam,
+          onUpdateExam: _updateExam,
+          onDeleteExam: _deleteExam,
+        ),
+      ),
+    );
+  }
+
+  void _openStudyPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => StudyPage(onStreakChanged: _reloadStreak),
+      ),
+    );
+  }
+
   /// Tạo widget của tab [index]. Các tab chưa từng mở hiển thị rỗng để không
   /// tốn chi phí initState/build khi khởi động; tab đã mở giữ nguyên state.
   Widget _tabAt(int index) {
@@ -156,33 +181,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
         // Tab mặc định — luôn tạo mới để nhận streak/exam cập nhật từ MainShell.
         return HomeScreen(
           primaryExam: _primaryExam,
-          onExamTap: () => _switchTab(1),
-          onOpenStudy: () => _switchTab(3),
-          onOpenAiCoach: () => _switchTab(2),
+          onExamTap: _openExamsPage,
+          onOpenStudy: _openStudyPage,
+          onOpenAiCoach: () => _switchTab(1),
           streak: _streak,
           isActive: _currentIndex == 0,
           onStreakChanged: _reloadStreak,
         );
-      case 1:
-        // Phụ thuộc danh sách kỳ thi — dựng mới khi đã từng mở để nhận dữ liệu.
-        if (!_visited[1]) return const SizedBox.shrink();
-        return ExamsScreen(
-          exams: _exams,
-          primaryExamId: _primaryExamId,
-          onSetPrimary: _setPrimaryExam,
-          onAddExam: _addExam,
-          onUpdateExam: _updateExam,
-          onDeleteExam: _deleteExam,
-        );
-      case 2:
-        if (!_visited[2]) return const SizedBox.shrink();
-        return _cachedAiCoach ??= const AiCoachScreen();
-      case 3:
-        if (!_visited[3]) return const SizedBox.shrink();
-        return _cachedStudy ??= StudyScreen(onStreakChanged: _reloadStreak);
-      case 4:
-        if (!_visited[4]) return const SizedBox.shrink();
-        return _cachedAccount ??= AccountScreen(onDataChanged: _loadInitialData);
       default:
         return const SizedBox.shrink();
     }
@@ -192,31 +197,36 @@ class _MainShellScreenState extends State<MainShellScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
-      body: MeshBackground(
-        child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                const _InstallBanner(),
-                const _OfflineBanner(),
-                Expanded(
-                  child: TabChrome(
-                    index: _currentIndex,
-                    onChanged: _switchTab,
-                    items: const [
-                      NavItem(Icons.school_outlined, Icons.school, 'Học'),
-                      NavItem(Icons.flag_outlined, Icons.flag, 'Mục tiêu'),
-                      NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome,
-                          'AI'),
-                      NavItem(Icons.timer_outlined, Icons.timer, 'Tập trung'),
-                      NavItem(Icons.person_outline, Icons.person, 'Tôi'),
-                    ],
-                    children: List.generate(5, _tabAt),
-                  ),
-                ),
-              ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const _InstallBanner(),
+            const _OfflineBanner(),
+            Expanded(
+              child: TabChrome(
+                index: _currentIndex,
+                onChanged: _switchTab,
+                items: const [
+                  NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
+                  NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome,
+                      'AI'),
+                  NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
+                ],
+                children: [
+                  _tabAt(0),
+                  _visited[1]
+                      ? (_cachedAiCoach ??= const AiCoachScreen())
+                      : const SizedBox.shrink(),
+                  _visited[2]
+                      ? (_cachedAccount ??=
+                          AccountScreen(onDataChanged: _loadInitialData))
+                      : const SizedBox.shrink(),
+                ],
+              ),
             ),
-          ),
+          ],
+        ),
       ),
     );
   }

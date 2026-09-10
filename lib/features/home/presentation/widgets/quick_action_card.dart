@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+/// Các hành động nhanh trên trang chủ — hàng icon phẳng, không card to.
 class QuickActionCard extends StatelessWidget {
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
@@ -15,96 +16,58 @@ class QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        _buildActionButton(
-          icon: Icons.timer_rounded,
-          label: 'TẬP TRUNG NGAY',
-          subtitle: 'Đồng hồ Pomodoro',
+        _buildAction(
+          icon: Icons.timer_outlined,
+          label: 'Tập trung',
           onTap: onOpenStudy,
         ),
-        const SizedBox(height: 10),
-        _buildActionButton(
-          icon: Icons.route_rounded,
-          label: 'LỘ TRÌNH AI',
-          subtitle: 'AI lập kế hoạch học tuần',
+        _buildAction(
+          icon: Icons.route_outlined,
+          label: 'Lộ trình AI',
           onTap: onOpenAiPlan,
-          isSecondary: true,
         ),
-        const SizedBox(height: 10),
-        _buildActionButton(
-          icon: Icons.auto_awesome_rounded,
-          label: 'HỎI AI BÀI TẬP',
-          subtitle: 'Giải đề qua ảnh OCR',
+        _buildAction(
+          icon: Icons.auto_awesome_outlined,
+          label: 'Hỏi AI',
           onTap: onOpenAiCoach,
         ),
       ],
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildAction({
     required IconData icon,
     required String label,
-    required String subtitle,
     required VoidCallback onTap,
-    bool isSecondary = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        decoration: BoxDecoration(
-          color: isSecondary ? AppColors.cardWhite : AppColors.green,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSecondary ? AppColors.border : AppColors.greenDark,
-            width: 2,
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.cardWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isSecondary ? AppColors.borderStrong : AppColors.greenDark,
-              blurRadius: 0,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSecondary ? AppColors.green : Colors.white,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: isSecondary ? AppColors.green : Colors.white,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isSecondary ? AppColors.textSecondary : Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
+          child: Column(
+            children: [
+              Icon(icon, size: 22, color: AppColors.green),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: isSecondary ? AppColors.textMuted : Colors.white.withValues(alpha: 0.7),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

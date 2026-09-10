@@ -171,10 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
           HomeHeader(
             userName: userName,
             streak: widget.streak,
-            daysLeft: _remainingNotifier.value.inDays,
-            remainingTasks: _tasks.where((t) => !t.isDone).length,
-            isAllTasksCompleted:
-                _tasks.isNotEmpty && _tasks.every((t) => t.isDone),
           ),
           const SizedBox(height: 16),
           HeroCountdownCard(
@@ -182,15 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: widget.onExamTap,
             remainingListenable: _remainingNotifier,
           ),
-          const SizedBox(height: 14),
-          TodayMissionCard(
-            tasks: _tasks,
-            onAddTask: _showAddTaskDialog,
-            onToggle: _toggleTask,
-            onDelete: _deleteTask,
-            onAddSample: _showSampleTasksSheet,
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           QuickActionCard(
             onOpenStudy: widget.onOpenStudy,
             onOpenAiCoach: widget.onOpenAiCoach,
@@ -200,7 +188,15 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+          TodayMissionCard(
+            tasks: _tasks,
+            onAddTask: _showAddTaskDialog,
+            onToggle: _toggleTask,
+            onDelete: _deleteTask,
+            onAddSample: _showSampleTasksSheet,
+          ),
+          const SizedBox(height: 12),
           const SmartNudgeCard(),
         ],
       ),

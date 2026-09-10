@@ -50,74 +50,27 @@ class TodayMissionCard extends StatelessWidget {
               ),
               Row(
                 children: [
-                  SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 6.5,
-                          strokeCap: StrokeCap.round,
-                          backgroundColor: AppColors.border,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppColors.green),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$done',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              '/${tasks.length}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                  Text(
+                    '$done/${tasks.length}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMuted,
                     ),
                   ),
                   const SizedBox(width: 10),
                   if (onAddSample != null) ...[
                     GestureDetector(
                       onTap: onAddSample,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.blue.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.blue, width: 1.5),
-                        ),
-                        child: const Icon(Icons.auto_awesome_rounded,
-                            color: AppColors.blue, size: 16),
-                      ),
+                      child: Icon(Icons.auto_awesome_outlined,
+                          color: AppColors.textMuted, size: 22),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                   ],
                   GestureDetector(
                     onTap: onAddTask,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.green,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child:
-                          const Icon(Icons.add, color: Colors.white, size: 18),
-                    ),
+                    child: Icon(Icons.add_circle,
+                        color: AppColors.green, size: 26),
                   ),
                 ],
               ),
@@ -126,24 +79,24 @@ class TodayMissionCard extends StatelessWidget {
           if (tasks.isNotEmpty) ...[
             const SizedBox(height: 12),
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: progress,
-                minHeight: 8,
+                minHeight: 4,
                 backgroundColor: AppColors.border,
                 valueColor:
                     const AlwaysStoppedAnimation<Color>(AppColors.green),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             ...tasks.map((task) => _buildTaskItem(task)),
           ] else ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  'Chưa có nhiệm vụ. Nhấn nút + để thêm!',
+                  'Chưa có nhiệm vụ. Nhấn + để thêm!',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                 ),
@@ -186,49 +139,33 @@ class TodayMissionCard extends StatelessWidget {
           onToggle(task);
         },
         child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          margin: const EdgeInsets.only(bottom: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
-            color: task.isDone
-                ? AppColors.greenLight.withValues(alpha: 0.45)
-                : AppColors.cardWhite,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: task.isDone ? AppColors.green : AppColors.border,
-              width: 2,
-            ),
-            boxShadow: task.isDone
-                ? null
-                : [
-                    BoxShadow(
-                      color: AppColors.borderStrong,
-                      blurRadius: 0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             children: [
               Container(
-                width: 24,
-                height: 24,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
                   color: task.isDone ? AppColors.green : Colors.transparent,
                   borderRadius: BorderRadius.circular(7),
                   border: Border.all(
                     color: task.isDone ? AppColors.green : AppColors.textMuted,
-                    width: 2,
+                    width: 1.5,
                   ),
                 ),
                 child: task.isDone
                     ? const Icon(
                         Icons.check_rounded,
                         color: Colors.white,
-                        size: 16,
+                        size: 15,
                       )
                     : null,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +174,6 @@ class TodayMissionCard extends StatelessWidget {
                       '${task.subject} ${task.title}',
                       style: TextStyle(
                         fontSize: 14,
-                        fontFamily: 'Nunito',
                         color: task.isDone
                             ? AppColors.textMuted
                             : AppColors.textPrimary,
@@ -247,22 +183,23 @@ class TodayMissionCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Row(
                       children: [
                         Text(
-                          '⏱ ${task.estimateMinutes} phút',
+                          '${task.estimateMinutes} phút',
                           style: TextStyle(
                               fontSize: 11, color: AppColors.textMuted),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          priorityText,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: priorityColor),
-                        ),
+                        if (task.priority == 'high') ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            priorityText,
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: priorityColor),
+                          ),
+                        ],
                       ],
                     ),
                   ],
