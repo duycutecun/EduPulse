@@ -192,6 +192,16 @@ class StorageService {
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
   static void setAiModel(String v) => _prefs?.setString('ai_model', v);
 
+  // Danh sách model miễn phí của OpenRouter (cache 24h, FreeModelsCatalog).
+  static String? getFreeModelsCache() =>
+      _prefs?.getString('free_models_cache_v1');
+  static void setFreeModelsCache(String json) =>
+      _prefs?.setString('free_models_cache_v1', json);
+  static String? getFreeModelsCacheTime() =>
+      _prefs?.getString('free_models_cache_time_v1');
+  static void setFreeModelsCacheTime(String v) =>
+      _prefs?.setString('free_models_cache_time_v1', v);
+
   // AI Coach Chat History (cục bộ, miễn phí, lưu tối đa 40 tin)
   static String? getAiChatHistory() => _prefs?.getString('ai_chat_history_v1');
   static void setAiChatHistory(String json) =>

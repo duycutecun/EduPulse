@@ -22,7 +22,7 @@
 - Chọn **kỳ thi chính**, theo dõi/cập nhật/xóa, nhãn mức độ khẩn cấp ("Sắp thi" < 30 ngày...)
 
 ### 3. ✨ AI Coach — Gia sư AI
-- Chat **đa model**: Gemini trực tiếp + OpenRouter (GPT-4o mini...) qua `AiRouter`
+- Chat **đa model**: Gemini trực tiếp + OpenRouter (các model `:free` — Nemotron 3 Ultra, Inkling, Gemma 4...) qua `AiRouter` — **danh sách model tự cập nhật** từ OpenRouter (cache 24h, `free_models_catalog.dart`)
 - **Đọc ảnh**: tải lên ảnh đề/phiếu bài (file_picker), render công thức toán **LaTeX** (`flutter_math_fork`)
 - **Tra cứu web** (Tavily, fallback Wikipedia) + tự động chuyển model khi lỗi
 - **Lịch sử chat** được lưu lại giữa các phiên
@@ -60,7 +60,7 @@
 | Frontend | Flutter (Web + Mobile) |
 | Local Storage | SharedPreferences |
 | Cloud Database | Supabase (PostgreSQL) |
-| AI Engine | Google Gemini API + OpenRouter (GPT-4o mini, ...) |
+| AI Engine | Google Gemini API + OpenRouter (model `:free` miễn phí: Nemotron 3 Ultra, Inkling, Gemma 4...) |
 | Web Search | Tavily API (fallback Wikipedia) |
 | Hosting | Vercel / GitHub Pages |
 | CI/CD | GitHub Actions |
@@ -81,7 +81,7 @@ API keys KHÔNG hardcode trong repo — truyền lúc build qua `--dart-define` 
 |---|---|---|
 | `SUPABASE_URL` + `SUPABASE_ANON_KEY` | ☁️ Cloud sync | Đồng bộ dữ liệu & đăng nhập |
 | `GEMINI_API_KEY` | 🤖 AI Coach | Lấy miễn phí tại [aistudio.google.com](https://aistudio.google.com) |
-| `OPENROUTER_API_KEY` | Tuỳ chọn | Thêm model khác (GPT-4o mini...) tại [openrouter.ai](https://openrouter.ai) |
+| `OPENROUTER_API_KEY` | Tuỳ chọn | Dùng các model `:free` miễn phí tại [openrouter.ai](https://openrouter.ai) |
 | `TAVILY_API_KEY` | Tuỳ chọn | Tra cứu web thời gian thực tại [tavily.com](https://tavily.com) |
 
 Ví dụ chạy local:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/ai/free_models_catalog.dart';
 import 'core/constants/app_colors.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/pwa/pwa_service.dart';
@@ -21,6 +22,8 @@ void main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await SupabaseService.init();
     await NotificationService.init();
+    // Làm mới danh sách model AI miễn phí (OpenRouter) ở nền — cache 24h.
+    FreeModelsCatalog.ensureLoaded();
     // Khi đã online, đẩy dữ liệu local lên cloud ngay sau khi kết nối sẵn sàng.
     if (PwaService.isOnline && SupabaseService.isConfigured) {
       SupabaseService.syncAll();

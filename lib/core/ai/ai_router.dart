@@ -22,7 +22,7 @@ class AiRouter {
   }) async {
     // Kiểm tra model hỗ trợ ảnh.
     if (imageBytes != null && imageBytes.isNotEmpty && !model.supportsVision) {
-      return '❌ Model "${model.label}" không hỗ trợ đọc ảnh. Hãy chọn model có gắn nhãn "đọc ảnh" (GPT-4o mini, Gemini Flash).';
+      return '❌ Model "${model.label}" không hỗ trợ đọc ảnh. Hãy chọn model có gắn nhãn "đọc ảnh" (Gemma 4, Inkling, Gemini Key).';
     }
 
     // Tự động tra cứu web để AI có thêm thông tin tham khảo.
