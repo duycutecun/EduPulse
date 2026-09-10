@@ -8,10 +8,17 @@ class AppColors {
   // Được đồng bộ từ theme thực tế (xem _BrightnessSyncer / MeshBackground).
   static bool darkFallback = false;
 
-  // ─── Fixed Functional Colors (same in light & dark) ─────────────────────
-  static const Color green = Color(0xFF58CC02);
-  static const Color greenDark = Color(0xFF58A700);
-  static const Color greenLight = Color(0xFFD7FFB8);
+  // ─── Brand & Functional Colors (same in light & dark) ────────────────
+  /// Màu thương hiệu — indigo #3F3FF3 (theo template "elegant login" v0),
+  /// dùng thống nhất cho nút chính, link, icon active, progress.
+  static const Color primary = Color(0xFF3F3FF3);
+  static const Color primaryDark = Color(0xFF3232C9);
+  static const Color primarySoft = Color(0xFFECECFE);
+
+  // Tên cũ giữ lại làm alias để không vỡ code ngoài (deprecated dần).
+  static const Color green = primary;
+  static const Color greenDark = primaryDark;
+  static const Color greenLight = primarySoft;
 
   static const Color blue = Color(0xFF1CB0F6);
   static const Color blueDark = Color(0xFF1899D6);
@@ -20,7 +27,7 @@ class AppColors {
   static const Color orange = Color(0xFFFF9600);
   static const Color orangeDark = Color(0xFFCC7A00);
   static const Color yellow = Color(0xFFFFC800);
-  static const Color purple = Color(0xFFCE82FF);
+  static const Color purple = Color(0xFF3F3FF3);
 
   // ─── Soft tinted backgrounds (for dimensional icon tiles & chips) ───────
   static const Color greenSoft = Color(0xFFD7FFB8);

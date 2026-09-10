@@ -76,10 +76,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.green,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: const [
-                        BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3)),
+                        BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 3)),
                       ],
                     ),
                     child: const Row(
@@ -133,7 +133,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: active ? AppColors.green : Colors.transparent,
+            color: active ? AppColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -153,7 +153,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
   Widget _buildExamCard(ExamModel exam) {
     final isPrimary = exam.id == widget.primaryExamId;
     final days = exam.daysLeft;
-    final urgencyColor = days < 30 ? AppColors.red : days < 90 ? AppColors.orange : AppColors.green;
+    final urgencyColor = days < 30 ? AppColors.red : days < 90 ? AppColors.orange : AppColors.primary;
 
     return Dismissible(
       key: Key(exam.id),
@@ -178,7 +178,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         onLongPress: () => _showEditDialog(exam),
         child: GlassCard(
           padding: const EdgeInsets.all(18),
-          borderColor: isPrimary ? AppColors.green : AppColors.border,
+          borderColor: isPrimary ? AppColors.primary : AppColors.border,
           borderWidth: isPrimary ? 3 : 2,
           child: Row(
             children: [
@@ -186,7 +186,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.green.withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Center(child: Text(exam.emoji, style: const TextStyle(fontSize: 24))),
@@ -208,7 +208,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.green,
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -304,9 +304,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: AppColors.green.withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 2),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
                     ),
                     child: Center(child: Text(selectedEmoji, style: const TextStyle(fontSize: 32))),
                   ),
@@ -335,7 +335,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.green),
+                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary),
                           ),
                           child: child!,
                         );
@@ -351,7 +351,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.green),
+                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
                         const SizedBox(width: 10),
                         Text(
                           'Ngày thi: ${AppDate.formatDate(selectedDate)}',
@@ -385,7 +385,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 }
                 Navigator.pop(ctx);
               },
-              child: const Text('Thêm', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+              child: const Text('Thêm', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -421,9 +421,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: AppColors.green.withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 2),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
                     ),
                     child: Center(child: Text(selectedEmoji, style: const TextStyle(fontSize: 32))),
                   ),
@@ -451,7 +451,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.green),
+                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary),
                           ),
                           child: child!,
                         );
@@ -467,7 +467,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.green),
+                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
                         const SizedBox(width: 10),
                         Text(
                           'Ngày thi: ${AppDate.formatDate(selectedDate)}',
@@ -501,7 +501,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 }
                 Navigator.pop(ctx);
               },
-              child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+              child: const Text('Lưu', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
             ),
           ],
         ),

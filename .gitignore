@@ -48,3 +48,7 @@ app.*.map.json
 .widget_preview/
 .vercel
 .env*
+
+# Screenshot kiểm tra UI (tạm)
+/shot_*.png
+/template_source.tsx

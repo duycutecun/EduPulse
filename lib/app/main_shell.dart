@@ -260,10 +260,10 @@ class _InstallBannerState extends State<_InstallBanner> {
         }
 
         final isAndroidInstall = installable && !isIosPlatform;
-        final bg = isAndroidInstall ? AppColors.greenLight : AppColors.blueSoft;
-        final borderColor = isAndroidInstall ? AppColors.green : AppColors.blue;
+        final bg = isAndroidInstall ? AppColors.primarySoft : AppColors.blueSoft;
+        final borderColor = isAndroidInstall ? AppColors.primary : AppColors.blue;
         final iconColor =
-            isAndroidInstall ? AppColors.greenDark : AppColors.blueDark;
+            isAndroidInstall ? AppColors.primaryDark : AppColors.blueDark;
 
         return Container(
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -305,7 +305,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.green,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Text(
@@ -407,7 +407,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                       cacheWidth: 156,
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.school_rounded,
-                        color: AppColors.green,
+                        color: AppColors.primary,
                         size: 32,
                       ),
                     ),
@@ -450,7 +450,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                   _buildFeatureBadge(
                       Icons.wifi_off_rounded, 'Dùng offline', AppColors.blue),
                   _buildFeatureBadge(Icons.fullscreen_rounded, 'Toàn màn hình',
-                      AppColors.green),
+                      AppColors.primary),
                 ],
               ),
               const SizedBox(height: 18),
@@ -478,7 +478,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                     _buildStepRow(
                       stepNum: '2',
                       icon: Icons.add_box_outlined,
-                      iconColor: AppColors.green,
+                      iconColor: AppColors.primary,
                       title: 'Chọn "Thêm vào MH chính"',
                       subtitle:
                           'Cuộn xuống danh sách tùy chọn và nhấn "Add to Home Screen".',
@@ -504,7 +504,7 @@ class _InstallBannerState extends State<_InstallBanner> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -662,12 +662,12 @@ class _OfflineBannerState extends State<_OfflineBanner> {
         }
 
         final isOffline = !isOnline;
-        final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.greenLight;
-        final border = isOffline ? const Color(0xFFFED7AA) : AppColors.green;
+        final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.primarySoft;
+        final border = isOffline ? const Color(0xFFFED7AA) : AppColors.primary;
         final iconColor =
-            isOffline ? const Color(0xFFEA580C) : AppColors.greenDark;
+            isOffline ? const Color(0xFFEA580C) : AppColors.primaryDark;
         final textColor =
-            isOffline ? const Color(0xFF9A3412) : AppColors.greenDark;
+            isOffline ? const Color(0xFF9A3412) : AppColors.primaryDark;
         final icon =
             isOffline ? Icons.wifi_off_rounded : Icons.cloud_done_rounded;
         final text = isOffline

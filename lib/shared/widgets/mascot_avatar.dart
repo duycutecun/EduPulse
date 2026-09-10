@@ -173,7 +173,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
         return AppColors.orange;
       case MascotMood.relax:
       case MascotMood.idle:
-        return AppColors.green;
+        return AppColors.primary;
       case MascotMood.sleepy:
         return const Color(0xFF6C5CE7); // Tím mộng mơ dịu nhẹ
       case MascotMood.celebrate:
@@ -190,7 +190,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
         return AppColors.orangeDark;
       case MascotMood.relax:
       case MascotMood.idle:
-        return AppColors.greenDark;
+        return AppColors.primaryDark;
       case MascotMood.sleepy:
         return const Color(0xFF4834D4);
       case MascotMood.celebrate:

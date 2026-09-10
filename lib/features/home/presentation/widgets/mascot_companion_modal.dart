@@ -311,11 +311,11 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.green.withValues(alpha: 0.15),
-                        border: Border.all(color: AppColors.green, width: 3),
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        border: Border.all(color: AppColors.primary, width: 3),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.green.withValues(alpha: 0.25),
+                            color: AppColors.primary.withValues(alpha: 0.25),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -368,7 +368,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.green,
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
@@ -418,7 +418,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.green,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -431,7 +431,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       minHeight: 8,
                       backgroundColor: AppColors.border,
                       valueColor:
-                          const AlwaysStoppedAnimation<Color>(AppColors.green),
+                          const AlwaysStoppedAnimation<Color>(AppColors.primary),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -552,7 +552,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.green,
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
@@ -663,13 +663,13 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.green.withValues(alpha: 0.14)
+                          ? AppColors.primary.withValues(alpha: 0.14)
                           : (isUnlocked
                               ? AppColors.bgPage
                               : AppColors.border.withValues(alpha: 0.4)),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected ? AppColors.green : AppColors.border,
+                        color: isSelected ? AppColors.primary : AppColors.border,
                         width: isSelected ? 2.5 : 1.5,
                       ),
                     ),
@@ -712,7 +712,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: isSelected
-                                ? AppColors.green
+                                ? AppColors.primary
                                 : (isUnlocked
                                     ? AppColors.textPrimary
                                     : AppColors.textMuted),
@@ -732,7 +732,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: isSelected
-                                ? AppColors.green
+                                ? AppColors.primary
                                 : AppColors.textMuted,
                           ),
                         ),

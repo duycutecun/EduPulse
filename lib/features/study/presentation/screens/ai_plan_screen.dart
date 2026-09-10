@@ -115,7 +115,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Đã thêm $added nhiệm vụ vào hôm nay! 🎉'),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.green,
+      backgroundColor: AppColors.primary,
       duration: const Duration(seconds: 2),
     ));
   }
@@ -143,7 +143,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                     width: 46,
                     height: 46,
                     decoration: const BoxDecoration(
-                      color: AppColors.greenSoft,
+                      color: AppColors.primarySoft,
                       shape: BoxShape.circle,
                     ),
                     child: const Center(child: Text('🎯', style: TextStyle(fontSize: 24))),
@@ -210,9 +210,9 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
-                  color: AppColors.green,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4))],
+                  boxShadow: const [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 4))],
                 ),
                 child: Center(
                   child: _generating
@@ -258,10 +258,10 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.green.withValues(alpha: 0.15),
+                        color: AppColors.primary.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text('✓ Đã thêm', style: TextStyle(color: AppColors.green, fontSize: 12, fontWeight: FontWeight.w800)),
+                      child: const Text('✓ Đã thêm', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w800)),
                     ),
                 ],
               ),
@@ -321,9 +321,9 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: sel ? AppColors.green : AppColors.cardWhite,
+            color: sel ? AppColors.primary : AppColors.cardWhite,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: sel ? AppColors.green : AppColors.border, width: 2),
+            border: Border.all(color: sel ? AppColors.primary : AppColors.border, width: 2),
           ),
           child: Text(
             label,

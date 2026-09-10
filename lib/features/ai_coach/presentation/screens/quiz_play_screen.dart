@@ -60,7 +60,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     final total = widget.questions.length;
     final percent = total == 0 ? 0 : (_correctCount / total);
     final color = percent >= 0.8
-        ? AppColors.green
+        ? AppColors.primary
         : (percent >= 0.5 ? AppColors.orange : AppColors.red);
     final title = percent >= 0.8
         ? 'Xuất sắc! 🎉'
@@ -108,9 +108,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.green,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4))],
+                  boxShadow: const [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 4))],
                 ),
                 child: const Text('XONG',
                     style: TextStyle(
@@ -141,7 +141,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                     value: (_index + 1) / widget.questions.length,
                     minHeight: 8,
                     backgroundColor: AppColors.border,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 ),
               ),
@@ -184,9 +184,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
 
             if (_selected != null) {
               if (isCorrect) {
-                bg = AppColors.greenLight;
-                border = AppColors.green;
-                textColor = AppColors.greenDark;
+                bg = AppColors.primarySoft;
+                border = AppColors.primary;
+                textColor = AppColors.primaryDark;
                 icon = Icons.check_circle_rounded;
               } else if (isSelected) {
                 bg = AppColors.redSoft;
@@ -244,9 +244,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.green,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4))],
+                  boxShadow: const [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 4))],
                 ),
                 child: Center(
                   child: Text(

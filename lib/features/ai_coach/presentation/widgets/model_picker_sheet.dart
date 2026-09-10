@@ -53,9 +53,9 @@ void showModelPickerSheet({
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         borderColor:
-                            selected ? AppColors.green : AppColors.border,
+                            selected ? AppColors.primary : AppColors.border,
                         customColor: selected
-                            ? AppColors.green.withValues(alpha: 0.08)
+                            ? AppColors.primary.withValues(alpha: 0.08)
                             : AppColors.cardWhite,
                         onTap: () {
                           onSelect(m);
@@ -68,7 +68,7 @@ void showModelPickerSheet({
                               height: 36,
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? AppColors.green
+                                    ? AppColors.primary
                                     : AppColors.bgPage,
                                 shape: BoxShape.circle,
                               ),
@@ -89,7 +89,7 @@ void showModelPickerSheet({
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: selected
-                                          ? AppColors.green
+                                          ? AppColors.primary
                                           : AppColors.textPrimary,
                                     ),
                                   ),
@@ -107,7 +107,7 @@ void showModelPickerSheet({
                             ),
                             if (selected)
                               const Icon(Icons.check_circle,
-                                  color: AppColors.green, size: 20),
+                                  color: AppColors.primary, size: 20),
                           ],
                         ),
                       );

@@ -66,7 +66,7 @@ class WeeklyChartWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Icon(Icons.trending_up, size: 16, color: AppColors.green),
+                      Icon(Icons.trending_up, size: 16, color: AppColors.primary),
                       SizedBox(width: 6),
                       Text('Trung bình',
                           style: TextStyle(
@@ -77,7 +77,7 @@ class WeeklyChartWidget extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.green)),
+                            color: AppColors.primary)),
                   ],
                 ),
               ),
@@ -103,13 +103,13 @@ class WeeklyChartWidget extends StatelessWidget {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                          color: AppColors.green.withValues(alpha: 0.15),
+                          color: AppColors.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10)),
                       child: const Text('Phong độ cao!',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.green)),
+                              color: AppColors.primary)),
                     ),
                 ],
               ),
@@ -134,7 +134,7 @@ class WeeklyChartWidget extends StatelessWidget {
                               fontWeight:
                                   isToday ? FontWeight.bold : FontWeight.w500,
                               color: isToday
-                                  ? AppColors.green
+                                  ? AppColors.primary
                                   : AppColors.textMuted),
                         ),
                         const SizedBox(height: 6),
@@ -143,7 +143,7 @@ class WeeklyChartWidget extends StatelessWidget {
                           height: 90 * barHeightFactor,
                           decoration: BoxDecoration(
                             color: isToday
-                                ? AppColors.green
+                                ? AppColors.primary
                                 : AppColors.blue.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -210,7 +210,7 @@ class WeeklyChartWidget extends StatelessWidget {
                           minHeight: 8,
                           backgroundColor: AppColors.border,
                           valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppColors.green),
+                              AppColors.primary),
                         ),
                       ),
                     ],

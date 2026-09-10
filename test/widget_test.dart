@@ -127,4 +127,57 @@ void main() {
     expect(parsed.subject, '📐 Toán');
     expect(parsed.priority, 'high');
   });
+
+  testWidgets('iPhone 390x844: 3 tab + trang Mục tiêu/Tập trung không tràn layout',
+      (WidgetTester tester) async {
+    // Logical 390x844 = iPhone 14/15 (physical 1170x2532 @3x).
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const MainShellScreen(),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+
+    // Home render gọn trong màn hẹp.
+    expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
+    expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
+
+    // Tab AI.
+    await tester.tap(find.text('AI'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('AI Coach'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Tab Tôi.
+    await tester.tap(find.text('Tôi'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Sĩ tử 2k9'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Về Home, mở trang Mục tiêu qua thẻ đếm ngược.
+    await tester.tap(find.text('Học'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Chưa chọn kỳ thi mục tiêu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kỳ Thi Của Tôi'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    // Route fullscreenDialog dùng nút Close (X) thay vì BackButton.
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    // Mở trang Tập trung qua quick action.
+    await tester.tap(find.text('Tập trung'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pomodoro'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 }

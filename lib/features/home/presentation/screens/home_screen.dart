@@ -283,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? Icons.check_circle_rounded
                             : Icons.add_circle_outline_rounded,
                         size: 18,
-                        color: added ? AppColors.green : AppColors.blue,
+                        color: added ? AppColors.primary : AppColors.blue,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -314,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: added ? AppColors.green : AppColors.blue,
+                          color: added ? AppColors.primary : AppColors.blue,
                         ),
                       ),
                     ],
@@ -413,10 +413,10 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: sel ? AppColors.green : AppColors.bgPage,
+                        color: sel ? AppColors.primary : AppColors.bgPage,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: sel ? AppColors.green : AppColors.border,
+                          color: sel ? AppColors.primary : AppColors.border,
                           width: 2,
                         ),
                       ),
@@ -512,7 +512,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
             onPressed: _submit,
             child: const Text('Thêm',
                 style: TextStyle(
-                    color: AppColors.green, fontWeight: FontWeight.w800)),
+                    color: AppColors.primary, fontWeight: FontWeight.w800)),
           ),
         ],
     );

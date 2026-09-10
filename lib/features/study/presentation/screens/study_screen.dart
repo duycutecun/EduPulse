@@ -208,7 +208,7 @@ class _StudyScreenState extends State<StudyScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.green : Colors.transparent,
+            color: isActive ? AppColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -227,7 +227,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _buildPomodoroTab() {
     final totalSec = _isBreak ? (_breakMinutes * 60) : (_focusMinutes * 60);
-    final activeColor = _isBreak ? AppColors.green : AppColors.blue;
+    final activeColor = _isBreak ? AppColors.primary : AppColors.blue;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -351,9 +351,9 @@ class _StudyScreenState extends State<StudyScreen> {
               const SizedBox(width: 24),
               _TactileCircleButton(
                 size: 72,
-                color: _pomRunning ? AppColors.red : AppColors.green,
+                color: _pomRunning ? AppColors.red : AppColors.primary,
                 shadowColor:
-                    _pomRunning ? AppColors.redDark : AppColors.greenDark,
+                    _pomRunning ? AppColors.redDark : AppColors.primaryDark,
                 onTap: _togglePomodoro,
                 child: Icon(
                   _pomRunning
@@ -386,10 +386,10 @@ class _StudyScreenState extends State<StudyScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: sel ? AppColors.green : AppColors.cardWhite,
+          color: sel ? AppColors.primary : AppColors.cardWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: sel ? AppColors.green : AppColors.border, width: 2),
+              color: sel ? AppColors.primary : AppColors.border, width: 2),
         ),
         child: Text(
           label,
@@ -424,7 +424,7 @@ class _StudyScreenState extends State<StudyScreen> {
               _statCard('${totalHours.toStringAsFixed(1)}h', 'Tổng giờ học',
                   AppColors.blue, Icons.access_time),
               const SizedBox(width: 12),
-              _statCard('${_logs.length}', 'Buổi học', AppColors.green,
+              _statCard('${_logs.length}', 'Buổi học', AppColors.primary,
                   Icons.check_circle),
             ],
           ),
@@ -435,11 +435,11 @@ class _StudyScreenState extends State<StudyScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: AppColors.green,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
                   BoxShadow(
-                      color: AppColors.greenDark,
+                      color: AppColors.primaryDark,
                       blurRadius: 0,
                       offset: Offset(0, 4)),
                 ],
@@ -540,11 +540,11 @@ class _StudyScreenState extends State<StudyScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.green,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
                   BoxShadow(
-                      color: AppColors.greenDark,
+                      color: AppColors.primaryDark,
                       blurRadius: 0,
                       offset: Offset(0, 2)),
                 ],
@@ -601,7 +601,7 @@ class _StudyScreenState extends State<StudyScreen> {
                   Icons.assignment_rounded),
               const SizedBox(width: 12),
               _statCard(avg > 0 ? avg.toStringAsFixed(1) : '—', 'Điểm TB',
-                  AppColors.green, Icons.stars_rounded),
+                  AppColors.primary, Icons.stars_rounded),
             ],
           ),
           const SizedBox(height: 12),
@@ -613,11 +613,11 @@ class _StudyScreenState extends State<StudyScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: AppColors.green,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: const [
                         BoxShadow(
-                            color: AppColors.greenDark,
+                            color: AppColors.primaryDark,
                             blurRadius: 0,
                             offset: Offset(0, 4)),
                       ],
@@ -724,7 +724,7 @@ class _StudyScreenState extends State<StudyScreen> {
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                       color: s.average >= 8
-                                          ? AppColors.green
+                                          ? AppColors.primary
                                           : (s.average >= 6.5
                                               ? AppColors.orange
                                               : AppColors.red),
@@ -741,7 +741,7 @@ class _StudyScreenState extends State<StudyScreen> {
                                   backgroundColor: AppColors.border,
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     s.average >= 8
-                                        ? AppColors.green
+                                        ? AppColors.primary
                                         : (s.average >= 6.5
                                             ? AppColors.orange
                                             : AppColors.red),
@@ -765,7 +765,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _buildScoreItem(MockScore s) {
     final color = s.score >= 8
-        ? AppColors.green
+        ? AppColors.primary
         : (s.score >= 6.5 ? AppColors.orange : AppColors.red);
     return Dismissible(
       key: Key(s.id),
@@ -868,10 +868,10 @@ class _StudyScreenState extends State<StudyScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: sel ? AppColors.green : AppColors.bgPage,
+                          color: sel ? AppColors.primary : AppColors.bgPage,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: sel ? AppColors.green : AppColors.border,
+                            color: sel ? AppColors.primary : AppColors.border,
                             width: 2,
                           ),
                         ),
@@ -934,7 +934,7 @@ class _StudyScreenState extends State<StudyScreen> {
             },
             child: const Text('Lưu',
                 style: TextStyle(
-                    color: AppColors.green, fontWeight: FontWeight.w800)),
+                    color: AppColors.primary, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -996,7 +996,7 @@ class _StudyScreenState extends State<StudyScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const CircularProgressIndicator(
-                                color: AppColors.green),
+                                color: AppColors.primary),
                             const SizedBox(height: 12),
                             Text('AI đang phân tích...',
                                 style: TextStyle(
@@ -1032,7 +1032,7 @@ class _StudyScreenState extends State<StudyScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -1098,7 +1098,7 @@ class _StudyScreenState extends State<StudyScreen> {
             },
             child: const Text('Lưu',
                 style: TextStyle(
-                    color: AppColors.green, fontWeight: FontWeight.w800)),
+                    color: AppColors.primary, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

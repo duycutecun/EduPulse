@@ -99,7 +99,7 @@ class _AccountScreenState extends State<AccountScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Đã sao lưu!' : 'Sao lưu thất bại!'),
-        backgroundColor: ok ? AppColors.green : AppColors.red,
+        backgroundColor: ok ? AppColors.primary : AppColors.red,
       ));
     }
   }
@@ -192,7 +192,7 @@ class _AccountScreenState extends State<AccountScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: active ? AppColors.green : Colors.transparent,
+            color: active ? AppColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -226,8 +226,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       Icons.cloud_done_rounded,
                       tileSize: 44,
                       iconSize: 24,
-                      color: AppColors.green,
-                      bg: AppColors.greenSoft,
+                      color: AppColors.primary,
+                      bg: AppColors.primarySoft,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -251,9 +251,9 @@ class _AccountScreenState extends State<AccountScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: AppColors.green,
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))],
+                            boxShadow: const [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 3))],
                           ),
                           child: Center(
                             child: _isSyncing
@@ -292,7 +292,7 @@ class _AccountScreenState extends State<AccountScreen> {
             onTap: _openAuthScreen,
             child: GlassCard(
               padding: const EdgeInsets.all(18),
-              borderColor: AppColors.green,
+              borderColor: AppColors.primary,
               borderWidth: 3,
               child: Row(
                 children: [
@@ -300,8 +300,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     Icons.person_add_rounded,
                     tileSize: 44,
                     iconSize: 24,
-                    color: AppColors.green,
-                    bg: AppColors.greenSoft,
+                    color: AppColors.primary,
+                    bg: AppColors.primarySoft,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -314,7 +314,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppColors.green, size: 18),
+                  const Icon(Icons.chevron_right, color: AppColors.primary, size: 18),
                 ],
               ),
             ),
@@ -366,9 +366,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
-                  color: AppColors.green,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 4))],
                 ),
                 child: const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
               ),
@@ -387,8 +387,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                      child: const Text('⚡ Sĩ tử 2026', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.green)),
+                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+                      child: const Text('⚡ Sĩ tử 2026', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary)),
                     ),
                   ],
                 ),
@@ -469,7 +469,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               Switch(
                 value: _reminderEnabled,
-                activeTrackColor: AppColors.green,
+                activeTrackColor: AppColors.primary,
                 onChanged: (v) => _setReminderEnabled(v),
               ),
             ],
@@ -586,10 +586,10 @@ class _AccountScreenState extends State<AccountScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? AppColors.green : AppColors.bgPage,
+            color: selected ? AppColors.primary : AppColors.bgPage,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? AppColors.green : AppColors.border,
+              color: selected ? AppColors.primary : AppColors.border,
               width: 2,
             ),
           ),
@@ -632,7 +632,7 @@ class _AccountScreenState extends State<AccountScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
             onPressed: () { if (nameCtrl.text.trim().isNotEmpty) _updateProfile(nameCtrl.text.trim(), targetCtrl.text.trim()); Navigator.pop(ctx); },
-            child: const Text('Lưu', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w800)),
+            child: const Text('Lưu', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

@@ -36,7 +36,7 @@ class ChatInputBar extends StatelessWidget {
           GlassCard(
             margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            borderColor: AppColors.green,
+            borderColor: AppColors.primary,
             shadows: const [],
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -139,7 +139,7 @@ class ChatInputBar extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isLoading ? AppColors.border : AppColors.green,
+                    color: isLoading ? AppColors.border : AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                   child: isLoading

@@ -35,18 +35,24 @@ class TodayMissionCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Text('📋', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Nhiệm vụ hôm nay',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const Text('📋', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Nhiệm vụ hôm nay',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Row(
                 children: [
@@ -70,7 +76,7 @@ class TodayMissionCard extends StatelessWidget {
                   GestureDetector(
                     onTap: onAddTask,
                     child: Icon(Icons.add_circle,
-                        color: AppColors.green, size: 26),
+                        color: AppColors.primary, size: 26),
                   ),
                 ],
               ),
@@ -85,7 +91,7 @@ class TodayMissionCard extends StatelessWidget {
                 minHeight: 4,
                 backgroundColor: AppColors.border,
                 valueColor:
-                    const AlwaysStoppedAnimation<Color>(AppColors.green),
+                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             ),
             const SizedBox(height: 6),
@@ -109,7 +115,7 @@ class TodayMissionCard extends StatelessWidget {
   }
 
   Widget _buildTaskItem(TodayTask task) {
-    Color priorityColor = AppColors.green;
+    Color priorityColor = AppColors.primary;
     String priorityText = 'Thường';
     if (task.priority == 'high') {
       priorityColor = AppColors.red;
@@ -150,10 +156,10 @@ class TodayMissionCard extends StatelessWidget {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: task.isDone ? AppColors.green : Colors.transparent,
+                  color: task.isDone ? AppColors.primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(7),
                   border: Border.all(
-                    color: task.isDone ? AppColors.green : AppColors.textMuted,
+                    color: task.isDone ? AppColors.primary : AppColors.textMuted,
                     width: 1.5,
                   ),
                 ),

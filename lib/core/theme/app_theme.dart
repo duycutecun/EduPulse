@@ -50,7 +50,7 @@ class AppTheme {
 
     final colorScheme = ColorScheme(
       brightness: brightness,
-      primary: AppColors.green,
+      primary: AppColors.primary,
       onPrimary: Colors.white,
       secondary: AppColors.blue,
       onSecondary: Colors.white,
@@ -65,15 +65,15 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       scaffoldBackgroundColor: bg,
-      primaryColor: AppColors.green,
+      primaryColor: AppColors.primary,
       colorScheme: colorScheme,
       cupertinoOverrideTheme: CupertinoThemeData(
         brightness: brightness,
-        primaryColor: AppColors.green,
+        primaryColor: AppColors.primary,
         barBackgroundColor: card,
         scaffoldBackgroundColor: bg,
         textTheme: CupertinoTextThemeData(
-          primaryColor: AppColors.green,
+          primaryColor: AppColors.primary,
           textStyle: TextStyle(color: textPrimary),
         ),
       ),
@@ -83,11 +83,12 @@ class AppTheme {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      dialogTheme: DialogThemeData(        backgroundColor: card,
+      dialogTheme: DialogThemeData(
+        backgroundColor: card,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: border, width: 2),
+          side: BorderSide(color: border, width: 1),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -128,31 +129,31 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: border, width: 2),
+          side: BorderSide(color: border, width: 1),
         ),
       ),
       dividerTheme: DividerThemeData(
         color: border,
-        thickness: 2,
+        thickness: 1,
         space: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: card,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         hintStyle: TextStyle(color: muted),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: border, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: border, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: border, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.green, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
     );

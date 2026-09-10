@@ -34,9 +34,9 @@ class AICoachHeader extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: const BoxDecoration(
-              color: AppColors.green,
+              color: AppColors.primary,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: AppColors.greenDark, blurRadius: 0, offset: Offset(0, 3))],
+              boxShadow: [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 3))],
             ),
             clipBehavior: Clip.antiAlias,
             child: Padding(
@@ -61,17 +61,17 @@ class AICoachHeader extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.green.withValues(alpha: 0.12),
+                          color: AppColors.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 1),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(aiModelIcon(model.slug), size: 11, color: AppColors.green),
+                            Icon(aiModelIcon(model.slug), size: 11, color: AppColors.primary),
                             const SizedBox(width: 4),
                             Text(model.label.split(' ').first,
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.green)),
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary)),
                           ],
                         ),
                       ),

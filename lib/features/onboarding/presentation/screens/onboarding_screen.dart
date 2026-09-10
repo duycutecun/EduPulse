@@ -72,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       backgroundColor: AppColors.bgPage,
       body: SafeArea(
         child: _busy
-            ? const Center(child: CircularProgressIndicator(color: AppColors.green))
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
@@ -92,11 +92,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             width: 96,
                             height: 96,
                             decoration: const BoxDecoration(
-                              color: AppColors.greenSoft,
+                              color: AppColors.primarySoft,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.school_rounded,
-                                color: AppColors.green, size: 48),
+                                color: AppColors.primary, size: 48),
                           ),
                         ),
                       ),
@@ -183,7 +183,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               width: 46,
               height: 46,
               decoration: const BoxDecoration(
-                color: AppColors.greenSoft,
+                color: AppColors.primarySoft,
                 shape: BoxShape.circle,
               ),
               child: Center(child: Text(preset.emoji, style: const TextStyle(fontSize: 24))),
@@ -214,7 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.green, size: 22),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: 22),
           ],
         ),
       ),

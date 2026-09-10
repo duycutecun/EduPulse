@@ -70,7 +70,7 @@ class TabChrome extends StatelessWidget {
                       Icon(
                         active ? item.activeIcon : item.icon,
                         size: 23,
-                        color: active ? AppColors.green : AppColors.textMuted,
+                        color: active ? AppColors.primary : AppColors.textMuted,
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -80,7 +80,7 @@ class TabChrome extends StatelessWidget {
                           fontWeight:
                               active ? FontWeight.w800 : FontWeight.w600,
                           color:
-                              active ? AppColors.green : AppColors.textMuted,
+                              active ? AppColors.primary : AppColors.textMuted,
                         ),
                       ),
                     ],

@@ -161,6 +161,6 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
   Color _urgencyColor(int days) {
     if (days < 30) return AppColors.red;
     if (days < 90) return AppColors.orange;
-    return AppColors.green;
+    return AppColors.primary;
   }
 }
