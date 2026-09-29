@@ -181,6 +181,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         // Tab mặc định — luôn tạo mới để nhận streak/exam cập nhật từ MainShell.
         return HomeScreen(
           primaryExam: _primaryExam,
+          exams: _exams,
           onExamTap: _openExamsPage,
           onOpenStudy: _openStudyPage,
           onOpenAiCoach: () => _switchTab(1),
@@ -260,7 +261,7 @@ class _InstallBannerState extends State<_InstallBanner> {
         }
 
         final isAndroidInstall = installable && !isIosPlatform;
-        final bg = isAndroidInstall ? AppColors.primarySoft : AppColors.blueSoft;
+        final bg = isAndroidInstall ? AppColors.greenSoft : AppColors.blueSoft;
         final borderColor = isAndroidInstall ? AppColors.primary : AppColors.blue;
         final iconColor =
             isAndroidInstall ? AppColors.primaryDark : AppColors.blueDark;
@@ -662,7 +663,7 @@ class _OfflineBannerState extends State<_OfflineBanner> {
         }
 
         final isOffline = !isOnline;
-        final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.primarySoft;
+        final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.greenSoft;
         final border = isOffline ? const Color(0xFFFED7AA) : AppColors.primary;
         final iconColor =
             isOffline ? const Color(0xFFEA580C) : AppColors.primaryDark;

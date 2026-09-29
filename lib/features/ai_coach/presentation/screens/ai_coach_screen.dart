@@ -8,6 +8,7 @@ import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../core/utils/image_compressor.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../domain/quiz_models.dart';
 import '../widgets/ai_coach_header.dart';
@@ -34,13 +35,17 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
   AIModel _model = AIModel.defaultModel;
+  bool _autoReadImage = false;
 
   bool get _isIntroOnly => _messages.length == 1;
 
   @override
   void initState() {
     super.initState();
-    _model = AIModel.fromSlug(StorageService.getAiModel());
+    // Luôn chạy ở chế độ Auto: AI chọn model hợp lý theo câu hỏi và tự chuyển
+    // sang model khác khi model đang dùng bị lỗi.
+    _model = AIModel.defaultModel;
+    _autoReadImage = true;
     _loadChatHistory();
   }
 
@@ -91,12 +96,19 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
       final files = await FilePicker.pickFiles(type: FileType.image);
       if (files.isEmpty) return;
       final file = files.first;
-      final bytes = await file.readAsBytes();
+      var bytes = await file.readAsBytes();
+      // Nén ảnh lớn ngay tại chỗ để AI đọc được (proxy serverless giới hạn ~4MB).
+      final compressed = await ImageCompressor.compress(bytes);
+      if (compressed != null) bytes = compressed;
       if (mounted && bytes.isNotEmpty) {
         setState(() {
           _selectedImageBytes = bytes;
           _selectedImageName = file.name;
         });
+        if (_autoReadImage) {
+          _sendMessage(
+              'Hãy đọc nội dung trong ảnh này và giải thích giúp tôi.');
+        }
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
@@ -258,8 +270,10 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
         final files = await FilePicker.pickFiles(type: FileType.image);
         if (files.isEmpty) return;
         final file = files.first;
-        final bytes = await file.readAsBytes();
+        var bytes = await file.readAsBytes();
         if (bytes.isEmpty) return;
+        final compressed = await ImageCompressor.compress(bytes);
+        if (compressed != null) bytes = compressed;
         image = bytes;
         name = file.name;
       } catch (e) {

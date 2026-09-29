@@ -174,11 +174,15 @@ class StorageService {
     setStudyLogIds(ids);
   }
 
-  // Theme
-  static String getThemeMode() =>
-      _prefs?.getString('theme_mode') ?? 'system'; // 'system' | 'light' | 'dark'
-  static void setThemeMode(String v) =>
-      _prefs?.setString('theme_mode', v);
+  // Focus sessions (linked to a task when one was selected).
+  static List<String> getStudySessionIds() =>
+      _prefs?.getStringList('study_session_ids') ?? [];
+  static void setStudySessionIds(List<String> ids) =>
+      _prefs?.setStringList('study_session_ids', ids);
+  static String? getStudySessionJson(String id) =>
+      _prefs?.getString('study_session_$id');
+  static void setStudySessionJson(String id, String json) =>
+      _prefs?.setString('study_session_$id', json);
 
   // Profile
   static String getUserName() =>
@@ -189,8 +193,22 @@ class StorageService {
       _prefs?.getString('user_target') ?? '';
   static void setUserTarget(String v) => _prefs?.setString('user_target', v);
 
+  // Trạng thái xác minh email (dùng cho tài khoản đăng ký bằng email/password).
+  // Firebase email verification mặc định là link — app dùng mã 8 chữ số tự phát
+  // qua serverless API, nên đánh dấu ở local + user_profiles thay vì Firebase.
+  static bool getEmailVerified() =>
+      _prefs?.getBool('email_verified') ?? false;
+  static void setEmailVerified(bool v) =>
+      _prefs?.setBool('email_verified', v);
+
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
   static void setAiModel(String v) => _prefs?.setString('ai_model', v);
+
+  // Chế độ tự động đọc ảnh: khi gắn ảnh, AI tự phân tích mà không cần gõ prompt.
+  static bool getAiAutoReadImage() =>
+      _prefs?.getBool('ai_auto_read_image') ?? false;
+  static void setAiAutoReadImage(bool v) =>
+      _prefs?.setBool('ai_auto_read_image', v);
 
   // Danh sách model miễn phí của OpenRouter (cache 24h, FreeModelsCatalog).
   static String? getFreeModelsCache() =>

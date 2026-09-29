@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../shared/widgets/mascot_avatar.dart';
 
-/// Header trang chủ tối giản: lời chào + streak, không mascot/avatar.
+/// Header trang chủ kiểu Duolingo: chào + streak flame + mascot avatar
+/// gắn bên phải.
 class HomeHeader extends StatelessWidget {
   final String userName;
   final int streak;
   final int? daysLeft;
   final int? remainingTasks;
   final bool? isAllTasksCompleted;
+  final bool? mascotVisible;
 
   const HomeHeader({
     super.key,
@@ -16,54 +19,104 @@ class HomeHeader extends StatelessWidget {
     this.daysLeft,
     this.remainingTasks,
     this.isAllTasksCompleted,
+    this.mascotVisible,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.bgPage,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(
-                'Chào $userName 👋',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Chào $userName 👋',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (streak > 0) ...[
+                      const SizedBox(height: 6),
+                      _StreakChip(streak: streak),
+                    ],
+                  ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
+              if (mascotVisible != false)
+                MascotAvatar(
+                  size: 48,
+                  mood: MascotMood.idle,
+                ),
             ],
           ),
-        ),
-        // Chip streak — chỉ hiện khi có streak để header luôn sạch.
-        if (streak > 0)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.orange.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🔥', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 4),
-                Text(
-                  '$streak',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.orange,
-                  ),
-                ),
-              ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip streak kiểu Duolingo: nền vàng, icon lửa, số đậm.
+class _StreakChip extends StatelessWidget {
+  final int streak;
+
+  const _StreakChip({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.streakBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.yellow, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.yellow.withValues(alpha: 0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🔥', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 6),
+          Text(
+            '$streak',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.yellow,
             ),
           ),
-      ],
+          const SizedBox(width: 2),
+          const Text(
+            'ngày',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

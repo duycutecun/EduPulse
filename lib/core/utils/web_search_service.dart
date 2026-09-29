@@ -85,9 +85,11 @@ class WebSearchService {
       final resp = await http
           .post(
             Uri.parse('https://api.tavily.com/search'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $apiKey',
+            },
             body: jsonEncode({
-              'api_key': apiKey,
               'query': query,
               'max_results': 3,
               'search_depth': 'basic',

@@ -16,6 +16,7 @@ import '../widgets/today_mission_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final ExamModel? primaryExam;
+  final List<ExamModel> exams;
   final VoidCallback onExamTap;
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
@@ -26,6 +27,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.primaryExam,
+    required this.exams,
     required this.onExamTap,
     required this.onOpenStudy,
     required this.onOpenAiCoach,
@@ -36,6 +38,50 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _GoalProgressCard extends StatelessWidget {
+  const _GoalProgressCard({required this.exam, required this.tasks});
+
+  final ExamModel exam;
+  final List<TodayTask> tasks;
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = tasks.where((task) => task.isDone).length;
+    final progress = tasks.isEmpty ? 0.0 : completed / tasks.length;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Tiến độ mục tiêu',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(tasks.isEmpty
+              ? 'Chưa có nhiệm vụ gắn với ${exam.name}.'
+              : '$completed/${tasks.length} nhiệm vụ đã hoàn thành'),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: LinearProgressIndicator(
+              minHeight: 7,
+              value: progress,
+              backgroundColor: AppColors.progressBg,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -103,13 +149,18 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
   }
 
-  void _addTask(String title, String subject, String priority, int minutes) {
+  void _addTask(String title, String subject, String priority, int minutes,
+      {String? topic, DateTime? deadline, String? note, String? goalId}) {
     final task = TodayTask(
       id: _uuid.v4(),
       title: title,
       subject: subject,
       priority: priority,
       estimateMinutes: minutes,
+      topic: topic,
+      deadline: deadline,
+      note: note,
+      goalId: goalId,
     );
     StorageService.setTodayTaskJson(task.id, task.toJsonString());
     final ids = StorageService.getTodayTaskIds()..add(task.id);
@@ -120,6 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleTask(TodayTask task) {
     final wasDone = task.isDone;
     task.isDone = !task.isDone;
+    task.status = task.isDone ? 'completed' : 'todo';
+    if (task.isDone) task.skipReason = null;
     StorageService.setTodayTaskJson(task.id, task.toJsonString());
     setState(() {});
 
@@ -130,7 +183,88 @@ class _HomeScreenState extends State<HomeScreen> {
       StorageService.addMascotBondExp(10); // gắn kết linh vật
       setState(() {});
       _notifyStreakChanged();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Đã hoàn thành nhiệm vụ'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Hoàn tác',
+              onPressed: () {
+                task.isDone = false;
+                task.status = 'todo';
+                StorageService.setTodayTaskJson(task.id, task.toJsonString());
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
+        );
     }
+  }
+
+  void _showSkipSheet(TodayTask task) {
+    const reasons = [
+      'Không đủ thời gian',
+      'Quá khó',
+      'Không cần thiết nữa',
+      'Chưa có tài liệu',
+      'Chưa có động lực',
+      'Khác',
+    ];
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Bỏ qua nhiệm vụ',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Lý do giúp EduPulse điều chỉnh kế hoạch tốt hơn.'),
+              const SizedBox(height: 10),
+              ...reasons.map((reason) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(reason),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      task.isDone = false;
+                      task.status = 'skipped';
+                      task.skipReason = reason;
+                      StorageService.setTodayTaskJson(task.id, task.toJsonString());
+                      Navigator.pop(sheetContext);
+                      setState(() {});
+                    },
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _rescheduleTask(TodayTask task) async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: task.deadline?.isAfter(now) == true ? task.deadline! : now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 10),
+      helpText: 'Chọn ngày làm nhiệm vụ',
+    );
+    if (selected == null || !mounted) return;
+    task.deadline = selected;
+    task.status = 'todo';
+    task.skipReason = null;
+    task.rescheduleCount++;
+    StorageService.setTodayTaskJson(task.id, task.toJsonString());
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Đã dời "${task.title}" sang ngày mới')),
+    );
   }
 
   void _deleteTask(TodayTask task) {
@@ -164,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -178,7 +312,16 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: widget.onExamTap,
             remainingListenable: _remainingNotifier,
           ),
-          const SizedBox(height: 12),
+          if (widget.primaryExam != null) ...[
+            const SizedBox(height: 14),
+            _GoalProgressCard(
+              exam: widget.primaryExam!,
+              tasks: _tasks
+                  .where((task) => task.goalId == widget.primaryExam!.id)
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 14),
           QuickActionCard(
             onOpenStudy: widget.onOpenStudy,
             onOpenAiCoach: widget.onOpenAiCoach,
@@ -188,16 +331,22 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TodayMissionCard(
             tasks: _tasks,
             onAddTask: _showAddTaskDialog,
             onToggle: _toggleTask,
             onDelete: _deleteTask,
+            onSkip: _showSkipSheet,
+            onReschedule: _rescheduleTask,
             onAddSample: _showSampleTasksSheet,
           ),
-          const SizedBox(height: 12),
-          const SmartNudgeCard(),
+          const SizedBox(height: 14),
+          SmartNudgeCard(
+            tasks: _tasks,
+            primaryExam: widget.primaryExam,
+            onAskAi: widget.onOpenAiCoach,
+          ),
         ],
       ),
     );
@@ -206,7 +355,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAddTaskDialog() {
     showDialog(
       context: context,
-      builder: (_) => _AddTaskDialog(onAdd: _addTask),
+      builder: (_) => _AddTaskDialog(
+        onAdd: _addTask,
+        exams: widget.exams,
+        primaryExamId: widget.primaryExam?.id,
+      ),
     );
   }
 
@@ -331,10 +484,16 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _AddTaskDialog extends StatefulWidget {
-  const _AddTaskDialog({required this.onAdd});
+  const _AddTaskDialog({
+    required this.onAdd,
+    required this.exams,
+    this.primaryExamId,
+  });
 
-  final void Function(
-      String title, String subject, String priority, int minutes) onAdd;
+  final void Function(String title, String subject, String priority, int minutes,
+      {String? topic, DateTime? deadline, String? note, String? goalId}) onAdd;
+  final List<ExamModel> exams;
+  final String? primaryExamId;
 
   @override
   State<_AddTaskDialog> createState() => _AddTaskDialogState();
@@ -342,9 +501,13 @@ class _AddTaskDialog extends StatefulWidget {
 
 class _AddTaskDialogState extends State<_AddTaskDialog> {
   final _titleCtrl = TextEditingController();
+  final _topicCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
   String _subject = '📐 Toán';
   String _priority = 'medium';
   int _minutes = 45;
+  DateTime? _deadline;
+  String? _goalId;
   final _subjects = [
     '📐 Toán',
     '⚡ Lý',
@@ -362,8 +525,16 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _goalId = widget.primaryExamId;
+  }
+
+  @override
   void dispose() {
     _titleCtrl.dispose();
+    _topicCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -373,8 +544,29 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
       HapticFeedback.vibrate();
       return;
     }
-    widget.onAdd(title, _subject, _priority, _minutes);
+    widget.onAdd(
+      title,
+      _subject,
+      _priority,
+      _minutes,
+      topic: _topicCtrl.text.trim().isEmpty ? null : _topicCtrl.text.trim(),
+      deadline: _deadline,
+      note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      goalId: _goalId,
+    );
     Navigator.pop(context);
+  }
+
+  Future<void> _pickDeadline() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _deadline ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10),
+      helpText: 'Chọn hạn hoàn thành',
+    );
+    if (selected != null && mounted) setState(() => _deadline = selected);
   }
 
   @override
@@ -397,6 +589,13 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
                   hintText: 'Tên nhiệm vụ (VD: Giải 1 đề Toán)',
                 ),
                 autofocus: true,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _topicCtrl,
+                decoration: const InputDecoration(
+                  hintText: 'Chủ đề (không bắt buộc)',
+                ),
               ),
               const SizedBox(height: 12),
               const Text('Chọn môn:',
@@ -432,6 +631,44 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _pickDeadline,
+                icon: const Icon(Icons.event_outlined, size: 18),
+                label: Text(_deadline == null
+                    ? 'Thêm hạn hoàn thành'
+                    : 'Hạn: ${_deadline!.day.toString().padLeft(2, '0')}/${_deadline!.month.toString().padLeft(2, '0')}/${_deadline!.year}'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _noteCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  hintText: 'Ghi chú (không bắt buộc)',
+                ),
+              ),
+              if (widget.exams.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  value: _goalId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Kỳ thi / Mục tiêu'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Chưa gắn mục tiêu'),
+                    ),
+                    ...widget.exams.map(
+                      (exam) => DropdownMenuItem<String?>(
+                        value: exam.id,
+                        child: Text(exam.name,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => _goalId = value),
+                ),
+              ],
               const SizedBox(height: 12),
               const Text('Thời gian:',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),

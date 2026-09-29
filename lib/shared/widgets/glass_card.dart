@@ -6,27 +6,23 @@ class GlassCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final double borderRadius;
-  final double blur;
   final Color? customColor;
   final Color? borderColor;
   final double borderWidth;
   final VoidCallback? onTap;
   final List<BoxShadow>? shadows;
-  final Gradient? borderGradient;
 
   const GlassCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(18),
     this.margin,
-    this.borderRadius = 16,
-    this.blur = 0,
+    this.borderRadius = 20,
     this.customColor,
     this.borderColor,
     this.borderWidth = 1,
     this.onTap,
     this.shadows,
-    this.borderGradient,
   });
 
   @override
@@ -34,32 +30,25 @@ class GlassCard extends StatelessWidget {
     final bgColor = customColor ?? AppColors.cardWhite;
     final bColor = borderColor ?? AppColors.border;
 
-    final content = Container(
+    final card = Container(
+      margin: margin,
       padding: padding,
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: bColor, width: borderWidth),
+        boxShadow: shadows ?? [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: child,
     );
 
-    // Phong cách tối giản: phẳng, không shadow, border hairline mỏng.
-    Widget container = Container(
-      margin: margin,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: shadows,
-      ),
-      child: content,
-    );
-
-    if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: container,
-      );
-    }
-    return container;
+    if (onTap == null) return card;
+    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: card);
   }
 }

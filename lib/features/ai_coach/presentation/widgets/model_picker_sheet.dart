@@ -117,6 +117,41 @@ void showModelPickerSheet({
               ),
             ),
             const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                child: GlassCard(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded,
+                          color: AppColors.purple, size: 20),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Tự động đọc ảnh — luôn bật',
+                                style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary)),
+                            SizedBox(height: 1),
+                            Text(
+                                'Gắn ảnh là AI tự đọc & phân tích ngay. Model nào lỗi sẽ tự chuyển model khác.',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.check_circle,
+                          color: AppColors.primary, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
           ],
         ),
       );

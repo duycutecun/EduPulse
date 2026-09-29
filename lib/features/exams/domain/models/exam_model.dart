@@ -9,6 +9,8 @@ class ExamModel {
   final ExamType type;
   final String? description;
   final String emoji;
+  final double? currentScore;
+  final double? targetScore;
 
   ExamModel({
     required this.id,
@@ -17,6 +19,8 @@ class ExamModel {
     this.type = ExamType.preset,
     this.description,
     this.emoji = '🎯',
+    this.currentScore,
+    this.targetScore,
   });
 
   Duration get remaining => dateTime.difference(DateTime.now());
@@ -39,6 +43,8 @@ class ExamModel {
     'type': type.index,
     'description': description,
     'emoji': emoji,
+    'currentScore': currentScore,
+    'targetScore': targetScore,
   };
 
   factory ExamModel.fromJson(Map<String, dynamic> j) => ExamModel(
@@ -48,6 +54,8 @@ class ExamModel {
     type: ExamType.values[j['type'] ?? 1],
     description: j['description'],
     emoji: j['emoji'] ?? '🎯',
+    currentScore: (j['currentScore'] as num?)?.toDouble(),
+    targetScore: (j['targetScore'] as num?)?.toDouble(),
   );
 
   String toJsonString() => jsonEncode(toJson());

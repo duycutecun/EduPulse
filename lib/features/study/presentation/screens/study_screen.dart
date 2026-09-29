@@ -8,7 +8,6 @@ import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
-import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
 import '../../domain/models/study_models.dart';
 import '../../domain/score_summary.dart';
@@ -27,6 +26,9 @@ class _StudyScreenState extends State<StudyScreen> {
   final _uuid = const Uuid();
   List<StudyLog> _logs = [];
   List<MockScore> _scores = [];
+  List<StudySession> _sessions = [];
+  List<TodayTask> _tasks = [];
+  TodayTask? _selectedTask;
   int _activeTab = 0;
 
   int _focusMinutes = 25;
@@ -43,6 +45,30 @@ class _StudyScreenState extends State<StudyScreen> {
     super.initState();
     _loadLogs();
     _loadScores();
+    _loadTasks();
+    _loadSessions();
+  }
+
+  void _loadSessions() {
+    _sessions = StorageService.getStudySessionIds()
+        .map((id) {
+          final json = StorageService.getStudySessionJson(id);
+          return json == null ? null : StudySession.fromJsonString(json);
+        })
+        .whereType<StudySession>()
+        .toList()
+      ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+  }
+
+  void _loadTasks() {
+    _tasks = StorageService.getTodayTaskIds()
+        .map((id) {
+          final json = StorageService.getTodayTaskJson(id);
+          return json == null ? null : TodayTask.fromJsonString(json);
+        })
+        .whereType<TodayTask>()
+        .where((task) => !task.isDone && task.status != 'skipped')
+        .toList();
   }
 
   void _loadScores() {
@@ -132,14 +158,14 @@ class _StudyScreenState extends State<StudyScreen> {
           _pomTimer?.cancel();
           setState(() {
             _pomRunning = false;
-            _pomRound++;
             if (_isBreak) {
               _isBreak = false;
               _pomSecondsNotifier.value = _focusMinutes * 60;
             } else {
+              _pomRound++;
               _isBreak = true;
               _pomSecondsNotifier.value = _breakMinutes * 60;
-              _addLog('Pomodoro', _focusMinutes / 60.0, 'Phiên $_pomRound');
+              _recordCompletedFocus();
               // Kết thúc phiên tập trung → streak + EXP gắn kết linh vật.
               StorageService.registerStudyActivity();
               StorageService.addMascotBondExp(25);
@@ -149,6 +175,211 @@ class _StudyScreenState extends State<StudyScreen> {
         }
       });
     }
+  }
+
+  void _recordCompletedFocus() {
+    final task = _selectedTask;
+    final subject = task?.subject ?? 'Pomodoro';
+    final note = task == null ? 'Phiên $_pomRound' : 'Focus: ${task.title}';
+    _addLog(subject, _focusMinutes / 60.0, note);
+
+    final session = StudySession(
+      id: _uuid.v4(),
+      completedAt: DateTime.now(),
+      taskId: task?.id,
+      subject: subject,
+      plannedMinutes: _focusMinutes,
+      actualMinutes: _focusMinutes,
+    );
+    StorageService.setStudySessionJson(session.id, session.toJsonString());
+    final ids = StorageService.getStudySessionIds()..add(session.id);
+    StorageService.setStudySessionIds(ids);
+    setState(() => _sessions.insert(0, session));
+    // Reflection is intentionally occasional: it gives useful signal without
+    // making the end of every Pomodoro feel like a form.
+    if (_pomRound % 3 == 0) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) {
+          if (mounted) _showReflectionSheet(session);
+        },
+      );
+    }
+  }
+
+  void _showReflectionSheet(StudySession session) {
+    var mood = 3;
+    var focus = 3;
+    var difficulty = 3;
+    var understanding = 3;
+    var effectiveness = 3;
+    final noteController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, 18, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Phiên học vừa rồi thế nào?',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  const Text('Chỉ mất vài giây — bạn có thể bỏ qua.'),
+                  const SizedBox(height: 16),
+                  _reflectionScale('Tâm trạng', mood,
+                      (value) => setSheetState(() => mood = value)),
+                  _reflectionScale('Tập trung', focus,
+                      (value) => setSheetState(() => focus = value)),
+                  _reflectionScale('Độ khó', difficulty,
+                      (value) => setSheetState(() => difficulty = value)),
+                  _reflectionScale('Mức độ hiểu', understanding,
+                      (value) => setSheetState(() => understanding = value)),
+                  _reflectionScale('Hiệu quả', effectiveness,
+                      (value) => setSheetState(() => effectiveness = value)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                        hintText: 'Ghi chú thêm (không bắt buộc)'),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('Bỏ qua'),
+                        ),
+                      ),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            session
+                              ..mood = mood
+                              ..focus = focus
+                              ..difficulty = difficulty
+                              ..understanding = understanding
+                              ..effectiveness = effectiveness
+                              ..reflectionNote = noteController.text.trim().isEmpty
+                                  ? null
+                                  : noteController.text.trim();
+                            StorageService.setStudySessionJson(
+                                session.id, session.toJsonString());
+                            Navigator.pop(sheetContext);
+                          },
+                          child: const Text('Lưu phản hồi'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(noteController.dispose);
+  }
+
+  Widget _reflectionScale(
+      String label, int value, ValueChanged<int> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+              width: 112,
+              child: Text(label,
+                  style: const TextStyle(fontWeight: FontWeight.w700))),
+          ...List.generate(
+            5,
+            (index) {
+              final score = index + 1;
+              final selected = score <= value;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(score),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Icon(
+                      selected ? Icons.circle_rounded : Icons.circle_outlined,
+                      color: selected ? AppColors.primary : AppColors.borderStrong,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTaskPicker() {
+    _loadTasks();
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Chọn nhiệm vụ để tập trung',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.timer_outlined),
+                title: const Text('Focus tự do'),
+                trailing: _selectedTask == null
+                    ? const Icon(Icons.check_circle_rounded,
+                        color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedTask = null);
+                  Navigator.pop(sheetContext);
+                },
+              ),
+              if (_tasks.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text('Chưa có nhiệm vụ chưa hoàn thành.'),
+                )
+              else
+                ..._tasks.map((task) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.checklist_rounded,
+                          color: AppColors.blue),
+                      title: Text(task.title),
+                      subtitle: Text('${task.subject} · ${task.estimateMinutes} phút'),
+                      trailing: _selectedTask?.id == task.id
+                          ? const Icon(Icons.check_circle_rounded,
+                              color: AppColors.primary)
+                          : null,
+                      onTap: () {
+                        setState(() => _selectedTask = task);
+                        Navigator.pop(sheetContext);
+                      },
+                    )),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _resetPomodoro() {
@@ -206,10 +437,15 @@ class _StudyScreenState extends State<StudyScreen> {
       child: GestureDetector(
         onTap: () => setState(() => _activeTab = index),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            color: isActive ? AppColors.primary : AppColors.cardLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive ? AppColors.primary : AppColors.border,
+              width: 1.5,
+            ),
           ),
           child: Text(
             label,
@@ -217,7 +453,7 @@ class _StudyScreenState extends State<StudyScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-              color: isActive ? Colors.white : AppColors.textMuted,
+              color: isActive ? Colors.white : AppColors.textPrimary,
             ),
           ),
         ),
@@ -231,79 +467,120 @@ class _StudyScreenState extends State<StudyScreen> {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       child: Column(
         children: [
+          InkWell(
+            onTap: _pomRunning ? null : _showTaskPicker,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.cardWhite,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.checklist_rounded, color: AppColors.blue),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nhiệm vụ hiện tại',
+                            style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Text(_selectedTask?.title ?? 'Focus tự do',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary)),
+                      ],
+                    ),
+                  ),
+                  Icon(_pomRunning ? Icons.lock_outline : Icons.chevron_right_rounded,
+                      color: AppColors.textMuted),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          // Nút chọn chế độ Pomodoro.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _modeChip(25, 5, '25/5'),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               _modeChip(50, 10, '50/10'),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               _modeChip(90, 20, '90/20'),
             ],
           ),
-          const SizedBox(height: 28),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 220,
-                height: 220,
-                child: ValueListenableBuilder<int>(
-                  valueListenable: _pomSecondsNotifier,
-                  builder: (context, secondsRemaining, _) {
-                    final minutes = secondsRemaining ~/ 60;
-                    final seconds = secondsRemaining % 60;
-                    final progress = totalSec > 0
-                        ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
-                        : 0.0;
-                    return SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: Stack(
-                        alignment: Alignment.center,
+          const SizedBox(height: 32),
+          // Đồng hồ countdown — vòng tròn xanh lá.
+          SizedBox(
+            width: 200,
+            height: 200,
+            child: ValueListenableBuilder<int>(
+              valueListenable: _pomSecondsNotifier,
+              builder: (context, secondsRemaining, _) {
+                final minutes = secondsRemaining ~/ 60;
+                final seconds = secondsRemaining % 60;
+                final progress = totalSec > 0
+                    ? (1 - (secondsRemaining / totalSec)).clamp(0.0, 1.0)
+                    : 0.0;
+                return Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Nền vòng tròn.
+                      SizedBox(
+                        width: 180,
+                        height: 180,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 12,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: AppColors.progressBg,
+                          valueColor: AlwaysStoppedAnimation<Color>(activeColor),
+                        ),
+                      ),
+                      // Số giờ đồng hồ.
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircularProgressIndicator(
-                            value: progress,
-                            strokeWidth: 14,
-                            strokeCap: StrokeCap.round,
-                            backgroundColor: AppColors.border,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(activeColor),
+                          Text(
+                            '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                            style: const TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                'Phiên $_pomRound',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'Phiên $_pomRound',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          // Mascot + trạng thái.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -317,8 +594,9 @@ class _StudyScreenState extends State<StudyScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: activeColor.withValues(alpha: 0.15),
+                  color: activeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: activeColor, width: 1.2),
                 ),
                 child: Text(
                   _isBreak
@@ -332,25 +610,26 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
+          // Nút play/pause + reset — tá áo lớn, bo tròn, xanh lá.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _TactileCircleButton(
-                size: 52,
+                size: 56,
                 color: AppColors.cardWhite,
-                shadowColor: AppColors.borderStrong.withValues(alpha: 0.6),
+                shadowColor: AppColors.borderStrong.withValues(alpha: 0.5),
                 border: Border.all(color: AppColors.border, width: 2),
                 onTap: _resetPomodoro,
-                child: Icon(
+                child: const Icon(
                   Icons.refresh_rounded,
-                  color: AppColors.textPrimary,
+                  color: AppColors.textSecondary,
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 28),
               _TactileCircleButton(
-                size: 72,
+                size: 76,
                 color: _pomRunning ? AppColors.red : AppColors.primary,
                 shadowColor:
                     _pomRunning ? AppColors.redDark : AppColors.primaryDark,
@@ -366,10 +645,10 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Text(
             _pomRunning ? 'Đang trong phiên học!' : 'Bắt đầu để tính thời gian',
-            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
           ),
         ],
       ),
@@ -384,12 +663,21 @@ class _StudyScreenState extends State<StudyScreen> {
         _setPomodoroMode(focus, brk);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: sel ? AppColors.primary : AppColors.cardWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: sel ? AppColors.primary : AppColors.border, width: 2),
+              color: sel ? AppColors.primary : AppColors.border, width: 1.5),
+          boxShadow: sel
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
@@ -407,7 +695,121 @@ class _StudyScreenState extends State<StudyScreen> {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      child: WeeklyChartWidget(logs: _logs),
+      child: Column(
+        children: [
+          _buildFocusAnalytics(),
+          const SizedBox(height: 16),
+          WeeklyChartWidget(logs: _logs),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFocusAnalytics() {
+    final now = DateTime.now();
+    final startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    final thisWeek = _sessions
+        .where((session) => !session.completedAt.isBefore(startOfWeek))
+        .toList();
+    final totalMinutes = thisWeek.fold<int>(
+        0, (sum, session) => sum + session.actualMinutes);
+    final ratedFocus = thisWeek.where((session) => session.focus != null).toList();
+    final ratedEffectiveness =
+        thisWeek.where((session) => session.effectiveness != null).toList();
+    final avgFocus = ratedFocus.isEmpty
+        ? null
+        : ratedFocus.fold<int>(0, (sum, session) => sum + session.focus!) /
+            ratedFocus.length;
+    final avgEffectiveness = ratedEffectiveness.isEmpty
+        ? null
+        : ratedEffectiveness.fold<int>(0,
+                (sum, session) => sum + session.effectiveness!) /
+            ratedEffectiveness.length;
+
+    String? insight;
+    if (ratedFocus.length >= 3 && avgFocus! < 3) {
+      insight = 'Focus trung bình đang thấp. Hãy thử phiên ngắn hơn hoặc nghỉ sớm hơn.';
+    } else if (ratedEffectiveness.length >= 3 && avgEffectiveness! >= 4) {
+      insight = 'Bạn đang học hiệu quả trong tuần này. Duy trì nhịp hiện tại nhé!';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Focus tuần này',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _analyticsMetric('$totalMinutes phút', 'Thời gian focus'),
+              const SizedBox(width: 8),
+              _analyticsMetric('${thisWeek.length}', 'Phiên hoàn thành'),
+              const SizedBox(width: 8),
+              _analyticsMetric(avgFocus == null ? '—' : '${avgFocus.toStringAsFixed(1)}/5',
+                  'Focus TB'),
+            ],
+          ),
+          if (insight != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.purpleLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded,
+                      size: 18, color: AppColors.purple),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(insight,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textPrimary)),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (_sessions.isEmpty) ...[
+            const SizedBox(height: 12),
+            const Text('Hoàn thành một phiên Focus để bắt đầu xem dữ liệu.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _analyticsMetric(String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: AppColors.bgPageSoft,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -416,32 +818,38 @@ class _StudyScreenState extends State<StudyScreen> {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         children: [
+          // Thống kê tổng.
           Row(
             children: [
-              _statCard('${totalHours.toStringAsFixed(1)}h', 'Tổng giờ học',
-                  AppColors.blue, Icons.access_time),
+              Expanded(
+                child: _statCard('${totalHours.toStringAsFixed(1)}h', 'Tổng giờ học',
+                    AppColors.blue, Icons.access_time),
+              ),
               const SizedBox(width: 12),
-              _statCard('${_logs.length}', 'Buổi học', AppColors.primary,
-                  Icons.check_circle),
+              Expanded(
+                child: _statCard('${_logs.length}', 'Buổi học', AppColors.primary,
+                    Icons.check_circle),
+              ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+          // Nút thêm nhật ký — xanh lá, bo tròn, nổi.
           GestureDetector(
             onTap: () => _showAddLogDialog(),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                      color: AppColors.primaryDark,
-                      blurRadius: 0,
-                      offset: Offset(0, 4)),
+                      color: AppColors.primaryDark.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4)),
                 ],
               ),
               child: const Row(
@@ -458,18 +866,18 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           if (_logs.isEmpty)
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(
                 children: [
-                  Text('📚', style: TextStyle(fontSize: 48)),
-                  SizedBox(height: 10),
+                  const Text('📚', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 10),
                   Text(
                     'Chưa có nhật ký.\nGhi chép mỗi ngày!',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: AppColors.textMuted, fontSize: 13, height: 1.4),
                   ),
                 ],
@@ -488,8 +896,13 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _statCard(String val, String label, Color color, IconData icon) {
     return Expanded(
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -501,12 +914,19 @@ class _StudyScreenState extends State<StudyScreen> {
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: color)),
-                Icon(icon, size: 18, color: color),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 16, color: color),
+                ),
               ],
             ),
             const SizedBox(height: 4),
             Text(label,
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
                     fontWeight: FontWeight.w600)),
@@ -524,62 +944,73 @@ class _StudyScreenState extends State<StudyScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
+        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
       ),
-      child: GlassCard(
-        padding: const EdgeInsets.all(14),
-        margin: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
           children: [
+            // Ô giờ bên trái — xanh lá.
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                      color: AppColors.primaryDark,
-                      blurRadius: 0,
-                      offset: Offset(0, 2)),
+                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
-              child: Center(
+              child: const Center(
                 child: Text(
-                  '${log.hours.toStringAsFixed(1)}h',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white),
+                  '',
+                  style: TextStyle(fontSize: 12),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(log.subject,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary)),
                   if (log.note != null && log.note!.isNotEmpty)
                     Text(log.note!,
-                        style:
-                            TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
             Text('${log.date.day}/${log.date.month}',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
         ),
       ),
@@ -592,34 +1023,40 @@ class _StudyScreenState extends State<StudyScreen> {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         children: [
+          // Thống kê.
           Row(
             children: [
-              _statCard('${_scores.length}', 'Lần thi thử', AppColors.blue,
-                  Icons.assignment_rounded),
+              Expanded(
+                child: _statCard('${_scores.length}', 'Lần thi thử', AppColors.blue,
+                    Icons.assignment_rounded),
+              ),
               const SizedBox(width: 12),
-              _statCard(avg > 0 ? avg.toStringAsFixed(1) : '—', 'Điểm TB',
-                  AppColors.primary, Icons.stars_rounded),
+              Expanded(
+                child: _statCard(avg > 0 ? avg.toStringAsFixed(1) : '—', 'Điểm TB',
+                    AppColors.primary, Icons.stars_rounded),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          // Hai nút action.
           Row(
             children: [
               Expanded(
                 child: GestureDetector(
                   onTap: _showAddScoreDialog,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                            color: AppColors.primaryDark,
-                            blurRadius: 0,
-                            offset: Offset(0, 4)),
+                            color: AppColors.primaryDark.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4)),
                       ],
                     ),
                     child: const Row(
@@ -642,19 +1079,25 @@ class _StudyScreenState extends State<StudyScreen> {
                 child: GestureDetector(
                   onTap: _scores.isEmpty ? null : _analyzeScoresWithAi,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
                       color: _scores.isEmpty
-                          ? AppColors.border.withValues(alpha: 0.5)
+                          ? AppColors.cardLight
                           : AppColors.purple,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _scores.isEmpty
+                            ? AppColors.border
+                            : AppColors.purple,
+                        width: 1.5,
+                      ),
                       boxShadow: _scores.isEmpty
                           ? null
-                          : const [
+                          : [
                               BoxShadow(
-                                  color: AppColors.purple,
-                                  blurRadius: 0,
-                                  offset: Offset(0, 4)),
+                                  color: AppColors.purple.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4)),
                             ],
                     ),
                     child: Row(
@@ -675,7 +1118,7 @@ class _StudyScreenState extends State<StudyScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           if (_scores.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
@@ -686,7 +1129,7 @@ class _StudyScreenState extends State<StudyScreen> {
                   Text(
                     'Chưa có điểm thi thử.\nGhi lại điểm để theo dõi tiến bộ!',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: AppColors.textMuted, fontSize: 13, height: 1.4),
                   ),
                 ],
@@ -694,13 +1137,25 @@ class _StudyScreenState extends State<StudyScreen> {
             )
           else ...[
             if (summaries.isNotEmpty) ...[
-              GlassCard(
+              Container(
                 padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.cardWhite,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Tổng hợp theo môn',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary)),
@@ -714,7 +1169,7 @@ class _StudyScreenState extends State<StudyScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(s.subject,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.textPrimary)),
@@ -738,10 +1193,10 @@ class _StudyScreenState extends State<StudyScreen> {
                                 child: LinearProgressIndicator(
                                   value: (s.average / 10).clamp(0.0, 1.0),
                                   minHeight: 8,
-                                  backgroundColor: AppColors.border,
+                                  backgroundColor: AppColors.progressBg,
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     s.average >= 8
-                                        ? AppColors.primary
+                                        ? AppColors.progressDone
                                         : (s.average >= 6.5
                                             ? AppColors.orange
                                             : AppColors.red),
@@ -774,57 +1229,77 @@ class _StudyScreenState extends State<StudyScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
+        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
       ),
-      child: GlassCard(
-        padding: const EdgeInsets.all(14),
-        margin: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
           children: [
+            // Score circle — nền xanh lá/cam/red tùy điểm.
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
+                color: color,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Center(
                 child: Text(
                   s.score.toStringAsFixed(1),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: color,
+                    color: Colors.white,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(s.subject,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary)),
                   if (s.note != null && s.note!.isNotEmpty)
                     Text(s.note!,
-                        style:
-                            TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
             Text('${s.date.day}/${s.date.month}',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
         ),
       ),
@@ -1141,8 +1616,8 @@ class _TactileCircleButton extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: shadowColor,
-              blurRadius: 0,
-              offset: const Offset(0, 4.0),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

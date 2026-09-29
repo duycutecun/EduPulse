@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
-import '../../../../shared/widgets/glass_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 
 class HeroCountdownCard extends StatefulWidget {
@@ -33,26 +32,40 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
 
     return GestureDetector(
       onTap: widget.onTap,
-      child: GlassCard(
-        padding: const EdgeInsets.all(20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hàng trên: tên kỳ thi + chip mức độ khẩn cấp.
+            // Hàng trên: emoji + tên kỳ thi + chip urgency.
             Row(
               children: [
                 Text(
                   primaryExam?.emoji ?? '🎯',
-                  style: const TextStyle(fontSize: 22),
+                  style: const TextStyle(fontSize: 26),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     primaryExam?.name ?? 'Chưa chọn kỳ thi mục tiêu',
-                    style: TextStyle(
-                      fontSize: 15,
+                    style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      height: 1.3,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -61,39 +74,67 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                 if (primaryExam != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                        horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: urgencyColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: urgencyColor, width: 1.2),
                     ),
                     child: Text(
                       primaryExam.urgencyLabel,
                       style: TextStyle(
                         color: urgencyColor,
-                        fontSize: 10.5,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _buildTimerRow(),
             if (primaryExam != null) ...[
               const SizedBox(height: 12),
-              Text(
-                '📅 ${AppDate.formatDateTime(primaryExam.dateTime)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today_rounded,
+                      color: AppColors.textMuted, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    AppDate.formatDateTime(primaryExam.dateTime),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
+              if (primaryExam.targetScore != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.blueLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    primaryExam.currentScore == null
+                        ? 'Mục tiêu: ${primaryExam.targetScore!.toStringAsFixed(1)} điểm'
+                        : 'Điểm hiện tại ${primaryExam.currentScore!.toStringAsFixed(1)} → mục tiêu ${primaryExam.targetScore!.toStringAsFixed(1)}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.blueDark),
+                  ),
+                ),
+              ],
             ] else
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Chạm để chọn kỳ thi →',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
                   ),
@@ -132,23 +173,34 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
     );
   }
 
-  /// Ô thời gian phẳng: chỉ số lớn + nhãn nhỏ, không khung viền.
+  /// Ô thời gian kiểu Duolingo: nền xám nhạt, số lớn, chữ nhỏ bên dưới.
   Widget _buildTimerTile(String value, String label) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-            height: 1.1,
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: AppColors.cardLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 1),
+          ),
+          child: Center(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                height: 1.1,
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: AppColors.textMuted,

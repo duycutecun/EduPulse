@@ -241,6 +241,18 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         ),
                       ],
                     ),
+                    if (exam.targetScore != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        exam.currentScore == null
+                            ? 'Mục tiêu: ${exam.targetScore!.toStringAsFixed(1)} điểm'
+                            : '${exam.currentScore!.toStringAsFixed(1)} → ${exam.targetScore!.toStringAsFixed(1)} điểm',
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.blueDark),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -279,6 +291,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
   void _showAddCustomDialog() {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
+    final currentScoreCtrl = TextEditingController();
+    final targetScoreCtrl = TextEditingController();
     DateTime selectedDate = DateTime.now().add(const Duration(days: 30));
     String selectedEmoji = '📝';
 
@@ -323,6 +337,26 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 TextField(
                   controller: descCtrl,
                   decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: currentScoreCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(hintText: 'Điểm hiện tại'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: targetScoreCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(hintText: 'Điểm mục tiêu'),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
@@ -381,6 +415,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     type: ExamType.custom,
                     description: descCtrl.text.isEmpty ? null : descCtrl.text,
                     emoji: selectedEmoji,
+                    currentScore: double.tryParse(currentScoreCtrl.text.trim().replaceAll(',', '.')),
+                    targetScore: double.tryParse(targetScoreCtrl.text.trim().replaceAll(',', '.')),
                   ));
                 }
                 Navigator.pop(ctx);
@@ -396,6 +432,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
   void _showEditDialog(ExamModel exam) {
     final nameCtrl = TextEditingController(text: exam.name);
     final descCtrl = TextEditingController(text: exam.description ?? '');
+    final currentScoreCtrl = TextEditingController(
+        text: exam.currentScore?.toString() ?? '');
+    final targetScoreCtrl = TextEditingController(
+        text: exam.targetScore?.toString() ?? '');
     DateTime selectedDate = exam.dateTime;
     String selectedEmoji = exam.emoji;
 
@@ -439,6 +479,26 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 TextField(
                   controller: descCtrl,
                   decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: currentScoreCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(hintText: 'Điểm hiện tại'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: targetScoreCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(hintText: 'Điểm mục tiêu'),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
@@ -497,6 +557,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     type: exam.type,
                     description: descCtrl.text.isEmpty ? null : descCtrl.text,
                     emoji: selectedEmoji,
+                    currentScore: double.tryParse(currentScoreCtrl.text.trim().replaceAll(',', '.')),
+                    targetScore: double.tryParse(targetScoreCtrl.text.trim().replaceAll(',', '.')),
                   ));
                 }
                 Navigator.pop(ctx);

@@ -1,35 +1,44 @@
 import 'package:flutter/material.dart';
 
+/// Palette màu theo phong cách Duolingo — tươi sáng, nổi bật.
+/// Không hỗ trợ dark mode: toàn bộ app dùng chế độ sáng.
 class AppColors {
-  // Call isDark(context) inside build() to get the current brightness.
-  static bool isDark(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark;
+  // ─── Brand Colors (Duolingo-style) ───────────────────────────────────────
+  /// Xanh lá đậm #58CC02 — màu chủ đạo, dùng cho nút, progress, active states.
+  static const Color primary = Color(0xFF58CC02);
+  static const Color primaryDark = Color(0xFF46A302);
+  static const Color primaryLight = Color(0xFFE7FBD0);
 
-  // Được đồng bộ từ theme thực tế (xem _BrightnessSyncer / MeshBackground).
-  static bool darkFallback = false;
-
-  // ─── Brand & Functional Colors (same in light & dark) ────────────────
-  /// Màu thương hiệu — indigo #3F3FF3 (theo template "elegant login" v0),
-  /// dùng thống nhất cho nút chính, link, icon active, progress.
-  static const Color primary = Color(0xFF3F3FF3);
-  static const Color primaryDark = Color(0xFF3232C9);
-  static const Color primarySoft = Color(0xFFECECFE);
-
-  // Tên cũ giữ lại làm alias để không vỡ code ngoài (deprecated dần).
   static const Color green = primary;
   static const Color greenDark = primaryDark;
-  static const Color greenLight = primarySoft;
+  static const Color greenLight = primaryLight;
 
+  /// Xanh dương #1CB0F6 — phụ trợ cho icon, info badges.
   static const Color blue = Color(0xFF1CB0F6);
   static const Color blueDark = Color(0xFF1899D6);
-  static const Color red = Color(0xFFFF4B4B);
-  static const Color redDark = Color(0xFFEA2B2B);
+  static const Color blueLight = Color(0xFFE1F3FB);
+
+  /// Đỏ #FF5732 — warning, lỗi,삭제.
+  static const Color red = Color(0xFFFF5732);
+  static const Color redDark = Color(0xFFCC4428);
+  static const Color redLight = Color(0xFFFFE4E1);
+
+  /// Cam #FF9600 — nhắc nhở, priority cao.
   static const Color orange = Color(0xFFFF9600);
   static const Color orangeDark = Color(0xFFCC7A00);
-  static const Color yellow = Color(0xFFFFC800);
-  static const Color purple = Color(0xFF3F3FF3);
+  static const Color orangeLight = Color(0xFFFFF1E0);
 
-  // ─── Soft tinted backgrounds (for dimensional icon tiles & chips) ───────
+  /// Vàng #FFC800 — streak flame, điểm XP, danh hiệu.
+  static const Color yellow = Color(0xFFFFC800);
+  static const Color yellowDark = Color(0xFFD4A800);
+  static const Color yellowLight = Color(0xFFFFF9E0);
+
+  /// Tím — AI features, phụ trợ.
+  static const Color purple = Color(0xFF3F3FF3);
+  static const Color purpleDark = Color(0xFF3232C9);
+  static const Color purpleLight = Color(0xFFECECFE);
+
+  // ─── Soft tinted backgrounds ─────────────────────────────────────────────
   static const Color greenSoft = Color(0xFFD7FFB8);
   static const Color blueSoft = Color(0xFFDDF4FF);
   static const Color redSoft = Color(0xFFFFE3E3);
@@ -37,46 +46,36 @@ class AppColors {
   static const Color purpleSoft = Color(0xFFF3E4FF);
   static const Color yellowSoft = Color(0xFFFFF4C9);
 
-  // ─── Theme-dependent Neutrals (palette public để AppTheme dùng explicit) ──
-  static const Color bgPageLight = Color(0xFFF7F7F7);
-  static const Color bgPageDark = Color(0xFF141414);
+  // ─── Neutrals ────────────────────────────────────────────────────────────
+  /// Background trang chính — trắng tinh.
+  static const Color bgPage = Color(0xFFFFFFFF);
+  static const Color bgPageSoft = Color(0xFFF5F7F5);
 
-  static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color cardDark = Color(0xFF222222);
+  /// Card — trắng, có viền mỏng.
+  static const Color cardWhite = Color(0xFFFFFFFF);
+  static const Color cardLight = Color(0xFFF8F9FA);
 
-  static const Color borderLight = Color(0xFFE5E5E5);
-  static const Color borderDark = Color(0xFF3A3A3A);
+  /// Viền card — xám nhạt.
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color borderStrong = Color(0xFFCDD1D5);
 
-  static const Color borderStrongLight = Color(0xFFD7D7D7);
-  static const Color borderStrongDark = Color(0xFF4D4D4D);
+  /// Text.
+  static const Color textPrimary = Color(0xFF1A1A2E);
+  static const Color textSecondary = Color(0xFF555B6E);
+  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color divider = Color(0xFFE5E7EB);
 
-  static const Color textPrimaryLight = Color(0xFF4B4B4B);
-  static const Color textPrimaryDark = Color(0xFFEDEDED);
+  /// Nền phụ trợ cho chip, section.
+  static const Color tertiaryBg = Color(0xFFF3F4F6);
 
-  static const Color textSecondaryLight = Color(0xFF777777);
-  static const Color textSecondaryDark = Color(0xFFB5B5B5);
-
-  static const Color textMutedLight = Color(0xFFAFAFAF);
-  static const Color textMutedDark = Color(0xFF8C8C8C);
-
-  static const Color dividerLight = Color(0xFFE5E5E5);
-  static const Color dividerDark = Color(0xFF3A3A3A);
-
-  static const Color tertiaryLight = Color(0xFFF0F0F0);
-  static const Color tertiaryDark = Color(0xFF1E1E1E);
-
-  // ─── Resolved getters (theo darkFallback) ───────────────────────────────
-  static Color get bgPage => darkFallback ? bgPageDark : bgPageLight;
-  static Color get cardWhite => darkFallback ? cardDark : cardLight;
-  static Color get border => darkFallback ? borderDark : borderLight;
-  static Color get borderStrong =>
-      darkFallback ? borderStrongDark : borderStrongLight;
-  static Color get textPrimary =>
-      darkFallback ? textPrimaryDark : textPrimaryLight;
-  static Color get textSecondary =>
-      darkFallback ? textSecondaryDark : textSecondaryLight;
-  static Color get textMuted =>
-      darkFallback ? textMutedDark : textMutedLight;
-  static Color get divider => darkFallback ? dividerDark : dividerLight;
-  static Color get tertiaryBg => darkFallback ? tertiaryDark : tertiaryLight;
+  // ─── Duolingo-specific accents ──────────────────────────────────────────
+  /// Xanh lá nhạt cho progress done.
+  static const Color progressDone = Color(0xFF58CC02);
+  /// Xanh lá rất nhạt cho fill.
+  static const Color progressBg = Color(0xFFE8F5E0);
+  /// Xám đỏ cho任务 thất bại / overdue.
+  static const Color dangerBg = Color(0xFFFFE4E1);
+  /// Vàng streak.
+  static const Color streakGold = Color(0xFFFFC800);
+  static const Color streakBg = Color(0xFFFFF9E0);
 }

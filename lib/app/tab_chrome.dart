@@ -11,7 +11,8 @@ class NavItem {
   const NavItem(this.icon, this.activeIcon, this.label);
 }
 
-/// Chuyển tab giữ state bằng [IndexedStack] + thanh navigation tĩnh.
+/// Thanh điều hướng bottom — phong cách Duolingo: nền trắng, icon xanh lá
+/// khi active, font bold, bo tròn, haptic nhẹ khi chuyển tab.
 class TabChrome extends StatelessWidget {
   final int index;
   final List<Widget> children;
@@ -42,8 +43,8 @@ class TabChrome extends StatelessWidget {
   }
 
   Widget _buildNav(BuildContext context) {
-    // Hairline divider mảnh kiểu iOS thay vì border dày 2px.
-    final divider = AppColors.border.withValues(alpha: 0.6);
+    // Viền ngang mảnh giữa nội dung và bottom nav.
+    final divider = AppColors.border.withValues(alpha: 0.5);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
@@ -52,7 +53,7 @@ class TabChrome extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 60,
+          height: 64,
           child: Row(
             children: List.generate(items.length, (i) {
               final active = i == index;
@@ -67,18 +68,36 @@ class TabChrome extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        active ? item.activeIcon : item.icon,
-                        size: 23,
-                        color: active ? AppColors.primary : AppColors.textMuted,
+                      Stack(
+                        children: [
+                          // Nền xanh lá nổi behind icon active.
+                          if (active)
+                            Positioned(
+                              top: 2,
+                              bottom: 2,
+                              left: 4,
+                              right: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          Icon(
+                            active ? item.activeIcon : item.icon,
+                            size: 24,
+                            color: active ? AppColors.primary : AppColors.textMuted,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
                         item.label,
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: 11,
                           fontWeight:
-                              active ? FontWeight.w800 : FontWeight.w600,
+                              active ? FontWeight.w800 : FontWeight.w500,
                           color:
                               active ? AppColors.primary : AppColors.textMuted,
                         ),

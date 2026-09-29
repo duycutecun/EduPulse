@@ -92,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             width: 96,
                             height: 96,
                             decoration: const BoxDecoration(
-                              color: AppColors.primarySoft,
+                              color: AppColors.greenSoft,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.school_rounded,
@@ -183,7 +183,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               width: 46,
               height: 46,
               decoration: const BoxDecoration(
-                color: AppColors.primarySoft,
+                color: AppColors.greenSoft,
                 shape: BoxShape.circle,
               ),
               child: Center(child: Text(preset.emoji, style: const TextStyle(fontSize: 24))),

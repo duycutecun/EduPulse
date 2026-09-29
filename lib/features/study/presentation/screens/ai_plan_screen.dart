@@ -104,6 +104,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
         subject: t.subject,
         priority: t.priority,
         estimateMinutes: t.minutes,
+        goalId: _primaryExam?.id,
       );
       StorageService.setTodayTaskJson(task.id, task.toJsonString());
       final ids = StorageService.getTodayTaskIds()..add(task.id);
@@ -118,6 +119,63 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
       backgroundColor: AppColors.primary,
       duration: const Duration(seconds: 2),
     ));
+  }
+
+  void _rejectPlan() {
+    setState(() => _plan = []);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Đã bỏ đề xuất. Kế hoạch hiện tại không thay đổi.'),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  void _editPlanTask(int index) {
+    final original = _plan[index];
+    final titleController = TextEditingController(text: original.title);
+    final minutesController = TextEditingController(text: '${original.minutes}');
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chỉnh sửa đề xuất'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Nhiệm vụ'),
+              autofocus: true,
+            ),
+            TextField(
+              controller: minutesController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Thời lượng (phút)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Hủy')),
+          TextButton(
+            onPressed: () {
+              final title = titleController.text.trim();
+              final minutes = int.tryParse(minutesController.text.trim());
+              if (title.isEmpty || minutes == null || minutes <= 0) return;
+              setState(() {
+                _plan[index] = AiPlanTask(
+                  title: title,
+                  subject: original.subject,
+                  priority: original.priority,
+                  minutes: minutes,
+                );
+              });
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -143,7 +201,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                     width: 46,
                     height: 46,
                     decoration: const BoxDecoration(
-                      color: AppColors.primarySoft,
+                      color: AppColors.greenSoft,
                       shape: BoxShape.circle,
                     ),
                     child: const Center(child: Text('🎯', style: TextStyle(fontSize: 24))),
@@ -241,7 +299,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Lộ trình ${_plan.length} nhiệm vụ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  Text('Xem trước thay đổi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                   if (!_added)
                     GestureDetector(
                       onTap: _addToToday,
@@ -251,7 +309,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                           color: AppColors.blue,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text('+ Vào hôm nay', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                        child: const Text('Chấp nhận', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
                       ),
                     )
                   else
@@ -263,7 +321,20 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                       ),
                       child: const Text('✓ Đã thêm', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w800)),
                     ),
-                ],
+              ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.purpleLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'AI đề xuất ${_plan.length} nhiệm vụ theo quỹ thời gian $_dailyMinutes phút/ngày. Chưa có thay đổi nào được áp dụng.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                ),
               ),
               const SizedBox(height: 10),
               GlassCard(
@@ -300,12 +371,30 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                               ],
                             ),
                           ),
+                          if (!_added)
+                            IconButton(
+                              tooltip: 'Chỉnh sửa đề xuất',
+                              onPressed: () => _editPlanTask(i),
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: AppColors.textMuted),
+                            ),
                         ],
                       ),
                     ],
                   ],
                 ),
               ),
+              if (!_added) ...[
+                const SizedBox(height: 10),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _rejectPlan,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Từ chối đề xuất'),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.red),
+                  ),
+                ),
+              ],
             ],
           ],
         ),

@@ -254,9 +254,9 @@ class _MascotAvatarState extends State<MascotAvatar> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: moodShadow,
-                      blurRadius: 0,
-                      offset: const Offset(0, 3.5),
+                      color: moodShadow.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -339,13 +339,13 @@ class _MascotAvatarState extends State<MascotAvatar> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.cardWhite,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: moodColor, width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: moodColor.withValues(alpha: 0.18),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),

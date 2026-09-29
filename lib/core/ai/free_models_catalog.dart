@@ -21,6 +21,16 @@ class FreeModelsCatalog {
 
   static const String _endpoint = 'https://openrouter.ai/api/v1/models';
 
+  /// Đang chạy trên web (browser): OpenRouter chặn CORS, phải tải qua proxy
+  /// cùng origin `/api/openrouter` (GET trả về đúng payload /models).
+  static bool get _onWeb {
+    try {
+      return Uri.base.host.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Kết quả fetch mới nhất (null nếu chưa fetch lần nào).
   static ValueNotifier<List<AIModel>?> runtimeModels =
       ValueNotifier<List<AIModel>?>(null);
@@ -48,8 +58,11 @@ class FreeModelsCatalog {
     if (!force && _loadCache()) return;
     _loading = true;
     try {
+      final uri = _onWeb
+          ? Uri.base.resolve('/api/openrouter')
+          : Uri.parse(_endpoint);
       final resp = await http
-          .get(Uri.parse(_endpoint))
+          .get(uri)
           .timeout(const Duration(seconds: 15));
       if (resp.statusCode != 200) return;
       final data = jsonDecode(resp.body)['data'] as List? ?? [];

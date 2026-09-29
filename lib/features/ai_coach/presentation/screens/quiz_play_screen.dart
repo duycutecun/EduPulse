@@ -184,7 +184,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
 
             if (_selected != null) {
               if (isCorrect) {
-                bg = AppColors.primarySoft;
+                bg = AppColors.greenSoft;
                 border = AppColors.primary;
                 textColor = AppColors.primaryDark;
                 icon = Icons.check_circle_rounded;

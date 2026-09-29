@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <meta name="description" content="Chính sách bảo mật của EduPulse — cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn.">
+  <title>Chính sách bảo mật — EduPulse</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      background: #F7F9F5;
+      color: #1A1A2E;
+      line-height: 1.7;
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    .brand {
+      display: inline-block;
+      background: #58CC02;
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      padding: 8px 18px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      letter-spacing: .5px;
+    }
+    h1 { font-size: 28px; margin: 8px 0 6px; }
+    .meta { color: #7a7a82; font-size: 13px; margin-bottom: 28px; }
+    h2 { font-size: 19px; margin: 30px 0 10px; color: #2B6E00; }
+    p, li { font-size: 15px; }
+    ul { padding-left: 22px; }
+    .box {
+      background: #fff;
+      border: 1px solid #E3EFD3;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin: 18px 0;
+    }
+    a { color: #46A302; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #E5E7EB; padding: 10px 12px; text-align: left; font-size: 14px; }
+    th { background: #E7FBD0; }
+    footer { margin-top: 40px; font-size: 12.5px; color: #a1a1a9; border-top: 1px solid #E5E7EB; padding-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="brand">EduPulse</span>
+    <h1>Chính sách bảo mật</h1>
+    <p class="meta">Ngày hiệu lực: 12/09/2026 · Áp dụng cho toàn bộ sản phẩm EduPulse (ứng dụng Web PWA, sau đây gọi là "EduPulse" hoặc "chúng tôi").</p>
+
+    <p>EduPulse là ứng dụng quản lý học tập &amp; luyện thi (THPT Quốc gia, TSA, HSA, IELTS...) kèm trợ lý AI. Chính sách này mô tả loại dữ liệu chúng tôi thu thập, cách chúng tôi sử dụng, chia sẻ và bảo vệ dữ liệu của bạn khi bạn sử dụng EduPulse.</p>
+
+    <h2>1. Dữ liệu chúng tôi thu thập</h2>
+    <div class="box">
+      <table>
+        <tr><th>Loại dữ liệu</th><th>Nội dung</th></tr>
+        <tr><td>Tài khoản</td><td>Email, tên / biệt danh, trường/mục tiêu thi bạn cung cấp khi đăng ký (bao gồm đăng ký bằng Google).</td></tr>
+        <tr><td>Dữ liệu học tập</td><td>Điểm XP, streak ngày học, nhật ký học, lịch thi &amp; đếm ngược, danh sách nhiệm vụ hằng ngày, điểm thi thử, sở thích mascot.</td></tr>
+        <tr><td>Nội dung AI Coach</td><td>Câu hỏi bạn gửi, ảnh bạn tải lên để quét đề/giải bài, lịch sử hội thoại với AI.</td></tr>
+        <tr><td>Kỹ thuật &amp; thiết bị</td><td>Thông tin trình duyệt, loại thiết bị, địa chỉ IP, log lỗi (chỉ phục vụ vận hành và bảo mật).</td></tr>
+      </table>
+    </div>
+
+    <h2>2. Cách chúng tôi sử dụng dữ liệu</h2>
+    <ul>
+      <li>Cung cấp và cá nhân hóa tính năng: theo dõi tiến độ, nhắc học, thống kê, Bảng vàng cộng đồng.</li>
+      <li>Xử lý yêu cầu AI: gửi tin nhắn và hình ảnh của bạn tới các nhà cung cấp AI (OpenRouter, Google Gemini) để tạo câu trả lời, phân tích yếu điểm hoặc tạo bài kiểm tra từ ảnh.</li>
+      <li>Xác thực tài khoản và đồng bộ dữ liệu giữa các thiết bị qua Supabase.</li>
+      <li>Cải thiện sản phẩm, ngăn chặn lạm dụng, bảo đảm an toàn cho người dùng.</li>
+    </ul>
+
+    <h2>3. Nhà cung cấp bên thứ ba</h2>
+    <p>Chúng tôi chỉ chia sẻ dữ liệu tối thiểu cần thiết với các bên xử lý:</p>
+    <ul>
+      <li><strong>Supabase</strong> — lưu trữ xác thực &amp; cơ sở dữ liệu (auth, hồ sơ, bảng điểm).</li>
+      <li><strong>OpenRouter / Google Gemini</strong> — xử lý nội dung chat AI (văn bản và hình ảnh bạn gửi).</li>
+      <li><strong>Tavily</strong> — tìm kiếm web để bổ sung ngữ cảnh khi bạn yêu cầu.</li>
+      <li><strong>Google / Apple / Microsoft</strong> — dịch vụ OAuth đăng nhập (chỉ khi bạn chọn đăng nhập bằng Google).</li>
+    </ul>
+    <p>Chúng tôi <strong>không bán</strong> dữ liệu cá nhân của bạn, không dùng dữ liệu cho quảng cáo chạm mục tiêu.</p>
+
+    <h2>4. Lưu trữ &amp; bảo vệ dữ liệu</h2>
+    <ul>
+      <li>Dữ liệu được lưu trên thiết bị của bạn (bộ nhớ trình duyệt / SharedPreferences) và/hoặc trên máy chủ đám mây bảo mật của Supabase khi bạn đã đăng nhập và bật sao lưu.</li>
+      <li>Toàn bộ kết nối sử dụng mã hóa TLS/HTTPS.</li>
+      <li>Chúng tôi áp dụng biện pháp kỹ thuật và quy trình hợp lý để chống truy cập trái phép; tuy nhiên không phương thức truyền dữ liệu nào an toàn tuyệt đối.</li>
+    </ul>
+
+    <h2>5. Quyền của bạn</h2>
+    <ul>
+      <li><strong>Truy cập &amp; xuất:</strong> bạn có thể xem dữ liệu của mình trong ứng dụng;</li>
+      <li><strong>Sửa:</strong> đổi tên, mục tiêu trong màn Hồ sơ;</li>
+      <li><strong>Xóa:</strong> xóa lịch sử hội thoại AI bất cứ lúc nào; yêu cầu xóa tài khoản bằng cách liên hệ email bên dưới;</li>
+      <li><strong>Rút lại đồng ý:</strong> tắt quyền như sao lưu đám mây bất kỳ lúc nào;</li>
+      <li><strong>Khiếu nại:</strong> liên hệ với cơ quan bảo vệ dữ liệu địa phương nếu cần.</li>
+    </ul>
+
+    <h2>6. Trẻ vị thành niên</h2>
+    <p>EduPulse hướng tới người dùng từ 13 tuổi trở lên (đặc biệt sĩ tử ôn thi THPT). Chúng tôi không chủ ý thu thập dữ liệu của trẻ dưới 13 tuổi. Nếu phát hiện dữ liệu thuộc về trẻ dưới 13, chúng tôi sẽ xóa ngay khi có thể.</p>
+
+    <h2>7. Lưu giữ dữ liệu</h2>
+    <p>Chúng tôi lưu giữ dữ liệu trong thời gian cần thiết để cung cấp dịch vụ và tuân thủ pháp luật. Bạn có thể xóa dữ liệu cục bộ bằng cách xóa bộ nhớ trình duyệt / gỡ cài đặt ứng dụng; dữ liệu đám mây bị xóa khi bạn yêu cầu xóa tài khoản.</p>
+
+    <h2>8. Cookies &amp; lưu trữ trình duyệt</h2>
+    <p>EduPulse sử dụng <strong>localStorage</strong> (để lưu phiên đăng nhập, cài đặt, dữ liệu học tập) và <strong>Service Worker</strong> (để chạy offline). Chúng tôi không dùng cookie quảng cáo của bên thứ ba.</p>
+
+    <h2>9. Thay đổi chính sách</h2>
+    <p>Chúng tôi có thể cập nhật chính sách này theo thời gian. Mọi thay đổi quan trọng sẽ được công bố tại trang này kèm ngày hiệu lực mới. Việc bạn tiếp tục sử dụng EduPulse sau khi cập nhật đồng nghĩa với việc bạn chấp nhận bản cập nhật.</p>
+
+    <h2>10. Liên hệ</h2>
+    <p>Mọi câu hỏi hoặc yêu cầu liên quan tới quyền riêng tư, vui lòng liên hệ:</p>
+    <div class="box">
+      <p><strong>EduPulse</strong><br>Email: ngathao70@gmail.com<br>Chúng tôi sẽ phản hồi trong vòng tối đa 30 ngày.</p>
+    </div>
+
+    <footer>© 2026 EduPulse. Chính sách bảo mật này là tài liệu công khai, có thể hiệu lực bổ sung cho các điều khoản sử dụng của EduPulse.</footer>
+  </div>
+</body>
+</html>

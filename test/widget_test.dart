@@ -5,6 +5,7 @@ import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/app/main_shell.dart';
 import 'package:edupulse/core/theme/app_theme.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
+import 'package:edupulse/features/exams/domain/models/exam_model.dart';
 
 void main() {
   setUp(() async {
@@ -126,6 +127,84 @@ void main() {
     final parsed = TodayTask.fromJsonString(loaded!);
     expect(parsed.subject, '📐 Toán');
     expect(parsed.priority, 'high');
+  });
+
+  test('TodayTask lưu được metadata mở rộng và vẫn đọc dữ liệu cũ', () {
+    final deadline = DateTime(2026, 10, 15);
+    final task = TodayTask(
+      id: 'task-rich',
+      title: 'Ôn hàm số',
+      subject: '📐 Toán',
+      topic: 'Khảo sát hàm số',
+      estimateMinutes: 60,
+      deadline: deadline,
+      note: 'Làm lại các câu sai',
+      goalId: 'goal-1',
+      subtasks: const ['Lý thuyết', 'Bài tập'],
+      recurrence: 'weekly',
+      status: 'skipped',
+      skipReason: 'Quá khó',
+      rescheduleCount: 2,
+    );
+
+    final restored = TodayTask.fromJsonString(task.toJsonString());
+    expect(restored.topic, 'Khảo sát hàm số');
+    expect(restored.deadline, deadline);
+    expect(restored.subtasks, ['Lý thuyết', 'Bài tập']);
+    expect(restored.recurrence, 'weekly');
+    expect(restored.goalId, 'goal-1');
+    expect(restored.status, 'skipped');
+    expect(restored.skipReason, 'Quá khó');
+    expect(restored.rescheduleCount, 2);
+
+    final legacy = TodayTask.fromJsonString(
+      '{"id":"old","title":"Nhiệm vụ cũ","subject":"Toán"}',
+    );
+    expect(legacy.estimateMinutes, 45);
+    expect(legacy.deadline, isNull);
+    expect(legacy.subtasks, isEmpty);
+    expect(legacy.status, 'todo');
+  });
+
+  test('StudySession lưu liên kết nhiệm vụ và thời lượng focus', () {
+    final session = StudySession(
+      id: 'session-1',
+      completedAt: DateTime(2026, 10, 1, 9, 30),
+      taskId: 'task-1',
+      subject: '📐 Toán',
+      plannedMinutes: 25,
+      actualMinutes: 25,
+      mood: 4,
+      focus: 5,
+      difficulty: 3,
+      understanding: 4,
+      effectiveness: 5,
+      reflectionNote: 'Hoàn thành tốt',
+    );
+    final restored = StudySession.fromJsonString(session.toJsonString());
+    expect(restored.taskId, 'task-1');
+    expect(restored.plannedMinutes, 25);
+    expect(restored.actualMinutes, 25);
+    expect(restored.focus, 5);
+    expect(restored.reflectionNote, 'Hoàn thành tốt');
+
+    StorageService.setStudySessionJson(session.id, session.toJsonString());
+    StorageService.setStudySessionIds([session.id]);
+    expect(StorageService.getStudySessionIds(), [session.id]);
+    expect(StorageService.getStudySessionJson(session.id), isNotNull);
+  });
+
+  test('ExamModel lưu mục tiêu và điểm hiện tại', () {
+    final exam = ExamModel(
+      id: 'exam-1',
+      name: 'Thi thử',
+      dateTime: DateTime(2026, 12, 1),
+      currentScore: 7.5,
+      targetScore: 9.0,
+    );
+    final restored = ExamModel.fromJsonString(exam.toJsonString());
+    expect(restored.currentScore, 7.5);
+    expect(restored.targetScore, 9.0);
   });
 
   testWidgets('iPhone 390x844: 3 tab + trang Mục tiêu/Tập trung không tràn layout',

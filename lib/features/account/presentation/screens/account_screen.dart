@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/notifications/notification_service.dart';
-import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
@@ -227,7 +226,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       tileSize: 44,
                       iconSize: 24,
                       color: AppColors.primary,
-                      bg: AppColors.primarySoft,
+                      bg: AppColors.greenSoft,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -301,7 +300,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     tileSize: 44,
                     iconSize: 24,
                     color: AppColors.primary,
-                    bg: AppColors.primarySoft,
+                    bg: AppColors.greenSoft,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -323,52 +322,36 @@ class _AccountScreenState extends State<AccountScreen> {
         const SizedBox(height: 18),
         _buildReminderCard(),
         const SizedBox(height: 18),
-        GlassCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const AppIcon(
-                    Icons.dark_mode_rounded,
-                    tileSize: 36,
-                    iconSize: 18,
-                    color: AppColors.purple,
-                    bg: AppColors.purpleSoft,
-                  ),
-                  const SizedBox(width: 10),
-                  Text('Giao diện', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ValueListenableBuilder<ThemeMode>(
-                valueListenable: ThemeController.mode,
-                builder: (context, mode, _) => Row(
-                  children: [
-                    _themeOption(ThemeMode.system, 'Hệ thống', Icons.settings_brightness_rounded),
-                    const SizedBox(width: 8),
-                    _themeOption(ThemeMode.light, 'Sáng', Icons.light_mode_rounded),
-                    const SizedBox(width: 8),
-                    _themeOption(ThemeMode.dark, 'Tối', Icons.dark_mode_rounded),
-                  ],
-                ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.cardWhite,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 18),
-        GlassCard(
-          padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 4))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryDark.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
               ),
@@ -377,17 +360,21 @@ class _AccountScreenState extends State<AccountScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_userName, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    Text(_userName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                     const SizedBox(height: 2),
                     Text(
                       _userTarget.isNotEmpty ? 'Mục tiêu: $_userTarget' : 'Chưa đặt mục tiêu',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.primary, width: 1),
+                      ),
                       child: const Text('⚡ Sĩ tử 2026', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary)),
                     ),
                   ],
@@ -395,12 +382,14 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               GestureDetector(
                 onTap: _showEditProfileDialog,
-                child: AppIcon(
-                  Icons.edit_rounded,
-                  tileSize: 40,
-                  iconSize: 20,
-                  color: AppColors.blue,
-                  bg: AppColors.blueSoft,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardLight,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: const Icon(Icons.edit_rounded, color: AppColors.blue, size: 18),
                 ),
               ),
             ],
@@ -573,43 +562,6 @@ class _AccountScreenState extends State<AccountScreen> {
     if (_reminderEnabled) {
       NotificationService.scheduleDaily(hour: picked.hour, minute: picked.minute);
     }
-  }
-
-  Widget _themeOption(ThemeMode mode, String label, IconData icon) {
-    final selected = ThemeController.mode.value == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          ThemeController.set(mode);
-          setState(() {});
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primary : AppColors.bgPage,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? AppColors.primary : AppColors.border,
-              width: 2,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 18, color: selected ? Colors.white : AppColors.textSecondary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: selected ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _showEditProfileDialog() {

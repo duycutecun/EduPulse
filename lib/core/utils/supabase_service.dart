@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
+import 'auth_service.dart';
 import 'storage_service.dart';
 
 /// Chuyển đổi an toàn giá trị từ JSON (Supabase) sang số, thay cho `as num`
@@ -23,12 +25,13 @@ class SupabaseService {
 
   static bool get isConfigured => _client != null;
 
-  static User? get currentUser => _client?.auth.currentUser;
+  /// Xác thực giờ do Firebase quản lý (AuthService) — trả user Firebase hiện tại.
+  static User? get currentUser => AuthService.currentUser;
 
-  static bool get isLoggedIn => currentUser != null;
+  static bool get isLoggedIn => AuthService.isLoggedIn;
 
-  static Stream<AuthState>? get authStateChanges =>
-      _client?.auth.onAuthStateChange;
+  /// Đăng xuất — ủy quyền cho Firebase.
+  static Future<void> signOut() => AuthService.signOut();
 
   // ─── INITIALIZATION ───────────────────────────────────────────────────────
 
@@ -57,115 +60,11 @@ class SupabaseService {
     }
   }
 
-  // ─── AUTH ─────────────────────────────────────────────────────────────────
-
-  /// Đăng ký tài khoản mới
-  static Future<AuthResult> signUp({
-    required String email,
-    required String password,
-    required String name,
-  }) async {
-    if (!isConfigured) return AuthResult.error('Chưa cấu hình Supabase. Vào Cài đặt → Supabase để thiết lập.');
-    try {
-      final res = await _client!.auth.signUp(
-        email: email.trim(),
-        password: password,
-        data: {'name': name.trim()},
-      );
-      if (res.user != null) {
-        // Lưu tên vào local nếu chưa có
-        if (StorageService.getUserName() == 'Sĩ tử EduPulse') {
-          StorageService.setUserName(name.trim());
-        }
-        return AuthResult.success(
-          res.session != null
-              ? 'Đăng ký thành công! Chào mừng ${name.trim()} 🎉'
-              : 'Đăng ký thành công! Kiểm tra email để xác minh tài khoản 📧',
-        );
-      }
-      return AuthResult.error('Đăng ký không thành công. Thử lại sau.');
-    } on AuthException catch (e) {
-      return AuthResult.error(_mapAuthError(e.message));
-    } catch (_) {
-      return AuthResult.error('Lỗi kết nối. Kiểm tra mạng và thử lại.');
-    }
-  }
-
-  /// Đăng nhập
-  static Future<AuthResult> signIn({
-    required String email,
-    required String password,
-  }) async {
-    if (!isConfigured) return AuthResult.error('Chưa cấu hình Supabase. Vào Cài đặt → Supabase để thiết lập.');
-    try {
-      final res = await _client!.auth.signInWithPassword(
-        email: email.trim(),
-        password: password,
-      );
-      if (res.user != null) {
-        // Đồng bộ tên từ metadata nếu có
-        final metaName = res.user!.userMetadata?['name'] as String?;
-        if (metaName != null && metaName.isNotEmpty) {
-          StorageService.setUserName(metaName);
-        }
-        return AuthResult.success('Đăng nhập thành công! Chào mừng trở lại 👋');
-      }
-      return AuthResult.error('Đăng nhập thất bại. Thử lại sau.');
-    } on AuthException catch (e) {
-      return AuthResult.error(_mapAuthError(e.message));
-    } catch (_) {
-      return AuthResult.error('Lỗi kết nối. Kiểm tra mạng và thử lại.');
-    }
-  }
-
-  /// Đặt lại mật khẩu qua email
-  static Future<AuthResult> resetPassword(String email) async {
-    if (!isConfigured) return AuthResult.error('Chưa cấu hình Supabase.');
-    try {
-      await _client!.auth.resetPasswordForEmail(email.trim());
-      return AuthResult.success('Email đặt lại mật khẩu đã được gửi! Kiểm tra hộp thư 📧');
-    } on AuthException catch (e) {
-      return AuthResult.error(_mapAuthError(e.message));
-    } catch (_) {
-      return AuthResult.error('Không gửi được email. Thử lại sau.');
-    }
-  }
-
-  /// Đăng xuất
-  static Future<void> signOut() async {
-    try {
-      await _client?.auth.signOut();
-    } catch (_) {}
-  }
-
-  static String _mapAuthError(String msg) {
-    final m = msg.toLowerCase();
-    if (m.contains('email already') || m.contains('user already')) {
-      return 'Email này đã được đăng ký. Hãy đăng nhập hoặc dùng email khác.';
-    }
-    if (m.contains('invalid login') || m.contains('invalid credentials')) {
-      return 'Email hoặc mật khẩu không đúng. Thử lại!';
-    }
-    if (m.contains('password') && m.contains('characters')) {
-      return 'Mật khẩu phải có ít nhất 6 ký tự.';
-    }
-    if (m.contains('email not confirmed')) {
-      return 'Email chưa được xác minh. Kiểm tra hộp thư!';
-    }
-    if (m.contains('rate limit')) {
-      return 'Quá nhiều lần thử. Vui lòng đợi một lúc rồi thử lại.';
-    }
-    if (m.contains('network') || m.contains('connection')) {
-      return 'Lỗi kết nối mạng. Kiểm tra internet và thử lại.';
-    }
-    return 'Lỗi: $msg';
-  }
-
   // ─── DATA SYNC ────────────────────────────────────────────────────────────
 
   static String get _userId {
-    // Ưu tiên dùng Supabase auth user id, fallback về local uuid
-    return currentUser?.id ?? StorageService.getUserId();
+    // Ưu tiên dùng Firebase auth user id, fallback về local uuid
+    return AuthService.persistentUserId;
   }
 
   static Future<bool> syncProfile() async {
@@ -361,6 +260,9 @@ class SupabaseService {
         if (profileRes['streak_record'] != null) {
           StorageService.setStreakRecord(_toInt(profileRes['streak_record']));
         }
+        if (profileRes['is_email_verified'] == true) {
+          StorageService.setEmailVerified(true);
+        }
       }
 
       // 2. Restore Tasks
@@ -421,18 +323,4 @@ class SupabaseService {
       return false;
     }
   }
-}
-
-/// Kết quả trả về của các thao tác Auth
-class AuthResult {
-  final bool success;
-  final String message;
-
-  const AuthResult._({required this.success, required this.message});
-
-  factory AuthResult.success(String message) =>
-      AuthResult._(success: true, message: message);
-
-  factory AuthResult.error(String message) =>
-      AuthResult._(success: false, message: message);
 }

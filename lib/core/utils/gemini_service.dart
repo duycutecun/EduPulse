@@ -8,6 +8,16 @@ class GeminiService {
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
 
+  /// Đang chạy trên nền web (browser) — gọi proxy cùng origin `/api/gemini`,
+  /// key giữ phía server (không lộ trong client).
+  static bool get _onWeb {
+    try {
+      return Uri.base.host.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<String> chat({
     required String apiKey,
     required List<ChatMessage> history,
@@ -16,7 +26,7 @@ class GeminiService {
     String? mimeType,
     String? webContext,
   }) async {
-    if (apiKey.isEmpty) {
+    if (apiKey.isEmpty && !_onWeb) {
       return 'Gemini API Key chưa được cấu hình. Chủ app cần đặt key trong AppConfig (biến GEMINI_API_KEY) rồi build lại.';
     }
 
@@ -95,58 +105,27 @@ class GeminiService {
     });
 
     try {
-      // Bật Google Search grounding (dữ liệu thời gian thực). Chỉ chạy khi
-      // câu hỏi KHÔNG kèm ảnh — grounding + ảnh có thể xung đột.
-      final tryGrounding = imageBytes == null || imageBytes.isEmpty;
-      var resp = await _post(contents, apiKey, useGrounding: tryGrounding);
-
-      // Nếu key không hỗ trợ grounding (403/400 vì thiếu billing), thử lại
-      // không grounding để không làm hỏng chat (fallback webContext/Wikipedia).
-      if (!tryGrounding ||
-          resp.statusCode == 403 ||
-          (resp.statusCode == 400 &&
-              (resp.body.contains('billing') ||
-                  resp.body.contains('grounding') ||
-                  resp.body.contains('permission')))) {
-        if (tryGrounding) {
-          resp = await _post(contents, apiKey, useGrounding: false);
-        }
-      }
+      // Gọi 1 request duy nhất. Không gửi google_search grounding vì key
+      // miễn phí không hỗ trợ (400/403) và làm tốn gấp đôi quota; app vẫn có
+      // web search riêng (Tavily) chèn webContext vào prompt khi cần.
+      final onWeb = _onWeb;
+      final resp = await _post(contents, apiKey, onWeb: onWeb);
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'] ??
             'AI không trả lời được nội dung này. Vui lòng thử lại.';
-
-        // Gom nguồn Google Search (groundingMetadata.groundingChunks).
-        final sources = <String>[];
-        try {
-          final meta = data['candidates']?[0]?['groundingMetadata'];
-          final chunks = meta?['groundingChunks'] as List? ?? [];
-          for (final chunk in chunks) {
-            final web = chunk?['web'];
-            if (web != null) {
-              final title = (web['title'] as String?)?.trim() ?? '';
-              final uri = (web['uri'] as String?)?.trim() ?? '';
-              if (uri.isNotEmpty) {
-                sources.add(title.isNotEmpty ? '$title ($uri)' : uri);
-              }
-            }
-          }
-        } catch (_) {}
-
-        var out = text;
-        if (sources.isNotEmpty) {
-          out = '$out\n\n🔍 Tra cứu web thời gian thực (Google):';
-          for (final s in sources.take(5)) {
-            out = '$out\n• $s';
-          }
-        }
-        return out;
+        return text;
+      } else if (resp.statusCode == 429) {
+        return '❌ Đang bị giới hạn tần suất (HTTP 429): gửi quá nhanh hoặc key hết quota. Chờ 1–2 phút rồi thử lại.';
       } else if (resp.statusCode == 400) {
         return '❌ API Key không hợp lệ hoặc yêu cầu không hợp lệ. Vui lòng kiểm tra lại trong phần Tài khoản.';
       } else if (resp.statusCode == 403) {
         return '❌ Quyền bị từ chối: key Gemini cần bật Google Search (billing) hoặc key không hợp lệ. Vui lòng kiểm tra lại.';
+      } else if (resp.statusCode == 413) {
+        return '❌ Ảnh gửi quá lớn bị máy chủ từ chối. Hãy chọn ảnh nhỏ hơn.';
+      } else if (onWeb && (resp.statusCode == 500 || resp.statusCode == 502 || resp.statusCode == 503 || resp.statusCode == 504)) {
+        return '❌ Máy chủ AI đang nghẽn tạm thời (HTTP ${resp.statusCode}). Chờ vài giây rồi thử lại.';
       } else {
         return '❌ Lỗi ${resp.statusCode}: Không thể kết nối đến AI Coach. Kiểm tra mạng và thử lại.';
       }
@@ -158,18 +137,19 @@ class GeminiService {
   static Future<http.Response> _post(
     List<Map<String, dynamic>> contents,
     String apiKey, {
-    required bool useGrounding,
+    required bool onWeb,
   }) {
+    final uri = onWeb
+        ? Uri.base.resolve('/api/gemini')
+        : Uri.parse('$_baseUrl?key=$apiKey');
     return http
         .post(
-          Uri.parse('$_baseUrl?key=$apiKey'),
+          uri,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
+            // Proxy `/api/gemini` nén model trên URL, key giữ phía server.
+            if (onWeb) 'model': 'gemini-3.7-flash',
             'contents': contents,
-            if (useGrounding)
-              'tools': [
-                {'google_search': {}},
-              ],
             'generationConfig': {
               'temperature': 0.6,
               'maxOutputTokens': 2048,

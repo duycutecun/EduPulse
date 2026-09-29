@@ -47,20 +47,36 @@ class QuickActionCard extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.cardWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.border, width: 1),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 22, color: AppColors.primary),
-              const SizedBox(height: 6),
+              // Icon nền xanh lá nhỏ kiểu Duolingo.
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryDark.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, size: 22, color: Colors.white),
+              ),
+              const SizedBox(height: 10),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
