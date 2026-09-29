@@ -174,6 +174,21 @@ class StorageService {
     setStudyLogIds(ids);
   }
 
+  // Notes (local-first; ready for a future sync layer).
+  static List<String> getStudyNoteIds() =>
+      _prefs?.getStringList('study_note_ids') ?? [];
+  static void setStudyNoteIds(List<String> ids) =>
+      _prefs?.setStringList('study_note_ids', ids);
+  static String? getStudyNoteJson(String id) =>
+      _prefs?.getString('study_note_$id');
+  static void setStudyNoteJson(String id, String json) =>
+      _prefs?.setString('study_note_$id', json);
+  static void removeStudyNote(String id) {
+    _prefs?.remove('study_note_$id');
+    final ids = getStudyNoteIds()..remove(id);
+    setStudyNoteIds(ids);
+  }
+
   // Focus sessions (linked to a task when one was selected).
   static List<String> getStudySessionIds() =>
       _prefs?.getStringList('study_session_ids') ?? [];

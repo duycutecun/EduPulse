@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -34,6 +36,10 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _reminderEnabled = false;
   int _reminderHour = 19;
   int _reminderMinute = 0;
+  bool _aiMayRead = true;
+  bool _aiMayAnalyze = true;
+  bool _mascotEnabled = true;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -62,6 +68,10 @@ class _AccountScreenState extends State<AccountScreen> {
     _reminderEnabled = StorageService.getBool('reminder_enabled') ?? false;
     _reminderHour = StorageService.getInt('reminder_hour') ?? 19;
     _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
+    _aiMayRead = StorageService.getBool('ai_permission_read') ?? true;
+    _aiMayAnalyze = StorageService.getBool('ai_permission_analyze') ?? true;
+    _mascotEnabled = StorageService.getBool('mascot_enabled') ?? true;
+    _reduceMotion = StorageService.getBool('reduce_motion') ?? false;
   }
 
   void _initLeaderboard() async {
@@ -322,6 +332,8 @@ class _AccountScreenState extends State<AccountScreen> {
         const SizedBox(height: 18),
         _buildReminderCard(),
         const SizedBox(height: 18),
+        _buildPreferencesCard(),
+        const SizedBox(height: 18),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
@@ -403,6 +415,87 @@ class _AccountScreenState extends State<AccountScreen> {
     return LeaderboardView(
       users: _users,
     );
+  }
+
+  Widget _buildPreferencesCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Quyền riêng tư & trải nghiệm',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          const Text('AI chỉ sử dụng dữ liệu khi bạn cho phép.',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          const SizedBox(height: 8),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('AI đọc nhiệm vụ và phiên học'),
+            subtitle: const Text('Dùng để trả lời theo ngữ cảnh', style: TextStyle(fontSize: 11)),
+            value: _aiMayRead,
+            onChanged: (value) => setState(() { _aiMayRead = value; StorageService.setBool('ai_permission_read', value); }),
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('AI phân tích tiến độ'),
+            subtitle: const Text('Tạo insight và đề xuất, không tự sửa kế hoạch', style: TextStyle(fontSize: 11)),
+            value: _aiMayAnalyze,
+            onChanged: _aiMayRead ? (value) => setState(() { _aiMayAnalyze = value; StorageService.setBool('ai_permission_analyze', value); }) : null,
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Hiện linh vật'),
+            value: _mascotEnabled,
+            onChanged: (value) => setState(() { _mascotEnabled = value; StorageService.setBool('mascot_enabled', value); }),
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Giảm chuyển động'),
+            value: _reduceMotion,
+            onChanged: (value) => setState(() { _reduceMotion = value; StorageService.setBool('reduce_motion', value); }),
+          ),
+          const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.ios_share_rounded, color: AppColors.blue),
+            title: const Text('Xuất dữ liệu cục bộ'),
+            subtitle: const Text('Sao chép bản JSON để bạn tự lưu giữ', style: TextStyle(fontSize: 11)),
+            onTap: _copyLocalExport,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.delete_sweep_outlined, color: AppColors.red),
+            title: const Text('Xóa lịch sử trò chuyện AI'),
+            onTap: _clearAiHistory,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copyLocalExport() {
+    final tasks = StorageService.getTodayTaskIds()
+        .map(StorageService.getTodayTaskJson).whereType<String>().toList();
+    final notes = StorageService.getStudyNoteIds()
+        .map(StorageService.getStudyNoteJson).whereType<String>().toList();
+    final sessions = StorageService.getStudySessionIds()
+        .map(StorageService.getStudySessionJson).whereType<String>().toList();
+    final payload = jsonEncode({'exportedAt': DateTime.now().toIso8601String(), 'tasks': tasks, 'notes': notes, 'sessions': sessions});
+    Clipboard.setData(ClipboardData(text: payload));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép dữ liệu JSON vào clipboard.')));
+  }
+
+  Future<void> _clearAiHistory() async {
+    final accepted = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Xóa lịch sử AI?'),
+      content: const Text('Các cuộc trò chuyện trên thiết bị này sẽ bị xóa.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa'))],
+    ));
+    if (accepted == true) {
+      StorageService.clearAiChatHistory();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa lịch sử trò chuyện AI.')));
+    }
   }
 
   /// Thẻ cài đặt nhắc học hằng ngày — chỉ trên mobile native.

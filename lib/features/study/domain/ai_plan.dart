@@ -6,12 +6,15 @@ class AiPlanTask {
   final String subject;
   final String priority; // 'high' | 'medium' | 'low'
   final int minutes;
+  /// 1-based day inside the proposed plan.
+  final int day;
 
   const AiPlanTask({
     required this.title,
     required this.subject,
     required this.priority,
     required this.minutes,
+    this.day = 1,
   });
 }
 
@@ -27,7 +30,8 @@ Bạn là chuyên gia luyện thi cho sĩ tử Việt Nam. Hãy lập LỘ TRÌN
 
 Yêu cầu:
 - Trả về ĐÚNG định dạng JSON, KHÔNG kèm markdown, KHÔNG kèm text khác.
-- JSON có dạng: {"tasks":[{"title":"...","subject":"📐 Toán","priority":"high|medium|low","minutes":30}]}
+- JSON có dạng: {"tasks":[{"day":1,"title":"...","subject":"📐 Toán","priority":"high|medium|low","minutes":30}]}
+- `day` là số nguyên từ 1 đến $planDays để EduPulse xếp nhiệm vụ đúng ngày.
 - Mỗi ngày 2–4 nhiệm vụ, tổng thời gian mỗi ngày sát $dailyMinutes phút.
 - Nhiệm vụ cụ thể, hành động được (VD: "Giải 1 đề Toán", "Ôn 30 từ vựng Anh"), subject dùng emoji (📐 Toán, ⚡ Lý, 🧪 Hóa, 📖 Văn, 🇬🇧 Anh, 🧬 Sinh, 💡 Khác).
 - Ưu tiên môn yếu/thang điểm cao, xen kẽ môn để tránh nhàm chán.
@@ -85,10 +89,14 @@ AiPlanTask? _taskFromJson(Map<String, dynamic> j) {
   var minutes = (j['minutes'] as num?)?.toInt() ?? 45;
   if (minutes <= 0 || minutes > 480) minutes = 45; // giá trị vô lý → mặc định
 
+  var day = (j['day'] as num?)?.toInt() ?? 1;
+  if (day < 1) day = 1;
+
   return AiPlanTask(
     title: title,
     subject: (j['subject'] as String?)?.trim() ?? '💡 Khác',
     priority: priority,
     minutes: minutes,
+    day: day,
   );
 }

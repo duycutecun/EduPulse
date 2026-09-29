@@ -10,6 +10,7 @@ import '../features/exams/domain/models/exam_model.dart';
 import '../features/exams/presentation/screens/exams_page.dart';
 import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
 import '../features/study/presentation/screens/study_page.dart';
+import '../features/calendar/presentation/screens/calendar_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
 import 'tab_chrome.dart';
 
@@ -128,6 +129,34 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
+  /// Kỳ thi chính theo đặc tả (mục 9.1, 40): khi kỳ thi đã qua, tự chuyển
+  /// sang kỳ thi sắp tới gần nhất (nếu có) và lưu lựa chọn mới.
+  ExamModel? get _effectivePrimaryExam {
+    final current = _primaryExam;
+    if (current != null && !current.isExamDayOver) return current;
+    if (current != null && current.isExamDayOver) {
+      // Tự chuyển primary exam + giữ kỳ thi cũ trong lịch sử.
+      final upcoming = _upcomingExams
+          .where((e) => e.id != current.id)
+          .toList()
+        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      if (upcoming.isNotEmpty) {
+        final next = upcoming.first;
+        StorageService.setPrimaryExamId(next.id);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _primaryExamId = next.id);
+        });
+      }
+      return current;
+    }
+    if (_exams.isNotEmpty) return _exams.first;
+    return null;
+  }
+
+  /// Các kỳ thi chưa qua (chưa kết thúc ngày thi).
+  List<ExamModel> get _upcomingExams =>
+      _exams.where((e) => !e.isExamDayOver).toList();
+
   /// Đọc lại streak từ storage (gọi khi task hoàn thành / Pomodoro xong).
   void _reloadStreak() {
     if (!mounted) return;
@@ -173,6 +202,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 
+  void _openCalendarPage() {
+    Navigator.of(context).push(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => const CalendarScreen(),
+    ));
+  }
+
   /// Tạo widget của tab [index]. Các tab chưa từng mở hiển thị rỗng để không
   /// tốn chi phí initState/build khi khởi động; tab đã mở giữ nguyên state.
   Widget _tabAt(int index) {
@@ -180,11 +216,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
       case 0:
         // Tab mặc định — luôn tạo mới để nhận streak/exam cập nhật từ MainShell.
         return HomeScreen(
-          primaryExam: _primaryExam,
+          primaryExam: _effectivePrimaryExam,
           exams: _exams,
           onExamTap: _openExamsPage,
           onOpenStudy: _openStudyPage,
           onOpenAiCoach: () => _switchTab(1),
+          onOpenCalendar: _openCalendarPage,
           streak: _streak,
           isActive: _currentIndex == 0,
           onStreakChanged: _reloadStreak,

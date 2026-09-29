@@ -6,12 +6,14 @@ class QuickActionCard extends StatelessWidget {
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
   final VoidCallback onOpenAiPlan;
+  final VoidCallback onOpenCalendar;
 
   const QuickActionCard({
     super.key,
     required this.onOpenStudy,
     required this.onOpenAiCoach,
     required this.onOpenAiPlan,
+    required this.onOpenCalendar,
   });
 
   @override
@@ -32,6 +34,11 @@ class QuickActionCard extends StatelessWidget {
           icon: Icons.auto_awesome_outlined,
           label: 'Hỏi AI',
           onTap: onOpenAiCoach,
+        ),
+        _buildAction(
+          icon: Icons.calendar_month_outlined,
+          label: 'Lịch',
+          onTap: onOpenCalendar,
         ),
       ],
     );
@@ -74,12 +81,11 @@ class QuickActionCard extends StatelessWidget {
                 child: Icon(icon, size: 22, color: Colors.white),
               ),
               const SizedBox(height: 10),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                 ),
               ),
             ],

@@ -121,6 +121,15 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
 
   /// Phân tích lịch sử chat để tìm chủ đề yếu lặp lại.
   Future<void> _analyzeWeakTopics() async {
+    if (!(StorageService.getBool('ai_permission_analyze') ?? true)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Bạn đã tắt quyền AI phân tích tiến độ trong mục Tôi.'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    }
     if (!PwaService.isOnline) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

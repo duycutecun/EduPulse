@@ -30,6 +30,8 @@ class GlassCard extends StatelessWidget {
     final bgColor = customColor ?? AppColors.cardWhite;
     final bColor = borderColor ?? AppColors.border;
 
+    // Material trong suốt để ListTile/SwitchListTile bên trong card vẽ được
+    // ink splash đúng chỗ (không bị DecoratedBox nền màu che mất).
     final card = Container(
       margin: margin,
       padding: padding,
@@ -45,7 +47,7 @@ class GlassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: Material(type: MaterialType.transparency, child: child),
     );
 
     if (onTap == null) return card;

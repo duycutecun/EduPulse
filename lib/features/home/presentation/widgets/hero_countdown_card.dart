@@ -26,6 +26,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
   @override
   Widget build(BuildContext context) {
     final primaryExam = widget.primaryExam;
+    final phase = primaryExam?.examPhase ?? ExamPhase.normal;
     final urgencyColor = primaryExam != null
         ? _urgencyColor(primaryExam.daysLeft)
         : AppColors.textMuted;
@@ -38,7 +39,10 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         decoration: BoxDecoration(
           color: AppColors.cardWhite,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border, width: 1),
+          border: Border.all(
+            color: phase == ExamPhase.examDay ? AppColors.orange : AppColors.border,
+            width: phase == ExamPhase.examDay ? 2 : 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -50,7 +54,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hàng trên: emoji + tên kỳ thi + chip urgency.
+            // Hàng trên: emoji + tên kỳ thi + chip urgency/phase.
             Row(
               children: [
                 Text(
@@ -81,7 +85,9 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                       border: Border.all(color: urgencyColor, width: 1.2),
                     ),
                     child: Text(
-                      primaryExam.urgencyLabel,
+                      phase == ExamPhase.examDay
+                          ? '📍 Ngày thi'
+                          : primaryExam.urgencyLabel,
                       style: TextStyle(
                         color: urgencyColor,
                         fontSize: 11,
@@ -92,7 +98,25 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildTimerRow(),
+            if (phase == ExamPhase.examDay) ...[
+              // Ngày thi: giờ thi rõ ràng, không cần đếm từng giây.
+              Row(
+                children: [
+                  const Icon(Icons.schedule_rounded,
+                      color: AppColors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Giờ thi: ${AppDate.formatDateTime(primaryExam!.dateTime)}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              _buildTimerRow(),
             if (primaryExam != null) ...[
               const SizedBox(height: 12),
               Row(
@@ -109,6 +133,26 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                   ),
                 ],
               ),
+              if (phase == ExamPhase.revision) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.orangeLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    primaryExam.daysLeft <= 1
+                        ? 'Ngày mai là ngày thi. Bạn đã sẵn sàng chưa?'
+                        : 'Chế độ ôn tập: ưu tiên ôn trọng tâm, giảm nhiệm vụ không cần thiết.',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.orangeDark),
+                  ),
+                ),
+              ],
               if (primaryExam.targetScore != null) ...[
                 const SizedBox(height: 10),
                 Container(

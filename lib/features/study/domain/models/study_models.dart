@@ -37,6 +37,50 @@ class StudyLog {
       StudyLog.fromJson(jsonDecode(s));
 }
 
+/// A local-first study note. Notes intentionally stay independent from a task
+/// so they remain available even when a task is completed or removed.
+class StudyNote {
+  final String id;
+  String title;
+  String body;
+  final DateTime createdAt;
+  DateTime updatedAt;
+  final List<String> tags;
+
+  StudyNote({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.createdAt,
+    required this.updatedAt,
+    this.tags = const [],
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'body': body,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+        'tags': tags,
+      };
+
+  factory StudyNote.fromJson(Map<String, dynamic> json) => StudyNote(
+        id: json['id'] ?? '',
+        title: json['title'] ?? '',
+        body: json['body'] ?? '',
+        createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+        updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
+        tags: (json['tags'] as List? ?? const [])
+            .map((tag) => tag.toString())
+            .toList(),
+      );
+
+  String toJsonString() => jsonEncode(toJson());
+  factory StudyNote.fromJsonString(String value) =>
+      StudyNote.fromJson(jsonDecode(value));
+}
+
 class TodayTask {
   final String id;
   String title;
@@ -46,6 +90,7 @@ class TodayTask {
   final String priority; // 'high', 'medium', 'low'
   final int estimateMinutes;
   DateTime? deadline;
+  DateTime? scheduledAt;
   final String? note;
   final String? goalId;
   final List<String> subtasks;
@@ -63,6 +108,7 @@ class TodayTask {
     this.priority = 'medium',
     this.estimateMinutes = 45,
     this.deadline,
+    this.scheduledAt,
     this.note,
     this.goalId,
     this.subtasks = const [],
@@ -81,6 +127,7 @@ class TodayTask {
     'priority': priority,
     'estimateMinutes': estimateMinutes,
     'deadline': deadline?.toIso8601String(),
+    'scheduledAt': scheduledAt?.toIso8601String(),
     'note': note,
     'goalId': goalId,
     'subtasks': subtasks,
@@ -99,6 +146,9 @@ class TodayTask {
     priority: j['priority'] ?? 'medium',
     estimateMinutes: j['estimateMinutes'] ?? 45,
     deadline: j['deadline'] == null ? null : DateTime.tryParse(j['deadline']),
+    scheduledAt: j['scheduledAt'] == null
+        ? null
+        : DateTime.tryParse(j['scheduledAt']),
     note: j['note'],
     goalId: j['goalId'],
     subtasks: (j['subtasks'] as List? ?? const [])

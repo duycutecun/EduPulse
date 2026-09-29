@@ -20,6 +20,7 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onExamTap;
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
+  final VoidCallback onOpenCalendar;
   final int streak;
   final bool isActive;
   final VoidCallback? onStreakChanged;
@@ -31,6 +32,7 @@ class HomeScreen extends StatefulWidget {
     required this.onExamTap,
     required this.onOpenStudy,
     required this.onOpenAiCoach,
+    required this.onOpenCalendar,
     required this.streak,
     this.isActive = true,
     this.onStreakChanged,
@@ -89,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ValueNotifier<Duration> _remainingNotifier =
       ValueNotifier<Duration>(Duration.zero);
   List<TodayTask> _tasks = [];
+  List<TodayTask> _allTasks = [];
   final _uuid = const Uuid();
 
   @override
@@ -139,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadTasks() {
     final ids = StorageService.getTodayTaskIds();
-    _tasks = ids
+    _allTasks = ids
         .map((id) {
           final json = StorageService.getTodayTaskJson(id);
           if (json == null) return null;
@@ -147,10 +150,23 @@ class _HomeScreenState extends State<HomeScreen> {
         })
         .whereType<TodayTask>()
         .toList();
+    final now = DateTime.now();
+    _tasks = _allTasks.where((task) {
+      final scheduled = task.scheduledAt;
+      return scheduled == null ||
+          (scheduled.year == now.year &&
+              scheduled.month == now.month &&
+              scheduled.day == now.day);
+    }).toList();
   }
 
   void _addTask(String title, String subject, String priority, int minutes,
-      {String? topic, DateTime? deadline, String? note, String? goalId}) {
+      {String? topic,
+      DateTime? deadline,
+      String? note,
+      String? goalId,
+      List<String> subtasks = const [],
+      String? recurrence}) {
     final task = TodayTask(
       id: _uuid.v4(),
       title: title,
@@ -161,11 +177,16 @@ class _HomeScreenState extends State<HomeScreen> {
       deadline: deadline,
       note: note,
       goalId: goalId,
+      subtasks: subtasks,
+      recurrence: recurrence,
     );
     StorageService.setTodayTaskJson(task.id, task.toJsonString());
     final ids = StorageService.getTodayTaskIds()..add(task.id);
     StorageService.setTodayTaskIds(ids);
-    setState(() => _tasks.add(task));
+    setState(() {
+      _allTasks.add(task);
+      _tasks.add(task);
+    });
   }
 
   void _toggleTask(TodayTask task) {
@@ -181,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
       StorageService.addXp(10);
       StorageService.registerStudyActivity(); // cập nhật streak theo ngày
       StorageService.addMascotBondExp(10); // gắn kết linh vật
+      _createNextRecurringTask(task);
       setState(() {});
       _notifyStreakChanged();
       ScaffoldMessenger.of(context)
@@ -201,6 +223,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
     }
+  }
+
+  void _createNextRecurringTask(TodayTask completedTask) {
+    final recurrence = completedTask.recurrence;
+    if (recurrence != 'daily' && recurrence != 'weekly') return;
+    final days = recurrence == 'daily' ? 1 : 7;
+    final base = completedTask.scheduledAt ?? DateTime.now();
+    final next = TodayTask(
+      id: _uuid.v4(),
+      title: completedTask.title,
+      subject: completedTask.subject,
+      topic: completedTask.topic,
+      priority: completedTask.priority,
+      estimateMinutes: completedTask.estimateMinutes,
+      note: completedTask.note,
+      goalId: completedTask.goalId,
+      subtasks: completedTask.subtasks,
+      recurrence: recurrence,
+      scheduledAt: DateTime(base.year, base.month, base.day).add(Duration(days: days)),
+    );
+    StorageService.setTodayTaskJson(next.id, next.toJsonString());
+    StorageService.setTodayTaskIds([...StorageService.getTodayTaskIds(), next.id]);
+    _allTasks.add(next);
   }
 
   void _showSkipSheet(TodayTask task) {
@@ -250,18 +295,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final selected = await showDatePicker(
       context: context,
-      initialDate: task.deadline?.isAfter(now) == true ? task.deadline! : now,
+      initialDate: task.scheduledAt?.isAfter(now) == true
+          ? task.scheduledAt!
+          : now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 10),
       helpText: 'Chọn ngày làm nhiệm vụ',
     );
     if (selected == null || !mounted) return;
-    task.deadline = selected;
+    task.scheduledAt = selected;
     task.status = 'todo';
     task.skipReason = null;
     task.rescheduleCount++;
     StorageService.setTodayTaskJson(task.id, task.toJsonString());
-    setState(() {});
+    setState(_loadTasks);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Đã dời "${task.title}" sang ngày mới')),
     );
@@ -269,7 +316,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _deleteTask(TodayTask task) {
     StorageService.removeTodayTask(task.id);
-    setState(() => _tasks.remove(task));
+    setState(() {
+      _tasks.remove(task);
+      _allTasks.remove(task);
+    });
   }
 
   /// MainShell đọc lại streak sau khi task thay đổi để header cập nhật 🔥.
@@ -305,6 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
           HomeHeader(
             userName: userName,
             streak: widget.streak,
+            mascotVisible: StorageService.getBool('mascot_enabled') ?? true,
           ),
           const SizedBox(height: 16),
           HeroCountdownCard(
@@ -316,12 +367,14 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 14),
             _GoalProgressCard(
               exam: widget.primaryExam!,
-              tasks: _tasks
+              tasks: _allTasks
                   .where((task) => task.goalId == widget.primaryExam!.id)
                   .toList(),
             ),
           ],
           const SizedBox(height: 14),
+          // Exam Mode (đặc tả mục 39–40): revision ≤7 ngày, exam day và post-exam.
+          ..._examModeWidgets(),
           QuickActionCard(
             onOpenStudy: widget.onOpenStudy,
             onOpenAiCoach: widget.onOpenAiCoach,
@@ -330,6 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute(builder: (_) => const AiPlanScreen()),
               );
             },
+            onOpenCalendar: widget.onOpenCalendar,
           ),
           const SizedBox(height: 14),
           TodayMissionCard(
@@ -350,6 +404,39 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  /// Các widget Exam Mode theo giai đoạn của kỳ thi chính (đặc tả mục 39–40):
+  /// - Revision (≤7 ngày): banner ôn tập trọng tâm + checklist chuẩn bị.
+  /// - Exam day: thông tin thi + checklist, KHÔNG hiển thị nhiều task.
+  /// - Post-exam: tổng kết nhẹ nhàng + hỏi tạo goal mới, không ngôn ngữ tiêu cực.
+  List<Widget> _examModeWidgets() {
+    final exam = widget.primaryExam;
+    if (exam == null) return const [];
+    switch (exam.examPhase) {
+      case ExamPhase.revision:
+        return [const _RevisionModeCard()];
+      case ExamPhase.examDay:
+        return [
+          const _ExamDayCard(),
+          const SizedBox(height: 14),
+          _TodayMissionCardCompact(
+            tasks: _tasks.take(3).toList(),
+            onToggle: _toggleTask,
+          ),
+        ];
+      case ExamPhase.postExam:
+        final reached = exam.postExamResult;
+        return [
+          _PostExamCard(
+            exam: exam,
+            reachedTarget: reached,
+            onOpenExam: widget.onExamTap,
+          ),
+        ];
+      case ExamPhase.normal:
+        return const [];
+    }
   }
 
   void _showAddTaskDialog() {
@@ -483,6 +570,332 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// Banner chế độ ôn tập khi còn ≤7 ngày thi (đặc tả mục 39 — 7 ngày trước thi):
+/// ưu tiên weakness, high-impact topics và review, giảm workload không cần thiết.
+class _RevisionModeCard extends StatelessWidget {
+  const _RevisionModeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.orangeLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.orange, width: 1.2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: AppColors.orangeSoft,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(child: Text('📚', style: TextStyle(fontSize: 22))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chế độ ôn tập đang bật',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Ưu tiên ôn điểm yếu và nội dung quan trọng. Giảm bớt nhiệm vụ mới không cần thiết.',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.3),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Thẻ ngày thi (đặc tả mục 39 — Exam Day): thông tin kỳ thi + checklist chuẩn bị,
+/// không hiển thị quá nhiều task để giữ Home nhẹ nhàng.
+class _ExamDayCard extends StatelessWidget {
+  const _ExamDayCard();
+
+  @override
+  Widget build(BuildContext context) {
+    const checklist = [
+      'CMND/CCCD + giấy báo dự thi',
+      'Bút, thước, máy tính được phép',
+      'Bình nước + đồ ăn nhẹ',
+      'Đến sớm trước giờ thi 30 phút',
+    ];
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.orange, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.orange.withValues(alpha: 0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Text('🍀', style: TextStyle(fontSize: 20)),
+              SizedBox(width: 8),
+              Text(
+                'Hôm nay là ngày thi — làm tốt nhé!',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Chỉ cần tập trung ôn nhẹ và chuẩn bị. EduPulse tạm ẩn danh sách nhiệm vụ dài.',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 10),
+          ...checklist.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.check_circle_outline_rounded,
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(item,
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.textPrimary)),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+/// Phiên bản rút gọn của danh sách nhiệm vụ cho ngày thi (tối đa 3 task).
+class _TodayMissionCardCompact extends StatelessWidget {
+  const _TodayMissionCardCompact({
+    required this.tasks,
+    required this.onToggle,
+  });
+
+  final List<TodayTask> tasks;
+  final ValueChanged<TodayTask> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ôn nhẹ hôm nay (tùy chọn)',
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 8),
+          ...tasks.map(
+            (task) => InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => onToggle(task),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      task.isDone
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      size: 20,
+                      color: task.isDone ? AppColors.primary : AppColors.blue,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          decoration:
+                              task.isDone ? TextDecoration.lineThrough : null,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '⏱ ${task.estimateMinutes}p',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Thẻ sau kỳ thi (đặc tả mục 40): nhẹ nhàng, không tiêu cực, giữ lịch sử,
+/// gợi ý tạo goal mới hoặc xem lại kỳ thi đã qua.
+class _PostExamCard extends StatelessWidget {
+  const _PostExamCard({
+    required this.exam,
+    required this.reachedTarget,
+    required this.onOpenExam,
+  });
+
+  final ExamModel exam;
+  final bool? reachedTarget; // null = chưa đủ dữ liệu kết luận
+  final VoidCallback onOpenExam;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasResult = reachedTarget != null;
+    final title = reachedTarget == true
+        ? 'Chúc mừng bạn đã hoàn thành ${exam.name}! 🎉'
+        : reachedTarget == false
+            ? '${exam.name} đã kết thúc. Cố gắng của bạn đều đáng giá.'
+            : '${exam.name} đã kết thúc — đang chờ kết quả';
+
+    final subtitle = reachedTarget == true
+        ? 'Bạn đã đạt mục tiêu điểm. Muốn xem lại phân tích quá trình học không?'
+        : reachedTarget == false
+            ? 'Xem phân tích khoảng cách điểm để điều chỉnh kế hoạch tiếp theo nhé.'
+            : 'Khi có điểm, cập nhật ở tab Mục tiêu để EduPulse phân tích giúp bạn.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+                height: 1.35),
+          ),
+          if (hasResult) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: reachedTarget == true
+                    ? AppColors.greenSoft
+                    : AppColors.blueLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Điểm hiện tại ${exam.currentScore!.toStringAsFixed(1)} • Mục tiêu ${exam.targetScore!.toStringAsFixed(1)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: reachedTarget == true
+                      ? AppColors.primaryDark
+                      : AppColors.blueDark,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onOpenExam,
+                  child: const Text('Xem kỳ thi'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Kỳ thi mới sẽ được tạo ở tab Mục tiêu → thêm kỳ thi.'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
+                  child: const Text('Tạo mục tiêu mới'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AddTaskDialog extends StatefulWidget {
   const _AddTaskDialog({
     required this.onAdd,
@@ -491,7 +904,12 @@ class _AddTaskDialog extends StatefulWidget {
   });
 
   final void Function(String title, String subject, String priority, int minutes,
-      {String? topic, DateTime? deadline, String? note, String? goalId}) onAdd;
+      {String? topic,
+      DateTime? deadline,
+      String? note,
+      String? goalId,
+      List<String> subtasks,
+      String? recurrence}) onAdd;
   final List<ExamModel> exams;
   final String? primaryExamId;
 
@@ -503,11 +921,13 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
   final _titleCtrl = TextEditingController();
   final _topicCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
+  final _subtasksCtrl = TextEditingController();
   String _subject = '📐 Toán';
   String _priority = 'medium';
   int _minutes = 45;
   DateTime? _deadline;
   String? _goalId;
+  String? _recurrence;
   final _subjects = [
     '📐 Toán',
     '⚡ Lý',
@@ -535,6 +955,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
     _titleCtrl.dispose();
     _topicCtrl.dispose();
     _noteCtrl.dispose();
+    _subtasksCtrl.dispose();
     super.dispose();
   }
 
@@ -553,6 +974,12 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
       deadline: _deadline,
       note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
       goalId: _goalId,
+      subtasks: _subtasksCtrl.text
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(),
+      recurrence: _recurrence,
     );
     Navigator.pop(context);
   }
@@ -647,6 +1074,13 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
                   hintText: 'Ghi chú (không bắt buộc)',
                 ),
               ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _subtasksCtrl,
+                decoration: const InputDecoration(
+                  hintText: 'Việc nhỏ (ngăn cách bằng dấu phẩy)',
+                ),
+              ),
               if (widget.exams.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String?>(
@@ -669,6 +1103,18 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
                   onChanged: (value) => setState(() => _goalId = value),
                 ),
               ],
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                value: _recurrence,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Lặp lại'),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('Không lặp lại')),
+                  DropdownMenuItem(value: 'daily', child: Text('Mỗi ngày')),
+                  DropdownMenuItem(value: 'weekly', child: Text('Mỗi tuần')),
+                ],
+                onChanged: (value) => setState(() => _recurrence = value),
+              ),
               const SizedBox(height: 12),
               const Text('Thời gian:',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),

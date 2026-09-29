@@ -220,12 +220,13 @@ void main() {
 
   group('parseAiPlan (lộ trình AI)', () {
     test('Parse JSON thuần có tasks đầy đủ', () {
-      const raw = '{"tasks":[{"title":"Giải 1 đề Toán","subject":"📐 Toán","priority":"high","minutes":90}]}';
+      const raw = '{"tasks":[{"day":3,"title":"Giải 1 đề Toán","subject":"📐 Toán","priority":"high","minutes":90}]}';
       final tasks = parseAiPlan(raw);
       expect(tasks.length, 1);
       expect(tasks.first.title, 'Giải 1 đề Toán');
       expect(tasks.first.priority, 'high');
       expect(tasks.first.minutes, 90);
+      expect(tasks.first.day, 3);
     });
 
     test('Bóc khối ```json ... ``` và cắt text thừa quanh JSON', () {
@@ -243,6 +244,12 @@ void main() {
       expect(tasks.first.title, 'Học bài');
       expect(tasks.first.priority, 'medium'); // giá trị lạ → mặc định
       expect(tasks.first.minutes, 45);
+    });
+
+    test('Ngày không hợp lệ được đưa về ngày đầu tiên', () {
+      const raw = '{"tasks":[{"day":0,"title":"Ôn bài","minutes":30}]}';
+      final tasks = parseAiPlan(raw);
+      expect(tasks.single.day, 1);
     });
 
     test('JSON hỏng → danh sách rỗng (không crash)', () {

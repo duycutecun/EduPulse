@@ -5,7 +5,8 @@ import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/app/main_shell.dart';
 import 'package:edupulse/core/theme/app_theme.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
-import 'package:edupulse/features/exams/domain/models/exam_model.dart';
+import 'package:edupulse/features/exams/domain/models/exam_model.dart'
+    show ExamModel, ExamPhase;
 
 void main() {
   setUp(() async {
@@ -166,6 +167,31 @@ void main() {
     expect(legacy.status, 'todo');
   });
 
+  test('TodayTask và StudyNote giữ dữ liệu lịch/ghi chú qua serialize', () {
+    final scheduled = DateTime(2026, 10, 16, 19);
+    final task = TodayTask(
+      id: 'calendar-task',
+      title: 'Ôn chuyên đề',
+      subject: '📐 Toán',
+      scheduledAt: scheduled,
+    );
+    expect(TodayTask.fromJsonString(task.toJsonString()).scheduledAt, scheduled);
+
+    final note = StudyNote(
+      id: 'note-1',
+      title: 'Công thức đạo hàm',
+      body: 'Ghi nhớ quy tắc chuỗi.',
+      createdAt: DateTime(2026, 10, 1),
+      updatedAt: DateTime(2026, 10, 2),
+      tags: const ['Toán', 'công thức'],
+    );
+    StorageService.setStudyNoteJson(note.id, note.toJsonString());
+    StorageService.setStudyNoteIds([note.id]);
+    final restored = StudyNote.fromJsonString(StorageService.getStudyNoteJson(note.id)!);
+    expect(restored.tags, ['Toán', 'công thức']);
+    expect(restored.body, 'Ghi nhớ quy tắc chuỗi.');
+  });
+
   test('StudySession lưu liên kết nhiệm vụ và thời lượng focus', () {
     final session = StudySession(
       id: 'session-1',
@@ -205,6 +231,118 @@ void main() {
     final restored = ExamModel.fromJsonString(exam.toJsonString());
     expect(restored.currentScore, 7.5);
     expect(restored.targetScore, 9.0);
+  });
+
+  test('ExamModel xác định đúng giai đoạn Exam Mode', () {
+    final now = DateTime.now();
+
+    // Còn xa (> 7 ngày) → bình thường.
+    final far = ExamModel(
+      id: 'far',
+      name: 'THPT QG',
+      dateTime: DateTime(now.year, now.month, now.day + 30, 7, 30),
+    );
+    expect(far.examPhase, ExamPhase.normal);
+
+    // Mai thi → revision (đặc tả mục 39: 7 ngày trước thi).
+    final tomorrow = ExamModel(
+      id: 'tomorrow',
+      name: 'ĐGNL TSA',
+      dateTime: DateTime(now.year, now.month, now.day + 1, 7, 30),
+    );
+    expect(tomorrow.examPhase, ExamPhase.revision);
+    expect(tomorrow.isRevisionPeriod, isTrue);
+
+    // Hôm nay là ngày thi (dù giờ thi đã qua nhưng chưa hết ngày).
+    final today = ExamModel(
+      id: 'today',
+      name: 'HSA',
+      dateTime: DateTime(now.year, now.month, now.day, 7, 0),
+    );
+    expect(today.examPhase, ExamPhase.examDay);
+
+    // Hôm qua đã thi → post-exam.
+    final past = ExamModel(
+      id: 'past',
+      name: 'Thi thử 10',
+      dateTime: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
+    );
+    expect(past.examPhase, ExamPhase.postExam);
+
+    // Kết quả post-exam: chỉ kết luận khi đủ target + current.
+    expect(
+      past.copyWithCurrent(null).postExamResult,
+      isNull,
+    );
+    expect(
+      ExamModel(id: 'p2', name: 'x', dateTime: past.dateTime, currentScore: 9.0, targetScore: 9.0)
+          .postExamResult,
+      isTrue,
+    );
+    expect(
+      ExamModel(id: 'p3', name: 'x', dateTime: past.dateTime, currentScore: 8.5, targetScore: 9.0)
+          .postExamResult,
+      isFalse,
+    );
+  });
+
+  testWidgets('Exam Mode trên Home: ôn tập, ngày thi và sau thi',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final now = DateTime.now();
+    var step = 0;
+    // Key đổi mỗi lần pump để MainShellScreen đọc lại dữ liệu kỳ thi từ storage
+    // (nếu không, State cũ được tái sử dụng và giữ exam cũ).
+    Widget shell() => MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: MainShellScreen(key: ValueKey('exam-mode-step-${step++}')),
+        );
+
+    // 1. Còn 3 ngày thi → revision banner trên Home.
+    StorageService.setExamJson(
+      'exam-mode',
+      ExamModel(
+        id: 'exam-mode',
+        name: 'THPT QG 2026',
+        dateTime: DateTime(now.year, now.month, now.day + 3, 7, 30),
+      ).toJsonString(),
+    );
+    StorageService.setExamIds(['exam-mode']);
+    StorageService.setPrimaryExamId('exam-mode');
+    await tester.pumpWidget(shell());
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Chế độ ôn tập đang bật'), findsOneWidget);
+
+    // 2. Hôm nay là ngày thi → exam day card + ẩn danh sách task dài.
+    StorageService.setExamJson(
+      'exam-mode',
+      ExamModel(
+        id: 'exam-mode',
+        name: 'THPT QG 2026',
+        dateTime: DateTime(now.year, now.month, now.day, 7, 30),
+      ).toJsonString(),
+    );
+    await tester.pumpWidget(shell());
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Hôm nay là ngày thi — làm tốt nhé!'), findsOneWidget);
+    expect(find.text('Ôn nhẹ hôm nay (tùy chọn)'), findsNothing);
+
+    // 3. Đã qua thi, chưa nhập điểm → post-exam “đang chờ kết quả”.
+    StorageService.setExamJson(
+      'exam-mode',
+      ExamModel(
+        id: 'exam-mode',
+        name: 'THPT QG 2026',
+        dateTime: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
+      ).toJsonString(),
+    );
+    await tester.pumpWidget(shell());
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('THPT QG 2026 đã kết thúc — đang chờ kết quả'),
+        findsOneWidget);
   });
 
   testWidgets('iPhone 390x844: 3 tab + trang Mục tiêu/Tập trung không tràn layout',

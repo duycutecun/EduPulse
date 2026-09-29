@@ -11,7 +11,7 @@ import '../../domain/ai_plan.dart';
 import '../../domain/models/study_models.dart';
 
 /// Màn hình "Lộ trình AI": chọn quỹ thời gian → AI sinh kế hoạch học nhiều
-/// ngày → xem trước → đổ vào Nhiệm vụ hôm nay.
+/// ngày → xem trước → người dùng duyệt để áp dụng vào kế hoạch.
 class AiPlanScreen extends StatefulWidget {
   const AiPlanScreen({super.key});
 
@@ -81,8 +81,12 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
     }
   }
 
-  /// Đổ lộ trình vào Nhiệm vụ hôm nay (không trùng tựa đề đã có).
-  void _addToToday() {
+  /// Áp dụng đề xuất sau khi người dùng đã xem trước.
+  ///
+  /// Không ghi đè nhiệm vụ hiện có: các đề xuất có cùng tiêu đề được giữ
+  /// nguyên ở kế hoạch cũ và chỉ những nhiệm vụ mới mới được thêm vào.
+  void _acceptPlan() {
+    final start = DateTime.now();
     final existingTitles = StorageService.getTodayTaskIds()
         .map((id) => StorageService.getTodayTaskJson(id))
         .whereType<String>()
@@ -98,6 +102,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
     var added = 0;
     for (final t in _plan) {
       if (existingTitles.contains(t.title.toLowerCase())) continue;
+      final assignedDay = t.day > _planDays ? _planDays : t.day;
       final task = TodayTask(
         id: _uuid.v4(),
         title: t.title,
@@ -105,16 +110,28 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
         priority: t.priority,
         estimateMinutes: t.minutes,
         goalId: _primaryExam?.id,
+        scheduledAt: DateTime(start.year, start.month, start.day)
+            .add(Duration(days: assignedDay - 1)),
       );
       StorageService.setTodayTaskJson(task.id, task.toJsonString());
       final ids = StorageService.getTodayTaskIds()..add(task.id);
       StorageService.setTodayTaskIds(ids);
+      existingTitles.add(t.title.toLowerCase());
       added++;
+    }
+
+    if (added == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Các nhiệm vụ trong đề xuất đã có trong kế hoạch hiện tại.'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
+      ));
+      return;
     }
 
     setState(() => _added = true);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Đã thêm $added nhiệm vụ vào hôm nay! 🎉'),
+      content: Text('Đã áp dụng: thêm $added nhiệm vụ vào kế hoạch! 🎉'),
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.primary,
       duration: const Duration(seconds: 2),
@@ -160,13 +177,19 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
             onPressed: () {
               final title = titleController.text.trim();
               final minutes = int.tryParse(minutesController.text.trim());
-              if (title.isEmpty || minutes == null || minutes <= 0) return;
+              if (title.isEmpty ||
+                  minutes == null ||
+                  minutes <= 0 ||
+                  minutes > 480) {
+                return;
+              }
               setState(() {
                 _plan[index] = AiPlanTask(
                   title: title,
                   subject: original.subject,
                   priority: original.priority,
                   minutes: minutes,
+                  day: original.day,
                 );
               });
               Navigator.pop(dialogContext);
@@ -302,7 +325,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                   Text('Xem trước thay đổi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                   if (!_added)
                     GestureDetector(
-                      onTap: _addToToday,
+                        onTap: _acceptPlan,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
@@ -332,7 +355,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'AI đề xuất ${_plan.length} nhiệm vụ theo quỹ thời gian $_dailyMinutes phút/ngày. Chưa có thay đổi nào được áp dụng.',
+                  'Trước: giữ nguyên kế hoạch hiện tại.\nSau khi chấp nhận: thêm ${_plan.length} nhiệm vụ vào từng ngày trong lộ trình. AI không tự áp dụng thay đổi.',
                   style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
                 ),
               ),
@@ -365,7 +388,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '⏱ ${_plan[i].minutes} phút • ${_plan[i].priority == 'high' ? '🔥 Quan trọng' : (_plan[i].priority == 'low' ? '🌱 Nhẹ' : '⭐ Vừa')}',
+                                  'Ngày ${_plan[i].day} • ⏱ ${_plan[i].minutes} phút • ${_plan[i].priority == 'high' ? '🔥 Quan trọng' : (_plan[i].priority == 'low' ? '🌱 Nhẹ' : '⭐ Vừa')}',
                                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                                 ),
                               ],
@@ -376,6 +399,13 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                               tooltip: 'Chỉnh sửa đề xuất',
                               onPressed: () => _editPlanTask(i),
                               icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: AppColors.textMuted),
+                            ),
+                          if (!_added)
+                            IconButton(
+                              tooltip: 'Bỏ nhiệm vụ khỏi đề xuất',
+                              onPressed: () => setState(() => _plan.removeAt(i)),
+                              icon: const Icon(Icons.close_rounded,
                                   size: 18, color: AppColors.textMuted),
                             ),
                         ],
