@@ -7,6 +7,7 @@ import '../../../../core/utils/storage_service.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../exams/domain/preset_exams.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/quick_add_parser.dart';
 import '../../../study/presentation/screens/ai_plan_screen.dart';
 import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
@@ -394,6 +395,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onSkip: _showSkipSheet,
             onReschedule: _rescheduleTask,
             onAddSample: _showSampleTasksSheet,
+            onQuickAdd: _showQuickAddSheet,
           ),
           const SizedBox(height: 14),
           SmartNudgeCard(
@@ -432,11 +434,118 @@ class _HomeScreenState extends State<HomeScreen> {
             exam: exam,
             reachedTarget: reached,
             onOpenExam: widget.onExamTap,
+            onScoreSaved: () => setState(() {}),
           ),
         ];
       case ExamPhase.normal:
         return const [];
     }
+  }
+
+  /// Quick Add bằng ngôn ngữ tự nhiên (đặc tả mục 25): parse offline →
+  /// preview → user xác nhận. Không tự thêm task khi chưa confirm.
+  void _showQuickAddSheet() {
+    final controller = TextEditingController();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          final result = parseQuickAdd(controller.text, DateTime.now());
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, 16, 20, 20 + MediaQuery.viewInsetsOf(sheetContext).bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Thêm nhanh — viết tự nhiên',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text('VD: "Mai 19h học toán hàm số 45 phút"',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  onChanged: (_) => setSheetState(() {}),
+                  decoration: const InputDecoration(
+                    hintText: 'Nhập nhiệm vụ của bạn…',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (result != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.blueSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${result.subject} ${result.title}',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '📅 ${result.scheduledAt.day}/${result.scheduledAt.month}'
+                          ' • ⏰ ${result.scheduledAt.hour.toString().padLeft(2, '0')}:${result.scheduledAt.minute.toString().padLeft(2, '0')}'
+                          ' • ⏱ ${result.minutes} phút'
+                          ' • ${result.priority == 'high' ? '🔥 Quan trọng' : result.priority == 'low' ? '🌱 Nhẹ' : '⭐ Vừa'}',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _addTask(
+                          result.title,
+                          result.subject,
+                          result.priority,
+                          result.minutes,
+                        );
+                        Navigator.pop(sheetContext);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text('Thêm nhiệm vụ'),
+                    ),
+                  ),
+                ] else if (controller.text.trim().isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Chưa nhận ra đủ dữ kiện — thêm giờ hoặc thời lượng nhé.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showAddTaskDialog() {
@@ -776,17 +885,89 @@ class _TodayMissionCardCompact extends StatelessWidget {
 }
 
 /// Thẻ sau kỳ thi (đặc tả mục 40): nhẹ nhàng, không tiêu cực, giữ lịch sử,
-/// gợi ý tạo goal mới hoặc xem lại kỳ thi đã qua.
+/// gợi ý tạo goal mới hoặc xem lại kỳ thi đã qua. Có **nhập điểm nhanh**
+/// ngay tại card (mục 40: "Nếu có điểm: Update goal, Compare target,
+/// Analyze, Suggest next step").
 class _PostExamCard extends StatelessWidget {
   const _PostExamCard({
     required this.exam,
     required this.reachedTarget,
     required this.onOpenExam,
+    required this.onScoreSaved,
   });
 
   final ExamModel exam;
   final bool? reachedTarget; // null = chưa đủ dữ liệu kết luận
   final VoidCallback onOpenExam;
+  final VoidCallback onScoreSaved;
+
+  Future<void> _quickScoreEntry(BuildContext context) async {
+    final controller = TextEditingController(
+      text: exam.currentScore?.toStringAsFixed(1) ?? '',
+    );
+    final value = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nhập điểm của bạn'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              exam.targetScore != null
+                  ? 'Mục tiêu của bạn: ${exam.targetScore!.toStringAsFixed(1)} điểm'
+                  : 'Chưa có mục tiêu điểm — nhập để lưu lịch sử.',
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                hintText: 'VD: 8.5',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () {
+              final parsed = double.tryParse(
+                  controller.text.trim().replaceAll(',', '.'));
+              if (parsed == null || parsed < 0 || parsed > 10) return;
+              Navigator.pop(dialogContext, parsed);
+            },
+            child: const Text('Lưu điểm'),
+          ),
+        ],
+      ),
+    );
+    if (value == null) return;
+
+    // Cập nhật điểm hiện tại của kỳ thi (lưu lịch sử, mục 40).
+    final updated = exam.copyWithCurrent(value);
+    StorageService.setExamJson(updated.id, updated.toJsonString());
+
+    // Ghi thêm MockScore để biểu đồ điểm có dữ liệu (mục 41).
+    final score = MockScore(
+      id: const Uuid().v4(),
+      date: DateTime.now(),
+      subject: updated.name,
+      score: value,
+      note: 'Điểm ${updated.name}',
+    );
+    StorageService.setMockScoreJson(score.id, score.toJsonString());
+    final ids = StorageService.getMockScoreIds()..add(score.id);
+    StorageService.setMockScoreIds(ids);
+
+    onScoreSaved();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -860,6 +1041,16 @@ class _PostExamCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
+          // Nhập điểm nhanh — luôn hiện khi chưa đủ target + current.
+          if (!hasResult)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: OutlinedButton.icon(
+                onPressed: () => _quickScoreEntry(context),
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: const Text('Đã có điểm? Nhập ngay'),
+              ),
+            ),
           Row(
             children: [
               Expanded(
@@ -1084,7 +1275,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
               if (widget.exams.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String?>(
-                  value: _goalId,
+                  initialValue: _goalId,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Kỳ thi / Mục tiêu'),
                   items: [
@@ -1105,7 +1296,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
               ],
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
-                value: _recurrence,
+                initialValue: _recurrence,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Lặp lại'),
                 items: const [

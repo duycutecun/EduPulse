@@ -7,10 +7,12 @@ import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
+import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
 import '../../domain/models/study_models.dart';
 import '../../domain/score_summary.dart';
+import '../../domain/study_analytics.dart';
 import '../widgets/weekly_chart_widget.dart';
 
 class StudyScreen extends StatefulWidget {
@@ -149,8 +151,12 @@ class _StudyScreenState extends State<StudyScreen> {
     if (_pomRunning) {
       _pomTimer?.cancel();
       setState(() => _pomRunning = false);
+      // Thoát Focus → cho phép notification thường trở lại.
+      AdaptivePolicy.setInFocus(false);
     } else {
       setState(() => _pomRunning = true);
+      // Vào Focus → tạm dừng notification không quan trọng (đặc tả mục 16).
+      AdaptivePolicy.setInFocus(true);
       _pomTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (_pomSecondsNotifier.value > 0) {
           _pomSecondsNotifier.value--;
@@ -699,7 +705,108 @@ class _StudyScreenState extends State<StudyScreen> {
         children: [
           _buildFocusAnalytics(),
           const SizedBox(height: 16),
+          _buildAdvancedAnalytics(),
+          const SizedBox(height: 16),
           WeeklyChartWidget(logs: _logs),
+        ],
+      ),
+    );
+  }
+
+  /// Analytics nâng cao (đặc tả mục 12.2–12.5): so sánh tuần, efficiency
+  /// composite, focus pattern và khung giờ học tốt. Mỗi mục chỉ hiện khi
+  /// đủ dữ liệu — không kết luận khi thiếu mẫu.
+  Widget _buildAdvancedAnalytics() {
+    final now = DateTime.now();
+    final comparison = compareWeeks(_sessions, now);
+    final efficiencyReport = efficiency(_sessions, now);
+    final focusTip = focusPatternTip(_sessions);
+    final timeTip = bestStudyTime(_sessions);
+
+    final hasAnything = comparison.thisWeekMinutes > 0 ||
+        comparison.lastWeekMinutes > 0 ||
+        efficiencyReport != null ||
+        focusTip != null ||
+        timeTip != null;
+    if (!hasAnything) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Phân tích nâng cao',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          if (comparison.message != null) _analyticsRow(
+            icon: Icons.compare_arrows_rounded,
+            color: AppColors.blue,
+            text: comparison.message!,
+          ),
+          if (efficiencyReport != null) ...[
+            _analyticsRow(
+              icon: Icons.speed_rounded,
+              color: AppColors.primary,
+              text:
+                  'Efficiency ${efficiencyReport.score}%${efficiencyReport.deltaVsLastWeek == null ? '' : ' (${efficiencyReport.deltaVsLastWeek! >= 0 ? '+' : ''}${efficiencyReport.deltaVsLastWeek}% vs tuần trước)'} — dựa trên ${efficiencyReport.sampleCount} phiên có phản hồi.',
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 30),
+              child: Text(efficiencyReport.description,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary)),
+            ),
+          ],
+          if (focusTip != null)
+            _analyticsRow(
+              icon: Icons.timer_outlined,
+              color: AppColors.orange,
+              text: focusTip,
+            ),
+          if (timeTip != null)
+            _analyticsRow(
+              icon: Icons.schedule_rounded,
+              color: AppColors.purple,
+              text: timeTip,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _analyticsRow({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    fontSize: 12.5,
+                    height: 1.35,
+                    color: AppColors.textPrimary)),
+          ),
         ],
       ),
     );

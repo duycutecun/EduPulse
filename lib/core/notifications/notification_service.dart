@@ -41,6 +41,12 @@ class NotificationService {
     _initialized = true;
   }
 
+  /// Id lịch nhắc học hằng ngày.
+  static const int reminderId = 1001;
+
+  /// Id daily digest (tóm tắt cuối ngày).
+  static const int digestId = 1002;
+
   /// Lên lịch nhắc học lặp lại mỗi ngày vào [hour]:[minute].
   static Future<void> scheduleDaily({
     required int hour,
@@ -67,7 +73,7 @@ class NotificationService {
     );
 
     await _plugin.zonedSchedule(
-      id: 1001,
+      id: reminderId,
       scheduledDate: scheduled,
       notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -75,6 +81,43 @@ class NotificationService {
       title: 'EduPulse — Giờ học của bạn đã đến! 📚',
       body: 'Duy trì streak 🔥 — 25 phút hôm nay là cả một thói quen lớn!',
     );
+  }
+
+  /// Lên lịch một-shot vào [when] (DateTime cục bộ).
+  static Future<void> scheduleAt({
+    required int id,
+    required DateTime when,
+    required String title,
+    required String body,
+  }) async {
+    if (!isSupported) return;
+    await init();
+
+    final scheduled = tz.TZDateTime.from(when, tz.local);
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'digest_and_spaced',
+        'Tóm tắt và nhắc giãn cách',
+        channelDescription: 'Tóm tắt cuối ngày và nhắc theo tần suất thích ứng',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+    await _plugin.zonedSchedule(
+      id: id,
+      scheduledDate: scheduled,
+      notificationDetails: details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      title: title,
+      body: body,
+    );
+  }
+
+  /// Hủy một notification theo id.
+  static Future<void> cancelId(int id) async {
+    if (!isSupported) return;
+    await _plugin.cancel(id: id);
   }
 
   /// Hủy lịch nhắc đã đặt (nếu có).

@@ -1,15 +1,20 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
+import '../../../../core/utils/data_transfer.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/theme/appearance_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
+import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -36,6 +41,7 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _reminderEnabled = false;
   int _reminderHour = 19;
   int _reminderMinute = 0;
+  bool _digestEnabled = false;
   bool _aiMayRead = true;
   bool _aiMayAnalyze = true;
   bool _mascotEnabled = true;
@@ -68,6 +74,7 @@ class _AccountScreenState extends State<AccountScreen> {
     _reminderEnabled = StorageService.getBool('reminder_enabled') ?? false;
     _reminderHour = StorageService.getInt('reminder_hour') ?? 19;
     _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
+    _digestEnabled = StorageService.getBool('notif_digest_enabled') ?? false;
     _aiMayRead = StorageService.getBool('ai_permission_read') ?? true;
     _aiMayAnalyze = StorageService.getBool('ai_permission_analyze') ?? true;
     _mascotEnabled = StorageService.getBool('mascot_enabled') ?? true;
@@ -330,6 +337,10 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ],
         const SizedBox(height: 18),
+        _buildLearningProfileEntry(),
+        const SizedBox(height: 18),
+        _buildAppearanceCard(),
+        const SizedBox(height: 18),
         _buildReminderCard(),
         const SizedBox(height: 18),
         _buildPreferencesCard(),
@@ -459,9 +470,9 @@ class _AccountScreenState extends State<AccountScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.ios_share_rounded, color: AppColors.blue),
-            title: const Text('Xuất dữ liệu cục bộ'),
-            subtitle: const Text('Sao chép bản JSON để bạn tự lưu giữ', style: TextStyle(fontSize: 11)),
-            onTap: _copyLocalExport,
+            title: const Text('Xuất / nhập dữ liệu'),
+            subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú', style: TextStyle(fontSize: 11)),
+            onTap: _openDataSheet,
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -474,16 +485,147 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  void _copyLocalExport() {
-    final tasks = StorageService.getTodayTaskIds()
-        .map(StorageService.getTodayTaskJson).whereType<String>().toList();
-    final notes = StorageService.getStudyNoteIds()
-        .map(StorageService.getStudyNoteJson).whereType<String>().toList();
-    final sessions = StorageService.getStudySessionIds()
-        .map(StorageService.getStudySessionJson).whereType<String>().toList();
-    final payload = jsonEncode({'exportedAt': DateTime.now().toIso8601String(), 'tasks': tasks, 'notes': notes, 'sessions': sessions});
-    Clipboard.setData(ClipboardData(text: payload));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép dữ liệu JSON vào clipboard.')));
+  /// Sheet Xuất / nhập / xóa dữ liệu cục bộ (đặc tả mục 19).
+  void _openDataSheet() {
+    final c = DataTransfer.counts();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Dữ liệu của bạn',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(
+                '${c.tasks} nhiệm vụ • ${c.notes} ghi chú • ${c.sessions} phiên focus • ${c.exams} kỳ thi • ${c.logs} nhật ký',
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 14),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.data_object_rounded, color: AppColors.blue),
+                title: const Text('Xuất JSON (đầy đủ — dùng để nhập lại)'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Clipboard.setData(ClipboardData(text: DataTransfer.exportJson()));
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(const SnackBar(
+                      content: Text('Đã sao chép JSON đầy đủ vào clipboard.')));
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.table_chart_rounded, color: AppColors.primary),
+                title: const Text('Xuất nhật ký học (CSV)'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Clipboard.setData(ClipboardData(text: DataTransfer.exportStudyLogCsv()));
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(const SnackBar(
+                      content: Text('Đã sao chép CSV nhật ký vào clipboard.')));
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.description_rounded, color: AppColors.orange),
+                title: const Text('Xuất ghi chú (Markdown)'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Clipboard.setData(ClipboardData(text: DataTransfer.exportNotesMarkdown()));
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(const SnackBar(
+                      content: Text('Đã sao chép Markdown ghi chú vào clipboard.')));
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.download_rounded, color: AppColors.purple),
+                title: const Text('Nhập từ JSON'),
+                subtitle: const Text('Chỉ thêm bản ghi mới, không ghi đè dữ liệu hiện có.',
+                    style: TextStyle(fontSize: 11)),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final picked = await FilePicker.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['json'],
+                  );
+                  if (picked.isEmpty) return;
+                  final bytes = await picked.first.readAsBytes();
+                  final text = utf8.decode(bytes, allowMalformed: true);
+                  if (!mounted) return;
+                  final result = DataTransfer.importJson(text);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(result.error.isNotEmpty
+                        ? result.error
+                        : 'Đã nhập ${result.imported} bản ghi, bỏ qua ${result.skipped} bản trùng.'),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                },
+              ),
+              const Divider(),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.delete_forever_rounded, color: AppColors.red),
+                title: const Text('Xóa dữ liệu học cục bộ',
+                    style: TextStyle(color: AppColors.red)),
+                subtitle: const Text('Nhiệm vụ, ghi chú, phiên, kỳ thi, nhật ký. Cài đặt và lịch sử AI giữ nguyên.',
+                    style: TextStyle(fontSize: 11)),
+                onTap: () => _confirmDeleteStudyData(sheetContext),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteStudyData(BuildContext sheetContext) async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xóa dữ liệu học?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Hành động này không thể hoàn tác. Xuất JSON trước nếu muốn giữ lại.'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Gõ XÓA để xác nhận',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(
+                dialogContext, controller.text.trim().toUpperCase() == 'XÓA'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            child: const Text('Xóa vĩnh viễn'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    DataTransfer.deleteAllStudyData();
+    if (!sheetContext.mounted) return;
+    Navigator.pop(sheetContext);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Đã xóa dữ liệu học cục bộ.')));
   }
 
   Future<void> _clearAiHistory() async {
@@ -496,6 +638,140 @@ class _AccountScreenState extends State<AccountScreen> {
       StorageService.clearAiChatHistory();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa lịch sử trò chuyện AI.')));
     }
+  }
+
+  /// Thẻ Hiển thị (đặc tả mục 20): font size adaptive S/M/L toàn app.
+  /// Dark mode chưa cung cấp — palette tối chưa đạt chuẩn production,
+  /// không fake switch (nguyên tắc trung thực với người dùng).
+  Widget _buildAppearanceCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              AppIcon(
+                Icons.format_size_rounded,
+                tileSize: 36,
+                iconSize: 18,
+                color: AppColors.blue,
+                bg: AppColors.blueSoft,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text('Cỡ chữ',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Áp dụng cho toàn app. Cỡ chữ hệ thống vẫn được tôn trọng.',
+            style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final choice in const [
+                ('small', 'S', 'Nhỏ'),
+                ('normal', 'M', 'Vừa'),
+                ('large', 'L', 'Lớn'),
+              ]) ...[
+                Expanded(child: _fontChoice(choice.$1, choice.$2, choice.$3)),
+                if (choice.$1 != 'large') const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fontChoice(String key, String letter, String label) {
+    final selected = AppearanceService.fontScaleKey == key;
+    return GestureDetector(
+      onTap: () => setState(() => AppearanceService.setFontScaleByKey(key)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.blueSoft : AppColors.bgPage,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.blue : AppColors.border,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(letter,
+                style: TextStyle(
+                    fontSize: key == 'small'
+                        ? 14
+                        : key == 'large'
+                            ? 20
+                            : 17,
+                    fontWeight: FontWeight.w800,
+                    color: selected
+                        ? AppColors.blueDark
+                        : AppColors.textPrimary)),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: selected
+                        ? AppColors.blueDark
+                        : AppColors.textMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Entry mở Hồ sơ học tập (đặc tả mục 17) — suy luận + cho phép sửa.
+  Widget _buildLearningProfileEntry() {
+    return GlassCard(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const LearningProfileScreen(),
+      )),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const AppIcon(
+            Icons.person_search_rounded,
+            tileSize: 36,
+            iconSize: 18,
+            color: AppColors.purple,
+            bg: AppColors.purpleSoft,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Hồ sơ học tập',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(
+                  'Nhịp học EduPulse đã hiểu về bạn — và bạn có thể chỉnh lại.',
+                  style: TextStyle(
+                      fontSize: 11.5, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded,
+              color: AppColors.textMuted, size: 20),
+        ],
+      ),
+    );
   }
 
   /// Thẻ cài đặt nhắc học hằng ngày — chỉ trên mobile native.
@@ -611,14 +887,50 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Giữ vững thói quen — một nhắc nhở nhỏ mỗi ngày, streak không bao giờ đứt! 🔥',
+              'Giữ vững thói quen — nhắc nhẹ nhàng mỗi ngày, thưa dần nếu bạn ít mở app. Không dùng để tạo áp lực.',
               style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+            ),
+            const Divider(height: 18),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Tóm tắt cuối ngày (Digest)',
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+              subtitle: const Text(
+                  'Một thông báo duy nhất lúc 20:30: nhiệm vụ còn lại, phút focus và đếm ngược kỳ thi.',
+                  style: TextStyle(fontSize: 11)),
+              value: _digestEnabled,
+              onChanged: (v) async {
+                setState(() => _digestEnabled = v);
+                StorageService.setBool('notif_digest_enabled', v);
+                if (v) {
+                  await AdaptivePolicy.scheduleDigest(
+                    tasks: _digestTasks(),
+                    sessions: const [],
+                    primaryExam: null,
+                  );
+                } else {
+                  await NotificationService.cancelId(NotificationService.digestId);
+                }
+              },
             ),
           ],
         ],
       ),
     );
   }
+
+  List<TodayTask> _digestTasks() => StorageService.getTodayTaskIds()
+      .map(StorageService.getTodayTaskJson)
+      .whereType<String>()
+      .map((json) {
+        try {
+          return TodayTask.fromJsonString(json);
+        } catch (_) {
+          return null;
+        }
+      })
+      .whereType<TodayTask>()
+      .toList();
 
   void _setReminderEnabled(bool v) {
     setState(() => _reminderEnabled = v);

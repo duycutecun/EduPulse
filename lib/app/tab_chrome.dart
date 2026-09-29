@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants/app_colors.dart';
+import 'desktop_sidebar.dart' show NavItem;
 
-/// Mô tả một mục trong bottom navigation (icon + nhãn).
-class NavItem {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-
-  const NavItem(this.icon, this.activeIcon, this.label);
-}
+export 'desktop_sidebar.dart' show NavItem;
 
 /// Thanh điều hướng bottom — phong cách Duolingo: nền trắng, icon xanh lá
 /// khi active, font bold, bo tròn, haptic nhẹ khi chuyển tab.

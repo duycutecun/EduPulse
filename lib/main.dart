@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'core/ai/free_models_catalog.dart';
+import 'core/notifications/adaptive_policy.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/pwa/pwa_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/appearance_service.dart';
 import 'core/utils/auth_service.dart';
 import 'core/utils/storage_service.dart';
 import 'core/utils/supabase_service.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
+import 'features/study/domain/models/study_models.dart';
 import 'app/main_shell.dart';
 
 void main() async {
@@ -15,6 +18,8 @@ void main() async {
   PwaService.init();
   // Storage bắt buộc phải sẵn sàng trước khi các màn hình đọc dữ liệu.
   await StorageService.init();
+  // Font scale adaptive (đặc tả mục 20) đọc trước runApp để frame đầu đã đúng.
+  AppearanceService.load();
   runApp(const EduPulseApp());
 
   // Firebase (auth) + Supabase (data) + notification không chặn frame đầu
@@ -29,6 +34,29 @@ void main() async {
     if (PwaService.isOnline && SupabaseService.isConfigured) {
       SupabaseService.syncAll();
     }
+
+    // Ghi nhận người dùng đã mở app (phục vụ tần suất nhắc thích ứng) và
+    // đặt lại lịch nhắc/digest theo hành vi gần nhất (đặc tả mục 16).
+    AdaptivePolicy.recordOpened();
+    AdaptivePolicy.syncReminders(
+      reminderEnabled: StorageService.getBool('reminder_enabled') ?? false,
+      reminderHour: StorageService.getInt('reminder_hour') ?? 19,
+      reminderMinute: StorageService.getInt('reminder_minute') ?? 30,
+      tasks: StorageService.getTodayTaskIds()
+          .map((id) => StorageService.getTodayTaskJson(id))
+          .whereType<String>()
+          .map((json) {
+            try {
+              return TodayTask.fromJsonString(json);
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<TodayTask>()
+          .toList(),
+      sessions: const [],
+      primaryExam: null,
+    );
   });
 }
 
@@ -42,6 +70,22 @@ class EduPulseApp extends StatelessWidget {
       title: 'EduPulse',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      builder: (context, child) {
+        // Font size adaptive toàn app (đặc tả mục 20): nhân với system
+        // textScaler để tôn trọng cài đặt hệ điều hành.
+        return ValueListenableBuilder<double>(
+          valueListenable: AppearanceService.fontScale,
+          builder: (context, _, builtChild) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(
+                  MediaQuery.textScalerOf(context).scale(16) *
+                      AppearanceService.fontScale.value /
+                      16),
+            ),
+            child: builtChild ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       home: _buildHome(),
     );
   }

@@ -14,6 +14,9 @@ class TodayMissionCard extends StatelessWidget {
   /// Hiện danh sách nhiệm vụ mẫu theo kỳ thi.
   final VoidCallback? onAddSample;
 
+  /// Quick Add ngôn ngữ tự nhiên (đặc tả mục 25).
+  final VoidCallback? onQuickAdd;
+
   const TodayMissionCard({
     super.key,
     required this.tasks,
@@ -23,6 +26,7 @@ class TodayMissionCard extends StatelessWidget {
     required this.onSkip,
     required this.onReschedule,
     this.onAddSample,
+    this.onQuickAdd,
   });
 
   @override
@@ -80,6 +84,21 @@ class TodayMissionCard extends StatelessWidget {
                       color: AppColors.textMuted,
                     ),
                   ),
+                  if (onQuickAdd != null) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onQuickAdd,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.blueSoft,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.bolt_rounded,
+                            color: AppColors.blue, size: 18),
+                      ),
+                    ),
+                  ],
                   if (onAddSample != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(

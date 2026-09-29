@@ -12,6 +12,8 @@ import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
 import '../features/study/presentation/screens/study_page.dart';
 import '../features/calendar/presentation/screens/calendar_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
+import '../features/notes/presentation/screens/notes_screen.dart';
+import 'desktop_sidebar.dart';
 import 'tab_chrome.dart';
 
 class MainShellScreen extends StatefulWidget {
@@ -35,6 +37,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   final List<bool> _visited = List.filled(3, false);
   Widget? _cachedAiCoach;
   Widget? _cachedAccount;
+  bool _sidebarCollapsed = SidebarPreference.isCollapsed;
 
   @override
   void initState() {
@@ -42,6 +45,35 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _visited[0] = true;
     _loadInitialData();
     PwaService.onlineNotifier.addListener(_onNetworkChanged);
+    // Keyboard navigation desktop (đặc tả mục 21): Ctrl+1/2/3 đổi tab,
+    // Ctrl+B thu gọn/mở sidebar.
+    ServicesBinding.instance.keyboard.addHandler(_handleKey);
+  }
+
+  bool _handleKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    final ctrl = HardwareKeyboard.instance.isControlPressed;
+    if (!ctrl) return false;
+    if (event.logicalKey == LogicalKeyboardKey.digit1) {
+      _switchTab(0);
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.digit2) {
+      _switchTab(1);
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.digit3) {
+      _switchTab(2);
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyB && isDesktopWidth(context)) {
+      setState(() {
+        _sidebarCollapsed = !_sidebarCollapsed;
+        SidebarPreference.setCollapsed(_sidebarCollapsed);
+      });
+      return true;
+    }
+    return false;
   }
 
   void _onNetworkChanged() {
@@ -53,6 +85,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   void dispose() {
     PwaService.onlineNotifier.removeListener(_onNetworkChanged);
+    ServicesBinding.instance.keyboard.removeHandler(_handleKey);
     super.dispose();
   }
 
@@ -209,6 +242,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
     ));
   }
 
+  void _openNotesPage() {
+    Navigator.of(context).push(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => const NotesScreen(),
+    ));
+  }
+
   /// Tạo widget của tab [index]. Các tab chưa từng mở hiển thị rỗng để không
   /// tốn chi phí initState/build khi khởi động; tab đã mở giữ nguyên state.
   Widget _tabAt(int index) {
@@ -231,8 +271,88 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
+  /// Mục phụ trên sidebar desktop (đặc tả mục 52): Calendar, Goals, Focus,
+  /// Notes — mở như trang riêng thay vì đổi tab chính.
+  List<DesktopNavAction> _desktopSecondaryActions() => [
+        DesktopNavAction(
+          icon: Icons.calendar_month_outlined,
+          label: 'Calendar',
+          onOpen: _openCalendarPage,
+        ),
+        DesktopNavAction(
+          icon: Icons.flag_outlined,
+          label: 'Goals',
+          onOpen: _openExamsPage,
+        ),
+        DesktopNavAction(
+          icon: Icons.timer_outlined,
+          label: 'Focus',
+          onOpen: _openStudyPage,
+        ),
+        DesktopNavAction(
+          icon: Icons.sticky_note_2_outlined,
+          label: 'Notes',
+          onOpen: _openNotesPage,
+        ),
+      ];
+
   @override
   Widget build(BuildContext context) {
+    final isDesktop = isDesktopWidth(context);
+    final content = IndexedStack(
+      index: _currentIndex,
+      children: [
+        _tabAt(0),
+        _visited[1]
+            ? (_cachedAiCoach ??= const AiCoachScreen())
+            : const SizedBox.shrink(),
+        _visited[2]
+            ? (_cachedAccount ??= AccountScreen(onDataChanged: _loadInitialData))
+            : const SizedBox.shrink(),
+      ],
+    );
+
+    // Desktop (≥1024): sidebar trái + nội dung — cùng IA, khác layout
+    // (đặc tả mục 22–23: "Cùng visual language, khác layout").
+    if (isDesktop) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPage,
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesktopSidebar(
+              index: _currentIndex,
+              items: const [
+                NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
+                NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
+                NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
+              ],
+              // ignore: avoid_redundant_argument_values
+              onChanged: _switchTab,
+              secondaryItems: _desktopSecondaryActions(),
+              collapsed: _sidebarCollapsed,
+              onToggleCollapse: () {
+                setState(() {
+                  _sidebarCollapsed = !_sidebarCollapsed;
+                  SidebarPreference.setCollapsed(_sidebarCollapsed);
+                });
+              },
+              userName: StorageService.getUserName(),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  const _OfflineBanner(),
+                  Expanded(child: content),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Mobile/tablet: bottom navigation như cũ.
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       body: SafeArea(
