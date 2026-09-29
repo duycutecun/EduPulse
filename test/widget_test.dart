@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/app/main_shell.dart';
 import 'package:edupulse/core/theme/app_theme.dart';
+import 'package:edupulse/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
 import 'package:edupulse/features/exams/domain/models/exam_model.dart'
     show ExamModel, ExamPhase;
@@ -231,6 +232,62 @@ void main() {
     final restored = ExamModel.fromJsonString(exam.toJsonString());
     expect(restored.currentScore, 7.5);
     expect(restored.targetScore, 9.0);
+  });
+
+  testWidgets('Onboarding wizard: tên → kỳ thi → quỹ thời gian → seed task',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const OnboardingScreen(),
+        routes: {
+          '/main': (context) => const MainShellScreen(),
+        },
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Bước 1: nhập tên → Tiếp tục.
+    await tester.enterText(find.byType(TextField), 'Minh');
+    await tester.pump(); // rebuild để nút Tiếp tục được bật
+    await tester.tap(find.text('Tiếp tục'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Kỳ thi mục tiêu của bạn là gì?'), findsOneWidget);
+
+    // Bước 2: chọn preset THPTQG → card cấu hình xuất hiện → Tiếp tục.
+    await tester.tap(find.text('Tốt nghiệp THPT'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('Ngày thi:'), findsOneWidget);
+    await tester.tap(find.text('Tiếp tục'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Bước 3: giữ mặc định 2 giờ → Xem lộ trình đề xuất.
+    await tester.tap(find.text('Xem lộ trình đề xuất'));
+    // AI retry nhiều model — pump đủ thời gian giả để request lỗi xong.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pump(const Duration(seconds: 20));
+
+    // Bước 4: AI (môi trường test không gọi được mạng) sẽ lỗi → fallback.
+    expect(
+      find.textContaining('Chưa tạo được lộ trình AI'),
+      findsWidgets,
+    );
+    await tester.tap(find.text('Bắt đầu với nhiệm vụ mẫu'));
+    // Push replacement + transition: pump đủ lâu để vào thẳng MainShell.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+
+    // Đã vào app chính với kỳ thi chính + task seed.
+    expect(find.text('Chào Minh 👋'), findsOneWidget);
+    expect(StorageService.isOnboardingDone(), isTrue);
+    expect(StorageService.getUserName(), 'Minh');
+    expect(StorageService.getPrimaryExamId(), 'thptqg');
+    expect(StorageService.getTodayTaskIds(), isNotEmpty);
   });
 
   test('ExamModel xác định đúng giai đoạn Exam Mode', () {
