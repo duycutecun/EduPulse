@@ -232,12 +232,22 @@ class TodayMissionCard extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
       ),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onToggle(task);
-        },
-        child: Container(
+      // Screen-reader (mục 21): hàng task là nút có nhãn mô tả trạng
+      // thái + hành động, không phụ thuộc màu đơn độc.
+      child: Semantics(
+        button: true,
+        enabled: true,
+        onTap: () => onToggle(task),
+        label: 'Nhiệm vụ ${task.title}, ${task.subject}, '
+            '${task.isDone ? 'đã hoàn thành' : 'chưa hoàn thành'} '
+            '— chạm để ${task.isDone ? 'bỏ đánh dấu' : 'đánh dấu hoàn thành'}',
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onToggle(task);
+          },
+          child: Container(
           margin: const EdgeInsets.only(bottom: 3),
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
@@ -391,6 +401,7 @@ class TodayMissionCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

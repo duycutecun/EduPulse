@@ -18,6 +18,8 @@ import 'package:edupulse/features/study/domain/score_analysis.dart';
 import 'package:edupulse/features/study/domain/optimize_week.dart';
 import 'package:edupulse/features/home/presentation/widgets/today_mission_card.dart';
 import 'package:edupulse/features/ai_coach/presentation/screens/ai_coach_screen.dart';
+import 'package:edupulse/core/ai/ai_feedback.dart';
+import 'package:edupulse/features/ai_coach/presentation/widgets/chat_bubble.dart';
 import 'package:edupulse/features/study/presentation/widgets/score_chart_widget.dart';
 import 'package:edupulse/core/sync/sync_state.dart';
 import 'package:edupulse/core/migration/data_migration.dart';
@@ -1398,6 +1400,42 @@ void main() {
       expect(find.text('Hôm nay chưa có kế hoạch.'), findsNothing);
     });
 
+    testWidgets('Semantics: hàng task đọc được trạng thái + hành động (mục 21)',
+        (WidgetTester tester) async {
+      final t = TodayTask(id: 'a11y', title: 'Hàm số', subject: '📐 Toán');
+      var toggled = false;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: TodayMissionCard(
+              tasks: [t],
+              onAddTask: noop,
+              onToggle: (_) => toggled = true,
+              onDelete: noopTask,
+              onSkip: noopTask,
+              onReschedule: noopTask,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      // Screen-reader đọc được nhãn mô tả trạng thái + hành động.
+      expect(
+        find.bySemanticsLabel(
+            'Nhiệm vụ Hàm số, 📐 Toán, chưa hoàn thành — chạm để đánh dấu hoàn thành'),
+        findsOneWidget,
+      );
+
+      // Tap qua semantics vẫn kích hoạt toggle.
+      final semantics = tester.getRect(
+          find.bySemanticsLabel(
+              'Nhiệm vụ Hàm số, 📐 Toán, chưa hoàn thành — chạm để đánh dấu hoàn thành'));
+      await tester.tapAt(semantics.center);
+      await tester.pump();
+      expect(toggled, isTrue);
+    });
+
     testWidgets('Empty AI: gợi ý prompt chạm để điền vào ô nhập',
         (WidgetTester tester) async {
       // Chat history trống → màn AI ở trạng thái intro (mục 33 — Empty AI).
@@ -1415,6 +1453,72 @@ void main() {
       await tester.pump();
       expect(find.widgetWithText(TextField, 'Lập kế hoạch 3 ngày trước thi'),
           findsOneWidget);
+    });
+  });
+
+  group('AI feedback (đặc tả mục 10.10)', () {
+    test('Store: lưu/đọc/ghi đè theo message, downvote filter đúng', () {
+      AiFeedbackStore.put(AiFeedback(
+        messageId: 'm1',
+        kind: 'up',
+        createdAt: DateTime(2026, 9, 30),
+      ));
+      AiFeedbackStore.put(AiFeedback(
+        messageId: 'm2',
+        kind: 'down',
+        reason: 'sai_kien_thuc',
+        createdAt: DateTime(2026, 9, 30),
+      ));
+      expect(AiFeedbackStore.get('m1')?.kind, 'up');
+      expect(AiFeedbackStore.get('m2')?.reason, 'sai_kien_thuc');
+
+      // Ghi đè: đổi m1 từ 👍 sang 👎.
+      AiFeedbackStore.put(AiFeedback(
+        messageId: 'm1',
+        kind: 'down',
+        reason: 'qua_dai',
+        createdAt: DateTime(2026, 9, 30),
+      ));
+      expect(AiFeedbackStore.get('m1')?.kind, 'down');
+      expect(AiFeedbackStore.allDownvotes().length, 2);
+    });
+
+    test('Danh sách lý do 👎 khớp đặc tả mục 10.10', () {
+      final values = kAiFeedbackReasons.map((r) => r.$1).toSet();
+      expect(values, containsAll([
+        'sai_kien_thuc',
+        'khong_hieu_cau_hoi',
+        'giai_thich_kho_hieu',
+        'nguon_khong_dang_tin',
+        'qua_dai',
+        'qua_ngan',
+        'khac',
+      ]));
+    });
+
+    testWidgets('ChatBubble AI: bấm 👍 lưu feedback, icon đổi màu',
+        (WidgetTester tester) async {
+      final msg = ChatMessage(
+        id: 'fb-1',
+        text: 'Đạo hàm của x² là 2x.',
+        isUser: false,
+        timestamp: DateTime(2026, 9, 30),
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ListView(children: [ChatBubble(msg: msg)]),
+        ),
+      ));
+      await tester.pump();
+
+      expect(AiFeedbackStore.get('fb-1'), isNull);
+      await tester.tap(find.byIcon(Icons.thumb_up_outlined));
+      await tester.pump();
+
+      expect(AiFeedbackStore.get('fb-1')?.kind, 'up');
+      // Đã vote → nút chuyển thành bản filled và disable.
+      expect(find.byIcon(Icons.thumb_up_outlined), findsNothing);
+      expect(find.byIcon(Icons.thumb_up), findsOneWidget);
     });
   });
 

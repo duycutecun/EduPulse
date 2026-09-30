@@ -290,6 +290,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                   ],
                 ),
                 IconButton(
+                  tooltip: 'Đóng',
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () => Navigator.pop(context),
                   color: AppColors.textMuted,

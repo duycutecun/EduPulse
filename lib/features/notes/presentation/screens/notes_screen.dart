@@ -99,7 +99,7 @@ class _NotesScreenState extends State<NotesScreen> {
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search_rounded),
                 hintText: 'Tìm trong ghi chú, nhãn…',
-                suffixIcon: _searchController.text.isEmpty ? null : IconButton(icon: const Icon(Icons.clear_rounded), onPressed: _searchController.clear),
+                suffixIcon: _searchController.text.isEmpty ? null : IconButton(tooltip: 'Xóa tìm kiếm', icon: const Icon(Icons.clear_rounded), onPressed: _searchController.clear),
               ),
             ),
           ),

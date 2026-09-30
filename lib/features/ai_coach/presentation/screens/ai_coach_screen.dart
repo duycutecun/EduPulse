@@ -484,6 +484,66 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     _scrollToBottom();
   }
 
+  /// Regenerate câu trả lời AI (đặc tả mục 10.10): gửi lại câu hỏi
+  /// cuối của người dùng, thay thế câu trả lời cũ.
+  Future<void> _regenerate(ChatMessage aiMessage) async {
+    if (_isLoading) return;
+    final index = _messages.indexOf(aiMessage);
+    if (index <= 0) return; // không tìm thấy / không có câu hỏi phía trước.
+    final userMessage = _messages[index - 1];
+    if (!userMessage.isUser) return;
+
+    final loadingMsg = ChatMessage(
+      id: _uuid.v4(),
+      text: '',
+      isUser: false,
+      timestamp: DateTime.now(),
+      isLoading: true,
+    );
+    setState(() {
+      _messages[index] = loadingMsg;
+      _isLoading = true;
+    });
+    _scrollToBottom();
+
+    String response;
+    try {
+      response = await AiRouter.chat(
+        model: _model,
+        history: _messages
+            .where((m) => !m.isLoading && m != loadingMsg)
+            .toList(),
+        userMessage: userMessage.text,
+        imageBytes: userMessage.imageBytes,
+      );
+    } catch (_) {
+      setState(() {
+        _messages[index] = aiMessage; // giữ câu cũ — không mất nội dung.
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Chưa tạo lại được — giữ nguyên câu trả lời cũ.'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    }
+
+    setState(() {
+      _messages[index] = ChatMessage(
+        id: _uuid.v4(),
+        text: response,
+        isUser: false,
+        timestamp: DateTime.now(),
+        imageBytes: userMessage.imageBytes,
+      );
+      _isLoading = false;
+    });
+    _saveChatHistory();
+    _scrollToBottom();
+  }
+
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollCtrl.hasClients) {
@@ -584,7 +644,12 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                   ),
                 );
               }
-              return ChatBubble(msg: _messages[i - (_isIntroOnly ? 1 : 0)]);
+              return ChatBubble(
+                msg: _messages[i - (_isIntroOnly ? 1 : 0)],
+                onRegenerate: _isIntroOnly
+                    ? null
+                    : () => _regenerate(_messages[i - (_isIntroOnly ? 1 : 0)]),
+              );
             },
           ),
         ),

@@ -272,7 +272,11 @@ class _AccountScreenState extends State<AccountScreen> {
                         ],
                       ),
                     ),
-                    IconButton(onPressed: _handleSignOut, icon: const Icon(Icons.logout, color: AppColors.red, size: 22)),
+                    IconButton(
+                      tooltip: 'Đăng xuất',
+                      onPressed: _handleSignOut,
+                      icon: const Icon(Icons.logout, color: AppColors.red, size: 22),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),

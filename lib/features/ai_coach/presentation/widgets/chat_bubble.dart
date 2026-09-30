@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/ai/ai_feedback.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -8,7 +9,11 @@ import 'latex_widget.dart';
 class ChatBubble extends StatelessWidget {
   final ChatMessage msg;
 
-  const ChatBubble({super.key, required this.msg});
+  /// Regenerate câu trả lời này (mục 10.10) — null khi không khả dụng
+  /// (vd màn quiz).
+  final VoidCallback? onRegenerate;
+
+  const ChatBubble({super.key, required this.msg, this.onRegenerate});
 
   @override
   Widget build(BuildContext context) {
@@ -120,15 +125,7 @@ class ChatBubble extends StatelessWidget {
                 text: _buildRichText(msg.text, isUser: false),
               ),
             const SizedBox(height: 6),
-            GestureDetector(
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: msg.text));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã sao chép')),
-                );
-              },
-              child: Icon(Icons.copy, size: 14, color: AppColors.textMuted),
-            ),
+            _AiFeedbackRow(msg: msg, onRegenerate: onRegenerate),
           ],
         ),
       ),
@@ -184,5 +181,137 @@ class ChatBubble extends StatelessWidget {
     }
 
     return TextSpan(children: spans);
+  }
+}
+
+/// Hàng phản hồi câu trả lời AI (đặc tả mục 10.10): 👍 👎 Regenerate
+/// Report. Lưu local qua [AiFeedbackStore], không tự gửi đi đâu.
+class _AiFeedbackRow extends StatefulWidget {
+  final ChatMessage msg;
+  final VoidCallback? onRegenerate;
+
+  const _AiFeedbackRow({required this.msg, this.onRegenerate});
+
+  @override
+  State<_AiFeedbackRow> createState() => _AiFeedbackRowState();
+}
+
+class _AiFeedbackRowState extends State<_AiFeedbackRow> {
+  @override
+  void initState() {
+    super.initState();
+    _saved = AiFeedbackStore.get(widget.msg.id);
+  }
+
+  AiFeedback? _saved;
+
+  void _save(String kind, {String? reason}) {
+    final f = AiFeedback(
+      messageId: widget.msg.id,
+      kind: kind,
+      reason: reason,
+      createdAt: DateTime.now(),
+    );
+    AiFeedbackStore.put(f);
+    setState(() => _saved = f);
+  }
+
+  Future<void> _report() async {
+    final reason = await showModalBottomSheet<(String, String)>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Câu trả lời này có gì chưa ổn?',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            ),
+            for (final (value, label) in kAiFeedbackReasons)
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.pop(sheetContext, (value, label)),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (reason == null) return;
+    _save('down', reason: reason.$1);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Cảm ơn bạn — đã ghi nhận "${reason.$2}". '
+            'EduPulse sẽ dùng phản hồi này để cải thiện.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final voted = _saved?.kind;
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Câu trả lời tốt',
+          visualDensity: VisualDensity.compact,
+          iconSize: 15,
+          onPressed: voted == 'up' ? null : () => _save('up'),
+          icon: Icon(
+            voted == 'up' ? Icons.thumb_up : Icons.thumb_up_outlined,
+            color: voted == 'up' ? AppColors.primary : AppColors.textMuted,
+          ),
+        ),
+        IconButton(
+          tooltip: 'Câu trả lời chưa tốt',
+          visualDensity: VisualDensity.compact,
+          iconSize: 15,
+          onPressed: voted == 'down'
+              ? null
+              : () async {
+                  // 👎 mở luôn sheet lý do — feedback có lý do mới dùng được
+                  // để cải thiện (đặc tả mục 10.10 liệt kê Feedback reason).
+                  await _report();
+                  // Người dùng đóng sheet mà không chọn lý do → vẫn ghi 👎.
+                  if (_saved == null) _save('down');
+                },
+          icon: Icon(
+            voted == 'down' ? Icons.thumb_down : Icons.thumb_down_outlined,
+            color: voted == 'down' ? AppColors.red : AppColors.textMuted,
+          ),
+        ),
+        if (widget.onRegenerate != null)
+          IconButton(
+            tooltip: 'Tạo lại câu trả lời',
+            visualDensity: VisualDensity.compact,
+            iconSize: 15,
+            onPressed: widget.onRegenerate,
+            icon: const Icon(Icons.refresh_rounded,
+                color: AppColors.textMuted),
+          ),
+        IconButton(
+          tooltip: 'Báo câu trả lời có vấn đề',
+          visualDensity: VisualDensity.compact,
+          iconSize: 15,
+          onPressed: _report,
+          icon: const Icon(Icons.flag_outlined, color: AppColors.textMuted),
+        ),
+        const Spacer(),
+        // Copy giữ nguyên từ bản cũ.
+        IconButton(
+          tooltip: 'Sao chép câu trả lời',
+          visualDensity: VisualDensity.compact,
+          iconSize: 15,
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: widget.msg.text));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã sao chép')),
+            );
+          },
+          icon: const Icon(Icons.copy, color: AppColors.textMuted),
+        ),
+      ],
+    );
   }
 }
