@@ -86,17 +86,28 @@ class EduPulseApp extends StatelessWidget {
         builder: (context, child) {
           // Font size adaptive toàn app (đặc tả mục 20): nhân với system
           // textScaler để tôn trọng cài đặt hệ điều hành.
+          //
+          // Lưu ý: `MaterialApp.builder` cung cấp `child` (Navigator) và
+          // MediaQuery của MaterialApp nằm TRÊN builder, nên phải:
+          //  1) đọc MediaQuery bằng `maybeOf` (context ở đây chưa chắc có),
+          //  2) LUÔN trả về `child` — nếu thay bằng SizedBox.shrink() khi
+          //     child null thì app không vẽ được gì (màn hình trắng).
+          final media = MediaQuery.maybeOf(context);
+          final systemScale =
+              media == null ? 1.0 : media.textScaler.scale(16) / 16;
           return ValueListenableBuilder<double>(
             valueListenable: AppearanceService.fontScale,
-            builder: (context, _, builtChild) => MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(
-                    MediaQuery.textScalerOf(context).scale(16) *
-                        AppearanceService.fontScale.value /
-                        16),
-              ),
-              child: builtChild ?? const SizedBox.shrink(),
-            ),
+            builder: (context, _, builtChild) {
+              final Widget content = builtChild ?? child ?? const SizedBox.shrink();
+              return MediaQuery(
+                data: (media ?? const MediaQueryData()).copyWith(
+                  textScaler: TextScaler.linear(
+                    systemScale * AppearanceService.fontScale.value,
+                  ),
+                ),
+                child: content,
+              );
+            },
           );
         },
         home: _buildHome(),
