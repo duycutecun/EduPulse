@@ -67,7 +67,7 @@ function main() {
     }
   }
   const version = hasher.digest('hex').slice(0, 12);
-  const CACHE = `edupulse-pwa-v4-${version}`;
+  const CACHE = `edupulse-pwa-v5-${version}`;
   const FONT_CACHE = 'edupulse-fonts-v1';
 
   const precacheJson = JSON.stringify(uniqueFiles);
@@ -78,6 +78,18 @@ function main() {
 const CACHE = ${JSON.stringify(CACHE)};
 const FONT_CACHE = ${JSON.stringify(FONT_CACHE)};
 const PRECACHE = ${precacheJson};
+
+// Entrypoint + engine: LUÔN lấy bản mới nhất từ network trước.
+// Nếu cache-first, máy đã từng mở app sẽ kẹt với bộ main.dart.js/.wasm của build
+// cũ trong khi các file khác đã đổi -> Flutter engine crash lúc boot -> màn hình trắng.
+const NETWORK_FIRST = [
+  'flutter_bootstrap.js',
+  'flutter.js',
+  'main.dart.js',
+  'main.dart.mjs',
+  'main.dart.wasm',
+  'canvaskit/',
+];
 
 // Chuẩn hóa response: Loại bỏ cờ 'redirected' theo chuẩn W3C Service Worker
 // Tránh hoàn toàn lỗi trình duyệt "response served by service worker has redirections"
@@ -231,7 +243,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static Assets: Cache-First + Clean Response
+  // 3. Entrypoint / engine files: Network-First, fallback cache khi offline
+  if (NETWORK_FIRST.some((p) => url.pathname.includes(p))) {
+    event.respondWith(
+      (async () => {
+        try {
+          const res = await fetch(request);
+          if (res && res.ok) {
+            const clean = await cleanResponse(res);
+            const copy = clean.clone();
+            caches.open(CACHE).then((c) => c.put(request, copy));
+            return clean;
+          }
+          if (res) return cleanResponse(res);
+        } catch (_) {
+          // Offline hoặc lỗi mạng -> rơi xuống cache bên dưới
+        }
+        const cached = await caches.match(request);
+        if (cached) return cleanResponse(cached);
+        return new Response('', { status: 504, statusText: 'Gateway Timeout' });
+      })()
+    );
+    return;
+  }
+
+  // 4. Static Assets: Cache-First + Clean Response
   event.respondWith(
     caches.match(request).then(async (cached) => {
       if (cached) {
