@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,8 +10,10 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
 import '../../domain/models/study_models.dart';
+import '../../domain/app_leaving.dart';
 import '../../domain/score_summary.dart';
 import '../../domain/study_analytics.dart';
 import '../widgets/score_chart_widget.dart';
@@ -26,7 +29,8 @@ class StudyScreen extends StatefulWidget {
   State<StudyScreen> createState() => _StudyScreenState();
 }
 
-class _StudyScreenState extends State<StudyScreen> {
+class _StudyScreenState extends State<StudyScreen>
+    with WidgetsBindingObserver {
   final _uuid = const Uuid();
   List<StudyLog> _logs = [];
   List<MockScore> _scores = [];
@@ -44,6 +48,12 @@ class _StudyScreenState extends State<StudyScreen> {
   int _pomRound = 0;
   Timer? _pomTimer;
 
+  // App-leaving tracking (mục 11.5): đo phút đã học trước khi rời app
+  // giữa phiên; pattern phân tích khi user quay lại.
+  DateTime? _pomStartedAt;
+  DateTime? _leftAt;
+  AppLeavingInsight _leavingInsight = AppLeavingInsight.none;
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +61,73 @@ class _StudyScreenState extends State<StudyScreen> {
     _loadScores();
     _loadTasks();
     _loadSessions();
+    // Lifecycle để phát hiện rời app giữa phiên focus (mục 11.5).
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_pomRunning || _isBreak) return;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _leftAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed && _leftAt != null) {
+      final away = DateTime.now().difference(_leftAt!);
+      _leftAt = null;
+      // Rời app lâu hơn 2 phút coi như bỏ dở phiên này — ghi sự kiện
+      // và phân tích pattern khi đủ dữ liệu (mục 11.5).
+      if (away.inMinutes >= 2) {
+        _recordAppLeaving();
+      }
+    }
+  }
+
+  void _recordAppLeaving() {
+    final planned = _focusMinutes;
+    final studied = DateTime.now()
+        .difference(_pomStartedAt ?? DateTime.now())
+        .inMinutes
+        .clamp(0, planned);
+    StorageService.setString(
+      'app_leaving_events',
+      _appendLeavingEvent(planned, studied),
+    );
+    // Phân tích pattern từ lịch sử — chỉ hiện khi đủ mẫu & ngưỡng.
+    final events = _parseLeavingEvents();
+    final insight = analyzeAppLeaving(events);
+    if (insight.message != null && mounted) {
+      setState(() => _leavingInsight = insight);
+    }
+  }
+
+  /// Lưu trữ sự kiện rời app dạng JSON list, giữ tối đa 10 gần nhất.
+  String _appendLeavingEvent(int planned, int studied) {
+    final events = _parseLeavingEvents();
+    events.insert(
+        0, AppLeavingEvent(plannedMinutes: planned, studiedMinutes: studied));
+    return jsonEncode(events
+        .take(10)
+        .map((e) => {
+              'planned': e.plannedMinutes,
+              'studied': e.studiedMinutes,
+            })
+        .toList());
+  }
+
+  List<AppLeavingEvent> _parseLeavingEvents() {
+    final raw = StorageService.getString('app_leaving_events');
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final list = jsonDecode(raw) as List;
+      return list
+          .map((e) => AppLeavingEvent(
+                plannedMinutes: (e['planned'] as num?)?.toInt() ?? 25,
+                studiedMinutes: (e['studied'] as num?)?.toInt() ?? 0,
+              ))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   void _loadSessions() {
@@ -152,10 +229,12 @@ class _StudyScreenState extends State<StudyScreen> {
     HapticFeedback.lightImpact();
     if (_pomRunning) {
       _pomTimer?.cancel();
+      _pomStartedAt = null;
       setState(() => _pomRunning = false);
       // Thoát Focus → cho phép notification thường trở lại.
       AdaptivePolicy.setInFocus(false);
     } else {
+      _pomStartedAt = DateTime.now();
       setState(() => _pomRunning = true);
       // Vào Focus → tạm dừng notification không quan trọng (đặc tả mục 16).
       AdaptivePolicy.setInFocus(true);
@@ -173,6 +252,9 @@ class _StudyScreenState extends State<StudyScreen> {
               _pomRound++;
               _isBreak = true;
               _pomSecondsNotifier.value = _breakMinutes * 60;
+              // Haptic hết giờ (mục 54: Timer end) — báo ngay cả khi
+              // người dùng đang nhìn chỗ khác.
+              HapticFeedback.mediumImpact();
               _recordCompletedFocus();
               // Kết thúc phiên tập trung → streak + EXP gắn kết linh vật.
               StorageService.registerStudyActivity();
@@ -400,6 +482,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pomTimer?.cancel();
     _pomSecondsNotifier.dispose();
     super.dispose();
@@ -428,6 +511,34 @@ class _StudyScreenState extends State<StudyScreen> {
             ),
           ),
         ),
+        // App-leaving insight (mục 11.5): gợi ý nhẹ nhàng khi quay lại,
+        // dismiss được — không ép học, không phán xét.
+        if (_leavingInsight.message != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: GlassCard(
+              padding: const EdgeInsets.all(12),
+              customColor: AppColors.blueSoft.withValues(alpha: 0.5),
+              child: Row(
+                children: [
+                  const Icon(Icons.self_improvement_rounded,
+                      size: 18, color: AppColors.blue),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(_leavingInsight.message!,
+                        style: const TextStyle(
+                            fontSize: 12.5, height: 1.4)),
+                  ),
+                  GestureDetector(
+                    onTap: () =>
+                        setState(() => _leavingInsight = AppLeavingInsight.none),
+                    child: const Icon(Icons.close_rounded,
+                        size: 16, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Expanded(
           child: _activeTab == 0
               ? _buildPomodoroTab()

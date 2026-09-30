@@ -25,6 +25,7 @@ class AppearanceService {
   /// Gọi một lần sau `StorageService.init()` trước `runApp`.
   static void load() {
     fontScale.value = _stored;
+    _loadHighContrast();
   }
 
   static double get _stored {
@@ -67,5 +68,23 @@ class AppearanceService {
       default:
         setFontScale(_normal);
     }
+  }
+
+  // ── High contrast (mục 21 — Accessibility) ─────────────────────────
+  // Tăng độ tương phản viền/chữ: viền đậm hơn, chữ phụ tối hơn.
+  // Không đổi palette brand — chỉ tăng contrast của tầng phụ trợ.
+  static final ValueNotifier<bool> highContrast = ValueNotifier(false);
+
+  static bool get storedHighContrast =>
+      StorageService.getBool('appearance_high_contrast') ?? false;
+
+  static void setHighContrast(bool v) {
+    highContrast.value = v;
+    StorageService.setBool('appearance_high_contrast', v);
+  }
+
+  /// Gọi trong load() để khôi phục cài đặt trước runApp.
+  static void _loadHighContrast() {
+    highContrast.value = storedHighContrast;
   }
 }

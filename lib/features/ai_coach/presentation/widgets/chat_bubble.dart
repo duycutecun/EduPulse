@@ -124,6 +124,57 @@ class ChatBubble extends StatelessWidget {
               RichText(
                 text: _buildRichText(msg.text, isUser: false),
               ),
+            // Source card (mục 10.9 — AI citations): hiện nguồn web đã
+            // dùng cho câu trả lời này, bấm mở được.
+            if (msg.sourceTitle != null && msg.sourceUrl != null) ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  // Chưa có url_launcher trong deps — copy URL để user
+                  // dán vào trình duyệt (trung thực hơn là nút hỏng).
+                  Clipboard.setData(ClipboardData(text: msg.sourceUrl!));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Đã sao chép đường dẫn nguồn')),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.blueSoft.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AppColors.blue.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.public_rounded,
+                        size: 14, color: AppColors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Nguồn tham khảo',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.blue)),
+                            Text(msg.sourceTitle!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary)),
+                          ]),
+                    ),
+                    const Icon(Icons.open_in_new_rounded,
+                        size: 13, color: AppColors.blue),
+                  ]),
+                ),
+              ),
+            ],
             const SizedBox(height: 6),
             _AiFeedbackRow(msg: msg, onRegenerate: onRegenerate),
           ],

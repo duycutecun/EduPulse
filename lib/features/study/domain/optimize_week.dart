@@ -184,6 +184,23 @@ class ScheduleChangeCheck {
   });
 }
 
+/// Ngưỡng cảnh báo dời lịch nhiều lần (mục 7.10).
+const int kRescheduleWarnThreshold = 3;
+
+/// Kiểm tra khi user sắp dời lịch lần nữa (mục 7.10: "Nếu task bị
+/// reschedule quá nhiều lần → Cảnh báo + đề xuất AI chia nhỏ").
+///
+/// Trả gợi ý chia nhỏ từ nội dung task — chỉ khi đã vượt ngưỡng;
+/// chưa vượt → null (không quấy rầy khi chưa cần — Calm principle).
+String? rescheduleSplitSuggestion(TodayTask task) {
+  if (task.rescheduleCount < kRescheduleWarnThreshold) return null;
+  final minutes = task.estimateMinutes;
+  final half = (minutes / 2).round();
+  return 'Nhiệm vụ này đã bị dời ${task.rescheduleCount} lần. '
+      'Có vẻ khối lượng $minutes phút hơi nặng — thử chia làm 2 buổi '
+      '~$half phút mỗi buổi, bắt đầu buổi ngắn trước để khởi động.';
+}
+
 /// Kiểm tra việc dời [task] sang [newDay] — dùng trước khi ghi nhận thay
 /// đổi để UI hiện xác nhận/warning đúng đặc tả mục 13.
 ScheduleChangeCheck checkReschedule(

@@ -76,27 +76,31 @@ class EduPulseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EduPulse',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      builder: (context, child) {
-        // Font size adaptive toàn app (đặc tả mục 20): nhân với system
-        // textScaler để tôn trọng cài đặt hệ điều hành.
-        return ValueListenableBuilder<double>(
-          valueListenable: AppearanceService.fontScale,
-          builder: (context, _, builtChild) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(
-                  MediaQuery.textScalerOf(context).scale(16) *
-                      AppearanceService.fontScale.value /
-                      16),
+    // High contrast (mục 21): đổi theme toàn app theo cài đặt.
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppearanceService.highContrast,
+      builder: (context, highContrast, _) => MaterialApp(
+        title: 'EduPulse',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightWithContrast(highContrast),
+        builder: (context, child) {
+          // Font size adaptive toàn app (đặc tả mục 20): nhân với system
+          // textScaler để tôn trọng cài đặt hệ điều hành.
+          return ValueListenableBuilder<double>(
+            valueListenable: AppearanceService.fontScale,
+            builder: (context, _, builtChild) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(
+                    MediaQuery.textScalerOf(context).scale(16) *
+                        AppearanceService.fontScale.value /
+                        16),
+              ),
+              child: builtChild ?? const SizedBox.shrink(),
             ),
-            child: builtChild ?? const SizedBox.shrink(),
-          ),
-        );
-      },
-      home: _buildHome(),
+          );
+        },
+        home: _buildHome(),
+      ),
     );
   }
 

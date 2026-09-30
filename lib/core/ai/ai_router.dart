@@ -35,6 +35,10 @@ class AiRouter {
   /// gian chờ khi nhiều model cùng lỗi).
   static const int _maxAttempts = 6;
 
+  /// Nguồn web dùng cho câu trả lời GẦN NHẤT (mục 10.9 — AI citations).
+  /// UI đọc để hiển thị source card; null khi câu hỏi không tra web.
+  static WebLookup? lastWebSource;
+
   static Future<String> chat({
     required AIModel model,
     required List<ChatMessage> history,
@@ -53,11 +57,15 @@ class AiRouter {
 
     // Tự động tra cứu web để AI có thêm thông tin tham khảo.
     String? webContext;
+    lastWebSource = null;
     if (searchWeb && !hasImage) {
       try {
         final lookup =
             await WebSearchService.lookup(userMessage, tavilyApiKey: AppConfig.tavilyApiKey);
         webContext = lookup?.toPromptBlock();
+        // Ghi nguồn để UI hiển thị source card (ưu tiên nguồn
+        // authoritative — Wikipedia/Tavily được service chọn sẵn).
+        lastWebSource = lookup;
       } catch (_) {
         webContext = null;
       }

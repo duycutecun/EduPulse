@@ -47,6 +47,19 @@ class StudyNote {
   DateTime updatedAt;
   final List<String> tags;
 
+  /// Task-linked (mục 14) — ghi chú gắn với một nhiệm vụ cụ thể.
+  final String? taskId;
+
+  /// Subject-linked — môn của ghi chú (tự điền khi chọn task).
+  final String? subject;
+
+  /// Study-session-linked — ghi chú chụp lại sau một phiên focus.
+  final String? sessionId;
+
+  /// 1 ảnh đính kèm (base64, đã chặn > ~250KB trước khi lưu — prefs
+  /// không phải kho file; giới hạn để không phình localStorage).
+  final String? imageBase64;
+
   StudyNote({
     required this.id,
     required this.title,
@@ -54,6 +67,10 @@ class StudyNote {
     required this.createdAt,
     required this.updatedAt,
     this.tags = const [],
+    this.taskId,
+    this.subject,
+    this.sessionId,
+    this.imageBase64,
   });
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +80,10 @@ class StudyNote {
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'tags': tags,
+        'taskId': taskId,
+        'subject': subject,
+        'sessionId': sessionId,
+        'imageBase64': imageBase64,
       };
 
   factory StudyNote.fromJson(Map<String, dynamic> json) => StudyNote(
@@ -74,6 +95,12 @@ class StudyNote {
         tags: (json['tags'] as List? ?? const [])
             .map((tag) => tag.toString())
             .toList(),
+        // Field mới đều nullable — note cũ không có vẫn parse đúng
+        // (tương thích ngược, không cần migration).
+        taskId: json['taskId'] as String?,
+        subject: json['subject'] as String?,
+        sessionId: json['sessionId'] as String?,
+        imageBase64: json['imageBase64'] as String?,
       );
 
   String toJsonString() => jsonEncode(toJson());
@@ -240,6 +267,12 @@ class ChatMessage {
   final Uint8List? imageBytes;
   final String? imageName;
 
+  /// Nguồn web trích dẫn (mục 10.9 — AI citations): title + url.
+  /// Không lưu vào JSON history (nguồn chỉ gắn với phiên hiện tại —
+  /// lịch sử cũ không có nguồn thì không hiển thị gì, trung thực).
+  String? sourceTitle;
+  String? sourceUrl;
+
   ChatMessage({
     required this.id,
     required this.text,
@@ -248,6 +281,8 @@ class ChatMessage {
     this.isLoading = false,
     this.imageBytes,
     this.imageName,
+    this.sourceTitle,
+    this.sourceUrl,
   });
 
   Map<String, dynamic> toJson() => {

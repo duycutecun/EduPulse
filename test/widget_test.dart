@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
+import 'package:edupulse/core/constants/app_colors.dart';
 import 'package:edupulse/app/main_shell.dart';
 import 'package:edupulse/core/theme/app_theme.dart';
 import 'package:edupulse/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -16,10 +17,13 @@ import 'package:edupulse/core/theme/appearance_service.dart';
 import 'package:edupulse/features/study/domain/quick_add_parser.dart';
 import 'package:edupulse/features/study/domain/score_analysis.dart';
 import 'package:edupulse/features/study/domain/optimize_week.dart';
+import 'package:edupulse/features/study/domain/app_leaving.dart';
 import 'package:edupulse/features/home/presentation/widgets/today_mission_card.dart';
 import 'package:edupulse/features/ai_coach/presentation/screens/ai_coach_screen.dart';
 import 'package:edupulse/core/ai/ai_feedback.dart';
 import 'package:edupulse/features/ai_coach/presentation/widgets/chat_bubble.dart';
+import 'package:edupulse/shared/widgets/app_bottom_sheet.dart';
+import 'package:edupulse/features/search/presentation/screens/search_screen.dart';
 import 'package:edupulse/features/study/presentation/widgets/score_chart_widget.dart';
 import 'package:edupulse/core/sync/sync_state.dart';
 import 'package:edupulse/core/migration/data_migration.dart';
@@ -1568,6 +1572,279 @@ void main() {
         check.alternative!.proposedStart.isBefore(DateTime(2026, 10, 2)),
         isTrue,
       );
+    });
+  });
+
+  group('Bottom sheet chuẩn (mục 30)', () {
+    testWidgets('Có drag handle + contextual height',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: TextButton(
+                onPressed: () => showAppBottomSheet(
+                  context: context,
+                  builder: (_) => const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('Nội dung sheet'),
+                  ),
+                ),
+                child: const Text('Mở sheet'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      await tester.tap(find.text('Mở sheet'));
+      await tester.pumpAndSettle();
+
+      // Nội dung + drag handle (Container 44x5) đều có mặt.
+      expect(find.text('Nội dung sheet'), findsOneWidget);
+      final handles = find.byWidgetPredicate((w) =>
+          w is Container &&
+          w.constraints == const BoxConstraints.tightFor(
+              width: 44, height: 5));
+      expect(handles, findsOneWidget);
+    });
+  });
+
+  group('Notes links + draft (mục 14/35)', () {
+    test('StudyNote parse ngược tương thích: note cũ không field mới vẫn đọc được', () {
+      final oldJson = '{"id":"n1","title":"Cũ","body":"nội dung",'
+          '"createdAt":"2026-09-01T10:00:00.000","updatedAt":"2026-09-01T10:00:00.000","tags":["toan"]}';
+      final note = StudyNote.fromJsonString(oldJson);
+      expect(note.title, 'Cũ');
+      expect(note.taskId, isNull);
+      expect(note.subject, isNull);
+      expect(note.imageBase64, isNull);
+
+      // Note mới có đủ field → round-trip giữ nguyên.
+      final full = StudyNote(
+        id: 'n2',
+        title: 'Lỗi sai hàm số',
+        body: 'Nhớ công thức **đạo hàm**',
+        createdAt: DateTime(2026, 9, 30),
+        updatedAt: DateTime(2026, 9, 30),
+        tags: const ['toan'],
+        taskId: 'task-9',
+        subject: '📐 Toán',
+        sessionId: 'sess-1',
+        imageBase64: 'aGk=',
+      );
+      final back = StudyNote.fromJsonString(full.toJsonString());
+      expect(back.taskId, 'task-9');
+      expect(back.subject, '📐 Toán');
+      expect(back.sessionId, 'sess-1');
+      expect(back.imageBase64, 'aGk=');
+    });
+
+    test('Autosave draft: lưu + khôi phục + xóa sau khi save', () async {
+      // Mô phỏng draft đã lưu từ phiên trước.
+      final draft = StudyNote(
+        id: 'draft',
+        title: 'Nháp',
+        body: 'bản nháp chưa kịp lưu',
+        createdAt: DateTime(2026, 9, 29),
+        updatedAt: DateTime(2026, 9, 29),
+        subject: '📖 Văn',
+      );
+      StorageService.setString('note_draft_v1', draft.toJsonString());
+
+      final restored = StudyNote.fromJsonString(
+          StorageService.getString('note_draft_v1')!);
+      expect(restored.body, 'bản nháp chưa kịp lưu');
+      expect(restored.subject, '📖 Văn');
+
+      // Khi user bấm Lưu → draft bị xóa (không đè lần sau).
+      StorageService.prefs.remove('note_draft_v1');
+      expect(StorageService.getString('note_draft_v1'), isNull);
+    });
+  });
+
+  group('Global search (mục 15)', () {
+    testWidgets('Tìm thấy task + note; không có kết quả → gợi ý query khác',
+        (WidgetTester tester) async {
+      // Seed dữ liệu local.
+      final task = TodayTask(
+        id: 's-task',
+        title: 'Ôn đạo hàm hợp',
+        subject: '📐 Toán',
+      );
+      StorageService.setTodayTaskJson(task.id, task.toJsonString());
+      StorageService.setTodayTaskIds([task.id]);
+
+      final note = StudyNote(
+        id: 's-note',
+        title: 'Công thức/logarithm',
+        body: 'log cơ số đổi cơ số',
+        createdAt: DateTime(2026, 9, 30),
+        updatedAt: DateTime(2026, 9, 30),
+      );
+      StorageService.setStudyNoteJson(note.id, note.toJsonString());
+      StorageService.setStudyNoteIds([note.id]);
+
+      await tester.pumpWidget(const MaterialApp(home: SearchScreen()));
+      await tester.pump();
+
+      // Tìm trúng task.
+      await tester.enterText(find.byType(TextField), 'đạo hàm');
+      await tester.pump();
+      expect(find.text('Ôn đạo hàm hợp'), findsOneWidget);
+      expect(find.text('Nhiệm vụ'), findsOneWidget);
+
+      // Tìm trúng note.
+      await tester.enterText(find.byType(TextField), 'logarithm');
+      await tester.pump();
+      expect(find.text('Công thức/logarithm'), findsOneWidget);
+      expect(find.text('Ghi chú'), findsOneWidget);
+
+      // Không có kết quả → gợi ý thử từ khóa khác (mục 15).
+      await tester.enterText(find.byType(TextField), 'zzz không có');
+      await tester.pump();
+      expect(find.textContaining('Không tìm thấy'), findsOneWidget);
+      expect(find.textContaining('Thử chỉ tìm'), findsOneWidget);
+    });
+  });
+
+  group('Reschedule quá nhiều lần (mục 7.10)', () {
+    TodayTask rsTask(int count, [int minutes = 90]) => TodayTask(
+          id: 'rs-$count',
+          title: 'Luyện đề',
+          subject: '📐 Toán',
+          estimateMinutes: minutes,
+          rescheduleCount: count,
+        );
+
+    test('Dưới ngưỡng 3 lần → không quấy rầy', () {
+      expect(rescheduleSplitSuggestion(rsTask(0)), isNull);
+      expect(rescheduleSplitSuggestion(rsTask(2)), isNull);
+    });
+
+    test('Từ lần thứ 3 → cảnh báo + gợi ý chia nhỏ đúng dữ liệu', () {
+      final tip = rescheduleSplitSuggestion(rsTask(3));
+      expect(tip, isNotNull);
+      expect(tip, contains('3 lần'));
+      expect(tip, contains('90 phút'));
+      expect(tip, contains('~45 phút'));
+      expect(tip, contains('Có vẻ')); // hypothesis tone, mục 36.
+    });
+  });
+
+  group('App-leaving pattern (mục 11.5)', () {
+    AppLeavingEvent ev(int planned, int studied) =>
+        AppLeavingEvent(plannedMinutes: planned, studiedMinutes: studied);
+
+    test('Dưới 3 sự kiện → không kết luận', () {
+      expect(analyzeAppLeaving([ev(25, 5)]).message, isNull);
+      expect(analyzeAppLeaving([ev(25, 5), ev(25, 10)]).message, isNull);
+    });
+
+    test('3 sự kiện nhưng chỉ 1 bỏ dở → không gợi ý', () {
+      final insight = analyzeAppLeaving([
+        ev(25, 5), // bỏ dở.
+        ev(25, 20),
+        ev(25, 25),
+      ]);
+      expect(insight.abandonedCount, 1);
+      expect(insight.message, isNull);
+    });
+
+    test('Phiên 50p+ hay bỏ dở → gợi ý phiên ngắn hơn, đúng giọng "có vẻ"', () {
+      final insight = analyzeAppLeaving([
+        ev(50, 15),
+        ev(50, 18),
+        ev(25, 22),
+      ]);
+      expect(insight.kind, 'shorter');
+      expect(insight.suggestedMinutes, inInclusiveRange(15, 25));
+      expect(insight.message, contains('Có vẻ'));
+      expect(insight.message, contains('phút'));
+    });
+
+    test('Bỏ dở ≥3 nhưng phiên ngắn → break suggestion, không ép học', () {
+      final insight = analyzeAppLeaving([
+        ev(25, 5),
+        ev(25, 8),
+        ev(25, 10),
+      ]);
+      expect(insight.kind, 'break');
+      expect(insight.message, contains('nghỉ'));
+    });
+  });
+
+  group('High contrast (mục 21)', () {
+    testWidgets('Bật → theme đổi viền đậm hơn, lưu cài đặt',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightWithContrast(true),
+        home: Scaffold(
+          body: Card(
+            child: const SizedBox(height: 50, width: 50),
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      // Theme high contrast: divider đậm hơn (so sánh với theme thường).
+      final normalDivider = AppTheme.lightWithContrast(false).dividerTheme.color;
+      final hcDivider = AppTheme.lightWithContrast(true).dividerTheme.color;
+      expect(hcDivider, AppColors.borderStrong);
+      expect(hcDivider, isNot(normalDivider));
+      expect(AppTheme.lightWithContrast(true).dividerTheme.thickness, 1.5);
+
+      // Service lưu + khôi phục.
+      AppearanceService.setHighContrast(true);
+      expect(StorageService.getBool('appearance_high_contrast'), isTrue);
+      expect(AppearanceService.highContrast.value, isTrue);
+      AppearanceService.setHighContrast(false); // dọn cho test khác.
+    });
+  });
+
+  group('AI citations (mục 10.9)', () {
+    testWidgets('Bubble AI có nguồn → hiện source card',
+        (WidgetTester tester) async {
+      final msg = ChatMessage(
+        id: 'cite-1',
+        text: 'Định lý Pytago: a² + b² = c².',
+        isUser: false,
+        timestamp: DateTime(2026, 9, 30),
+        sourceTitle: 'Định lý Pytago — Wikipedia',
+        sourceUrl: 'https://vi.wikipedia.org/wiki/Định_lý_Pytago',
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ListView(children: [ChatBubble(msg: msg)]),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.text('Nguồn tham khảo'), findsOneWidget);
+      expect(find.text('Định lý Pytago — Wikipedia'), findsOneWidget);
+
+      // Bấm source card → copy URL (chưa có url_launcher).
+      await tester.tap(find.text('Định lý Pytago — Wikipedia'));
+      await tester.pump();
+      expect(find.textContaining('sao chép'), findsOneWidget);
+    });
+
+    testWidgets('Bubble không nguồn → không hiện card',
+        (WidgetTester tester) async {
+      final msg = ChatMessage(
+        id: 'cite-2',
+        text: 'Câu trả lời không dùng web.',
+        isUser: false,
+        timestamp: DateTime(2026, 9, 30),
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ListView(children: [ChatBubble(msg: msg)]),
+        ),
+      ));
+      await tester.pump();
+      expect(find.text('Nguồn tham khảo'), findsNothing);
     });
   });
 

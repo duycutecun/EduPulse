@@ -477,7 +477,15 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
 
     setState(() {
       _messages.remove(loadingMsg);
-      _messages.add(ChatMessage(id: _uuid.v4(), text: response, isUser: false, timestamp: DateTime.now()));
+      _messages.add(ChatMessage(
+        id: _uuid.v4(),
+        text: response,
+        isUser: false,
+        timestamp: DateTime.now(),
+        // Source card (mục 10.9): nguồn web đã dùng cho câu trả lời này.
+        sourceTitle: AiRouter.lastWebSource?.title,
+        sourceUrl: AiRouter.lastWebSource?.pageUrl,
+      ));
       _isLoading = false;
     });
     _saveChatHistory();
@@ -537,6 +545,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
         isUser: false,
         timestamp: DateTime.now(),
         imageBytes: userMessage.imageBytes,
+        sourceTitle: AiRouter.lastWebSource?.title,
+        sourceUrl: AiRouter.lastWebSource?.pageUrl,
       );
       _isLoading = false;
     });

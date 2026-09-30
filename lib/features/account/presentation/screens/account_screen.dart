@@ -651,16 +651,63 @@ class _AccountScreenState extends State<AccountScreen> {
         content: Text('Đã xóa dữ liệu học cục bộ.')));
   }
 
+  /// Xóa AI memory (mục 19 — Delete): lịch sử chat + feedback + nháp
+  /// note — toàn bộ thứ AI dùng để cá nhân hóa. Có backup trong phiên
+  /// để Undo ngay (undo window).
   Future<void> _clearAiHistory() async {
     final accepted = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Xóa lịch sử AI?'),
-      content: const Text('Các cuộc trò chuyện trên thiết bị này sẽ bị xóa.'),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa'))],
+      title: const Text('Xóa bộ nhớ AI?'),
+      content: const Text('Lịch sử trò chuyện, phản hồi 👍/👎 và bản nháp ghi chú '
+          'trên thiết bị này sẽ bị xóa. AI sẽ quay về trạng thái như mới cài.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)))],
     ));
-    if (accepted == true) {
-      StorageService.clearAiChatHistory();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa lịch sử trò chuyện AI.')));
+    if (accepted != true) return;
+
+    // Backup để Undo trong phiên (undo window — mục 19).
+    final chatBackup = StorageService.getAiChatHistory();
+    final feedbackIds = StorageService.prefs.getStringList('ai_feedback_ids') ?? [];
+    final feedbackBackup = <String, String?>{
+      for (final id in feedbackIds) 'ai_feedback_$id': StorageService.getString('ai_feedback_$id'),
+      'ai_feedback_ids': feedbackIds.isNotEmpty ? feedbackIds.join(',') : null,
+    };
+    final draftBackup = StorageService.getString('note_draft_v1');
+
+    // Xóa toàn bộ AI memory.
+    StorageService.clearAiChatHistory();
+    for (final id in feedbackIds) {
+      StorageService.prefs.remove('ai_feedback_$id');
     }
+    StorageService.prefs.remove('ai_feedback_ids');
+    StorageService.prefs.remove('note_draft_v1');
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: const Text('Đã xóa bộ nhớ AI.'),
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Hoàn tác',
+          onPressed: () {
+            // Undo: khôi phục nguyên trạng.
+            if (chatBackup != null) {
+              StorageService.setAiChatHistory(chatBackup);
+            }
+            feedbackBackup.forEach((key, value) {
+              if (value != null && key != 'ai_feedback_ids') {
+                StorageService.setString(key, value);
+              }
+            });
+            final ids = feedbackBackup['ai_feedback_ids'];
+            if (ids != null) {
+              StorageService.prefs.setStringList('ai_feedback_ids', ids.split(','));
+            }
+            if (draftBackup != null) {
+              StorageService.setString('note_draft_v1', draftBackup);
+            }
+          },
+        ),
+      ));
   }
 
   /// Thẻ trạng thái đồng bộ (đặc tả mục 19 — Sync states): hiển thị
@@ -747,6 +794,25 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ],
           ),
+          const SizedBox(height: 14),
+          // High contrast (mục 21 — Accessibility): viền đậm hơn,
+          // chữ phụ tối hơn — giúp người dùng nhìn yếu dễ đọc hơn.
+          Row(children: [
+            const Expanded(
+              child: Text('Tương phản cao',
+                  style: TextStyle(
+                      fontSize: 13.5, fontWeight: FontWeight.w700)),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: AppearanceService.highContrast,
+              builder: (context, value, _) => Switch(
+                value: value,
+                activeThumbColor: AppColors.primary,
+                onChanged: (v) =>
+                    setState(() => AppearanceService.setHighContrast(v)),
+              ),
+            ),
+          ]),
         ],
       ),
     );

@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../exams/domain/preset_exams.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/quick_add_parser.dart';
+import '../../../study/domain/optimize_week.dart';
 import '../../../study/presentation/screens/ai_plan_screen.dart';
 import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
@@ -258,11 +260,11 @@ class _HomeScreenState extends State<HomeScreen> {
       'Chưa có động lực',
       'Khác',
     ];
-    showModalBottomSheet(
+    showAppBottomSheet(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,6 +295,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _rescheduleTask(TodayTask task) async {
+    // Cảnh báo dời lịch nhiều lần + đề xuất chia nhỏ (mục 7.10) —
+    // hiển thị TRƯỚC khi dời để user có thông tin quyết định.
+    final splitTip = rescheduleSplitSuggestion(task);
+    if (splitTip != null && mounted) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(children: [
+            Icon(Icons.content_cut_rounded, color: AppColors.orange),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('Dời lại lần nữa?',
+                  style: TextStyle(fontSize: 17)),
+            ),
+          ]),
+          content: Text(splitTip),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Để nguyên'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Vẫn dời',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return; // user chọn giữ nguyên — không đếm dời.
+    }
+
+    if (!mounted) return;
     final now = DateTime.now();
     final selected = await showDatePicker(
       context: context,
@@ -446,13 +483,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// preview → user xác nhận. Không tự thêm task khi chưa confirm.
   void _showQuickAddSheet() {
     final controller = TextEditingController();
-    showModalBottomSheet<void>(
+    showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {
           final result = parseQuickAdd(controller.text, DateTime.now());
@@ -576,12 +609,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final samples = preset?.sampleTasks ?? PresetExams.all.first.sampleTasks;
     final presetName = preset?.name ?? PresetExams.all.first.name;
 
-    showModalBottomSheet(
+    showAppBottomSheet(
       context: context,
-      backgroundColor: AppColors.cardWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/optimize_week.dart';
@@ -110,7 +111,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     // Trạng thái duyệt từng dòng: true = chấp nhận, false = từ chối.
     final accepted = List<bool>.filled(proposals.length, true);
 
-    showModalBottomSheet(
+    showAppBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
@@ -571,6 +572,16 @@ class _TaskAgendaRow extends StatelessWidget {
             Text(task.title, style: TextStyle(fontWeight: FontWeight.w800, decoration: task.isDone ? TextDecoration.lineThrough : null)),
             Text('${task.subject} • ${task.estimateMinutes} phút', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ])),
+          // Task-linked note (mục 14): chụp nhanh kiến thức sau khi học xong.
+          IconButton(
+            tooltip: 'Ghi chú cho nhiệm vụ này',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.add_link_rounded, size: 18, color: AppColors.textMuted),
+            onPressed: () => NoteEditor.openLinked(
+              context,
+              task: task,
+            ),
+          ),
         ]),
       );
 }
