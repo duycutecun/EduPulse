@@ -4,6 +4,7 @@ import '../config.dart';
 import '../utils/gemini_service.dart';
 import '../utils/web_search_service.dart';
 import 'ai_models.dart';
+import 'ai_context.dart';
 import 'openrouter_service.dart';
 
 /// Định tuyến request chat của AI Coach đến service phù hợp theo model.
@@ -60,8 +61,8 @@ class AiRouter {
     lastWebSource = null;
     if (searchWeb && !hasImage) {
       try {
-        final lookup =
-            await WebSearchService.lookup(userMessage, tavilyApiKey: AppConfig.tavilyApiKey);
+        final lookup = await WebSearchService.lookup(userMessage,
+            tavilyApiKey: AppConfig.tavilyApiKey);
         webContext = lookup?.toPromptBlock();
         // Ghi nguồn để UI hiển thị source card (ưu tiên nguồn
         // authoritative — Wikipedia/Tavily được service chọn sẵn).
@@ -73,6 +74,18 @@ class AiRouter {
 
     // Danh sách model ứng viên được sắp xếp hợp lý (xem _candidates).
     final candidates = _candidates(model, hasImage);
+
+    // Ngữ cảnh học tập của học sinh (mục 10.2): kỳ thi, nhiệm vụ, chuỗi học,
+    // thời gian học, điểm thi thử, ghi chú. Đây là thứ biến AI Coach từ khung
+    // chat rời rạc thành trợ lý thật sự của app. Dựng lại mỗi lượt để AI luôn
+    // nắm tình trạng mới nhất, và bọc try/catch vì hỏng context tuyệt đối
+    // không được làm sập chat.
+    String? studyContext;
+    try {
+      studyContext = AiStudyContext.build();
+    } catch (_) {
+      studyContext = null;
+    }
 
     String? lastError;
     var tried = 0;
@@ -89,6 +102,7 @@ class AiRouter {
         imageBytes: imageBytes,
         mimeType: mimeType,
         webContext: webContext,
+        studyContext: studyContext,
       );
 
       if (_isOk(result)) return result;
@@ -191,6 +205,7 @@ class AiRouter {
     Uint8List? imageBytes,
     String? mimeType,
     String? webContext,
+    String? studyContext,
   }) {
     if (m.slug.startsWith('gemini/')) {
       return GeminiService.chat(
@@ -200,6 +215,7 @@ class AiRouter {
         imageBytes: imageBytes,
         mimeType: mimeType,
         webContext: webContext,
+        studyContext: studyContext,
       );
     }
     return OpenRouterService.chat(
@@ -209,6 +225,7 @@ class AiRouter {
       imageBytes: imageBytes,
       mimeType: mimeType,
       webContext: webContext,
+      studyContext: studyContext,
     );
   }
 }

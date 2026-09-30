@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import '../../core/config.dart';
 import '../../features/study/domain/models/study_models.dart';
@@ -11,7 +12,8 @@ import '../../core/utils/now_context.dart';
 /// OpenRouter tự động định tuyến & failover khi provider hết quota, nên
 /// không cần tự code xoay vòng nhiều key cho các model `:free`.
 class OpenRouterService {
-  static const String _baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
+  static const String _baseUrl =
+      'https://openrouter.ai/api/v1/chat/completions';
   static const String _persona =
       'Bạn là AI Coach của EduPulse — trợ lý học tập & chuyên gia luyện thi hàng đầu cho sĩ tử Việt Nam (THPTQG, ĐGNL TSA, HSA, HSG). '
       'Khi học sinh gửi ảnh đề bài (Toán, Lý, Hóa, Sinh, Văn, Tiếng Anh): '
@@ -25,6 +27,22 @@ class OpenRouterService {
       'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh. '
       'Trả lời bằng tiếng Việt.';
 
+  /// Hướng dẫn cách dùng khối ngữ cảnh học tập (mục 10.2) — điều này biến AI
+  /// từ khung chat chung chung thành trợ lý biết rõ tình huống học sinh.
+  static const String _contextGuide = 'Bạn được cấp ngữ cảnh học tập thật của '
+      'học sinh này ở từng lượt (kỳ thi sắp tới, tiến độ nhiệm vụ, chuỗi học, '
+      'thời gian học theo môn, điểm thi thử, ghi chú). '
+      'Hãy dùng nó để trả lời đúng cho người này: '
+      '1. Nói tới tình huống thật của học sinh (ví dụ "bạn còn 12 ngày thi '
+      'THPTQG mà điểm Hóa đang thấp nhất") thay vì lời khuyên chung chung. '
+      '2. Khi học sinh hỏi chung ("nên học gì", "làm sao định kỳ thi"), chủ '
+      'động dựa vào ngữ cảnh để đề xuất kế hoạch khớp kỳ thi, thời gian còn '
+      'lại và môn đang yếu của học sinh. '
+      '3. Nếu ngữ cảnh mâu thuẫn với điều học sinh nói, tin lời học sinh và '
+      'nói rõ bạn đang thấy gì trong dữ liệu. '
+      '4. Không kể lại nguyên văn khối ngữ cảnh, và đừng hỏi lại những gì đã '
+      'có trong đó.';
+
   /// Đang chạy trên nền web (browser) — không gọi OpenRouter trực tiếp (CORS),
   /// dùng proxy serverless cùng origin `/api/openrouter`.
   static bool get _onWeb {
@@ -35,24 +53,32 @@ class OpenRouterService {
     }
   }
 
-  static Future<String> chat({
-    required String model,
+  /// Dựng payload messages gửi lên OpenRouter.
+  ///
+  /// Tách riêng khỏi [chat] để test được thứ tự & nội dung các message mà
+  /// không cần gọi mạng thật.
+  @visibleForTesting
+  static List<Map<String, dynamic>> buildMessages({
     required List<ChatMessage> history,
     required String userMessage,
     Uint8List? imageBytes,
-    String? mimeType,
     String? webContext,
-  }) async {
-    // Trên desktop/mobile (không CORS) cần key build-time; trên web key do
-    // proxy `/api/openrouter` giữ phía server.
-    final onWeb = _onWeb;
-    if (!onWeb && AppConfig.openRouterApiKey.isEmpty) {
-      return '❌ Chưa cấu hình OpenRouter API Key (thiếu biến môi trường OPENROUTER_API_KEY khi build).';
-    }
-
+    String? studyContext,
+  }) {
     final messages = <Map<String, dynamic>>[
       {'role': 'system', 'content': _persona},
     ];
+
+    // Ngữ cảnh học tập thật của học sinh (kỳ thi, nhiệm vụ, điểm, ghi chú…)
+    // đặt ngay sau persona để model luôn thấy trước khi đọc lịch sử chat.
+    // Rỗng khi người dùng tắt quyền đọc dữ liệu hoặc app chưa có dữ liệu.
+    final ctx = studyContext?.trim();
+    if (ctx != null && ctx.isNotEmpty) {
+      messages.add({
+        'role': 'system',
+        'content': '$_contextGuide\n\n--- NGỮ CẢNH HỌC TẬP HIỆN TẠI ---\n$ctx',
+      });
+    }
 
     for (final msg in history.where((m) => !m.isLoading)) {
       messages.add({
@@ -69,11 +95,36 @@ class OpenRouterService {
         : '$resolved$dateCtx';
     final currentContent = _buildContent(imageBytes, finalText);
     messages.add({'role': 'user', 'content': currentContent});
+    return messages;
+  }
+
+  static Future<String> chat({
+    required String model,
+    required List<ChatMessage> history,
+    required String userMessage,
+    Uint8List? imageBytes,
+    String? mimeType,
+    String? webContext,
+    String? studyContext,
+  }) async {
+    // Trên desktop/mobile (không CORS) cần key build-time; trên web key do
+    // proxy `/api/openrouter` giữ phía server.
+    final onWeb = _onWeb;
+    if (!onWeb && AppConfig.openRouterApiKey.isEmpty) {
+      return '❌ Chưa cấu hình OpenRouter API Key (thiếu biến môi trường OPENROUTER_API_KEY khi build).';
+    }
+
+    final messages = buildMessages(
+      history: history,
+      userMessage: userMessage,
+      imageBytes: imageBytes,
+      webContext: webContext,
+      studyContext: studyContext,
+    );
 
     try {
-      final uri = onWeb
-          ? Uri.base.resolve('/api/openrouter')
-          : Uri.parse(_baseUrl);
+      final uri =
+          onWeb ? Uri.base.resolve('/api/openrouter') : Uri.parse(_baseUrl);
       final headers = onWeb
           ? {'Content-Type': 'application/json'}
           : {
@@ -110,7 +161,11 @@ class OpenRouterService {
         return '❌ Yêu cầu không hợp lệ (dữ liệu ảnh quá lớn hoặc model không hỗ trợ ảnh). Vui lòng thử lại.';
       } else if (resp.statusCode == 413) {
         return '❌ Ảnh/đoạn chat gửi quá lớn bị máy chủ từ chối. Hãy chọn ảnh nhỏ hơn hoặc xóa bớt ảnh cũ trong hội thoại.';
-      } else if (onWeb && (resp.statusCode == 500 || resp.statusCode == 502 || resp.statusCode == 503 || resp.statusCode == 504)) {
+      } else if (onWeb &&
+          (resp.statusCode == 500 ||
+              resp.statusCode == 502 ||
+              resp.statusCode == 503 ||
+              resp.statusCode == 504)) {
         return '❌ Máy chủ AI đang nghẽn tạm thời (HTTP ${resp.statusCode}). Chờ vài giây rồi thử lại.';
       } else {
         return '❌ Lỗi ${resp.statusCode}: Không thể kết nối đến AI Coach. Kiểm tra mạng và thử lại.';

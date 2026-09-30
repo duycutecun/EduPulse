@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import '../../features/study/domain/models/study_models.dart';
 import 'now_context.dart';
@@ -18,36 +19,36 @@ class GeminiService {
     }
   }
 
-  static Future<String> chat({
-    required String apiKey,
+  /// Dựng payload `contents` gửi lên Gemini.
+  ///
+  /// Tách riêng khỏi [chat] để test được việc ngữ cảnh học tập có thực sự
+  /// nằm trong payload hay không, mà không cần gọi mạng thật.
+  @visibleForTesting
+  static List<Map<String, dynamic>> buildContents({
     required List<ChatMessage> history,
     required String userMessage,
     Uint8List? imageBytes,
     String? mimeType,
     String? webContext,
-  }) async {
-    if (apiKey.isEmpty && !_onWeb) {
-      return 'Gemini API Key chưa được cấu hình. Chủ app cần đặt key trong AppConfig (biến GEMINI_API_KEY) rồi build lại.';
-    }
-
+    String? studyContext,
+  }) {
     final contents = <Map<String, dynamic>>[];
-    
+
     // System instruction persona prompt
     contents.add({
       'role': 'user',
       'parts': [
         {
-          'text':
-              'Bạn là AI Coach của EduPulse — trợ lý học tập & chuyên gia luyện thi hàng đầu cho sĩ tử Việt Nam (THPTQG, ĐGNL TSA, HSA, HSG). '
-                  'Khi học sinh gửi ảnh đề bài (Toán, Lý, Hóa, Sinh, Văn, Tiếng Anh): '
-                  '1. Đọc và nhận diện chính xác đề bài. '
-                  '2. Tóm tắt các giả thiết và yêu cầu. '
-                  '3. Trình bày phương pháp tư duy & lời giải chi tiết từng bước. '
-                  '4. Nêu các lưu ý / bẫy trắc nghiệm thường gặp. '
-                  'Đôi khi câu hỏi sẽ kèm một khối "THAM KHẢO TỪ WEB" từ Wikipedia. '
-                  'Hãy cân nhắc thông tin đó nếu liên quan và hữu ích để trả lời chính xác, phong phú hơn; '
-                  'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '
-                  'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh.'
+          'text': 'Bạn là AI Coach của EduPulse — trợ lý học tập & chuyên gia luyện thi hàng đầu cho sĩ tử Việt Nam (THPTQG, ĐGNL TSA, HSA, HSG). '
+              'Khi học sinh gửi ảnh đề bài (Toán, Lý, Hóa, Sinh, Văn, Tiếng Anh): '
+              '1. Đọc và nhận diện chính xác đề bài. '
+              '2. Tóm tắt các giả thiết và yêu cầu. '
+              '3. Trình bày phương pháp tư duy & lời giải chi tiết từng bước. '
+              '4. Nêu các lưu ý / bẫy trắc nghiệm thường gặp. '
+              'Đôi khi câu hỏi sẽ kèm một khối "THAM KHẢO TỪ WEB" từ Wikipedia. '
+              'Hãy cân nhắc thông tin đó nếu liên quan và hữu ích để trả lời chính xác, phong phú hơn; '
+              'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '
+              'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh.'
         }
       ]
     });
@@ -60,6 +61,26 @@ class GeminiService {
         }
       ]
     });
+
+    // Ngữ cảnh học tập thật của học sinh — đặt ngay sau lời chào, trước lịch
+    // sử chat, để mọi câu trả lời đều dựa trên tình huống thực tế.
+    final ctx = studyContext?.trim();
+    if (ctx != null && ctx.isNotEmpty) {
+      contents.add({
+        'role': 'user',
+        'parts': [
+          {
+            'text': 'Đây là ngữ cảnh học tập hiện tại của tôi trên EduPulse. '
+                'Hãy nhớ và dùng nó để tư vấn cụ thể cho đúng tôi: nói tới tình '
+                'huống thật (kỳ thi, còn bao nhiêu ngày, môn đang yếu, nhiệm vụ '
+                'chưa làm) thay vì lời khuyên chung chung; khi tôi hỏi chung thì '
+                'chủ động dựa vào đây để đề xuất kế hoạch; đừng kể lại nguyên '
+                'văn khối này và đừng hỏi lại những gì đã có trong đó.\n\n'
+                '--- NGỮ CẢNH HỌC TẬP HIỆN TẠI ---\n$ctx'
+          }
+        ]
+      });
+    }
 
     for (final msg in history.where((m) => !m.isLoading)) {
       final parts = <Map<String, dynamic>>[];
@@ -104,6 +125,31 @@ class GeminiService {
       'parts': currentParts,
     });
 
+    return contents;
+  }
+
+  static Future<String> chat({
+    required String apiKey,
+    required List<ChatMessage> history,
+    required String userMessage,
+    Uint8List? imageBytes,
+    String? mimeType,
+    String? webContext,
+    String? studyContext,
+  }) async {
+    if (apiKey.isEmpty && !_onWeb) {
+      return 'Gemini API Key chưa được cấu hình. Chủ app cần đặt key trong AppConfig (biến GEMINI_API_KEY) rồi build lại.';
+    }
+
+    final contents = buildContents(
+      history: history,
+      userMessage: userMessage,
+      imageBytes: imageBytes,
+      mimeType: mimeType,
+      webContext: webContext,
+      studyContext: studyContext,
+    );
+
     try {
       // Gọi 1 request duy nhất. Không gửi google_search grounding vì key
       // miễn phí không hỗ trợ (400/403) và làm tốn gấp đôi quota; app vẫn có
@@ -113,7 +159,8 @@ class GeminiService {
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'] ??
+        final text = data['candidates']?[0]?['content']?['parts']?[0]
+                ?['text'] ??
             'AI không trả lời được nội dung này. Vui lòng thử lại.';
         return text;
       } else if (resp.statusCode == 429) {
@@ -124,7 +171,11 @@ class GeminiService {
         return '❌ Quyền bị từ chối: key Gemini cần bật Google Search (billing) hoặc key không hợp lệ. Vui lòng kiểm tra lại.';
       } else if (resp.statusCode == 413) {
         return '❌ Ảnh gửi quá lớn bị máy chủ từ chối. Hãy chọn ảnh nhỏ hơn.';
-      } else if (onWeb && (resp.statusCode == 500 || resp.statusCode == 502 || resp.statusCode == 503 || resp.statusCode == 504)) {
+      } else if (onWeb &&
+          (resp.statusCode == 500 ||
+              resp.statusCode == 502 ||
+              resp.statusCode == 503 ||
+              resp.statusCode == 504)) {
         return '❌ Máy chủ AI đang nghẽn tạm thời (HTTP ${resp.statusCode}). Chờ vài giây rồi thử lại.';
       } else {
         return '❌ Lỗi ${resp.statusCode}: Không thể kết nối đến AI Coach. Kiểm tra mạng và thử lại.';
