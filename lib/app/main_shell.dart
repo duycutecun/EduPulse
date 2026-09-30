@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants/app_colors.dart';
+import '../core/migration/data_migration.dart';
 import '../core/pwa/pwa_service.dart';
+import '../core/sync/sync_state.dart';
 import '../core/utils/storage_service.dart';
 import '../core/utils/supabase_service.dart';
 import '../features/home/presentation/screens/home_screen.dart';
@@ -44,7 +46,19 @@ class _MainShellScreenState extends State<MainShellScreen> {
     super.initState();
     _visited[0] = true;
     _loadInitialData();
+    // Notify user khi migration rollback (mục 42) — SnackBar nhẹ nhàng,
+    // khẳng định dữ liệu an toàn, không gây lo lắng.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final report = DataMigration.lastReport;
+      if (report == null || !report.rolledBack || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(report.userMessage ??
+            'Đã khôi phục dữ liệu nguyên trạng — không có gì bị mất.'),
+        backgroundColor: AppColors.orangeDark,
+      ));
+    });
     PwaService.onlineNotifier.addListener(_onNetworkChanged);
+    SyncStateService.updateConnectivity(isOnline: PwaService.isOnline);
     // Keyboard navigation desktop (đặc tả mục 21): Ctrl+1/2/3 đổi tab,
     // Ctrl+B thu gọn/mở sidebar.
     ServicesBinding.instance.keyboard.addHandler(_handleKey);
@@ -77,8 +91,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   void _onNetworkChanged() {
+    SyncStateService.updateConnectivity(isOnline: PwaService.isOnline);
     if (PwaService.isOnline && SupabaseService.isConfigured) {
-      SupabaseService.syncAll();
+      // Qua SyncStateService để banner/chip phản ánh Syncing → Synced.
+      SyncStateService.syncInBackground();
     }
   }
 

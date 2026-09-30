@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../core/constants/app_colors.dart';
 import '../core/utils/storage_service.dart';
+import '../shared/widgets/sync_status_bar.dart';
 
 /// Chiều rộng tối thiểu để chuyển sang layout desktop với sidebar
 /// (đặc tả mục 22: Mobile < 768, Tablet 768–1024, Desktop ≥ 1024).
@@ -20,11 +21,23 @@ class NavItem {
   const NavItem(this.icon, this.activeIcon, this.label);
 }
 
+/// Intent di chuyển focus trong sidebar — hướng nằm trong Action.
+class _SidebarMoveIntent extends Intent {
+  final int delta;
+  const _SidebarMoveIntent([this.delta = 1]);
+}
+
+/// Action di chuyển focus trong sidebar — binding tạo ở _navRow.
+
 /// Sidebar desktop (đặc tả mục 23): cùng visual language với bottom nav
 /// nhưng khác layout. Có thể **collapse** — expanded hiển thị icon + nhãn
 /// + avatar user, collapsed chỉ còn icon với tooltip (mục 23: "Collapsed:
 /// Icons + tooltip").
-class DesktopSidebar extends StatelessWidget {
+///
+/// Keyboard navigation (mục 21 — Desktop keyboard navigation): Tab đi vào
+/// sidebar, mũi tên lên/xuống di chuyển giữa các mục, Enter/Space kích
+/// hoạt. Focus ring mặc định của Material được giữ nguyên làm indicator.
+class DesktopSidebar extends StatefulWidget {
   final int index;
   final List<NavItem> items;
   final ValueChanged<int> onChanged;
@@ -48,8 +61,61 @@ class DesktopSidebar extends StatelessWidget {
     required this.userName,
   });
 
+  @override
+  DesktopSidebarState createState() => DesktopSidebarState();
+}
+
+/// State công khai để widget test có thể điều khiển focus trực tiếp.
+class DesktopSidebarState extends State<DesktopSidebar> {
   static const double _widthExpanded = 232;
   static const double _widthCollapsed = 72;
+
+  /// FocusNode của từng mục nav (main + secondary), theo thứ tự hiển thị.
+  final List<FocusNode> navFocusNodes = [];
+  final FocusNode _collapseNode = FocusNode();
+
+  int get _totalNavItems => widget.items.length + widget.secondaryItems.length;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncNodeCount();
+  }
+
+  @override
+  void didUpdateWidget(covariant DesktopSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncNodeCount();
+  }
+
+  /// Đảm bảo số FocusNode khớp số mục nav (mục phụ có thể đổi runtime).
+  void _syncNodeCount() {
+    while (navFocusNodes.length < _totalNavItems) {
+      navFocusNodes.add(FocusNode(debugLabel: 'sidebar-nav-${navFocusNodes.length}'));
+    }
+    while (navFocusNodes.length > _totalNavItems) {
+      navFocusNodes.removeLast().dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final node in navFocusNodes) {
+      node.dispose();
+    }
+    _collapseNode.dispose();
+    super.dispose();
+  }
+
+  /// Di chuyển focus lên/xuống qua các mục nav, wrap ở hai đầu.
+  void moveFocus(int delta) {
+    if (navFocusNodes.isEmpty) return;
+    final current = navFocusNodes.indexWhere((n) => n.hasFocus);
+    var next = current < 0 ? 0 : current + delta;
+    if (next < 0) next = navFocusNodes.length - 1;
+    if (next >= navFocusNodes.length) next = 0;
+    navFocusNodes[next].requestFocus();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +123,7 @@ class DesktopSidebar extends StatelessWidget {
     // Switch tức thời (không animate width) để tránh RenderFlex overflow
     // trong transition — đặc tả ưu tiên tốc độ hơn visual effect (mục 55).
     return Container(
-      width: collapsed ? _widthCollapsed : _widthExpanded,
+      width: widget.collapsed ? _widthCollapsed : _widthExpanded,
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
         border: Border(right: BorderSide(color: divider, width: 0.5)),
@@ -65,17 +131,16 @@ class DesktopSidebar extends StatelessWidget {
       child: SafeArea(
         right: false,
         child: Column(
-          crossAxisAlignment:
-              collapsed ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          crossAxisAlignment: widget.collapsed
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
           children: [
             // Nút thu gọn/mở rộng.
             Padding(
               padding: EdgeInsets.symmetric(
-                  horizontal: collapsed ? 0 : 12, vertical: 10),
-              child: collapsed
-                  ? Center(
-                      child: _collapseButton(),
-                    )
+                  horizontal: widget.collapsed ? 0 : 12, vertical: 10),
+              child: widget.collapsed
+                  ? Center(child: _collapseButton())
                   : Row(
                       children: [
                         _collapseButton(),
@@ -91,40 +156,53 @@ class DesktopSidebar extends StatelessWidget {
             Divider(color: divider, height: 1),
             const SizedBox(height: 8),
             // Mục chính = 3 tab (Học, AI, Tôi).
-            for (var i = 0; i < items.length; i++)
+            for (var i = 0; i < widget.items.length; i++)
               _navRow(
                 context,
-                icon: i == index ? items[i].activeIcon : items[i].icon,
-                label: items[i].label,
-                active: i == index,
+                focusNode: navFocusNodes[i],
+                icon: i == widget.index
+                    ? widget.items[i].activeIcon
+                    : widget.items[i].icon,
+                label: widget.items[i].label,
+                active: i == widget.index,
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  if (i != index) onChanged(i);
+                  if (i != widget.index) widget.onChanged(i);
                 },
               ),
             const SizedBox(height: 8),
             // Mục phụ: mở trang riêng từ sidebar (Calendar, Goals, Focus…).
-            for (final action in secondaryItems)
+            for (var j = 0; j < widget.secondaryItems.length; j++)
               _navRow(
                 context,
-                icon: action.icon,
-                label: action.label,
+                focusNode: navFocusNodes[widget.items.length + j],
+                icon: widget.secondaryItems[j].icon,
+                label: widget.secondaryItems[j].label,
                 active: false,
-                onTap: action.onOpen,
+                onTap: widget.secondaryItems[j].onOpen,
               ),
             const Spacer(),
             Divider(color: divider, height: 1),
+            // Trạng thái sync (mục 19) — chip gọn ngay trên avatar.
+            Padding(
+              padding: EdgeInsets.fromLTRB(widget.collapsed ? 0 : 12, 8, 12, 0),
+              child: widget.collapsed
+                  ? const Center(child: SyncStatusBar(compact: true))
+                  : const SyncStatusBar(),
+            ),
             // Avatar user ở đáy sidebar (mục 23: collapsed có avatar).
             Padding(
               padding: EdgeInsets.symmetric(
-                  horizontal: collapsed ? 0 : 12, vertical: 10),
-              child: collapsed
+                  horizontal: widget.collapsed ? 0 : 12, vertical: 10),
+              child: widget.collapsed
                   ? Center(
                       child: CircleAvatar(
                         radius: 16,
                         backgroundColor: AppColors.greenSoft,
                         child: Text(
-                          userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                          widget.userName.isNotEmpty
+                              ? widget.userName[0].toUpperCase()
+                              : '?',
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -138,8 +216,8 @@ class DesktopSidebar extends StatelessWidget {
                           radius: 16,
                           backgroundColor: AppColors.greenSoft,
                           child: Text(
-                            userName.isNotEmpty
-                                ? userName[0].toUpperCase()
+                            widget.userName.isNotEmpty
+                                ? widget.userName[0].toUpperCase()
                                 : '?',
                             style: const TextStyle(
                                 fontSize: 14,
@@ -149,7 +227,7 @@ class DesktopSidebar extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(userName,
+                          child: Text(widget.userName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -168,10 +246,13 @@ class DesktopSidebar extends StatelessWidget {
 
   Widget _collapseButton() {
     return IconButton(
-      tooltip: collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng',
-      onPressed: onToggleCollapse,
+      tooltip: widget.collapsed
+          ? 'Mở rộng thanh điều hướng'
+          : 'Thu gọn thanh điều hướng',
+      focusNode: _collapseNode,
+      onPressed: widget.onToggleCollapse,
       icon: Icon(
-        collapsed
+        widget.collapsed
             ? Icons.chevron_right_rounded
             : Icons.chevron_left_rounded,
         size: 22,
@@ -180,52 +261,91 @@ class DesktopSidebar extends StatelessWidget {
     );
   }
 
+  /// Một mục nav có thể focus bằng bàn phím (mục 21 — Desktop keyboard
+  /// navigation): arrow keys di chuyển giữa các mục, Enter/Space kích hoạt.
+  /// Traversal mặc định của Tab bị tắt trong mục để arrow keys là chuẩn.
   Widget _navRow(
     BuildContext context, {
+    required FocusNode focusNode,
     required IconData icon,
     required String label,
     required bool active,
     required VoidCallback onTap,
   }) {
     final row = Padding(
-      padding: EdgeInsets.symmetric(
-          horizontal: collapsed ? 0 : 12, vertical: 2),
-      child: Material(
-        color: active ? AppColors.primary.withValues(alpha: 0.10) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: onTap,
-          child: Container(
-            height: 42,
-            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12),
-            child: Row(
-              mainAxisAlignment:
-                  collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: [
-                Icon(icon,
-                    size: 22,
-                    color: active ? AppColors.primary : AppColors.textMuted),
-                if (!collapsed) ...[
-                  const SizedBox(width: 12),
-                  Text(label,
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight:
-                              active ? FontWeight.w800 : FontWeight.w600,
-                          color: active
-                              ? AppColors.primary
-                              : AppColors.textPrimary)),
-                ],
-              ],
+      padding:
+          EdgeInsets.symmetric(horizontal: widget.collapsed ? 0 : 12, vertical: 2),
+      child: Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.arrowDown):
+              _SidebarMoveIntent(1),
+          SingleActivator(LogicalKeyboardKey.arrowUp):
+              _SidebarMoveIntent(-1),
+        },
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            _SidebarMoveIntent: _SidebarMoveAction(this),
+          },
+          child: Material(
+            color: active
+                ? AppColors.primary.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onTap,
+              focusNode: focusNode,
+              // Tab skip qua mục nav — điều hướng chính bằng arrow keys.
+              child: Container(
+                height: 42,
+                padding: EdgeInsets.symmetric(
+                    horizontal: widget.collapsed ? 0 : 12),
+                child: Row(
+                  mainAxisAlignment: widget.collapsed
+                      ? MainAxisAlignment.center
+                      : MainAxisAlignment.start,
+                  children: [
+                    Icon(icon,
+                        size: 22,
+                        color: active
+                            ? AppColors.primary
+                            : AppColors.textMuted),
+                    if (!widget.collapsed) ...[
+                      const SizedBox(width: 12),
+                      Text(label,
+                          style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: active
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: active
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary)),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
-    return collapsed
+    return widget.collapsed
         ? Tooltip(message: label, child: row)
         : row;
+  }
+}
+
+/// Action di chuyển focus theo hướng của intent, wrap ở hai đầu.
+class _SidebarMoveAction extends Action<_SidebarMoveIntent> {
+  final DesktopSidebarState state;
+
+  _SidebarMoveAction(this.state);
+
+  @override
+  Object? invoke(_SidebarMoveIntent intent) {
+    state.moveFocus(intent.delta);
+    return null;
   }
 }
 

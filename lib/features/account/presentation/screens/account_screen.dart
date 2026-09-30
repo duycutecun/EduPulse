@@ -5,8 +5,11 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import '../../../../core/utils/data_transfer.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/sync/sync_state.dart';
+import '../../../../shared/widgets/sync_status_bar.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/theme/appearance_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
@@ -110,8 +113,15 @@ class _AccountScreenState extends State<AccountScreen> {
   Future<void> _manualBackup() async {
     if (!SupabaseService.isConfigured) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng'))); } return; }
     setState(() => _isSyncing = true);
+    SyncStateService.markSyncing();
     final ok = await SupabaseService.syncAll();
     setState(() => _isSyncing = false);
+    // Cập nhật chip sync ở mọi nơi (sidebar, footer) theo kết quả thật.
+    if (ok) {
+      SyncStateService.markSynced();
+    } else {
+      SyncStateService.markError();
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Đã sao lưu!' : 'Sao lưu thất bại!'),
@@ -123,9 +133,16 @@ class _AccountScreenState extends State<AccountScreen> {
   Future<void> _manualRestore() async {
     if (!SupabaseService.isConfigured) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng'))); } return; }
     setState(() => _isRestoring = true);
+    SyncStateService.markSyncing();
     final ok = await SupabaseService.restoreAll();
     setState(() => _isRestoring = false);
-    if (ok) { _loadData(); widget.onDataChanged(); }
+    if (ok) {
+      SyncStateService.markSynced();
+      _loadData();
+      widget.onDataChanged();
+    } else {
+      SyncStateService.markError();
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Đã khôi phục!' : 'Khôi phục thất bại!'),
@@ -338,6 +355,8 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
         const SizedBox(height: 18),
         _buildLearningProfileEntry(),
+        const SizedBox(height: 18),
+        _buildSyncStateCard(),
         const SizedBox(height: 18),
         _buildAppearanceCard(),
         const SizedBox(height: 18),
@@ -638,6 +657,44 @@ class _AccountScreenState extends State<AccountScreen> {
       StorageService.clearAiChatHistory();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa lịch sử trò chuyện AI.')));
     }
+  }
+
+  /// Thẻ trạng thái đồng bộ (đặc tả mục 19 — Sync states): hiển thị
+  /// Online/Syncing/Synced/Offline nhẹ nhàng, nút đồng bộ ngay.
+  Widget _buildSyncStateCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const Expanded(child: SyncStatusBar()),
+          const SizedBox(width: 10),
+          TextButton.icon(
+            onPressed: (!PwaService.isOnline || !SupabaseService.isConfigured)
+                ? null
+                : () async {
+                    setState(() => _isSyncing = true);
+                    SyncStateService.markSyncing();
+                    final ok = await SupabaseService.syncAll();
+                    if (mounted) setState(() => _isSyncing = false);
+                    if (ok) {
+                      SyncStateService.markSynced();
+                    } else {
+                      SyncStateService.markError();
+                    }
+                  },
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CupertinoActivityIndicator(),
+                  )
+                : const Icon(Icons.sync_rounded, size: 16),
+            label: const Text('Đồng bộ ngay',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Thẻ Hiển thị (đặc tả mục 20): font size adaptive S/M/L toàn app.

@@ -15,6 +15,11 @@ import 'package:edupulse/core/utils/data_transfer.dart';
 import 'package:edupulse/core/theme/appearance_service.dart';
 import 'package:edupulse/features/study/domain/quick_add_parser.dart';
 import 'package:edupulse/features/study/domain/score_analysis.dart';
+import 'package:edupulse/features/study/presentation/widgets/score_chart_widget.dart';
+import 'package:edupulse/core/sync/sync_state.dart';
+import 'package:edupulse/core/migration/data_migration.dart';
+import 'package:edupulse/shared/widgets/sync_status_bar.dart';
+import 'package:edupulse/app/desktop_sidebar.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
 import 'package:edupulse/features/exams/domain/models/exam_model.dart'
     show ExamModel, ExamPhase;
@@ -956,6 +961,280 @@ void main() {
       expect(subjects.length, 2);
       expect(subjects.first.subject, '📐 Toán'); // yếu nhất đầu tiên.
       expect(subjects.first.improving, isTrue);
+    });
+  });
+
+  group('Score chart widget (đặc tả mục 41)', () {
+    MockScore ms(int day, double score, [String subject = '📐 Toán']) =>
+        MockScore(
+          id: 'sc-$day-$score-$subject',
+          date: DateTime(2026, 9, day),
+          subject: subject,
+          score: score,
+        );
+
+    Widget host(List<MockScore> scores, {ExamModel? exam}) => MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ScoreChartWidget(scores: scores, primaryExam: exam),
+            ),
+          ),
+        );
+
+    testWidgets('≥2 điểm cùng môn → vẽ chart + insight + so target',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(host([
+        ms(1, 6.5),
+        ms(10, 7.5),
+      ], exam: ExamModel(
+        id: 'exam-1',
+        name: 'THPT QG 2027',
+        dateTime: DateTime(2027, 6, 26),
+        targetScore: 9.0,
+      )));
+      await tester.pump();
+
+      expect(find.text('Tiến bộ điểm thi thử'), findsOneWidget);
+      // Trend up → chip +1.0 và insight "Có vẻ nhịp học hiện tại đang phù hợp".
+      expect(find.text('+1.0'), findsOneWidget);
+      expect(find.textContaining('Có vẻ nhịp học'), findsOneWidget);
+      // Có đường target 9.0 → painter không crash + hiển thị điểm mới nhất.
+      expect(find.text('7.5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Đủ 2 môn → so sánh giữa các môn, yếu nhất đầu tiên',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(host([
+        ms(1, 8.0, '🇬🇧 Anh'),
+        ms(11, 8.5, '🇬🇧 Anh'),
+        ms(2, 6.0),
+        ms(10, 6.5),
+      ]));
+      await tester.pump();
+
+      expect(find.text('So sánh giữa các môn'), findsOneWidget);
+      // Môn Toán (TB thấp hơn) đứng trên Anh.
+      final toanY = tester.getTopLeft(find.text('📐 Toán')).dy;
+      final anhY = tester.getTopLeft(find.text('🇬🇧 Anh')).dy;
+      expect(toanY, lessThan(anhY));
+    });
+
+    testWidgets('1 điểm duy nhất → card gợi ý thi thử thêm, không vẽ chart',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(host([ms(1, 7.0)]));
+      await tester.pump();
+
+      expect(find.text('Chưa đủ dữ liệu vẽ biểu đồ'), findsOneWidget);
+      expect(find.textContaining('thi thử thêm 1 lần nữa'), findsOneWidget);
+      expect(find.text('Tiến bộ điểm thi thử'), findsNothing);
+    });
+  });
+
+  group('Sync states (đặc tả mục 19)', () {
+    test('Chuyển trạng thái Syncing → Offline/Error/Synced đúng label', () {
+      SyncStateService.markSyncing();
+      expect(SyncStateService.state.value.status, SyncStatus.syncing);
+      expect(SyncStateService.state.value.label, 'Đang đồng bộ…');
+
+      // Offline: trạng thái an toàn mặc định — thông điệp không gây lo lắng.
+      SyncStateService.updateConnectivity(isOnline: false);
+      expect(SyncStateService.state.value.status, SyncStatus.offline);
+
+      SyncStateService.markError();
+      expect(SyncStateService.state.value.status, SyncStatus.error);
+      expect(SyncStateService.state.value.label, contains('thử lại'));
+
+      SyncStateService.markSynced();
+      expect(SyncStateService.state.value.status, SyncStatus.synced);
+      expect(SyncStateService.state.value.lastSyncedAtMs, isNotNull);
+      expect(StorageService.getInt('last_cloud_sync_ms'), isNotNull);
+    });
+
+    testWidgets('SyncStatusBar: offline → chip cam nhẹ nhàng, không đỏ cảnh báo',
+        (WidgetTester tester) async {
+      SyncStateService.updateConnectivity(isOnline: false);
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(body: Center(child: SyncStatusBar())),
+      ));
+      await tester.pump();
+
+      expect(find.text('Ngoại tuyến — lưu trên máy'), findsOneWidget);
+      // Trạng thái synced mới nhất vẫn giữ để hiển thị khi online lại.
+
+      // Dọn trạng thái chung cho các test khác.
+      SyncStateService.updateConnectivity(isOnline: true);
+    });
+
+    testWidgets('SyncStatusBar: synced vừa xong → chip xanh + nhãn đúng',
+        (WidgetTester tester) async {
+      SyncStateService.markSynced();
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(body: Center(child: SyncStatusBar())),
+      ));
+      await tester.pump();
+
+      expect(find.text('Đã đồng bộ vừa xong'), findsOneWidget);
+    });
+  });
+
+  group('Data migration (đặc tả mục 42)', () {
+    test('Schema mới nhất → bỏ qua, idempotent', () {
+      StorageService.setInt('data_schema_version', DataMigration.currentSchemaVersion);
+      final report = DataMigration.run([
+        MigrationStep('noop', () => true),
+      ]);
+      expect(report.ran, isFalse);
+      expect(report.success, isTrue);
+    });
+
+    test('Thành công: chạy đủ bước + lưu version mới', () {
+      StorageService.setInt('data_schema_version', 0);
+      var calls = 0;
+      final report = DataMigration.run([
+        MigrationStep('step_a', () {
+          calls++;
+          return true;
+        }),
+        MigrationStep('step_b', () => true),
+      ]);
+      expect(report.ran, isTrue);
+      expect(report.success, isTrue);
+      expect(report.stepsRun, ['step_a', 'step_b']);
+      expect(calls, 1);
+      expect(DataMigration.storedVersion(), DataMigration.currentSchemaVersion);
+    });
+
+    test('Lỗi giữa chừng → rollback snapshot + restore + notify', () {
+      StorageService.setInt('data_schema_version', 0);
+      StorageService.setString('migration_test_key', 'giữ tôi');
+      final report = DataMigration.run([
+        MigrationStep('mutate', () {
+          // Bước "hỏng" làm hỏng dữ liệu rồi fail.
+          StorageService.setString('migration_test_key', 'bị ghi đè');
+          return false;
+        }),
+      ]);
+      expect(report.rolledBack, isTrue);
+      expect(report.userMessage, contains('an toàn'));
+      // Restore đúng giá trị trước migration.
+      expect(StorageService.getString('migration_test_key'), 'giữ tôi');
+      expect(DataMigration.lastReport?.rolledBack, isTrue);
+    });
+
+    test('dedupe_id_lists: dẹp trùng giữ thứ tự', () {
+      StorageService.prefs.setStringList('today_task_ids', ['a', 'b', 'a', 'c', 'b']);
+      StorageService.setInt('data_schema_version', 0);
+      DataMigration.run(DataMigration.defaultSteps());
+      expect(StorageService.prefs.getStringList('today_task_ids'), ['a', 'b', 'c']);
+    });
+
+    test('normalize_task_json: JSON thống nhất shape, giữ entry hỏng', () {
+      final task = TodayTask(
+        id: 'mig-1',
+        title: 'Học toán',
+        subject: '📐 Toán',
+      );
+      StorageService.setTodayTaskJson('mig-1', task.toJsonString());
+      StorageService.setTodayTaskIds(['mig-1', 'mig-broken']);
+      StorageService.prefs.setString('task_mig-broken', '{không phải json');
+      StorageService.setInt('data_schema_version', 0);
+
+      final report = DataMigration.run(DataMigration.defaultSteps());
+      expect(report.success, isTrue);
+      // Entry tốt vẫn đọc được; entry hỏng KHÔNG bị xóa (không mất dữ liệu).
+      expect(TodayTask.fromJsonString(StorageService.getTodayTaskJson('mig-1')!).title, 'Học toán');
+      expect(StorageService.getTodayTaskJson('mig-broken'), '{không phải json');
+    });
+  });
+
+  group('Sidebar keyboard navigation (mục 21)', () {
+    void noop() {}
+    final items = [
+      const NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
+      const NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
+      const NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
+    ];
+
+    Widget host() => MaterialApp(
+          home: Scaffold(
+            body: Row(
+              children: [
+                DesktopSidebar(
+                  index: 0,
+                  items: items,
+                  onChanged: (_) {},
+                  secondaryItems: [
+                    DesktopNavAction(
+                        icon: Icons.calendar_month_rounded,
+                        label: 'Lịch',
+                        onOpen: noop),
+                  ],
+                  collapsed: false,
+                  onToggleCollapse: noop,
+                  userName: 'Sĩ tử',
+                ),
+                const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
+        );
+
+    testWidgets('Arrow Down/Up di chuyển focus giữa các mục nav có wrap',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(host());
+      await tester.pump();
+
+      // Focus mục đầu (Học) — node index 0 trong danh sách nav của state.
+      final state = tester.state<DesktopSidebarState>(find.byType(DesktopSidebar));
+      state.navFocusNodes.first.requestFocus();
+      await tester.pump();
+
+      // Arrow Down → mục 'AI'.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(FocusManager.instance.primaryFocus, same(state.navFocusNodes[1]));
+
+      // Arrow Up → quay lại 'Học'; Up lần nữa → wrap về mục cuối (Lịch).
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(FocusManager.instance.primaryFocus, same(state.navFocusNodes[0]));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(FocusManager.instance.primaryFocus, same(state.navFocusNodes.last));
+    });
+
+    testWidgets('Enter kích hoạt mục đang focus → đổi tab',
+        (WidgetTester tester) async {
+      var changed = -1;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              DesktopSidebar(
+                index: 0,
+                items: items,
+                onChanged: (i) => changed = i,
+                secondaryItems: const [],
+                collapsed: false,
+                onToggleCollapse: noop,
+                userName: 'Sĩ tử',
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      final state = tester.state<DesktopSidebarState>(find.byType(DesktopSidebar));
+      state.navFocusNodes[1].requestFocus(); // mục 'AI'.
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(changed, 1);
     });
   });
 

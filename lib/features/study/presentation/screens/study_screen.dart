@@ -13,7 +13,9 @@ import '../../../../shared/widgets/mascot_avatar.dart';
 import '../../domain/models/study_models.dart';
 import '../../domain/score_summary.dart';
 import '../../domain/study_analytics.dart';
+import '../widgets/score_chart_widget.dart';
 import '../widgets/weekly_chart_widget.dart';
+import '../../../exams/domain/models/exam_model.dart';
 
 class StudyScreen extends StatefulWidget {
   final VoidCallback? onStreakChanged;
@@ -697,6 +699,15 @@ class _StudyScreenState extends State<StudyScreen> {
     );
   }
 
+  /// Kỳ thi chính (đọc trực tiếp Storage để chart vẽ đường target).
+  ExamModel? get _primaryExam {
+    final id = StorageService.getPrimaryExamId();
+    if (id == null) return null;
+    final json = StorageService.getExamJson(id);
+    if (json == null) return null;
+    return ExamModel.fromJsonString(json);
+  }
+
   Widget _buildChartTab() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -706,6 +717,8 @@ class _StudyScreenState extends State<StudyScreen> {
           _buildFocusAnalytics(),
           const SizedBox(height: 16),
           _buildAdvancedAnalytics(),
+          const SizedBox(height: 16),
+          ScoreChartWidget(scores: _scores, primaryExam: _primaryExam),
           const SizedBox(height: 16),
           WeeklyChartWidget(logs: _logs),
         ],

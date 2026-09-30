@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'core/ai/free_models_catalog.dart';
+import 'core/migration/data_migration.dart';
 import 'core/notifications/adaptive_policy.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/pwa/pwa_service.dart';
+import 'core/sync/sync_state.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/appearance_service.dart';
 import 'core/utils/auth_service.dart';
@@ -18,6 +20,9 @@ void main() async {
   PwaService.init();
   // Storage bắt buộc phải sẵn sàng trước khi các màn hình đọc dữ liệu.
   await StorageService.init();
+  // Migration dữ liệu (mục 42): auto backup → migrate → rollback nếu lỗi.
+  // Chạy sớm trước mọi màn hình đọc data, log MigrationReport ra console.
+  logMigration(DataMigration.run(DataMigration.defaultSteps()));
   // Font scale adaptive (đặc tả mục 20) đọc trước runApp để frame đầu đã đúng.
   AppearanceService.load();
   runApp(const EduPulseApp());
@@ -31,9 +36,14 @@ void main() async {
     // Làm mới danh sách model AI miễn phí (OpenRouter) ở nền — cache 24h.
     FreeModelsCatalog.ensureLoaded();
     // Khi đã online, đẩy dữ liệu local lên cloud ngay sau khi kết nối sẵn sàng.
+    // Qua SyncStateService để mọi UI (banner, sidebar, tab Tôi) phản ánh
+    // trạng thái Syncing → Synced (đặc tả mục 19).
+    SyncStateService.updateConnectivity(isOnline: PwaService.isOnline);
     if (PwaService.isOnline && SupabaseService.isConfigured) {
-      SupabaseService.syncAll();
+      SyncStateService.syncInBackground();
     }
+    // Sync nền định kỳ 15 phút khi còn online.
+    SyncStateService.startAutoSync();
 
     // Ghi nhận người dùng đã mở app (phục vụ tần suất nhắc thích ứng) và
     // đặt lại lịch nhắc/digest theo hành vi gần nhất (đặc tả mục 16).
