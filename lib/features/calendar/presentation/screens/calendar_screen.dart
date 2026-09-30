@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/optimize_week.dart';
 import '../../../notes/presentation/screens/notes_screen.dart';
 import '../../../search/presentation/screens/search_screen.dart';
 
@@ -74,9 +75,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       .where((session) => _isSameDay(session.completedAt, _selectedDay))
       .toList();
 
+  /// "Tối ưu tuần" (đặc tả mục 13): AI đề xuất lịch cho task chưa xếp
+  /// lịch — **Diff + lý do từng dòng + Accept/Edit/Reject** (mục 10.6).
+  /// Không có gì được áp dụng cho đến khi người dùng duyệt từng dòng.
   void _openOptimizePreview() {
     final unscheduled = _tasks
-        .where((task) => !task.isDone && task.status != 'skipped' && task.scheduledAt == null)
+        .where((task) =>
+            !task.isDone && task.status != 'skipped' && task.scheduledAt == null)
         .toList();
     if (unscheduled.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -85,62 +90,202 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ));
       return;
     }
-    final start = _dateOnly(DateTime.now());
+
+    final proposals = proposeWeekPlan(unscheduled, sessions: _sessions);
+    // Trạng thái duyệt từng dòng: true = chấp nhận, false = từ chối.
+    final accepted = List<bool>.filled(proposals.length, true);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Xem trước lịch tuần',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              const Text('EduPulse phân bổ đều các nhiệm vụ chưa xếp lịch. Chưa có thay đổi nào được áp dụng.'),
-              const SizedBox(height: 12),
-              ...unscheduled.asMap().entries.map((entry) {
-                final date = start.add(Duration(days: entry.key % 7));
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.blueSoft,
-                    child: Text('${date.day}', style: const TextStyle(color: AppColors.blue, fontWeight: FontWeight.w800)),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Đề xuất lịch tuần',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                const Text(
+                    'EduPulse chỉ đề xuất — chưa có thay đổi nào được áp dụng. Duyệt từng dòng hoặc sửa ngày trước khi chấp nhận.',
+                    style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(sheetContext).size.height * 0.55,
                   ),
-                  title: Text(entry.value.title),
-                  subtitle: Text('${entry.value.subject} • ${entry.value.estimateMinutes} phút'),
-                );
-              }),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(sheetContext), child: const Text('Từ chối'))),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        for (final entry in unscheduled.asMap().entries) {
-                          final task = entry.value;
-                          task.scheduledAt = start.add(Duration(days: entry.key % 7));
-                          StorageService.setTodayTaskJson(task.id, task.toJsonString());
-                        }
-                        Navigator.pop(sheetContext);
-                        setState(_load);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã áp dụng lịch tuần đề xuất.')));
-                      },
-                      child: const Text('Chấp nhận'),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: proposals.length,
+                    itemBuilder: (context, i) {
+                      final p = proposals[i];
+                      final d = p.proposedStart;
+                      final dayLabel = _weekdayShort(d.weekday);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: accepted[i]
+                              ? AppColors.blueSoft.withValues(alpha: 0.5)
+                              : AppColors.cardLight,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: accepted[i]
+                                ? AppColors.blue.withValues(alpha: 0.4)
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(p.task.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: accepted[i]
+                                            ? AppColors.textPrimary
+                                            : AppColors.textMuted,
+                                        decoration: accepted[i]
+                                            ? null
+                                            : TextDecoration.lineThrough,
+                                      )),
+                                ),
+                                // Accept/Reject từng dòng (mục 10.6).
+                                IconButton(
+                                  tooltip: accepted[i]
+                                      ? 'Bỏ đề xuất này'
+                                      : 'Chấp nhận dòng này',
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () => setSheetState(
+                                      () => accepted[i] = !accepted[i]),
+                                  icon: Icon(
+                                    accepted[i]
+                                        ? Icons.check_circle_rounded
+                                        : Icons.remove_circle_outline_rounded,
+                                    size: 20,
+                                    color: accepted[i]
+                                        ? AppColors.primary
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$dayLabel ${d.day}/${d.month} • ${d.hour}h • ${p.task.estimateMinutes} phút',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.blue),
+                            ),
+                            const SizedBox(height: 2),
+                            Text('Vì sao: ${p.reason}',
+                                style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: AppColors.textSecondary)),
+                            // Edit từng dòng: chọn ngày khác trong tuần.
+                            if (accepted[i])
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8)),
+                                  onPressed: () async {
+                                    final picked = await showDatePicker(
+                                      context: sheetContext,
+                                      initialDate: p.proposedStart,
+                                      firstDate: DateTime.now(),
+                                      lastDate:
+                                          DateTime.now().add(const Duration(days: 14)),
+                                    );
+                                    if (picked != null) {
+                                      setSheetState(() {
+                                        proposals[i] = WeekPlanProposal(
+                                          task: p.task,
+                                          proposedStart: DateTime(
+                                              picked.year,
+                                              picked.month,
+                                              picked.day,
+                                              p.proposedStart.hour),
+                                          reason: p.reason,
+                                        );
+                                      });
+                                    }
+                                  },
+                                  icon: const Icon(Icons.edit_calendar_rounded,
+                                      size: 15),
+                                  label: const Text('Sửa ngày',
+                                      style: TextStyle(fontSize: 11.5)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: const Text('Từ chối tất cả'),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          var applied = 0;
+                          for (var i = 0; i < proposals.length; i++) {
+                            if (!accepted[i]) continue;
+                            final task = proposals[i].task;
+                            task.scheduledAt = proposals[i].proposedStart;
+                            StorageService.setTodayTaskJson(
+                                task.id, task.toJsonString());
+                            applied++;
+                          }
+                          Navigator.pop(sheetContext);
+                          if (applied > 0) {
+                            setState(_load);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Đã áp dụng $applied nhiệm vụ vào lịch.')),
+                            );
+                          }
+                        },
+                        child: Text(accepted.any((a) => a)
+                            ? 'Áp dụng ${accepted.where((a) => a).length} dòng'
+                            : 'Áp dụng'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  static String _weekdayShort(int weekday) => const [
+        'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN',
+      ][weekday - 1];
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +357,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Text(_dayTitle(_selectedDay), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             if (_scheduledTasks.isEmpty && _daySessions.isEmpty)
-              const _EmptyAgenda()
+              _EmptyAgenda(onOptimize: _openOptimizePreview)
             else ...[
               ..._scheduledTasks.map((task) => _TaskAgendaRow(task: task)),
               ..._daySessions.map((session) => _SessionAgendaRow(session: session)),
@@ -228,16 +373,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
 }
 
 class _EmptyAgenda extends StatelessWidget {
-  const _EmptyAgenda();
+  final VoidCallback onOptimize;
+
+  const _EmptyAgenda({required this.onOptimize});
   @override
   Widget build(BuildContext context) => GlassCard(
         padding: const EdgeInsets.all(22),
-        child: const Column(children: [
-          Icon(Icons.event_available_rounded, size: 36, color: AppColors.textMuted),
-          SizedBox(height: 8),
-          Text('Ngày này đang trống', style: TextStyle(fontWeight: FontWeight.w800)),
-          SizedBox(height: 4),
-          Text('Chọn “Tối ưu tuần” để xem đề xuất xếp lịch.', textAlign: TextAlign.center),
+        child: Column(children: [
+          const Icon(Icons.event_available_rounded, size: 36, color: AppColors.textMuted),
+          const SizedBox(height: 8),
+          const Text('Ngày này đang trống', style: TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          const Text('Để EduPulse đề xuất lịch, hoặc tự thêm nhiệm vụ mới.',
+              textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          // Actions đúng đặc tả mục 33 — Empty Calendar: Create + AI schedule.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onOptimize,
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  side: const BorderSide(color: AppColors.primary),
+                  foregroundColor: AppColors.primaryDark,
+                ),
+                icon: const Icon(Icons.auto_awesome_rounded, size: 15),
+                label: const Text('Tối ưu tuần', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
         ]),
       );
 }

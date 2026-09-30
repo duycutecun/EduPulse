@@ -15,6 +15,9 @@ import 'package:edupulse/core/utils/data_transfer.dart';
 import 'package:edupulse/core/theme/appearance_service.dart';
 import 'package:edupulse/features/study/domain/quick_add_parser.dart';
 import 'package:edupulse/features/study/domain/score_analysis.dart';
+import 'package:edupulse/features/study/domain/optimize_week.dart';
+import 'package:edupulse/features/home/presentation/widgets/today_mission_card.dart';
+import 'package:edupulse/features/ai_coach/presentation/screens/ai_coach_screen.dart';
 import 'package:edupulse/features/study/presentation/widgets/score_chart_widget.dart';
 import 'package:edupulse/core/sync/sync_state.dart';
 import 'package:edupulse/core/migration/data_migration.dart';
@@ -1235,6 +1238,183 @@ void main() {
       await tester.pump();
 
       expect(changed, 1);
+    });
+  });
+
+  group('Optimize Week (đặc tả mục 13)', () {
+    TodayTask task(
+      String id, {
+      int minutes = 45,
+      String priority = 'medium',
+      DateTime? deadline,
+    }) =>
+        TodayTask(
+          id: id,
+          title: 'Nhiệm vụ $id',
+          subject: '📐 Toán',
+          priority: priority,
+          estimateMinutes: minutes,
+          deadline: deadline,
+        );
+
+    StudySession session(
+      int hour,
+      int rating, [
+      DateTime? at,
+    ]) =>
+        StudySession(
+          id: 's-$hour-$rating',
+          completedAt: at ?? DateTime(2026, 9, 20, hour),
+          subject: '📐 Toán',
+          plannedMinutes: 45,
+          actualMinutes: 45,
+          effectiveness: rating,
+        );
+
+    test('Không có task chưa xếp lịch → rỗng (không bịa đề xuất)', () {
+      expect(proposeWeekPlan([], now: DateTime(2026, 9, 30)), isEmpty);
+    });
+
+    test('Deadline gần xếp trước; không bao giờ xếp vào đúng ngày deadline', () {
+      final now = DateTime(2026, 9, 30, 10);
+      final proposals = proposeWeekPlan([
+        task('far', deadline: DateTime(2026, 10, 20)),
+        task('near', deadline: DateTime(2026, 10, 2)),
+      ], now: now);
+
+      expect(proposals.first.task.id, 'near');
+      // Xếp sớm nhất có thể — hôm nay còn trống → 30/9.
+      expect(proposals.first.proposedStart.day, 30);
+      expect(proposals.first.reason, contains('deadline'));
+
+      // Hôm nay đầy (120') → chuyển sang 1/10, tuyệt đối không 2/10
+      // (margin an toàn: dừng trước deadline ≥ 1 ngày).
+      final full = proposeWeekPlan([
+        task('filler', minutes: 120, deadline: DateTime(2026, 10, 1)),
+        task('near', deadline: DateTime(2026, 10, 2)),
+      ], now: now);
+      final near = full.firstWhere((p) => p.task.id == 'near');
+      expect(near.proposedStart.day, 1);
+    });
+
+    test('Có signal phiên học tốt buổi sáng → xếp 8h + lý do ghi nguồn', () {
+      final now = DateTime(2026, 9, 30, 10);
+      final proposals = proposeWeekPlan(
+        [task('a')],
+        sessions: [session(8, 5), session(9, 4), session(20, 2)],
+        now: now,
+      );
+      expect(proposals.single.proposedStart.hour, 8);
+      expect(proposals.single.reason, contains('bạn học tốt buổi sáng'));
+    });
+
+    test('Chưa đủ dữ liệu phiên → giờ mặc định 19h và lý do ghi rõ "mặc định"', () {
+      final proposals = proposeWeekPlan(
+        [task('a')],
+        sessions: [session(8, 5)], // 1 phiên — không đủ kết luận.
+        now: DateTime(2026, 9, 30, 10),
+      );
+      expect(proposals.single.proposedStart.hour, 19);
+      expect(proposals.single.reason, contains('mặc định'));
+    });
+
+    test('Quỹ 120 phút/ngày → task tràn chuyển sang ngày hôm sau', () {
+      final now = DateTime(2026, 9, 30, 10);
+      final proposals = proposeWeekPlan([
+        task('big1', minutes: 90),
+        task('big2', minutes: 90),
+      ], now: now);
+
+      expect(proposals[0].proposedStart.day, 30); // hôm nay.
+      expect(proposals[1].proposedStart.day, 1); // tràn → ngày mai.
+    });
+
+    test('Priority high đứng trước khi deadline bằng nhau', () {
+      final now = DateTime(2026, 9, 30, 10);
+      final proposals = proposeWeekPlan([
+        task('low', priority: 'low', deadline: DateTime(2026, 10, 5)),
+        task('high', priority: 'high', deadline: DateTime(2026, 10, 5)),
+      ], now: now);
+      expect(proposals.first.task.id, 'high');
+      expect(proposals.first.reason, contains('ưu tiên cao'));
+    });
+  });
+
+  group('Empty states (đặc tả mục 33)', () {
+    void noop() {}
+    void noopTask(TodayTask _) {}
+
+    TodayTask emptyTask() => TodayTask(id: 'x', title: 'x');
+
+    testWidgets('Empty Task: copy đúng spec + 2 actions tạo kế hoạch/gợi ý',
+        (WidgetTester tester) async {
+      var addTapped = false;
+      var sampleTapped = false;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: TodayMissionCard(
+              tasks: const [],
+              onAddTask: () => addTapped = true,
+              onToggle: noopTask,
+              onDelete: noopTask,
+              onSkip: noopTask,
+              onReschedule: noopTask,
+              onAddSample: () => sampleTapped = true,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      // Copy đúng đặc tả mục 33 — Empty Task.
+      expect(find.text('Hôm nay chưa có kế hoạch.'), findsOneWidget);
+      expect(find.text('Tạo kế hoạch'), findsOneWidget);
+      expect(find.text('Gợi ý sẵn'), findsOneWidget);
+
+      await tester.tap(find.text('Tạo kế hoạch'));
+      expect(addTapped, isTrue);
+      await tester.tap(find.text('Gợi ý sẵn'));
+      expect(sampleTapped, isTrue);
+    });
+
+    testWidgets('Có nhiệm vụ → không hiện empty state',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: TodayMissionCard(
+              tasks: [emptyTask()],
+              onAddTask: noop,
+              onToggle: noopTask,
+              onDelete: noopTask,
+              onSkip: noopTask,
+              onReschedule: noopTask,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      expect(find.text('Hôm nay chưa có kế hoạch.'), findsNothing);
+    });
+
+    testWidgets('Empty AI: gợi ý prompt chạm để điền vào ô nhập',
+        (WidgetTester tester) async {
+      // Chat history trống → màn AI ở trạng thái intro (mục 33 — Empty AI).
+      StorageService.setString('ai_chat_history_v1', '');
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(body: AiCoachScreen()),
+      ));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Gợi ý prompt hiển thị dạng chip.
+      expect(find.text('Lập kế hoạch 3 ngày trước thi'), findsOneWidget);
+
+      // Chạm chip → prompt được điền vào ô nhập, KHÔNG tự gửi (mục 10.4).
+      await tester.tap(find.text('Lập kế hoạch 3 ngày trước thi'));
+      await tester.pump();
+      expect(find.widgetWithText(TextField, 'Lập kế hoạch 3 ngày trước thi'),
+          findsOneWidget);
     });
   });
 

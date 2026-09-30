@@ -152,17 +152,53 @@ class TodayMissionCard extends StatelessWidget {
             const SizedBox(height: 8),
             ...tasks.map((task) => _buildTaskItem(task)),
           ] else ...[
-            const SizedBox(height: 8),
-            Center(
+            // Empty state đúng đặc tả mục 33 — Empty Task: câu dẫn nhẹ
+            // nhàng + 2 actions rõ ràng (Tạo kế hoạch / Gợi ý sẵn).
+            const SizedBox(height: 4),
+            const Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: EdgeInsets.symmetric(vertical: 6),
                 child: Text(
-                  'Chưa có nhiệm vụ. Nhấn + để thêm!',
+                  'Hôm nay chưa có kế hoạch.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                 ),
               ),
             ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onAddTask,
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      side: const BorderSide(color: AppColors.primary),
+                      foregroundColor: AppColors.primaryDark,
+                    ),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Tạo kế hoạch',
+                        style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                if (onAddSample != null) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onAddSample,
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        side: const BorderSide(color: AppColors.blue),
+                        foregroundColor: AppColors.blueDark,
+                      ),
+                      icon: const Icon(Icons.auto_awesome_rounded, size: 15),
+                      label: const Text('Gợi ý sẵn',
+                          style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
           ],
         ],
       ),

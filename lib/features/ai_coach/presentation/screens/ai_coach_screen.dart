@@ -533,18 +533,54 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
             itemCount: _messages.length + (_isIntroOnly ? 1 : 0),
             itemBuilder: (ctx, i) {
               if (_isIntroOnly && i == 0) {
+                // Empty AI (đặc tả mục 33): mascot + gợi ý prompt — chạm
+                // để điền vào ô nhập, người dùng tự quyết định gửi (mục
+                // 10.4). Gợi ý mang tính cá nhân hóa theo môn đang học.
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Center(
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/mascot.png',
-                        width: 116,
-                        height: 116,
-                        fit: BoxFit.contain,
-                        cacheWidth: 348,
+                  child: Column(
+                    children: [
+                      Center(
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/mascot.png',
+                            width: 116,
+                            height: 116,
+                            fit: BoxFit.contain,
+                            cacheWidth: 348,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      Text('Hôm nay ôn gì together? 🦁',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          for (final prompt in const [
+                            'Giải thích dạng bài đạo hàm lớp 12',
+                            'Lập kế hoạch 3 ngày trước thi',
+                            'Kiểm tra lần này sai ở đâu?',
+                          ])
+                            ActionChip(
+                              label: Text(prompt,
+                                  style: const TextStyle(fontSize: 12)),
+                              onPressed: () {
+                                _ctrl.text = prompt;
+                                _ctrl.selection = TextSelection.collapsed(
+                                    offset: prompt.length);
+                                _focusNode.requestFocus();
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 );
               }
