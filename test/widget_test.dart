@@ -1522,6 +1522,55 @@ void main() {
     });
   });
 
+  group('Reschedule check (mục 13 — Warning + AI alternative)', () {
+    test('Ngày mới trước deadline → không warning', () {
+      final t = TodayTask(
+        id: 'r1',
+        title: 'Ôn Hàm số',
+        subject: '📐 Toán',
+        deadline: DateTime(2026, 10, 10),
+      );
+      final check = checkReschedule(
+        t,
+        DateTime(2026, 10, 5),
+        now: DateTime(2026, 9, 30, 10),
+      );
+      expect(check.exceedsDeadline, isFalse);
+      expect(check.alternative, isNull);
+    });
+
+    test('Không có deadline → không bao giờ warning', () {
+      final t = TodayTask(id: 'r2', title: 'Đọc thêm', subject: '📖 Văn');
+      final check = checkReschedule(
+        t,
+        DateTime(2026, 11, 1),
+        now: DateTime(2026, 9, 30, 10),
+      );
+      expect(check.exceedsDeadline, isFalse);
+    });
+
+    test('Vượt deadline → warning + AI đề xuất ngày trước deadline', () {
+      final t = TodayTask(
+        id: 'r3',
+        title: 'Luyện đề',
+        subject: '📐 Toán',
+        deadline: DateTime(2026, 10, 2),
+      );
+      final check = checkReschedule(
+        t,
+        DateTime(2026, 10, 5), // trễ hơn deadline 2/10.
+        now: DateTime(2026, 9, 30, 10),
+      );
+      expect(check.exceedsDeadline, isTrue);
+      expect(check.alternative, isNotNull);
+      // Đề xuất phải trước deadline.
+      expect(
+        check.alternative!.proposedStart.isBefore(DateTime(2026, 10, 2)),
+        isTrue,
+      );
+    });
+  });
+
   group('Quick Add parser (đặc tả mục 25)', () {
     final now = DateTime(2026, 9, 30, 10); // thứ Tư.
 

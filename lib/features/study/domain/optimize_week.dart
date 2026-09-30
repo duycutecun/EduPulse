@@ -167,3 +167,51 @@ int _priorityWeight(String priority) => switch (priority) {
       'medium' => 1,
       _ => 2,
     };
+
+/// Kết quả kiểm tra một lần dời lịch task (đặc tả mục 13 — Scheduling:
+/// "Nếu schedule vượt deadline → Warning + AI alternative").
+class ScheduleChangeCheck {
+  /// Ngày mới có trễ hơn deadline không (so ngày, bỏ giờ).
+  final bool exceedsDeadline;
+
+  /// Đề xuất thay thế từ AI khi vượt deadline — ngày sớm nhất còn quỹ
+  /// thời gian và KHÔNG vượt deadline. Null khi không tìm được.
+  final WeekPlanProposal? alternative;
+
+  const ScheduleChangeCheck({
+    required this.exceedsDeadline,
+    this.alternative,
+  });
+}
+
+/// Kiểm tra việc dời [task] sang [newDay] — dùng trước khi ghi nhận thay
+/// đổi để UI hiện xác nhận/warning đúng đặc tả mục 13.
+ScheduleChangeCheck checkReschedule(
+  TodayTask task,
+  DateTime newDay, {
+  List<StudySession> sessions = const [],
+  DateTime? now,
+}) {
+  final deadline = task.deadline;
+  if (deadline == null) {
+    return const ScheduleChangeCheck(exceedsDeadline: false);
+  }
+  final newDate = DateTime(newDay.year, newDay.month, newDay.day);
+  final deadlineDate =
+      DateTime(deadline.year, deadline.month, deadline.day);
+  if (!newDate.isAfter(deadlineDate)) {
+    return const ScheduleChangeCheck(exceedsDeadline: false);
+  }
+
+  // Vượt deadline → AI đề xuất ngày khác: ngày sớm nhất còn quỹ, luôn
+  // trước deadline (proposeWeekPlan đã có rule dừng trước deadline ≥ 1 ngày).
+  final proposals = proposeWeekPlan(
+    [task],
+    sessions: sessions,
+    now: now ?? DateTime.now(),
+  );
+  return ScheduleChangeCheck(
+    exceedsDeadline: true,
+    alternative: proposals.isEmpty ? null : proposals.first,
+  );
+}

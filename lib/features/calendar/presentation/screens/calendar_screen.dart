@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/optimize_week.dart';
 import '../../../notes/presentation/screens/notes_screen.dart';
@@ -55,6 +56,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
   StudySession? _sessionOrNull(String value) {
     try {
       return StudySession.fromJsonString(value);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Kỳ thi chính + revision milestone (mục 13: calendar hiển thị
+  /// Primary exam + Important milestones).
+  ExamModel? get _primaryExam {
+    final id = StorageService.getPrimaryExamId();
+    if (id == null) return null;
+    final json = StorageService.getExamJson(id);
+    if (json == null) return null;
+    try {
+      return ExamModel.fromJsonString(json);
     } catch (_) {
       return null;
     }
@@ -327,17 +342,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 itemBuilder: (_, index) {
                   final day = days[index];
                   final selected = _isSameDay(day, _selectedDay);
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => setState(() => _selectedDay = day),
-                    child: Container(
-                      width: 58,
-                      decoration: BoxDecoration(color: selected ? AppColors.primary : AppColors.cardWhite, borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? AppColors.primary : AppColors.border)),
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text(_weekday(day), style: TextStyle(fontSize: 11, color: selected ? Colors.white : AppColors.textMuted)),
-                        const SizedBox(height: 5),
-                        Text('${day.day}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: selected ? Colors.white : AppColors.textPrimary)),
-                      ]),
+                  // DragTarget cho desktop drag (mục 13): thả task vào
+                  // ngày bất kỳ, có xác nhận trước khi đổi.
+                  return DragTarget<TodayTask>(
+                    onWillAcceptWithDetails: (details) => true,
+                    onAcceptWithDetails: (details) =>
+                        _confirmReschedule(details.data, day),
+                    builder: (context, candidate, rejected) => InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => setState(() => _selectedDay = day),
+                      child: Container(
+                        width: 58,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary
+                              : (candidate.isNotEmpty
+                                  ? AppColors.blueSoft
+                                  : AppColors.cardWhite),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selected
+                                ? AppColors.primary
+                                : (candidate.isNotEmpty
+                                    ? AppColors.blue
+                                    : AppColors.border),
+                            width: candidate.isNotEmpty ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text(_weekday(day), style: TextStyle(fontSize: 11, color: selected ? Colors.white : AppColors.textMuted)),
+                          const SizedBox(height: 5),
+                          Text('${day.day}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: selected ? Colors.white : AppColors.textPrimary)),
+                        ]),
+                      ),
                     ),
                   );
                 },
@@ -362,6 +399,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ..._scheduledTasks.map((task) => _TaskAgendaRow(task: task)),
               ..._daySessions.map((session) => _SessionAgendaRow(session: session)),
             ],
+            // Exam + milestones của ngày đã chọn (mục 13).
+            ..._examRowsForDay(_selectedDay),
           ],
         ),
       ),
@@ -370,6 +409,117 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   String _weekday(DateTime date) => const ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][date.weekday - 1];
   String _dayTitle(DateTime date) => '${_weekday(date)}, ${date.day}/${date.month}';
+
+  /// Desktop drag (mục 13 — Scheduling): xác nhận trước khi thay đổi;
+  /// vượt deadline → Warning + AI alternative (đề xuất ngày khác hoặc
+  /// giữ nguyên).
+  void _confirmReschedule(TodayTask task, DateTime newDay) {
+    final check = checkReschedule(task, newDay, sessions: _sessions);
+
+    if (!check.exceedsDeadline) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Dời nhiệm vụ?', style: TextStyle(fontWeight: FontWeight.w800)),
+          content: Text(
+              'Chuyển "${task.title}" sang ${_dayTitle(newDay)}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _applyReschedule(task, newDay);
+              },
+              child: const Text('Dời lịch', style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Vượt deadline — Warning + AI alternative (mục 13).
+    final alternative = check.alternative;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [
+          Icon(Icons.warning_amber_rounded, color: AppColors.orange),
+          SizedBox(width: 8),
+          Text('Vượt deadline', style: TextStyle(fontWeight: FontWeight.w800)),
+        ]),
+        content: Text(
+          '"${task.title}" có deadline ${_dayTitle(task.deadline!)}. '
+          'Ngày bạn chọn (${_dayTitle(newDay)}) sẽ trễ hơn deadline.'
+          '${alternative == null ? '' : '\n\nEduPulse đề xuất: ${_dayTitle(alternative.proposedStart)} — ${alternative.reason}.'}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Giữ lịch cũ'),
+          ),
+          if (alternative != null)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _applyReschedule(task, alternative.proposedStart);
+              },
+              child: const Text('Dùng đề xuất'),
+            ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _applyReschedule(task, newDay); // người dùng quyết định.
+            },
+            child: const Text('Vẫn dời', style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _applyReschedule(TodayTask task, DateTime newDay) {
+    task.scheduledAt = _dateOnly(newDay);
+    StorageService.setTodayTaskJson(task.id, task.toJsonString());
+    setState(_load);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Đã dời "${task.title}" sang ${_dayTitle(newDay)}.'),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  /// Exam + revision milestones rơi vào [day] (mục 13: Primary exam,
+  /// Important milestones).
+  List<Widget> _examRowsForDay(DateTime day) {
+    final exam = _primaryExam;
+    if (exam == null) return const [];
+    final rows = <Widget>[];
+    final examDate = _dateOnly(exam.dateTime);
+    // Revision bắt đầu 7 ngày trước thi (đặc tả mục 39).
+    final revisionDate = _dateOnly(exam.dateTime).subtract(const Duration(days: 7));
+    if (_isSameDay(examDate, day)) {
+      rows.add(_ExamAgendaRow(
+        icon: Icons.event_rounded,
+        color: AppColors.red,
+        title: '📅 ${exam.name} — NGÀY THI',
+        subtitle: 'Giờ thi: ${exam.dateTime.hour.toString().padLeft(2, '0')}:${exam.dateTime.minute.toString().padLeft(2, '0')}',
+      ));
+    }
+    if (_isSameDay(revisionDate, day)) {
+      rows.add(const _ExamAgendaRow(
+        icon: Icons.flag_rounded,
+        color: AppColors.orange,
+        title: '🏁 Bắt đầu giai đoạn tổng ôn',
+        subtitle: '7 ngày trước thi — ưu tiên ôn thay vì học mới',
+      ));
+    }
+    return rows;
+  }
 }
 
 class _EmptyAgenda extends StatelessWidget {
@@ -436,6 +586,39 @@ class _SessionAgendaRow extends StatelessWidget {
           const Icon(Icons.timer_outlined, color: AppColors.orange),
           const SizedBox(width: 10),
           Expanded(child: Text('Focus ${session.subject} • ${session.actualMinutes} phút', style: const TextStyle(fontWeight: FontWeight.w700))),
+        ]),
+      );
+}
+
+/// Hàng exam/milestone trong agenda (mục 13).
+class _ExamAgendaRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+
+  const _ExamAgendaRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) => GlassCard(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        borderColor: color.withValues(alpha: 0.5),
+        child: Row(children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 13.5)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            ]),
+          ),
         ]),
       );
 }
