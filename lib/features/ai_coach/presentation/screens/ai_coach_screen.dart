@@ -21,10 +21,12 @@ class AiCoachScreen extends StatefulWidget {
   const AiCoachScreen({super.key});
 
   @override
-  State<AiCoachScreen> createState() => _AiCoachScreenState();
+  AiCoachScreenState createState() => AiCoachScreenState();
 }
 
-class _AiCoachScreenState extends State<AiCoachScreen> {
+/// State công khai để màn hình khác (ví dụ card gợi ý AI ở Home) có thể
+/// nhồi một câu hỏi vào hội thoại đang mở mà không phải tạo lại screen.
+class AiCoachScreenState extends State<AiCoachScreen> {
   final List<ChatMessage> _messages = [];
   final _ctrl = TextEditingController();
   final _scrollCtrl = ScrollController();
@@ -36,6 +38,14 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
   String? _selectedImageName;
   AIModel _model = AIModel.defaultModel;
   bool _autoReadImage = false;
+
+  /// Gửi câu hỏi có sẵn vào hội thoại (dùng khi học sinh bấm vào một gợi ý
+  /// AI ở Home — gợi ý đó trở thành một cuộc trò chuyện thật thay vì chỉ là
+  /// dòng chữ tĩnh).
+  void sendPrompt(String text) {
+    if (text.trim().isEmpty) return;
+    _sendMessage(text);
+  }
 
   bool get _isIntroOnly => _messages.length == 1;
 
@@ -66,7 +76,8 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
 
     _messages.add(ChatMessage(
       id: _uuid.v4(),
-      text: 'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n- 🔍 Tra cứu web để biết thêm thông tin\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
+      text:
+          'Chào bạn! Tôi là AI Coach EduPulse — trợ lý giải đề & luyện thi.\n\n- 📷 OCR quét ảnh bài tập\n- 🧠 Chỉ ra bẫy trắc nghiệm\n- 🗺️ Lộ trình cá nhân hóa\n- 🔍 Tra cứu web để biết thêm thông tin\n\nHãy đặt câu hỏi hoặc tải ảnh bài tập!',
       isUser: false,
       timestamp: DateTime.now(),
     ));
@@ -111,12 +122,18 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      }
     }
   }
 
   void _clearImage() {
-    setState(() { _selectedImageBytes = null; _selectedImageName = null; });
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImageName = null;
+    });
   }
 
   /// Phân tích lịch sử chat để tìm chủ đề yếu lặp lại.
@@ -152,7 +169,8 @@ class _AiCoachScreenState extends State<AiCoachScreen> {
     if (userMessages.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Chưa có hội thoại để phân tích — hãy hỏi AI vài bài tập trước!'),
+          content: Text(
+              'Chưa có hội thoại để phân tích — hãy hỏi AI vài bài tập trước!'),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ));
@@ -312,7 +330,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
             children: [
               Row(
                 children: [
-                  const Icon(Icons.quiz_rounded, color: AppColors.purple, size: 22),
+                  const Icon(Icons.quiz_rounded,
+                      color: AppColors.purple, size: 22),
                   const SizedBox(width: 8),
                   Text(
                     'Tạo quiz từ ảnh',
@@ -326,7 +345,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
               const SizedBox(height: 10),
               Text(
                 'AI sẽ đọc nội dung "$name" và tạo 5 câu hỏi trắc nghiệm để bạn luyện ngay.',
-                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                style:
+                    TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -447,7 +467,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
             ),
             backgroundColor: const Color(0xFFE65100),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -461,10 +482,25 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     final attachedName = _selectedImageName;
     _clearImage();
 
-    final userMsg = ChatMessage(id: _uuid.v4(), text: messageText, isUser: true, timestamp: DateTime.now(), imageBytes: attachedImage, imageName: attachedName);
-    final loadingMsg = ChatMessage(id: _uuid.v4(), text: '', isUser: false, timestamp: DateTime.now(), isLoading: true);
+    final userMsg = ChatMessage(
+        id: _uuid.v4(),
+        text: messageText,
+        isUser: true,
+        timestamp: DateTime.now(),
+        imageBytes: attachedImage,
+        imageName: attachedName);
+    final loadingMsg = ChatMessage(
+        id: _uuid.v4(),
+        text: '',
+        isUser: false,
+        timestamp: DateTime.now(),
+        isLoading: true);
 
-    setState(() { _messages.add(userMsg); _messages.add(loadingMsg); _isLoading = true; });
+    setState(() {
+      _messages.add(userMsg);
+      _messages.add(loadingMsg);
+      _isLoading = true;
+    });
     _saveChatHistory();
     _scrollToBottom();
 
@@ -518,9 +554,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     try {
       response = await AiRouter.chat(
         model: _model,
-        history: _messages
-            .where((m) => !m.isLoading && m != loadingMsg)
-            .toList(),
+        history:
+            _messages.where((m) => !m.isLoading && m != loadingMsg).toList(),
         userMessage: userMessage.text,
         imageBytes: userMessage.imageBytes,
       );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants/app_colors.dart';
+import '../core/ai/ai_insights.dart';
 import '../core/migration/data_migration.dart';
 import '../core/pwa/pwa_service.dart';
 import '../core/sync/sync_state.dart';
@@ -39,6 +40,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
   final List<bool> _visited = List.filled(3, false);
   Widget? _cachedAiCoach;
   Widget? _cachedAccount;
+
+  /// Khoá để gọi được [AiCoachScreenState.sendPrompt] — tab AI được giữ trong
+  /// IndexedStack nên screen tồn tại xuyên suốt, không cần tạo lại.
+  final _aiCoachKey = GlobalKey<AiCoachScreenState>();
+
   bool _sidebarCollapsed = SidebarPreference.isCollapsed;
 
   @override
@@ -80,7 +86,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
       _switchTab(2);
       return true;
     }
-    if (event.logicalKey == LogicalKeyboardKey.keyB && isDesktopWidth(context)) {
+    if (event.logicalKey == LogicalKeyboardKey.keyB &&
+        isDesktopWidth(context)) {
       setState(() {
         _sidebarCollapsed = !_sidebarCollapsed;
         SidebarPreference.setCollapsed(_sidebarCollapsed);
@@ -129,6 +136,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _setPrimaryExam(ExamModel exam) {
     StorageService.setPrimaryExamId(exam.id);
+    // Gợi ý AI cũ nói về kỳ thi cũ nên phải tính lại, nếu không thẻ ở Home
+    // sẽ tư vấn sai bối cảnh.
+    AiInsights.invalidate();
     setState(() {
       _primaryExamId = exam.id;
     });
@@ -136,6 +146,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _addExam(ExamModel exam) {
     StorageService.setExamJson(exam.id, exam.toJsonString());
+    AiInsights.invalidate();
     final ids = StorageService.getExamIds();
     if (!ids.contains(exam.id)) {
       ids.add(exam.id);
@@ -185,9 +196,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     if (current != null && !current.isExamDayOver) return current;
     if (current != null && current.isExamDayOver) {
       // Tự chuyển primary exam + giữ kỳ thi cũ trong lịch sử.
-      final upcoming = _upcomingExams
-          .where((e) => e.id != current.id)
-          .toList()
+      final upcoming = _upcomingExams.where((e) => e.id != current.id).toList()
         ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
       if (upcoming.isNotEmpty) {
         final next = upcoming.first;
@@ -222,6 +231,19 @@ class _MainShellScreenState extends State<MainShellScreen> {
         _visited[index] = true;
       });
     }
+  }
+
+  /// Mở tab AI Coach với một câu hỏi có sẵn.
+  ///
+  /// Dùng khi học sinh bấm vào một gợi ý AI ở Home: chuyển sang tab AI rồi
+  /// nhồi câu đó vào hội thoại, để gợi ý trở thành cuộc trò chuyện thật.
+  /// Phải chờ một frame vì screen AI chỉ được dựng khi tab đó hiện.
+  void _openAiCoachWith(String prompt) {
+    if (prompt.trim().isEmpty) return;
+    _switchTab(1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _aiCoachKey.currentState?.sendPrompt(prompt);
+    });
   }
 
   /// Mở "Mục tiêu" (kỳ thi) và "Tập trung" (Pomodoro/Nhật ký) dưới dạng
@@ -277,6 +299,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           onExamTap: _openExamsPage,
           onOpenStudy: _openStudyPage,
           onOpenAiCoach: () => _switchTab(1),
+          onOpenAiCoachWith: _openAiCoachWith,
           onOpenCalendar: _openCalendarPage,
           streak: _streak,
           isActive: _currentIndex == 0,
@@ -320,10 +343,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
       children: [
         _tabAt(0),
         _visited[1]
-            ? (_cachedAiCoach ??= const AiCoachScreen())
+            ? (_cachedAiCoach ??= AiCoachScreen(key: _aiCoachKey))
             : const SizedBox.shrink(),
         _visited[2]
-            ? (_cachedAccount ??= AccountScreen(onDataChanged: _loadInitialData))
+            ? (_cachedAccount ??=
+                AccountScreen(onDataChanged: _loadInitialData))
             : const SizedBox.shrink(),
       ],
     );
@@ -383,14 +407,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 onChanged: _switchTab,
                 items: const [
                   NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
-                  NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome,
-                      'AI'),
+                  NavItem(
+                      Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
                   NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
                 ],
                 children: [
                   _tabAt(0),
                   _visited[1]
-                      ? (_cachedAiCoach ??= const AiCoachScreen())
+                      ? (_cachedAiCoach ??= AiCoachScreen(key: _aiCoachKey))
                       : const SizedBox.shrink(),
                   _visited[2]
                       ? (_cachedAccount ??=
@@ -435,7 +459,8 @@ class _InstallBannerState extends State<_InstallBanner> {
 
         final isAndroidInstall = installable && !isIosPlatform;
         final bg = isAndroidInstall ? AppColors.greenSoft : AppColors.blueSoft;
-        final borderColor = isAndroidInstall ? AppColors.primary : AppColors.blue;
+        final borderColor =
+            isAndroidInstall ? AppColors.primary : AppColors.blue;
         final iconColor =
             isAndroidInstall ? AppColors.primaryDark : AppColors.blueDark;
 

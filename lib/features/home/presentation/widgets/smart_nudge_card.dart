@@ -19,7 +19,6 @@ class SmartNudgeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recommendation = _recommendation();
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -64,7 +63,8 @@ class SmartNudgeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Gợi ý cho bạn',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
                 Text(
                   recommendation.text,
@@ -100,43 +100,63 @@ class SmartNudgeCard extends StatelessWidget {
     );
   }
 
-  _Recommendation _recommendation() {
-    final overdue = tasks.where((task) =>
-        !task.isDone &&
-        task.deadline != null &&
-        DateUtils.dateOnly(task.deadline!).isBefore(DateUtils.dateOnly(DateTime.now()))).length;
-    final skipped = tasks.where((task) => task.status == 'skipped').length;
-    final incomplete = tasks.where((task) => !task.isDone && task.status != 'skipped').length;
+  _Recommendation _recommendation() =>
+      _ruleBasedNudge(tasks: tasks, primaryExam: primaryExam);
 
-    if (overdue > 0) {
-      return _Recommendation(
-        'Bạn có $overdue nhiệm vụ quá hạn. Hãy chọn một việc nhỏ nhất để bắt đầu lại.',
-        'Dựa trên deadline đã lưu.',
-      );
-    }
-    if (skipped >= 2) {
-      return _Recommendation(
-        'Một số nhiệm vụ đã bị bỏ qua. Có thể nên chia nhỏ hoặc dời lịch thay vì dồn lại.',
-        'Dựa trên $skipped nhiệm vụ đã bỏ qua.',
-      );
-    }
-    if (primaryExam != null && primaryExam!.daysLeft < 30 && incomplete == 0) {
-      return _Recommendation(
-        'Kỳ thi đang gần. Hãy tạo một nhiệm vụ ôn tập ngắn cho hôm nay.',
-        'Còn ${primaryExam!.daysLeft} ngày đến ${primaryExam!.name}.',
-      );
-    }
-    if (incomplete >= 5) {
-      return _Recommendation(
-        'Danh sách hôm nay khá dài. Hãy ưu tiên một nhiệm vụ quan trọng và bắt đầu Focus.',
-        'Dựa trên $incomplete nhiệm vụ chưa hoàn thành.',
-      );
-    }
-    return const _Recommendation(
-      'Một phiên Focus 25 phút là đủ để tạo đà. Bạn không cần hoàn hảo để bắt đầu.',
-      null,
+  /// Câu gợi ý quy tắc — [AiSuggestionCard] dùng làm nội dung dự phòng khi
+  /// AI chưa phân tích được (mất mạng, hết quota, hay user mới chưa có dữ liệu).
+  static String fallbackText({
+    required List<TodayTask> tasks,
+    ExamModel? primaryExam,
+  }) =>
+      _ruleBasedNudge(tasks: tasks, primaryExam: primaryExam).text;
+}
+
+/// Gợi ý quy tắc (không cần mạng, không cần AI) — dùng làm phần dự phòng khi
+/// AI chưa có phân tích nào, để Home luôn có việc để làm.
+_Recommendation _ruleBasedNudge({
+  required List<TodayTask> tasks,
+  ExamModel? primaryExam,
+}) {
+  final overdue = tasks
+      .where((task) =>
+          !task.isDone &&
+          task.deadline != null &&
+          DateUtils.dateOnly(task.deadline!)
+              .isBefore(DateUtils.dateOnly(DateTime.now())))
+      .length;
+  final skipped = tasks.where((task) => task.status == 'skipped').length;
+  final incomplete =
+      tasks.where((task) => !task.isDone && task.status != 'skipped').length;
+
+  if (overdue > 0) {
+    return _Recommendation(
+      'Bạn có $overdue nhiệm vụ quá hạn. Hãy chọn một việc nhỏ nhất để bắt đầu lại.',
+      'Dựa trên deadline đã lưu.',
     );
   }
+  if (skipped >= 2) {
+    return _Recommendation(
+      'Một số nhiệm vụ đã bị bỏ qua. Có thể nên chia nhỏ hoặc dời lịch thay vì dồn lại.',
+      'Dựa trên $skipped nhiệm vụ đã bỏ qua.',
+    );
+  }
+  if (primaryExam != null && primaryExam.daysLeft < 30 && incomplete == 0) {
+    return _Recommendation(
+      'Kỳ thi đang gần. Hãy tạo một nhiệm vụ ôn tập ngắn cho hôm nay.',
+      'Còn ${primaryExam.daysLeft} ngày đến ${primaryExam.name}.',
+    );
+  }
+  if (incomplete >= 5) {
+    return _Recommendation(
+      'Danh sách hôm nay khá dài. Hãy ưu tiên một nhiệm vụ quan trọng và bắt đầu Focus.',
+      'Dựa trên $incomplete nhiệm vụ chưa hoàn thành.',
+    );
+  }
+  return const _Recommendation(
+    'Một phiên Focus 25 phút là đủ để tạo đà. Bạn không cần hoàn hảo để bắt đầu.',
+    null,
+  );
 }
 
 class _Recommendation {

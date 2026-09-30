@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/ai/free_models_catalog.dart';
+import 'core/ai/ai_insights.dart';
 import 'core/migration/data_migration.dart';
 import 'core/notifications/adaptive_policy.dart';
 import 'core/notifications/notification_service.dart';
@@ -35,6 +36,11 @@ void main() async {
     await NotificationService.init();
     // Làm mới danh sách model AI miễn phí (OpenRouter) ở nền — cache 24h.
     FreeModelsCatalog.ensureLoaded();
+    // AI tự phân tích tiến độ và đẩy gợi ý lên Home. Gọi ở đây (một lần mỗi
+    // lần mở app) thay vì trong card, để không phát sinh request khi dựng
+    // widget và không gọi model khi cache còn hạn (TTL 6h). Kết quả được
+    // ghi cache, card ở Home chỉ đọc nên mở app vẫn tức thì.
+    AiInsights.load();
     // Khi đã online, đẩy dữ liệu local lên cloud ngay sau khi kết nối sẵn sàng.
     // Qua SyncStateService để mọi UI (banner, sidebar, tab Tôi) phản ánh
     // trạng thái Syncing → Synced (đặc tả mục 19).
@@ -98,7 +104,8 @@ class EduPulseApp extends StatelessWidget {
           return ValueListenableBuilder<double>(
             valueListenable: AppearanceService.fontScale,
             builder: (context, _, builtChild) {
-              final Widget content = builtChild ?? child ?? const SizedBox.shrink();
+              final Widget content =
+                  builtChild ?? child ?? const SizedBox.shrink();
               return MediaQuery(
                 data: (media ?? const MediaQueryData()).copyWith(
                   textScaler: TextScaler.linear(
@@ -133,4 +140,4 @@ class EduPulseApp extends StatelessWidget {
         ? const MainShellScreen()
         : const OnboardingScreen();
   }
-}
+}

@@ -15,6 +15,7 @@ import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/smart_nudge_card.dart';
+import '../widgets/ai_suggestion_card.dart';
 import '../widgets/today_mission_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,6 +24,10 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onExamTap;
   final VoidCallback onOpenStudy;
   final VoidCallback onOpenAiCoach;
+
+  /// Mở AI Coach kèm sẵn câu hỏi — dùng khi học sinh bấm vào một gợi ý AI.
+  /// Có thể null thì bấm gợi ý chỉ chuyển tab AI như thường.
+  final ValueChanged<String>? onOpenAiCoachWith;
   final VoidCallback onOpenCalendar;
   final int streak;
   final bool isActive;
@@ -39,6 +44,7 @@ class HomeScreen extends StatefulWidget {
     required this.streak,
     this.isActive = true,
     this.onStreakChanged,
+    this.onOpenAiCoachWith,
   });
 
   @override
@@ -244,10 +250,12 @@ class _HomeScreenState extends State<HomeScreen> {
       goalId: completedTask.goalId,
       subtasks: completedTask.subtasks,
       recurrence: recurrence,
-      scheduledAt: DateTime(base.year, base.month, base.day).add(Duration(days: days)),
+      scheduledAt:
+          DateTime(base.year, base.month, base.day).add(Duration(days: days)),
     );
     StorageService.setTodayTaskJson(next.id, next.toJsonString());
-    StorageService.setTodayTaskIds([...StorageService.getTodayTaskIds(), next.id]);
+    StorageService.setTodayTaskIds(
+        [...StorageService.getTodayTaskIds(), next.id]);
     _allTasks.add(next);
   }
 
@@ -282,7 +290,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       task.isDone = false;
                       task.status = 'skipped';
                       task.skipReason = reason;
-                      StorageService.setTodayTaskJson(task.id, task.toJsonString());
+                      StorageService.setTodayTaskJson(
+                          task.id, task.toJsonString());
                       Navigator.pop(sheetContext);
                       setState(() {});
                     },
@@ -308,8 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(Icons.content_cut_rounded, color: AppColors.orange),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Dời lại lần nữa?',
-                  style: TextStyle(fontSize: 17)),
+              child: Text('Dời lại lần nữa?', style: TextStyle(fontSize: 17)),
             ),
           ]),
           content: Text(splitTip),
@@ -333,9 +341,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final selected = await showDatePicker(
       context: context,
-      initialDate: task.scheduledAt?.isAfter(now) == true
-          ? task.scheduledAt!
-          : now,
+      initialDate:
+          task.scheduledAt?.isAfter(now) == true ? task.scheduledAt! : now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 10),
       helpText: 'Chọn ngày làm nhiệm vụ',
@@ -362,8 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// MainShell đọc lại streak sau khi task thay đổi để header cập nhật 🔥.
   void _notifyStreakChanged() {
-    if (StorageService.getString('last_study_date') ==
-        _todayKey()) {
+    if (StorageService.getString('last_study_date') == _todayKey()) {
       widget.onStreakChanged?.call();
     }
   }
@@ -435,10 +441,13 @@ class _HomeScreenState extends State<HomeScreen> {
             onQuickAdd: _showQuickAddSheet,
           ),
           const SizedBox(height: 14),
-          SmartNudgeCard(
-            tasks: _tasks,
-            primaryExam: widget.primaryExam,
+          AiSuggestionCard(
+            fallback: SmartNudgeCard.fallbackText(
+              tasks: _tasks,
+              primaryExam: widget.primaryExam,
+            ),
             onAskAi: widget.onOpenAiCoach,
+            onOpenInsight: widget.onOpenAiCoachWith,
           ),
         ],
       ),
@@ -497,7 +506,8 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Thêm nhanh — viết tự nhiên',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 const Text('VD: "Mai 19h học toán hàm số 45 phút"',
                     style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
@@ -570,7 +580,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: EdgeInsets.only(bottom: 8),
                     child: Text(
                       'Chưa nhận ra đủ dữ kiện — thêm giờ hoặc thời lượng nhé.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style:
+                          TextStyle(fontSize: 12, color: AppColors.textMuted),
                     ),
                   ),
               ],
@@ -647,8 +658,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                 child: Container(
                   margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.bgPage,
                     borderRadius: BorderRadius.circular(12),
@@ -732,7 +743,8 @@ class _RevisionModeCard extends StatelessWidget {
               color: AppColors.orangeSoft,
               shape: BoxShape.circle,
             ),
-            child: const Center(child: Text('📚', style: TextStyle(fontSize: 22))),
+            child:
+                const Center(child: Text('📚', style: TextStyle(fontSize: 22))),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -967,8 +979,8 @@ class _PostExamCard extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              final parsed = double.tryParse(
-                  controller.text.trim().replaceAll(',', '.'));
+              final parsed =
+                  double.tryParse(controller.text.trim().replaceAll(',', '.'));
               if (parsed == null || parsed < 0 || parsed > 10) return;
               Navigator.pop(dialogContext, parsed);
             },
@@ -1042,9 +1054,7 @@ class _PostExamCard extends StatelessWidget {
           Text(
             subtitle,
             style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.textSecondary,
-                height: 1.35),
+                fontSize: 12.5, color: AppColors.textSecondary, height: 1.35),
           ),
           if (hasResult) ...[
             const SizedBox(height: 10),
@@ -1123,7 +1133,8 @@ class _AddTaskDialog extends StatefulWidget {
     this.primaryExamId,
   });
 
-  final void Function(String title, String subject, String priority, int minutes,
+  final void Function(
+      String title, String subject, String priority, int minutes,
       {String? topic,
       DateTime? deadline,
       String? note,
@@ -1219,205 +1230,205 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
-        ),
-        title: const Text('Thêm nhiệm vụ',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration(
-                  hintText: 'Tên nhiệm vụ (VD: Giải 1 đề Toán)',
-                ),
-                autofocus: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.border, width: 2),
+      ),
+      title: const Text('Thêm nhiệm vụ',
+          style: TextStyle(fontWeight: FontWeight.w800)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _titleCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Tên nhiệm vụ (VD: Giải 1 đề Toán)',
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _topicCtrl,
-                decoration: const InputDecoration(
-                  hintText: 'Chủ đề (không bắt buộc)',
-                ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _topicCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Chủ đề (không bắt buộc)',
               ),
-              const SizedBox(height: 12),
-              const Text('Chọn môn:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _subjects.map((sub) {
-                  final sel = _subject == sub;
-                  return GestureDetector(
-                    onTap: () => setState(() => _subject = sub),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: sel ? AppColors.primary : AppColors.bgPage,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: sel ? AppColors.primary : AppColors.border,
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        sub,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: sel ? Colors.white : AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Chọn môn:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _subjects.map((sub) {
+                final sel = _subject == sub;
+                return GestureDetector(
+                  onTap: () => setState(() => _subject = sub),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.primary : AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: sel ? AppColors.primary : AppColors.border,
+                        width: 2,
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _pickDeadline,
-                icon: const Icon(Icons.event_outlined, size: 18),
-                label: Text(_deadline == null
-                    ? 'Thêm hạn hoàn thành'
-                    : 'Hạn: ${_deadline!.day.toString().padLeft(2, '0')}/${_deadline!.month.toString().padLeft(2, '0')}/${_deadline!.year}'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _noteCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Ghi chú (không bắt buộc)',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _subtasksCtrl,
-                decoration: const InputDecoration(
-                  hintText: 'Việc nhỏ (ngăn cách bằng dấu phẩy)',
-                ),
-              ),
-              if (widget.exams.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  initialValue: _goalId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Kỳ thi / Mục tiêu'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Chưa gắn mục tiêu'),
-                    ),
-                    ...widget.exams.map(
-                      (exam) => DropdownMenuItem<String?>(
-                        value: exam.id,
-                        child: Text(exam.name,
-                            overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      sub,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: sel ? Colors.white : AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                  onChanged: (value) => setState(() => _goalId = value),
-                ),
-              ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _pickDeadline,
+              icon: const Icon(Icons.event_outlined, size: 18),
+              label: Text(_deadline == null
+                  ? 'Thêm hạn hoàn thành'
+                  : 'Hạn: ${_deadline!.day.toString().padLeft(2, '0')}/${_deadline!.month.toString().padLeft(2, '0')}/${_deadline!.year}'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _noteCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: 'Ghi chú (không bắt buộc)',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _subtasksCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Việc nhỏ (ngăn cách bằng dấu phẩy)',
+              ),
+            ),
+            if (widget.exams.isNotEmpty) ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
-                initialValue: _recurrence,
+                initialValue: _goalId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Lặp lại'),
-                items: const [
-                  DropdownMenuItem(value: null, child: Text('Không lặp lại')),
-                  DropdownMenuItem(value: 'daily', child: Text('Mỗi ngày')),
-                  DropdownMenuItem(value: 'weekly', child: Text('Mỗi tuần')),
+                decoration:
+                    const InputDecoration(labelText: 'Kỳ thi / Mục tiêu'),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Chưa gắn mục tiêu'),
+                  ),
+                  ...widget.exams.map(
+                    (exam) => DropdownMenuItem<String?>(
+                      value: exam.id,
+                      child: Text(exam.name, overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
                 ],
-                onChanged: (value) => setState(() => _recurrence = value),
-              ),
-              const SizedBox(height: 12),
-              const Text('Thời gian:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _durations.map((dur) {
-                  final sel = _minutes == dur;
-                  return GestureDetector(
-                    onTap: () => setState(() => _minutes = dur),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: sel ? AppColors.blue : AppColors.bgPage,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: sel ? AppColors.blue : AppColors.border,
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        '$dur phút',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: sel ? Colors.white : AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-              const Text('Mức ưu tiên:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _priorities.entries.map((e) {
-                  final sel = _priority == e.key;
-                  return GestureDetector(
-                    onTap: () => setState(() => _priority = e.key),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: sel ? AppColors.orange : AppColors.bgPage,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: sel ? AppColors.orange : AppColors.border,
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        e.value,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: sel ? Colors.white : AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                onChanged: (value) => setState(() => _goalId = value),
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              initialValue: _recurrence,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Lặp lại'),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('Không lặp lại')),
+                DropdownMenuItem(value: 'daily', child: Text('Mỗi ngày')),
+                DropdownMenuItem(value: 'weekly', child: Text('Mỗi tuần')),
+              ],
+              onChanged: (value) => setState(() => _recurrence = value),
+            ),
+            const SizedBox(height: 12),
+            const Text('Thời gian:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _durations.map((dur) {
+                final sel = _minutes == dur;
+                return GestureDetector(
+                  onTap: () => setState(() => _minutes = dur),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.blue : AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: sel ? AppColors.blue : AppColors.border,
+                        width: 2,
+                      ),
+                    ),
+                    child: Text(
+                      '$dur phút',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: sel ? Colors.white : AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            const Text('Mức ưu tiên:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _priorities.entries.map((e) {
+                final sel = _priority == e.key;
+                return GestureDetector(
+                  onTap: () => setState(() => _priority = e.key),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.orange : AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: sel ? AppColors.orange : AppColors.border,
+                        width: 2,
+                      ),
+                    ),
+                    child: Text(
+                      e.value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: sel ? Colors.white : AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
-          ),
-          TextButton(
-            onPressed: _submit,
-            child: const Text('Thêm',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
-          ),
-        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+        ),
+        TextButton(
+          onPressed: _submit,
+          child: const Text('Thêm',
+              style: TextStyle(
+                  color: AppColors.primary, fontWeight: FontWeight.w800)),
+        ),
+      ],
     );
   }
 }
