@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/ai/free_models_catalog.dart';
 import 'core/ai/ai_insights.dart';
+import 'core/ai/ai_refresh_service.dart';
 import 'core/migration/data_migration.dart';
 import 'core/notifications/adaptive_policy.dart';
 import 'core/notifications/notification_service.dart';
@@ -73,6 +74,12 @@ void main() async {
       sessions: const [],
       primaryExam: null,
     );
+
+    // Chu trình AI khép kín: mở app là dữ liệu mới nhất được AI nhìn thấy —
+    // bản tin/gợi ý tính lại nền (guard test/native-key tự chặn nếu không có
+    // kênh gọi), flashcard đến hạn được dời lời nhắc 18:00.
+    AiRefreshService.refreshNow();
+    AdaptivePolicy.syncFlashcardReminder();
   });
 }
 

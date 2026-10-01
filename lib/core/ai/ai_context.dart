@@ -4,7 +4,10 @@ import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../utils/storage_service.dart';
 import 'flashcard_service.dart';
+import 'exam_countdown_strategy.dart';
+import 'learning_pattern_detector.dart';
 import 'readiness_score.dart';
+import 'study_wellbeing_signal.dart';
 
 /// Gom dữ liệu học tập của học sinh thành một khối văn bản gửi kèm mọi
 /// câu hỏi cho AI Coach (đặc tả mục 10.2).
@@ -49,6 +52,8 @@ class AiStudyContext {
     _readiness(add);
     _tasks(add);
     _sessions(add, t);
+    _learningPatterns(add, t);
+    _wellbeing(add, t);
     _logs(add, t);
     _mockScores(add, t);
     _notes(add);
@@ -95,7 +100,9 @@ class AiStudyContext {
     if (main == null) return;
     final focus = main;
 
-    final left = focus.daysLeft;
+    // Dùng cùng mốc [now] với toàn bộ context để preview/test không bị lệch
+    // ngày và để AI luôn nhận một trạng thái nhất quán.
+    final left = focus.dateTime.difference(now).inDays;
     final when = left > 0
         ? 'còn $left ngày'
         : left == 0
@@ -106,14 +113,15 @@ class AiStudyContext {
     final score = hasScore
         ? ' · điểm ${_score(focus.currentScore)} → mục tiêu ${_score(focus.targetScore)}'
         : '';
-    add('KỲ THI CHÍNH: ${focus.name} ($when, ngày $date · ${_phase(focus)}$score)');
+    add('KỲ THI CHÍNH: ${focus.name} ($when, ngày $date · ${_phase(left)}$score)');
+    add('  CHIẾN LƯỢC HIỆN TẠI: ${ExamCountdownStrategy.guidanceForDaysLeft(left)}');
 
     final others = exams.where((e) => e.id != focus.id).toList(growable: false);
     if (others.isNotEmpty) {
       final text = others
           .take(_maxListItems)
           .map((e) =>
-              '${e.name} (${e.daysLeft > 0 ? 'còn ${e.daysLeft} ngày' : 'đã qua'})')
+              '${e.name} (${e.dateTime.difference(now).inDays > 0 ? 'còn ${e.dateTime.difference(now).inDays} ngày' : 'đã qua'})')
           .join('; ');
       add('  Kỳ thi khác: $text');
     }
@@ -140,15 +148,19 @@ class AiStudyContext {
     return upcoming ?? any;
   }
 
-  static String _phase(ExamModel e) {
-    switch (e.examPhase) {
-      case ExamPhase.normal:
-        return 'đang ôn dài hạn';
-      case ExamPhase.revision:
-        return 'rà soát cuối, còn ≤7 ngày';
-      case ExamPhase.examDay:
+  static String _phase(int daysLeft) {
+    switch (ExamCountdownStrategy.phaseForDaysLeft(daysLeft)) {
+      case ExamStudyPhase.foundation:
+        return 'đang xây nền';
+      case ExamStudyPhase.practice:
+        return 'luyện đề, còn 15–30 ngày';
+      case ExamStudyPhase.revision:
+        return 'tổng ôn, còn 7–14 ngày';
+      case ExamStudyPhase.crunch:
+        return 'nước rút, còn <7 ngày';
+      case ExamStudyPhase.examDay:
         return 'ngày thi';
-      case ExamPhase.postExam:
+      case ExamStudyPhase.completed:
         return 'đã thi xong';
     }
   }
@@ -301,6 +313,25 @@ class AiStudyContext {
     if (hard > 0) {
       add('  $hard phiên được đánh dấu khó');
     }
+  }
+
+  static void _learningPatterns(void Function(String) add, DateTime now) {
+    final sessions = _sessionsFrom(StorageService.getStudySessionIds());
+    final patterns = LearningPatternDetector.detect(sessions, now: now);
+    if (patterns.isEmpty) return;
+    add('LEARNING PATTERNS (recent, offline):');
+    for (final pattern in patterns.take(2)) {
+      add('  ${pattern.summary} ${pattern.suggestion}');
+    }
+  }
+
+  static void _wellbeing(void Function(String) add, DateTime now) {
+    final signal = StudyWellbeingDetector.detect(
+      _sessionsFrom(StorageService.getStudySessionIds()),
+      now: now,
+    );
+    if (signal.state == StudyWellbeingState.unknown) return;
+    add('NHỊP HỌC TỰ ĐÁNH GIÁ: ${signal.guidance}');
   }
 
   static void _logs(void Function(String) add, DateTime now) {

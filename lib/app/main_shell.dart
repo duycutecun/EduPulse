@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants/app_colors.dart';
-import '../core/ai/ai_insights.dart';
+import '../core/ai/ai_refresh_service.dart';
 import '../core/migration/data_migration.dart';
 import '../core/pwa/pwa_service.dart';
 import '../core/sync/sync_state.dart';
@@ -138,8 +138,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void _setPrimaryExam(ExamModel exam) {
     StorageService.setPrimaryExamId(exam.id);
     // Gợi ý AI cũ nói về kỳ thi cũ nên phải tính lại, nếu không thẻ ở Home
-    // sẽ tư vấn sai bối cảnh.
-    AiInsights.invalidate();
+    // sẽ tư vấn sai bối cảnh. Qua AiRefreshService để cả bản tin hằng ngày
+    // cũng được tính lại — một kỳ thi mục tiêu mới là một chu trình mới.
+    AiRefreshService.notifyDataChanged();
     setState(() {
       _primaryExamId = exam.id;
     });
@@ -147,7 +148,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _addExam(ExamModel exam) {
     StorageService.setExamJson(exam.id, exam.toJsonString());
-    AiInsights.invalidate();
+    AiRefreshService.notifyDataChanged();
     final ids = StorageService.getExamIds();
     if (!ids.contains(exam.id)) {
       ids.add(exam.id);

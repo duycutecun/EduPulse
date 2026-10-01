@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../../../core/ai/ai_copilot_service.dart';
+import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
@@ -100,10 +103,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             !task.isDone && task.status != 'skipped' && task.scheduledAt == null)
         .toList();
     if (unscheduled.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Không có nhiệm vụ chưa xếp lịch để tối ưu.'),
-        behavior: SnackBarBehavior.floating,
-      ));
+      _showAiGenerateScheduleDialog();
       return;
     }
 
@@ -122,14 +122,62 @@ class _CalendarScreenState extends State<CalendarScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Đề xuất lịch tuần',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                const Text(
-                    'EduPulse chỉ đề xuất — chưa có thay đổi nào được áp dụng. Duyệt từng dòng hoặc sửa ngày trước khi chấp nhận.',
-                    style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
-                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Đề xuất lịch tuần',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w800)),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                      ),
+                      onPressed: () {
+                        final allSelected = accepted.every((a) => a);
+                        setSheetState(() {
+                          for (var i = 0; i < accepted.length; i++) {
+                            accepted[i] = !allSelected;
+                          }
+                        });
+                      },
+                      child: Text(
+                        accepted.every((a) => a)
+                            ? 'Bỏ chọn tất cả'
+                            : 'Chọn tất cả',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.purpleSoft.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.auto_awesome_rounded,
+                          color: AppColors.purple, size: 14),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'AI tự động xếp slot phù hợp năng lượng và dừng trước deadline ≥ 1 ngày.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.purple,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(sheetContext).size.height * 0.55,
@@ -276,6 +324,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }
                           Navigator.pop(sheetContext);
                           if (applied > 0) {
+                            AiRefreshService.notifyDataChanged();
                             setState(_load);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -297,6 +346,129 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
     );
+  }
+
+  void _showAiGenerateScheduleDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.auto_awesome_rounded, color: AppColors.purple),
+            SizedBox(width: 8),
+            Text('AI Lập lịch tuần ôn thi',
+                style: TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: const Text(
+          'Hiện bạn chưa có nhiệm vụ nào chưa xếp lịch.\n\nBạn có muốn AI Coach tự động phân tích kỳ thi mục tiêu và môn cần cải thiện để lập 5 nhiệm vụ ôn tập rải đều suốt tuần không?',
+          style: TextStyle(fontSize: 13.5, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Để sau'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.purple,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.bolt_rounded, size: 18),
+            label: const Text('AI Lên lịch ngay'),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              _generateAiWeeklySchedule();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _generateAiWeeklySchedule() {
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final weak = AiCopilotService.weakestSubject();
+    final weakSubject = weak?.$1 ?? 'Toán';
+    final primaryId = StorageService.getPrimaryExamId();
+    String examName = 'Kỳ thi mục tiêu';
+    if (primaryId != null) {
+      final raw = StorageService.getExamJson(primaryId);
+      if (raw != null) {
+        try {
+          final ex = ExamModel.fromJsonString(raw);
+          examName = ex.name;
+        } catch (_) {}
+      }
+    }
+
+    final newTasks = [
+      TodayTask(
+        id: uuid.v4(),
+        title: 'Chuyên đề trọng tâm: $weakSubject',
+        subject: weakSubject,
+        priority: 'high',
+        estimateMinutes: 30,
+        goalId: primaryId,
+        scheduledAt: DateTime(now.year, now.month, now.day + 1, 19, 0),
+      ),
+      TodayTask(
+        id: uuid.v4(),
+        title: 'Luyện 20 câu trắc nghiệm: $weakSubject',
+        subject: weakSubject,
+        priority: 'high',
+        estimateMinutes: 30,
+        goalId: primaryId,
+        scheduledAt: DateTime(now.year, now.month, now.day + 2, 19, 0),
+      ),
+      TodayTask(
+        id: uuid.v4(),
+        title: 'Giải mini đề ôn tập: $examName',
+        subject: 'Tổng hợp',
+        priority: 'medium',
+        estimateMinutes: 45,
+        goalId: primaryId,
+        scheduledAt: DateTime(now.year, now.month, now.day + 3, 19, 0),
+      ),
+      TodayTask(
+        id: uuid.v4(),
+        title: 'Rà soát sơ đồ lý thuyết & công thức',
+        subject: weakSubject,
+        priority: 'medium',
+        estimateMinutes: 25,
+        goalId: primaryId,
+        scheduledAt: DateTime(now.year, now.month, now.day + 4, 19, 0),
+      ),
+      TodayTask(
+        id: uuid.v4(),
+        title: 'Tổng kết lỗi sai tuần & kiểm tra phản xạ',
+        subject: 'Tổng hợp',
+        priority: 'high',
+        estimateMinutes: 30,
+        goalId: primaryId,
+        scheduledAt: DateTime(now.year, now.month, now.day + 5, 19, 0),
+      ),
+    ];
+
+    for (final t in newTasks) {
+      StorageService.setTodayTaskJson(t.id, t.toJsonString());
+    }
+    final ids = StorageService.getTodayTaskIds()
+      ..addAll(newTasks.map((t) => t.id));
+    StorageService.setTodayTaskIds(ids);
+    AiRefreshService.notifyDataChanged();
+
+    setState(_load);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✨ AI đã xếp lịch 5 nhiệm vụ ôn tập tuần cho bạn!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   static String _weekdayShort(int weekday) => const [
@@ -487,6 +659,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _applyReschedule(TodayTask task, DateTime newDay) {
     task.scheduledAt = _dateOnly(newDay);
     StorageService.setTodayTaskJson(task.id, task.toJsonString());
+    AiRefreshService.notifyDataChanged();
     setState(_load);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Đã dời "${task.title}" sang ${_dayTitle(newDay)}.'),

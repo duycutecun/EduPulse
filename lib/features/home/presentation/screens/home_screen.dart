@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
@@ -213,6 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
       StorageService.registerStudyActivity(); // cập nhật streak theo ngày
       StorageService.addMascotBondExp(10); // gắn kết linh vật
       _createNextRecurringTask(task);
+      // Chu trình AI: task xong → bản tin/gợi ý tính lại nền sau 5s.
+      AiRefreshService.notifyDataChanged();
       setState(() {});
       _notifyStreakChanged();
       ScaffoldMessenger.of(context)
@@ -1016,6 +1019,9 @@ class _PostExamCard extends StatelessWidget {
     StorageService.setMockScoreJson(score.id, score.toJsonString());
     final ids = StorageService.getMockScoreIds()..add(score.id);
     StorageService.setMockScoreIds(ids);
+
+    // Chu trình AI: điểm mới thay đổi readiness → bản tin/gợi ý tính lại.
+    AiRefreshService.notifyDataChanged();
 
     onScoreSaved();
   }

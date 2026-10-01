@@ -21,24 +21,28 @@ class NotificationService {
   static Future<void> init() async {
     if (!isSupported || _initialized) return;
 
-    tz.initializeTimeZones();
-    const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      ),
-    );
-    await _plugin.initialize(settings: settings);
+    try {
+      tz.initializeTimeZones();
+      const settings = InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
+      );
+      await _plugin.initialize(settings: settings);
 
-    // Android 13+ cần runtime permission riêng.
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+      // Android 13+ cần runtime permission riêng.
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
 
-    _initialized = true;
+      _initialized = true;
+    } catch (_) {
+      // Gracefully handle in tests or platform environments where plugin isn't bound.
+    }
   }
 
   /// Id lịch nhắc học hằng ngày.
@@ -47,6 +51,9 @@ class NotificationService {
   /// Id daily digest (tóm tắt cuối ngày).
   static const int digestId = 1002;
 
+  /// Id nhắc ôn flashcard đến hạn (SM-2).
+  static const int flashcardReminderId = 1003;
+
   /// Lên lịch nhắc học lặp lại mỗi ngày vào [hour]:[minute].
   static Future<void> scheduleDaily({
     required int hour,
@@ -54,6 +61,7 @@ class NotificationService {
   }) async {
     if (!isSupported) return;
     await init();
+    if (!_initialized) return;
 
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
@@ -92,6 +100,7 @@ class NotificationService {
   }) async {
     if (!isSupported) return;
     await init();
+    if (!_initialized) return;
 
     final scheduled = tz.TZDateTime.from(when, tz.local);
     const details = NotificationDetails(

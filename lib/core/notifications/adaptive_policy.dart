@@ -1,5 +1,7 @@
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../ai/flashcard_service.dart';
+import '../ai/ai_daily_briefing.dart';
 import '../utils/storage_service.dart';
 import 'notification_service.dart';
 
@@ -104,11 +106,22 @@ class AdaptivePolicy {
     if (!NotificationService.isSupported) return;
     if (!(StorageService.getBool('notif_digest_enabled') ?? false)) return;
 
+    // Ưu tiên lời dẫn từ bản tin AI hôm nay (cache theo ngày, không tốn
+    // quota thêm) — digest trở thành "giọng nói" của chu trình AI ở ngoài
+    // app. Bản tin chưa có thì buildDigest tự dùng nội dung quy tắc cũ.
+    String? briefingGreeting;
+    try {
+      final b = await AiDailyBriefing.load();
+      final g = b.greeting.trim();
+      if (g.isNotEmpty) briefingGreeting = g;
+    } catch (_) {}
+
     final digest = buildDigest(
       tasks: tasks,
       sessions: sessions,
       primaryExam: primaryExam,
       now: DateTime.now(),
+      briefingGreeting: briefingGreeting,
     );
     final now = DateTime.now();
     var when = DateTime(now.year, now.month, now.day, hour, minute);
@@ -129,6 +142,7 @@ class AdaptivePolicy {
     required List<StudySession> sessions,
     required ExamModel? primaryExam,
     required DateTime now,
+    String? briefingGreeting,
   }) {
     final today = _dateKey(now);
     final remaining = tasks
@@ -146,6 +160,8 @@ class AdaptivePolicy {
         : 'Tóm tắt hôm nay — còn ${remaining.length} nhiệm vụ';
 
     final parts = <String>[
+      if (briefingGreeting != null && briefingGreeting.trim().isNotEmpty)
+        _short(briefingGreeting.trim(), 90),
       if (minutesToday > 0) 'Focus $minutesToday phút',
       if (remaining.isNotEmpty)
         'Còn lại: ${remaining.take(2).map((t) => t.title).join(', ')}'
@@ -205,5 +221,48 @@ class AdaptivePolicy {
       sessions: sessions,
       primaryExam: primaryExam,
     );
+
+    // Nhắc ôn flashcard đến hạn (SM-2) — mảnh nhắc cuối của chu trình
+    // "học → AI chấm lịch → quay lại đúng lúc". Chỉ lên lịch khi có thẻ
+    // đến hạn để không làm phiền khi lịch trống.
+    await syncFlashcardReminder();
+  }
+
+  // ------------------------------------------------------------------
+  // Nhắc flashcard SM-2 (spaced repetition)
+  // ------------------------------------------------------------------
+
+  /// Lên lịch (hoặc dời) lời nhắc "có N thẻ đến hạn" vào 18:00 hôm nay nếu
+  /// còn thẻ; không có thẻ thì huỷ. No-op trên nền không hỗ trợ notification.
+  /// Gọi khi sync lịch mở app và mỗi khi học sinh vừa ôn xong một buổi
+  /// (lịch SM-2 thay đổi).
+  static Future<void> syncFlashcardReminder() async {
+    if (!NotificationService.isSupported) return;
+
+    final due = FlashcardService.dueCards();
+    if (due.isEmpty) {
+      await NotificationService.cancelId(NotificationService.flashcardReminderId);
+      return;
+    }
+
+    final now = DateTime.now();
+    var when = DateTime(now.year, now.month, now.day, 18);
+    if (!when.isAfter(now)) when = when.add(const Duration(days: 1));
+
+    await NotificationService.scheduleAt(
+      id: NotificationService.flashcardReminderId,
+      when: when,
+      title: due.length == 1
+          ? '1 thẻ flashcard đến hạn ôn 🃏'
+          : '${due.length} thẻ flashcard đến hạn ôn 🃏',
+      body: due.length == 1
+          ? 'Vài phút với "${_short(due.first.front)}" là xong — nhớ lâu hơn hẳn.'
+          : 'Ưu tiên: ${_short(due.first.front)} — ôn ít mỗi ngày, nhớ lâu về sau.',
+    );
+  }
+
+  static String _short(String s, [int max = 60]) {
+    final t = s.replaceAll('\n', ' ').trim();
+    return t.length <= max ? t : '${t.substring(0, max).trimRight()}…';
   }
 }

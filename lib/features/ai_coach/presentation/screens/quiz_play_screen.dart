@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/ai/ai_models.dart';
+import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
@@ -127,6 +128,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     if (_wrongQuestions.isNotEmpty) {
       _saveMistakeNote();
     }
+
+    // 4. Chu trình AI: điểm quiz mới → readiness/bản tin/gợi ý tính lại nền
+    // sau 5s (debounce), để lời khuyên lần sau bám đúng kết quả vừa rồi.
+    AiRefreshService.notifyDataChanged();
   }
 
   List<QuizQuestion> get _wrongQuestions => [

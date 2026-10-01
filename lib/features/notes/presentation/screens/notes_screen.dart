@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/ai/ai_models.dart';
+import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/ai_router.dart';
+import '../../../../core/ai/smart_note_linker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -59,26 +61,32 @@ class _NotesScreenState extends State<NotesScreen> {
   List<StudyNote> get _filtered {
     final query = _searchController.text.trim().toLowerCase();
     if (query.isEmpty) return _notes;
-    return _notes.where((note) =>
-        note.title.toLowerCase().contains(query) ||
-        note.body.toLowerCase().contains(query) ||
-        note.tags.any((tag) => tag.toLowerCase().contains(query))).toList();
+    return _notes
+        .where((note) =>
+            note.title.toLowerCase().contains(query) ||
+            note.body.toLowerCase().contains(query) ||
+            note.tags.any((tag) => tag.toLowerCase().contains(query)))
+        .toList();
   }
 
   void _save(StudyNote note) {
     StorageService.setStudyNoteJson(note.id, note.toJsonString());
     final ids = StorageService.getStudyNoteIds();
-    if (!ids.contains(note.id)) StorageService.setStudyNoteIds([...ids, note.id]);
+    if (!ids.contains(note.id))
+      StorageService.setStudyNoteIds([...ids, note.id]);
+    AiRefreshService.notifyDataChanged();
     setState(_load);
   }
 
   void _delete(StudyNote note) {
     StorageService.removeStudyNote(note.id);
+    AiRefreshService.notifyDataChanged();
     setState(_load);
   }
 
   Future<void> _openEditor([StudyNote? initial]) async {
-    final result = await Navigator.of(context).push<StudyNote>(MaterialPageRoute(
+    final result =
+        await Navigator.of(context).push<StudyNote>(MaterialPageRoute(
       fullscreenDialog: true,
       builder: (_) => _NoteEditor(note: initial),
     ));
@@ -89,7 +97,8 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: AppColors.bgPage,
         appBar: AppBar(
-          title: const Text('Ghi chú', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: const Text('Ghi chú',
+              style: TextStyle(fontWeight: FontWeight.w800)),
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _openEditor,
@@ -106,7 +115,12 @@ class _NotesScreenState extends State<NotesScreen> {
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search_rounded),
                 hintText: 'Tìm trong ghi chú, nhãn…',
-                suffixIcon: _searchController.text.isEmpty ? null : IconButton(tooltip: 'Xóa tìm kiếm', icon: const Icon(Icons.clear_rounded), onPressed: _searchController.clear),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Xóa tìm kiếm',
+                        icon: const Icon(Icons.clear_rounded),
+                        onPressed: _searchController.clear),
               ),
             ),
           ),
@@ -119,32 +133,102 @@ class _NotesScreenState extends State<NotesScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (_, index) {
                       final note = _filtered[index];
+                      final related = SmartNoteLinker.relatedTo(note, _notes);
                       return Dismissible(
                         key: ValueKey(note.id),
                         direction: DismissDirection.endToStart,
-                        background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(18)), child: const Icon(Icons.delete_outline_rounded, color: Colors.white)),
-                        confirmDismiss: (_) async => await _confirmDelete(context),
+                        background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                                color: AppColors.red,
+                                borderRadius: BorderRadius.circular(18)),
+                            child: const Icon(Icons.delete_outline_rounded,
+                                color: Colors.white)),
+                        confirmDismiss: (_) async =>
+                            await _confirmDelete(context),
                         onDismissed: (_) => _delete(note),
                         child: GlassCard(
                           onTap: () => _openEditor(note),
                           padding: const EdgeInsets.all(15),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(note.title.isEmpty ? 'Chưa có tiêu đề' : note.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                            if (note.body.isNotEmpty) ...[const SizedBox(height: 5), Text(note.body, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textSecondary))],
-                            if (note.tags.isNotEmpty) ...[const SizedBox(height: 9), Wrap(spacing: 6, children: note.tags.map((tag) => Chip(label: Text('#$tag', style: const TextStyle(fontSize: 11)), visualDensity: VisualDensity.compact)).toList())],
-                            // Liên kết task/subject + ảnh (mục 14).
-                            if (note.taskId != null || note.subject != null || note.imageBase64 != null) ...[
-                              const SizedBox(height: 8),
-                              Wrap(spacing: 6, children: [
-                                if (note.taskId != null)
-                                  const Icon(Icons.link_rounded, size: 13, color: AppColors.blue),
-                                if (note.subject != null)
-                                  Text(note.subject!, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                                if (note.imageBase64 != null)
-                                  const Icon(Icons.image_rounded, size: 13, color: AppColors.blue),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    note.title.isEmpty
+                                        ? 'Chưa có tiêu đề'
+                                        : note.title,
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800)),
+                                if (note.body.isNotEmpty) ...[
+                                  const SizedBox(height: 5),
+                                  Text(note.body,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          color: AppColors.textSecondary))
+                                ],
+                                if (note.tags.isNotEmpty) ...[
+                                  const SizedBox(height: 9),
+                                  Wrap(
+                                      spacing: 6,
+                                      children: note.tags
+                                          .map((tag) => Chip(
+                                              label: Text('#$tag',
+                                                  style: const TextStyle(
+                                                      fontSize: 11)),
+                                              visualDensity:
+                                                  VisualDensity.compact))
+                                          .toList())
+                                ],
+                                if (related.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(spacing: 6, runSpacing: 5, children: [
+                                    const Icon(Icons.auto_awesome_rounded,
+                                        size: 13, color: AppColors.purple),
+                                    ...related.map((link) => InkWell(
+                                          onTap: () => _openEditor(link.note),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 7, vertical: 4),
+                                            decoration: BoxDecoration(
+                                                color: AppColors.purpleSoft,
+                                                borderRadius:
+                                                    BorderRadius.circular(8)),
+                                            child: Text(
+                                                'Liên quan: ${link.note.title}',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppColors.purple)),
+                                          ),
+                                        )),
+                                  ]),
+                                ],
+                                // Liên kết task/subject + ảnh (mục 14).
+                                if (note.taskId != null ||
+                                    note.subject != null ||
+                                    note.imageBase64 != null) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(spacing: 6, children: [
+                                    if (note.taskId != null)
+                                      const Icon(Icons.link_rounded,
+                                          size: 13, color: AppColors.blue),
+                                    if (note.subject != null)
+                                      Text(note.subject!,
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary)),
+                                    if (note.imageBase64 != null)
+                                      const Icon(Icons.image_rounded,
+                                          size: 13, color: AppColors.blue),
+                                  ]),
+                                ],
                               ]),
-                            ],
-                          ]),
                         ),
                       );
                     },
@@ -154,7 +238,20 @@ class _NotesScreenState extends State<NotesScreen> {
       );
 
   Future<bool> _confirmDelete(BuildContext context) async =>
-      await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Xóa ghi chú?'), content: const Text('Thao tác này không thể hoàn tác.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa'))])) ?? false;
+      await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+                  title: const Text('Xóa ghi chú?'),
+                  content: const Text('Thao tác này không thể hoàn tác.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Hủy')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Xóa'))
+                  ])) ??
+      false;
 }
 
 /// API công khai để tính năng khác mở editor tạo ghi chú liên kết
@@ -181,13 +278,26 @@ class NoteEditor {
     if (!ids.contains(result.id)) {
       StorageService.setStudyNoteIds([...ids, result.id]);
     }
+    AiRefreshService.notifyDataChanged();
   }
 }
 
 class _NotesEmpty extends StatelessWidget {
   const _NotesEmpty();
   @override
-  Widget build(BuildContext context) => const Center(child: Padding(padding: EdgeInsets.all(32), child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.sticky_note_2_outlined, size: 44, color: AppColors.textMuted), SizedBox(height: 10), Text('Chưa có ghi chú', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)), SizedBox(height: 5), Text('Lưu công thức, lỗi sai và ý tưởng để ôn lại sau.', textAlign: TextAlign.center)])));
+  Widget build(BuildContext context) => const Center(
+      child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.sticky_note_2_outlined,
+                size: 44, color: AppColors.textMuted),
+            SizedBox(height: 10),
+            Text('Chưa có ghi chú',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            SizedBox(height: 5),
+            Text('Lưu công thức, lỗi sai và ý tưởng để ôn lại sau.',
+                textAlign: TextAlign.center)
+          ])));
 }
 
 class _NoteEditor extends StatefulWidget {
@@ -329,8 +439,7 @@ class _NoteEditorState extends State<_NoteEditor> {
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text('Liên kết với nhiệm vụ',
-                  style:
-                      TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ),
             ListTile(
               leading: const Icon(Icons.link_off_rounded),
@@ -396,8 +505,7 @@ class _NoteEditorState extends State<_NoteEditor> {
     final start = selection.start < 0 ? text.length : selection.start;
     final stop = selection.end < 0 ? text.length : selection.end;
     final selected = text.substring(start, stop);
-    final newText =
-        text.replaceRange(start, stop, '$marker$selected$end');
+    final newText = text.replaceRange(start, stop, '$marker$selected$end');
     _body.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(
@@ -409,8 +517,9 @@ class _NoteEditorState extends State<_NoteEditor> {
   /// Chèn prefix vào đầu dòng hiện tại (heading, list, quote…).
   void _prefixLine(String prefix) {
     final text = _body.text;
-    final pos =
-        _body.selection.baseOffset < 0 ? text.length : _body.selection.baseOffset;
+    final pos = _body.selection.baseOffset < 0
+        ? text.length
+        : _body.selection.baseOffset;
     final lineStart = text.lastIndexOf('\n', pos - 1) + 1;
     _body.value = TextEditingValue(
       text: text.replaceRange(lineStart, lineStart, prefix),
@@ -469,7 +578,8 @@ class _NoteEditorState extends State<_NoteEditor> {
             SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 10),
             Text('AI đang tóm tắt & trích công thức...'),
@@ -519,7 +629,8 @@ $text
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), behavior: SnackBarBehavior.floating),
+          SnackBar(
+              content: Text('Lỗi: $e'), behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -572,9 +683,8 @@ $text
           // Xem trước Markdown thay vì raw text.
           IconButton(
             tooltip: _preview ? 'Chỉnh sửa' : 'Xem trước',
-            icon: Icon(_preview
-                ? Icons.edit_rounded
-                : Icons.visibility_outlined),
+            icon:
+                Icon(_preview ? Icons.edit_rounded : Icons.visibility_outlined),
             onPressed: () => setState(() => _preview = !_preview),
           ),
           TextButton(onPressed: _save, child: const Text('Lưu')),
@@ -589,7 +699,8 @@ $text
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.blueSoft,
                   borderRadius: BorderRadius.circular(10),
@@ -638,9 +749,7 @@ $text
               // Task/subject link chip.
               ActionChip(
                 avatar: Icon(
-                  _taskId != null
-                      ? Icons.link_rounded
-                      : Icons.add_link_rounded,
+                  _taskId != null ? Icons.link_rounded : Icons.add_link_rounded,
                   size: 15,
                   color:
                       _taskId != null ? AppColors.primary : AppColors.textMuted,
@@ -721,7 +830,8 @@ $text
                             maxLines: null,
                             textAlignVertical: TextAlignVertical.top,
                             decoration: const InputDecoration(
-                              hintText: 'Viết ghi chú của bạn… Hỗ trợ Markdown: **đậm**, *nghiêng*, `code`, # tiêu đề, - danh sách, công thức \$x^2\$',
+                              hintText:
+                                  'Viết ghi chú của bạn… Hỗ trợ Markdown: **đậm**, *nghiêng*, `code`, # tiêu đề, - danh sách, công thức \$x^2\$',
                               border: InputBorder.none,
                             ),
                           ),

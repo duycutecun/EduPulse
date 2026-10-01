@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/flashcard_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -217,6 +219,8 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
       setState(() {
         _cards = [...cards, ..._cards];
       });
+      // Thẻ mới đến hạn ngay → dời lời nhắc SM-2 cho khớp lịch mới.
+      AdaptivePolicy.syncFlashcardReminder();
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
@@ -408,6 +412,12 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
 
   Widget _buildDone() {
     final total = _doneAgain + _doneHard + _doneGood + _doneEasy;
+    if (total > 0) {
+      // Chu trình AI: lịch SM-2 vừa đổi → dời lời nhắc thẻ đến hạn và mời
+      // AI nhìn lại dữ liệu (readiness/nhịp học thay đổi sau buổi ôn).
+      AdaptivePolicy.syncFlashcardReminder();
+      AiRefreshService.notifyDataChanged();
+    }
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

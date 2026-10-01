@@ -114,7 +114,9 @@ class FlashcardService {
 
   static void save(Flashcard card) {
     StorageService.setString('flashcard_${card.id}', card.toJsonString());
-    final list = ids;
+    // `ids` có thể là const [] khi key chưa tồn tại (lưu thẻ đầu tiên) —
+    // phải chép sang list mới để không nổ "unmodifiable list".
+    final list = [...ids];
     if (!list.contains(card.id)) {
       list.add(card.id);
       StorageService.prefs.setStringList(_idsKey, list);
