@@ -85,6 +85,54 @@ class AiCopilotService {
 
   static const _uuid = Uuid();
 
+  /// Môn yếu nhất theo điểm thi thử đã lưu (trung bình từng môn, chọn môn
+  /// thấp nhất). Dùng làm trung gian để mọi phần của app (Exams, Home, AI
+  /// Coach) tư vấn cùng một "môn ưu tiên" thay vì hardcode môn Toán.
+  /// Trả về null khi chưa có dữ liệu điểm.
+  static (String, double)? weakestSubject() {
+    final mockIds = StorageService.getMockScoreIds();
+    final scoreBySubject = <String, List<double>>{};
+    for (final id in mockIds) {
+      final raw = StorageService.getMockScoreJson(id);
+      if (raw == null) continue;
+      try {
+        final s = MockScore.fromJsonString(raw);
+        final sub = s.subject.trim().isEmpty ? 'Khác' : s.subject.trim();
+        scoreBySubject.putIfAbsent(sub, () => <double>[]).add(s.score);
+      } catch (_) {
+        continue;
+      }
+    }
+    if (scoreBySubject.isEmpty) return null;
+    final averages = scoreBySubject.entries
+        .map((e) =>
+            MapEntry(e.key, e.value.reduce((a, b) => a + b) / e.value.length))
+        .toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    return (averages.first.key, averages.first.value);
+  }
+
+  /// Môn ưu tiên cho gợi ý: môn yếu nhất nếu có dữ liệu, ngược lại môn của
+  /// nhiệm vụ ưu tiên cao còn lại, cuối cùng fallback 'Toán'.
+  static String preferredSubject() {
+    final weak = weakestSubject();
+    if (weak != null) return weak.$1;
+    final taskIds = StorageService.getTodayTaskIds();
+    for (final id in taskIds) {
+      final raw = StorageService.getTodayTaskJson(id);
+      if (raw == null) continue;
+      try {
+        final t = TodayTask.fromJsonString(raw);
+        if (!t.isDone && t.status != 'skipped' && t.priority == 'high') {
+          return t.subject;
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    return 'Toán';
+  }
+
   /// Phân tích dữ liệu thực tế để tạo báo cáo tình huống tức thì
   static AiSituationReport buildSituationReport() {
     final now = DateTime.now();
@@ -457,13 +505,22 @@ class AiCopilotService {
     );
   }
 
-  /// Thực thi hành động AI trực tiếp vào các phần khác của ứng dụng
+  /// Thực thi hành động AI trực tiếp vào các phần khác của ứng dụng.
+  ///
+  /// Callbacks [onTasksChanged] / [onStreakChanged] được truyền xuyên suốt
+  /// qua quiz (payload 'onTasksChanged' / 'onStreakChanged') để khi quiz ghi
+  /// kết quả ngược vào dữ liệu, Home và streak cũng cập nhật theo — đây là
+  /// mảnh ghép khép vòng lặp AI → làm bài → dữ liệu cập nhật → AI tư vấn lại.
   static Future<void> executeAction(
     BuildContext context,
     AiCopilotAction action, {
     VoidCallback? onTasksChanged,
     VoidCallback? onStreakChanged,
   }) async {
+    action.payload['onTasksChanged'] = onTasksChanged;
+    action.payload['onStreakChanged'] = onStreakChanged;
+    // Xoá callback khi rời khỏi context để không giữ reference rác.
+    // (payload là map thường nên gán callback an toàn, được đọc lại phía sau.)
     HapticFeedback.mediumImpact();
 
     switch (action.type) {
@@ -610,6 +667,10 @@ class AiCopilotService {
         final subject = (action.payload['subject'] ?? 'Toán').toString();
         final topic =
             (action.payload['topic'] ?? 'Trắc nghiệm tổng hợp').toString();
+        final quizOnTasks =
+            action.payload['onTasksChanged'] as VoidCallback?;
+        final quizOnStreak =
+            action.payload['onStreakChanged'] as VoidCallback?;
 
         if (!PwaService.isOnline) {
           if (context.mounted) {
@@ -684,11 +745,22 @@ class AiCopilotService {
           }
 
           if (context.mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => QuizPlayScreen(questions: questions),
-              ),
-            );
+            Navigator.of(context)
+                .push(MaterialPageRoute(
+                  builder: (_) => QuizPlayScreen(
+                    questions: questions,
+                    subject: subject,
+                    topic: topic,
+                    onTasksChanged: quizOnTasks,
+                    onStreakChanged: quizOnStreak,
+                  ),
+                ))
+                .then((_) {
+              // Vừa quay lại từ quiz: dữ liệu điểm/streak đã đổi — báo UI
+              // liên quan (Home) đọc lại để AI lần sau tư vấn theo kết quả
+              // mới nhất, khép vòng lặp học tập.
+              quizOnTasks?.call();
+            });
           }
         } catch (e) {
           if (context.mounted) {
@@ -718,5 +790,9 @@ class AiCopilotService {
         }
         break;
     }
+    // Dọn callback ra khỏi payload sau khi chạy xong để payload trở lại
+    // trạng thái thuần dữ liệu (không giữ reference UI).
+    action.payload.remove('onTasksChanged');
+    action.payload.remove('onStreakChanged');
   }
 }

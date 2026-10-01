@@ -106,6 +106,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
               final target = primary.targetScore ?? 8.0;
               final current = primary.currentScore ?? 6.0;
               final diff = (target - current).clamp(0.0, 10.0);
+              // Tư vấn theo dữ liệu thật (môn yếu nhất từ điểm thi thử) thay
+              // vì hardcode 'Toán' — mọi phần của app cùng nói một thứ ngữ.
+              final weak = AiCopilotService.weakestSubject();
+              final weakSubject = weak?.$1 ?? 'Tổng hợp';
+              final weakScore = weak?.$2;
 
               return Container(
                 width: double.infinity,
@@ -154,7 +159,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Hiện tại: ${current.toStringAsFixed(1)}đ ➔ Mục tiêu: ${target.toStringAsFixed(1)}đ (${diff > 0 ? "+${diff.toStringAsFixed(1)}đ" : "Đạt mục tiêu"}). '
-                      'Để bứt phá mốc điểm này, AI khuyên bạn nên duy trì tối thiểu 3 phiên Focus mỗi tuần và làm bài thi thử định kỳ.',
+                      'Còn ${primary.daysLeft} ngày — ưu tiên ${weakScore != null ? 'môn $weakSubject (TB ${weakScore.toStringAsFixed(1)}đ, đang thấp nhất)' : 'duy trì nhịp 3 phiên Focus/tuần'} và làm bài thi thử định kỳ.',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textPrimary.withValues(alpha: 0.9),
@@ -173,7 +178,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                                 label: 'Focus cho ${primary.name}',
                                 icon: Icons.play_arrow_rounded,
                                 payload: {
-                                  'subject': 'Toán',
+                                  'subject': weakSubject,
                                   'minutes': 25,
                                 },
                               ),
@@ -215,7 +220,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                                 label: 'Luyện 5 câu test',
                                 icon: Icons.quiz_rounded,
                                 payload: {
-                                  'subject': 'Toán',
+                                  'subject': weakSubject,
                                   'topic': 'Trọng tâm ${primary.name}',
                                 },
                               ),

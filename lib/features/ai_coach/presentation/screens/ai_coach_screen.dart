@@ -296,6 +296,21 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     );
   }
 
+  /// Suy đoán tên môn từ tên file/nội dung người dùng chọn để quiz từ ảnh
+  /// được ghi điểm đúng môn (MockScore), giúp AI tư vấn môn yếu chính xác.
+  String _inferSubjectFromNote(String hint) {
+    final lower = hint.toLowerCase();
+    if (lower.contains('toán') || lower.contains('toan')) return 'Toán';
+    if (lower.contains('lý') || lower.contains('vat li')) return 'Vật lý';
+    if (lower.contains('hóa') || lower.contains('hoa hoc')) return 'Hóa học';
+    if (lower.contains('anh') || lower.contains('english')) return 'Tiếng Anh';
+    if (lower.contains('văn')) return 'Ngữ văn';
+    if (lower.contains('sinh')) return 'Sinh học';
+    if (lower.contains('sử')) return 'Lịch sử';
+    if (lower.contains('địa')) return 'Địa lý';
+    return 'Tổng hợp';
+  }
+
   /// Tạo quiz từ ảnh (đã chọn hoặc mở picker).
   Future<void> _createQuiz() async {
     Uint8List? image = _selectedImageBytes;
@@ -417,8 +432,11 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                               Navigator.pop(ctx);
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      QuizPlayScreen(questions: questions),
+                                  builder: (_) => QuizPlayScreen(
+                                    questions: questions,
+                                    subject: _inferSubjectFromNote(name ?? 'quiz'),
+                                    topic: 'Quiz từ ảnh: $name',
+                                  ),
                                 ),
                               );
                             },
