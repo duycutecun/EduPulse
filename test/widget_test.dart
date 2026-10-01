@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,11 +74,10 @@ void main() {
     expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
     expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
 
-    // 2. AI Coach — tap nhãn nav (icon trùng với quick action ở Home)
-    await tester.tap(find.text('AI'));
+    // 2. Tab Tập trung (Pomodoro / Nhật ký học)
+    await tester.tap(find.text('Tập trung').last);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('AI Coach'), findsOneWidget);
-    expect(navIcon(Icons.photo_camera_rounded), findsOneWidget);
+    expect(find.text('Pomodoro'), findsOneWidget);
 
     // 3. Tôi (Account)
     await tester.tap(find.text('Tôi'));
@@ -101,7 +100,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     // Vào trang Tập trung qua nút quick action trên Home
-    await tester.tap(find.text('Tập trung'));
+    await tester.tap(find.text('Tập trung').first);
     await tester.pumpAndSettle();
 
     // Đổi chế độ sang 50/10
@@ -1916,12 +1915,12 @@ void main() {
     expect(AppearanceService.fontScaleKey, 'large');
     expect(StorageService.getString('appearance_font_scale'), 'large');
 
-    // Ctrl+2 sang AI vẫn hoạt động với font lớn (không overflow).
+    // Ctrl+2 sang tab Tập trung vẫn hoạt động với font lớn (không overflow).
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('AI Coach'), findsOneWidget);
+    expect(find.text('Pomodoro'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // Reset về vừa.
@@ -1949,10 +1948,10 @@ void main() {
     expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
     expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
 
-    // Tab AI.
-    await tester.tap(find.text('AI'));
+    // Tab Tập trung.
+    await tester.tap(find.text('Tập trung').last);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('AI Coach'), findsOneWidget);
+    expect(find.text('Pomodoro'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // Tab Tôi.
@@ -1973,7 +1972,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // Mở trang Tập trung qua quick action.
-    await tester.tap(find.text('Tập trung'));
+    await tester.ensureVisible(find.text('Tập trung').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tập trung').first);
     await tester.pumpAndSettle();
     expect(find.text('Pomodoro'), findsOneWidget);
     expect(tester.takeException(), isNull);

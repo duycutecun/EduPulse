@@ -12,6 +12,7 @@ import '../features/home/presentation/screens/home_screen.dart';
 import '../features/exams/domain/models/exam_model.dart';
 import '../features/exams/presentation/screens/exams_page.dart';
 import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
+import '../features/study/presentation/screens/study_screen.dart';
 import '../features/study/presentation/screens/study_page.dart';
 import '../features/calendar/presentation/screens/calendar_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
@@ -38,7 +39,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   // mở lần đầu tiên, sau đó giữ nguyên trong IndexedStack. Tránh khởi động
   // chậm vì phải dựng đồng thời cả 3 màn hình (AI chat, Bảng vàng...).
   final List<bool> _visited = List.filled(3, false);
-  Widget? _cachedAiCoach;
+  Widget? _cachedStudy;
   Widget? _cachedAccount;
 
   /// Khoá để gọi được [AiCoachScreenState.sendPrompt] — tab AI được giữ trong
@@ -233,17 +234,30 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
-  /// Mở tab AI Coach với một câu hỏi có sẵn.
-  ///
-  /// Dùng khi học sinh bấm vào một gợi ý AI ở Home: chuyển sang tab AI rồi
-  /// nhồi câu đó vào hội thoại, để gợi ý trở thành cuộc trò chuyện thật.
-  /// Phải chờ một frame vì screen AI chỉ được dựng khi tab đó hiện.
-  void _openAiCoachWith(String prompt) {
-    if (prompt.trim().isEmpty) return;
-    _switchTab(1);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _aiCoachKey.currentState?.sendPrompt(prompt);
-    });
+  /// Mở bảng Trợ lý AI Copilot tương tác thông minh.
+  void _openAiCopilotSheet([String? prompt]) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.50,
+        maxChildSize: 0.96,
+        builder: (ctx, scrollController) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Scaffold(
+            backgroundColor: AppColors.bgPage,
+            body: AiCoachScreen(
+              key: _aiCoachKey,
+              initialPrompt: prompt,
+              onClose: () => Navigator.pop(sheetContext),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// Mở "Mục tiêu" (kỳ thi) và "Tập trung" (Pomodoro/Nhật ký) dưới dạng
@@ -298,20 +312,24 @@ class _MainShellScreenState extends State<MainShellScreen> {
           exams: _exams,
           onExamTap: _openExamsPage,
           onOpenStudy: _openStudyPage,
-          onOpenAiCoach: () => _switchTab(1),
-          onOpenAiCoachWith: _openAiCoachWith,
+          onOpenAiCoach: () => _openAiCopilotSheet(),
+          onOpenAiCoachWith: _openAiCopilotSheet,
           onOpenCalendar: _openCalendarPage,
           streak: _streak,
           isActive: _currentIndex == 0,
           onStreakChanged: _reloadStreak,
         );
+      case 1:
+        return StudyScreen(onStreakChanged: _reloadStreak);
+      case 2:
+        return AccountScreen(onDataChanged: _loadInitialData);
       default:
         return const SizedBox.shrink();
     }
   }
 
   /// Mục phụ trên sidebar desktop (đặc tả mục 52): Calendar, Goals, Focus,
-  /// Notes — mở như trang riêng thay vì đổi tab chính.
+  /// Notes + Trợ lý AI Copilot.
   List<DesktopNavAction> _desktopSecondaryActions() => [
         DesktopNavAction(
           icon: Icons.calendar_month_outlined,
@@ -326,12 +344,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
         DesktopNavAction(
           icon: Icons.timer_outlined,
           label: 'Focus',
-          onOpen: _openStudyPage,
+          onOpen: () => _switchTab(1),
         ),
         DesktopNavAction(
           icon: Icons.sticky_note_2_outlined,
           label: 'Notes',
           onOpen: _openNotesPage,
+        ),
+        DesktopNavAction(
+          icon: Icons.auto_awesome_rounded,
+          label: 'AI Coach',
+          onOpen: () => _openAiCopilotSheet(),
         ),
       ];
 
@@ -343,7 +366,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       children: [
         _tabAt(0),
         _visited[1]
-            ? (_cachedAiCoach ??= AiCoachScreen(key: _aiCoachKey))
+            ? (_cachedStudy ??= StudyScreen(onStreakChanged: _reloadStreak))
             : const SizedBox.shrink(),
         _visited[2]
             ? (_cachedAccount ??=
@@ -352,8 +375,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ],
     );
 
-    // Desktop (≥1024): sidebar trái + nội dung — cùng IA, khác layout
-    // (đặc tả mục 22–23: "Cùng visual language, khác layout").
+    // Desktop (≥1024): sidebar trái + nội dung — cùng IA, khác layout.
     if (isDesktop) {
       return Scaffold(
         backgroundColor: AppColors.bgPage,
@@ -364,7 +386,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
               index: _currentIndex,
               items: const [
                 NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
-                NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
+                NavItem(Icons.timer_outlined, Icons.timer_rounded, 'Tập trung'),
                 NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
               ],
               // ignore: avoid_redundant_argument_values
@@ -392,7 +414,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       );
     }
 
-    // Mobile/tablet: bottom navigation như cũ.
+    // Mobile/tablet: bottom navigation theo 3 trụ cột học tập.
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       body: SafeArea(
@@ -407,14 +429,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 onChanged: _switchTab,
                 items: const [
                   NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
-                  NavItem(
-                      Icons.auto_awesome_outlined, Icons.auto_awesome, 'AI'),
+                  NavItem(Icons.timer_outlined, Icons.timer_rounded, 'Tập trung'),
                   NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
                 ],
                 children: [
                   _tabAt(0),
                   _visited[1]
-                      ? (_cachedAiCoach ??= AiCoachScreen(key: _aiCoachKey))
+                      ? (_cachedStudy ??= StudyScreen(onStreakChanged: _reloadStreak))
                       : const SizedBox.shrink(),
                   _visited[2]
                       ? (_cachedAccount ??=

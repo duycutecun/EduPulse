@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../domain/models/study_models.dart';
 import 'study_screen.dart';
 
 /// Full-screen page "Tập trung" — bọc [StudyScreen] trong Scaffold có nút back.
@@ -8,8 +9,19 @@ import 'study_screen.dart';
 /// biểu đồ và điểm thi thử.
 class StudyPage extends StatelessWidget {
   final VoidCallback? onStreakChanged;
+  final String? initialSubject;
+  final int? initialMinutes;
+  final TodayTask? initialTask;
+  final bool autoStart;
 
-  const StudyPage({super.key, this.onStreakChanged});
+  const StudyPage({
+    super.key,
+    this.onStreakChanged,
+    this.initialSubject,
+    this.initialMinutes,
+    this.initialTask,
+    this.autoStart = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +38,13 @@ class StudyPage extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
       ),
-      body: StudyScreen(onStreakChanged: onStreakChanged),
+      body: StudyScreen(
+        onStreakChanged: onStreakChanged,
+        initialSubject: initialSubject,
+        initialMinutes: initialMinutes,
+        initialTask: initialTask,
+        autoStart: autoStart,
+      ),
     );
   }
 }

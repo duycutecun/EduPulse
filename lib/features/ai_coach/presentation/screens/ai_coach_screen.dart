@@ -18,7 +18,10 @@ import '../widgets/model_picker_sheet.dart';
 import 'quiz_play_screen.dart';
 
 class AiCoachScreen extends StatefulWidget {
-  const AiCoachScreen({super.key});
+  final String? initialPrompt;
+  final VoidCallback? onClose;
+
+  const AiCoachScreen({super.key, this.initialPrompt, this.onClose});
 
   @override
   AiCoachScreenState createState() => AiCoachScreenState();
@@ -57,6 +60,12 @@ class AiCoachScreenState extends State<AiCoachScreen> {
     _model = AIModel.defaultModel;
     _autoReadImage = true;
     _loadChatHistory();
+
+    if (widget.initialPrompt != null && widget.initialPrompt!.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        sendPrompt(widget.initialPrompt!);
+      });
+    }
   }
 
   void _loadChatHistory() {
@@ -628,6 +637,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
           onAnalyze: _analyzeWeakTopics,
           showRefresh: _messages.length > 1,
           showAnalyze: _messages.length > 1,
+          onClose: widget.onClose,
         ),
         Expanded(
           child: ListView.builder(

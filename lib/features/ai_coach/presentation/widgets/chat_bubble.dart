@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/ai/ai_feedback.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
@@ -130,8 +131,6 @@ class ChatBubble extends StatelessWidget {
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () {
-                  // Chưa có url_launcher trong deps — copy URL để user
-                  // dán vào trình duyệt (trung thực hơn là nút hỏng).
                   Clipboard.setData(ClipboardData(text: msg.sourceUrl!));
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -174,6 +173,11 @@ class ChatBubble extends StatelessWidget {
                   ]),
                 ),
               ),
+            ],
+            // Actionable Buttons từ AI (không bỏ mặc học sinh)
+            if (!isUser && msg.text.trim().length > 30) ...[
+              const SizedBox(height: 10),
+              _MessageActionChips(text: msg.text),
             ],
             const SizedBox(height: 6),
             _AiFeedbackRow(msg: msg, onRegenerate: onRegenerate),
@@ -363,6 +367,210 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
           icon: const Icon(Icons.copy, color: AppColors.textMuted),
         ),
       ],
+    );
+  }
+}
+
+/// Thanh các nút hành động 1-chạm giúp biến lời khuyên của AI thành hành động thật trong app
+class _MessageActionChips extends StatelessWidget {
+  final String text;
+
+  const _MessageActionChips({required this.text});
+
+  String _inferSubject(String t) {
+    final lower = t.toLowerCase();
+    if (lower.contains('toán') ||
+        lower.contains('hàm số') ||
+        lower.contains('tích phân') ||
+        lower.contains('đạo hàm')) {
+      return 'Toán';
+    }
+    if (lower.contains('hóa') ||
+        lower.contains('este') ||
+        lower.contains('ancol') ||
+        lower.contains('nguyên tố')) {
+      return 'Hóa học';
+    }
+    if (lower.contains('vật lý') ||
+        lower.contains('lý') ||
+        lower.contains('dao động') ||
+        lower.contains('con lắc') ||
+        lower.contains('điện xoay chiều')) {
+      return 'Vật lý';
+    }
+    if (lower.contains('tiếng anh') ||
+        lower.contains('english') ||
+        lower.contains('ngữ pháp') ||
+        lower.contains('từ vựng')) {
+      return 'Tiếng Anh';
+    }
+    if (lower.contains('sinh học') ||
+        lower.contains('sinh') ||
+        lower.contains('di truyền') ||
+        lower.contains('adn')) {
+      return 'Sinh học';
+    }
+    if (lower.contains('ngữ văn') ||
+        lower.contains('văn') ||
+        lower.contains('nghị luận')) {
+      return 'Ngữ văn';
+    }
+    if (lower.contains('lịch sử') || lower.contains('sử')) {
+      return 'Lịch sử';
+    }
+    if (lower.contains('địa lý') || lower.contains('địa')) {
+      return 'Địa lý';
+    }
+    return 'Toán';
+  }
+
+  String _extractTaskTitle(String t) {
+    final lines = t
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty && !l.startsWith('#'))
+        .toList();
+    if (lines.isNotEmpty) {
+      var candidate = lines.first;
+      candidate = candidate.replaceAll(RegExp(r'^[-*•\d.)]+\s*'), '').trim();
+      if (candidate.length > 50) {
+        candidate = '${candidate.substring(0, 48)}...';
+      }
+      if (candidate.length > 6) return candidate;
+    }
+    return 'Luyện bài tập từ lời khuyên AI';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = _inferSubject(text);
+    final taskTitle = _extractTaskTitle(text);
+
+    return Container(
+      padding: const EdgeInsets.only(top: 8, bottom: 2),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: AppColors.border.withValues(alpha: 0.5),
+            width: 0.8,
+          ),
+        ),
+      ),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          // 1. Thêm vào nhiệm vụ
+          _chip(
+            context,
+            icon: Icons.add_task_rounded,
+            label: '+ Nhiệm vụ',
+            color: AppColors.blue,
+            action: AiCopilotAction(
+              type: AiActionType.addTask,
+              label: '+ Nhiệm vụ',
+              icon: Icons.add_task_rounded,
+              payload: {
+                'title': taskTitle,
+                'subject': subject,
+                'minutes': 30,
+                'priority': 'medium',
+              },
+            ),
+          ),
+
+          // 2. Bắt đầu Focus
+          _chip(
+            context,
+            icon: Icons.play_arrow_rounded,
+            label: 'Focus $subject',
+            color: AppColors.primary,
+            action: AiCopilotAction(
+              type: AiActionType.startFocus,
+              label: 'Focus $subject',
+              icon: Icons.play_arrow_rounded,
+              payload: {
+                'subject': subject,
+                'minutes': 25,
+              },
+            ),
+          ),
+
+          // 3. Lưu vào Ghi chú
+          _chip(
+            context,
+            icon: Icons.sticky_note_2_rounded,
+            label: 'Lưu Ghi chú',
+            color: AppColors.purple,
+            action: AiCopilotAction(
+              type: AiActionType.saveNote,
+              label: 'Lưu Ghi chú',
+              icon: Icons.sticky_note_2_rounded,
+              payload: {
+                'title': taskTitle,
+                'body': text,
+                'subject': subject,
+              },
+            ),
+          ),
+
+          // 4. Test trắc nghiệm 5 câu
+          _chip(
+            context,
+            icon: Icons.quiz_rounded,
+            label: 'Test 5 câu',
+            color: AppColors.orange,
+            action: AiCopilotAction(
+              type: AiActionType.takeQuiz,
+              label: 'Test 5 câu',
+              icon: Icons.quiz_rounded,
+              payload: {
+                'subject': subject,
+                'topic': taskTitle,
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required AiCopilotAction action,
+  }) {
+    return InkWell(
+      onTap: () => AiCopilotService.executeAction(context, action),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

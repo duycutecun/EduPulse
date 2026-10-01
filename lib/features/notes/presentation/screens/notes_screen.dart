@@ -5,7 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/ai/ai_models.dart';
+import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/note_markdown.dart';
@@ -437,12 +440,99 @@ class _NoteEditorState extends State<_NoteEditor> {
     );
   }
 
+  Future<void> _askAiSummarize() async {
+    final text = _body.text.trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hãy nhập nội dung ghi chú để AI tóm tắt nhé!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!PwaService.isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cần kết nối mạng để dùng AI tóm tắt!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 10),
+            Text('AI đang tóm tắt & trích công thức...'),
+          ],
+        ),
+        duration: Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    try {
+      final prompt = '''
+Hãy đọc nội dung ghi chú sau và tạo phần tóm tắt ngắn gọn gồm:
+1. Các công thức hoặc định nghĩa quan trọng nhất
+2. Lưu ý bẫy trắc nghiệm hay gặp
+3. Checklist 3 ý cần nhớ
+
+Định dạng Markdown đẹp, súc tích.
+
+--- NỘI DUNG GHI CHÚ ---
+$text
+''';
+      final res = await AiRouter.chat(
+        model: AIModel.defaultModel,
+        history: const [],
+        userMessage: prompt,
+        searchWeb: false,
+      );
+
+      if (!mounted) return;
+      final current = _body.text;
+      final newText = '$current\n\n---\n### 💡 AI Tóm tắt & Trọng tâm:\n$res';
+      _body.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã bổ sung tóm tắt từ AI vào ghi chú!'),
+          backgroundColor: AppColors.purple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
   Widget _buildToolbar() {
     return SizedBox(
       height: 34,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
+          _tool('✨ AI', 'AI Trợ lý tóm tắt & trích công thức', _askAiSummarize),
+          const SizedBox(width: 6),
           _tool('H', 'Tiêu đề', () => _prefixLine('# ')),
           const SizedBox(width: 6),
           _tool('B', 'Đậm', () => _wrapSelection('**')),

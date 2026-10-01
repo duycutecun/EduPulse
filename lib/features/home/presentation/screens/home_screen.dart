@@ -14,8 +14,7 @@ import '../../../study/presentation/screens/ai_plan_screen.dart';
 import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/quick_action_card.dart';
-import '../widgets/smart_nudge_card.dart';
-import '../widgets/ai_suggestion_card.dart';
+import '../widgets/ai_copilot_hub_card.dart';
 import '../widgets/today_mission_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -417,6 +416,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
           const SizedBox(height: 14),
+          // Trợ lý học tập EduPulse Copilot (Contextual & Actionable AI)
+          AiCopilotHubCard(
+            onOpenAiChat: widget.onOpenAiCoach,
+            onOpenAiChatWith: widget.onOpenAiCoachWith,
+            onTasksChanged: _loadTasks,
+            onStreakChanged: _notifyStreakChanged,
+          ),
+          const SizedBox(height: 14),
           // Exam Mode (đặc tả mục 39–40): revision ≤7 ngày, exam day và post-exam.
           ..._examModeWidgets(),
           QuickActionCard(
@@ -439,15 +446,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onReschedule: _rescheduleTask,
             onAddSample: _showSampleTasksSheet,
             onQuickAdd: _showQuickAddSheet,
-          ),
-          const SizedBox(height: 14),
-          AiSuggestionCard(
-            fallback: SmartNudgeCard.fallbackText(
-              tasks: _tasks,
-              primaryExam: widget.primaryExam,
-            ),
-            onAskAi: widget.onOpenAiCoach,
-            onOpenInsight: widget.onOpenAiCoachWith,
           ),
         ],
       ),

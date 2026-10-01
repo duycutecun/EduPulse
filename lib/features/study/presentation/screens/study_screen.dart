@@ -22,8 +22,19 @@ import '../../../exams/domain/models/exam_model.dart';
 
 class StudyScreen extends StatefulWidget {
   final VoidCallback? onStreakChanged;
+  final String? initialSubject;
+  final int? initialMinutes;
+  final TodayTask? initialTask;
+  final bool autoStart;
 
-  const StudyScreen({super.key, this.onStreakChanged});
+  const StudyScreen({
+    super.key,
+    this.onStreakChanged,
+    this.initialSubject,
+    this.initialMinutes,
+    this.initialTask,
+    this.autoStart = false,
+  });
 
   @override
   State<StudyScreen> createState() => _StudyScreenState();
@@ -57,12 +68,27 @@ class _StudyScreenState extends State<StudyScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.initialMinutes != null) {
+      _focusMinutes = widget.initialMinutes!;
+      _pomSecondsNotifier.value = _focusMinutes * 60;
+    }
+    if (widget.initialTask != null) {
+      _selectedTask = widget.initialTask;
+    }
     _loadLogs();
     _loadScores();
     _loadTasks();
     _loadSessions();
     // Lifecycle để phát hiện rời app giữa phiên focus (mục 11.5).
     WidgetsBinding.instance.addObserver(this);
+
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_pomRunning) {
+          _togglePomodoro();
+        }
+      });
+    }
   }
 
   @override
@@ -625,6 +651,57 @@ class _StudyScreenState extends State<StudyScreen>
               ),
             ),
           ),
+          if (!_pomRunning && _selectedTask == null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.purpleSoft.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded,
+                      color: AppColors.purple, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'AI gợi ý: Phiên 25p giải đề/ôn tập môn yếu để tối ưu điểm thi',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _setPomodoroMode(25, 5);
+                      _togglePomodoro();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.purple,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Focus ngay',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           // Nút chọn chế độ Pomodoro.
           Row(

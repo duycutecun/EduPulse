@@ -9,6 +9,7 @@ class AICoachHeader extends StatelessWidget {
   final VoidCallback onAnalyze;
   final bool showRefresh;
   final bool showAnalyze;
+  final VoidCallback? onClose;
 
   const AICoachHeader({
     super.key,
@@ -18,6 +19,7 @@ class AICoachHeader extends StatelessWidget {
     required this.onAnalyze,
     required this.showRefresh,
     this.showAnalyze = false,
+    this.onClose,
   });
 
   @override
@@ -134,6 +136,22 @@ class AICoachHeader extends StatelessWidget {
                 child: Icon(Icons.refresh, size: 18, color: AppColors.textMuted),
               ),
             ),
+          if (onClose != null) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onClose,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.bgPage,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.border, width: 2),
+                ),
+                child: const Icon(Icons.close_rounded, size: 20, color: AppColors.textPrimary),
+              ),
+            ),
+          ],
         ],
       ),
     );

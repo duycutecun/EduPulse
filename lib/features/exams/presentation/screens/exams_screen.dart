@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
@@ -95,6 +96,167 @@ class _ExamsScreenState extends State<ExamsScreen> {
               ],
             ),
           ),
+          if (myExams.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Builder(builder: (context) {
+              final primary = myExams.firstWhere(
+                (e) => e.id == widget.primaryExamId,
+                orElse: () => myExams.first,
+              );
+              final target = primary.targetScore ?? 8.0;
+              final current = primary.currentScore ?? 6.0;
+              final diff = (target - current).clamp(0.0, 10.0);
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.purpleSoft.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: AppColors.purple.withValues(alpha: 0.35)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 16, color: AppColors.purple),
+                        const SizedBox(width: 8),
+                        Text(
+                          'AI Chiến lược: ${primary.name}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.purple,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Còn ${primary.daysLeft} ngày',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Hiện tại: ${current.toStringAsFixed(1)}đ ➔ Mục tiêu: ${target.toStringAsFixed(1)}đ (${diff > 0 ? "+${diff.toStringAsFixed(1)}đ" : "Đạt mục tiêu"}). '
+                      'Để bứt phá mốc điểm này, AI khuyên bạn nên duy trì tối thiểu 3 phiên Focus mỗi tuần và làm bài thi thử định kỳ.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textPrimary.withValues(alpha: 0.9),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            AiCopilotService.executeAction(
+                              context,
+                              AiCopilotAction(
+                                type: AiActionType.startFocus,
+                                label: 'Focus cho ${primary.name}',
+                                icon: Icons.play_arrow_rounded,
+                                payload: {
+                                  'subject': 'Toán',
+                                  'minutes': 25,
+                                },
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.purple,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.play_arrow_rounded,
+                                    size: 14, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Bắt đầu Focus',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            AiCopilotService.executeAction(
+                              context,
+                              AiCopilotAction(
+                                type: AiActionType.takeQuiz,
+                                label: 'Luyện 5 câu test',
+                                icon: Icons.quiz_rounded,
+                                payload: {
+                                  'subject': 'Toán',
+                                  'topic': 'Trọng tâm ${primary.name}',
+                                },
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardWhite,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: AppColors.purple
+                                      .withValues(alpha: 0.4)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.quiz_rounded,
+                                    size: 14, color: AppColors.purple),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Luyện 5 câu test',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.purple,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
           const SizedBox(height: 16),
           Container(
             width: double.infinity,

@@ -28,6 +28,19 @@ Yêu cầu:
 ''';
 }
 
+/// Prompt yêu cầu AI sinh 5 câu hỏi trắc nghiệm theo chủ đề/môn học cụ thể.
+String buildTopicQuizPrompt(String subject, String topic) {
+  return '''
+Bạn là chuyên gia luyện thi môn $subject. Hãy tạo 5 câu hỏi trắc nghiệm trọng tâm cho chủ đề "$topic" phù hợp với cấu trúc ra đề thi thực tế.
+
+Yêu cầu:
+- Trả về ĐÚNG định dạng JSON, KHÔNG kèm markdown, KHÔNG kèm text khác.
+- JSON dạng: {"questions":[{"question":"...","options":["A...","B...","C...","D..."],"correctIndex":0,"explanation":"..."}]}
+- Đúng 4 đáp án mỗi câu (options), correctIndex là số thứ tự 0–3 của đáp án đúng.
+- Có câu hỏi nhận biết, thông hiểu và vận dụng; chỉ ra bẫy trắc nghiệm phổ biến kèm giải thích ngắn gọn.
+''';
+}
+
 /// Parse JSON do AI trả về thành danh sách câu hỏi quiz.
 ///
 /// Xử lý linh hoạt giống [parseAiPlan]: bóc ```json```, cắt JSON từ ngoặc

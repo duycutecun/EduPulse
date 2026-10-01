@@ -150,8 +150,9 @@ class AdaptivePolicy {
       if (remaining.isNotEmpty)
         'Còn lại: ${remaining.take(2).map((t) => t.title).join(', ')}'
             '${remaining.length > 2 ? ' +${remaining.length - 2}' : ''}',
-      if (primaryExam != null && primaryExam.daysLeft >= 0)
-        '${primaryExam.name} còn ${primaryExam.daysLeft} ngày',
+      if (primaryExam != null &&
+          primaryExam.dateTime.difference(now).inDays >= 0)
+        '${primaryExam.name} còn ${primaryExam.dateTime.difference(now).inDays} ngày',
     ];
 
     return (title: title, body: parts.isEmpty ? 'Nghỉ ngơi tốt nhé!' : parts.join(' • '));
