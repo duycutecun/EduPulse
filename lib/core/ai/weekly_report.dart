@@ -115,9 +115,7 @@ class WeeklyReport {
         }
       } catch (_) {}
     }
-    final daysLeft = exam == null
-        ? null
-        : exam.dateTime.difference(reference).inDays;
+    final daysLeft = exam?.dateTime.difference(reference).inDays;
 
     // --- Điểm thi thử mới nhất ---
     String? latestScore;

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/study_rhythm.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../features/study/domain/distribute_day.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../exams/domain/models/exam_model.dart';
@@ -199,6 +200,187 @@ class _HomeScreenState extends State<HomeScreen> {
       _allTasks.add(task);
       _tasks.add(task);
     });
+  }
+
+  /// Banner "hôm nay hơi nặng" — chỉ hiện khi kế hoạch hôm nay vượt quỹ
+  /// phút hợp lý và còn task có thể dời. Nhẹ nhàng, bấm mới mở đề xuất.
+  Widget _buildDayBalanceBanner() {
+    final proposals =
+        proposeDayBalance(tasks: _allTasks, now: DateTime.now());
+    if (proposals.isEmpty) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: _showDayBalanceSheet,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.orangeLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.balance_rounded,
+                size: 20, color: AppColors.orangeDark),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Hôm nay hơi nặng — AI có cách chia lại cho vừa sức (${proposals.length} nhiệm vụ có thể dời)',
+                style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.orangeDark,
+                    height: 1.35),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.orangeDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Phân bố hợp lý: duyệt từng đề xuất dời task sang ngày còn quỹ.
+  /// Mỗi dòng Accept/Reject (mục 10.6) — không có gì bị dời khi chưa duyệt.
+  void _showDayBalanceSheet() {
+    final proposals =
+        proposeDayBalance(tasks: _allTasks, now: DateTime.now());
+    if (proposals.isEmpty) return;
+
+    final accepted = List<bool>.filled(proposals.length, true);
+    showAppBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Phân bố lại cho vừa sức 🧺',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 4),
+                Text(
+                  'Hôm nay hơi nặng — AI đề xuất dời bớt sang ngày còn quỹ. Con chốt từng dòng nhé.',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                      height: 1.4),
+                ),
+                const SizedBox(height: 14),
+                ...List.generate(proposals.length, (i) {
+                  final p = proposals[i];
+                  final d = p.proposedStart;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: accepted[i]
+                            ? AppColors.greenSoft.withValues(alpha: 0.4)
+                            : AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: accepted[i]
+                                ? AppColors.primary
+                                : AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(p.task.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '→ ${d.day}/${d.month} • ${p.task.estimateMinutes} phút • ${p.reason}',
+                                  style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: accepted[i],
+                            activeThumbColor: AppColors.primary,
+                            onChanged: (v) =>
+                                setSheetState(() => accepted[i] = v),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: const Text('Để nguyên'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          var applied = 0;
+                          for (var i = 0; i < proposals.length; i++) {
+                            if (!accepted[i]) continue;
+                            final task = proposals[i].task;
+                            task.scheduledAt = proposals[i].proposedStart;
+                            StorageService.setTodayTaskJson(
+                                task.id, task.toJsonString());
+                            applied++;
+                          }
+                          Navigator.pop(sheetContext);
+                          if (applied > 0) {
+                            AiRefreshService
+                                .notifyDataChanged(); // chu trình AI
+                            _loadTasks();
+                            setState(() {});
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Đã dời $applied nhiệm vụ — hôm nay nhẹ hơn rồi!'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(accepted.any((a) => a)
+                            ? 'Dời ${accepted.where((a) => a).length} nhiệm vụ'
+                            : 'Dời'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// Nhịp học cá nhân đề xuất thứ tự: môn khó + môn bị bỏ quên lên trước.
@@ -481,6 +663,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          const SizedBox(height: 14),
+          _buildDayBalanceBanner(),
           const SizedBox(height: 14),
           TodayMissionCard(
             tasks: _tasks,
