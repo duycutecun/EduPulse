@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
+import '../../../../core/ai/study_rhythm.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
@@ -198,6 +199,35 @@ class _HomeScreenState extends State<HomeScreen> {
       _allTasks.add(task);
       _tasks.add(task);
     });
+  }
+
+  /// Nhịp học cá nhân đề xuất thứ tự: môn khó + môn bị bỏ quên lên trước.
+  /// Chỉ đổi THỨ TỰ trong bộ nhớ (lưu IDs theo thứ tự mới) — học sinh chốt.
+  void _applySuggestedOrder() {
+    final ordered = StudyRhythm.suggestOrder(_tasks);
+    bool sameOrder = ordered.length == _tasks.length;
+    if (sameOrder) {
+      for (var i = 0; i < ordered.length; i++) {
+        if (ordered[i].id != _tasks[i].id) {
+          sameOrder = false;
+          break;
+        }
+      }
+    }
+    if (sameOrder) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Thứ tự hiện tại đã hợp lý rồi — không cần đổi gì!'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    setState(() => _tasks = ordered);
+    StorageService.setTodayTaskIds(ordered.map((t) => t.id).toList());
+    HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Đã xếp môn cần sức nhất lên trước — theo nhịp học của bạn'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   void _toggleTask(TodayTask task) {
@@ -461,6 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onReschedule: _rescheduleTask,
             onAddSample: _showSampleTasksSheet,
             onQuickAdd: _showQuickAddSheet,
+            onSuggestOrder: _applySuggestedOrder,
           ),
         ],
       ),

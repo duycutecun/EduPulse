@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/storage_service.dart';
 import '../../../study/domain/models/study_models.dart';
 
 class TodayMissionCard extends StatelessWidget {
@@ -17,6 +18,9 @@ class TodayMissionCard extends StatelessWidget {
   /// Quick Add ngôn ngữ tự nhiên (đặc tả mục 25).
   final VoidCallback? onQuickAdd;
 
+  /// Nhịp học cá nhân: gợi ý xếp môn khó lên trước (Giai đoạn "AI hiểu bạn").
+  final VoidCallback? onSuggestOrder;
+
   const TodayMissionCard({
     super.key,
     required this.tasks,
@@ -27,6 +31,7 @@ class TodayMissionCard extends StatelessWidget {
     required this.onReschedule,
     this.onAddSample,
     this.onQuickAdd,
+    this.onSuggestOrder,
   });
 
   @override
@@ -84,6 +89,26 @@ class TodayMissionCard extends StatelessWidget {
                       color: AppColors.textMuted,
                     ),
                   ),
+                  // Nhịp học cá nhân: gợi ý thứ tự (môn khó lên trước).
+                  // Chỉ hiện khi còn >= 2 nhiệm vụ chưa xong và học sinh
+                  // chưa tắt AI cá nhân hoá.
+                  if (onSuggestOrder != null &&
+                      tasks.where((t) => !t.isDone).length >= 2 &&
+                      StorageService.getBool('ai_permission_analyze') != false) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onSuggestOrder,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.greenSoft,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.low_priority_rounded,
+                            color: AppColors.primary, size: 18),
+                      ),
+                    ),
+                  ],
                   if (onQuickAdd != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(

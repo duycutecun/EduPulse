@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget EduPulse: đếm ngược kỳ thi + 2 nhiệm vụ hôm nay.
+     Nền trắng kem theo AppColors.bgPage, bo góc mềm (lớp "tối giản"). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/widget_bg">
+
+    <!-- Đếm ngược kỳ thi -->
+    <LinearLayout
+        android:id="@+id/exam_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/exam_days"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textSize="34sp"
+            android:textStyle="bold"
+            android:textColor="#1F2937" />
+
+        <TextView
+            android:id="@+id/exam_days_suffix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ngày"
+            android:textSize="13sp"
+            android:textColor="#6B7280"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:id="@+id/exam_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#374151" />
+    </LinearLayout>
+
+    <!-- Trạng thái trống: chưa có kỳ thi mục tiêu -->
+    <TextView
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Mở EduPulse để thêm kỳ thi mục tiêu 🎯"
+        android:textSize="13sp"
+        android:textColor="#6B7280"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginTop="10dp">
+
+        <TextView
+            android:id="@+id/task1_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="14sp"
+            android:textColor="#1F2937"
+            android:layout_marginBottom="6dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/task2_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="14sp"
+            android:textColor="#374151"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EduPulse · Học tốt nhé! 💚"
+        android:textSize="11sp"
+        android:textColor="#9CA3AF" />
+</LinearLayout>

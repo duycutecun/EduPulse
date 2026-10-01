@@ -61,7 +61,6 @@ class SmartNoteLinker {
     'that',
     'this',
     'from',
-    'các',
     'khi',
     'là',
     'về',

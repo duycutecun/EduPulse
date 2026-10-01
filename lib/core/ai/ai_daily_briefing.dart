@@ -8,6 +8,7 @@ import 'ai_context.dart';
 import 'ai_models.dart';
 import 'ai_router.dart';
 import 'readiness_score.dart';
+import 'study_rhythm.dart';
 
 /// Một mục trong bản tin AI hằng ngày.
 class BriefingItem {
@@ -146,13 +147,19 @@ class AiDailyBriefing {
         : 'CHỈ SỐ SẴN SÀNG THI: ${readiness.score}/100 (${readiness.band}). '
             'Thành phần: ${readiness.factors.map((f) => '${f.label} ${(f.value * 100).round()}%').join(', ')}.';
 
+    // Nhịp học cá nhân phát hiện trên thiết bị — AI dùng để cá nhân hoá
+    // thứ tự việc làm, kể cả khi model không có dữ liệu giờ học thật.
+    final rhythmBlock = _rhythmBlock();
+
     final prompt = '''
 Dựa trên ngữ cảnh học tập dưới đây, viết BẢN TIN HỌC TẬP HÔM NAY cho học sinh.
 $readinessBlock
-
+${rhythmBlock.isEmpty ? '' : '\n$rhythmBlock\n'}
 Yêu cầu:
 - Giọng thân thiện, ngắn gọn, động viên nhưng trung thực.
 - Chọn đúng 3 việc ưu tiên nhất LÀM ĐƯỢC HÔM NAY (cụ thể, có số liệu).
+- Nếu có GIỜ VÀNG, việc ưu tiên số 1 nên dính tới khung giờ đó (nếu hợp lý).
+- Nếu có NGUY CƠ CHÁY, việc số 1 là mời nghỉ nhẹ nhàng, không bắt học nhiều.
 - Chọn tối đa 2 rủi ro cần chú ý (có thể 0 nếu không có).
 
 Trả về ĐÚNG định dạng JSON, không kèm markdown hay text khác:
@@ -206,6 +213,24 @@ $context''';
     }
   }
 
+  /// Khối nhịp học cho prompt AI — ngắn, chỉ khi có tín hiệu đáng tin.
+  static String _rhythmBlock() {
+    final lines = <String>[];
+    final peak = StudyRhythm.peakHour();
+    if (peak != null && peak.confidence >= 0.5) {
+      lines.add('GIỜ VÀNG: ${peak.summary} (bằng chứng: ${peak.evidence}).');
+    }
+    final burnout = StudyRhythm.burnoutRisk();
+    if (burnout != null) {
+      lines.add('NGUY CƠ CHÁY: ${burnout.summary}.');
+    }
+    final neglected = StudyRhythm.neglectedSubject();
+    if (neglected != null) {
+      lines.add('MÔN BỊ BỎ QUÊN: ${neglected.summary}.');
+    }
+    return lines.join('\n');
+  }
+
   // --- Offline briefing (fallback luôn khả dụng) -----------------------
 
   static DailyBriefing _offlineBriefing() {
@@ -223,9 +248,37 @@ $context''';
     final risks = <BriefingItem>[];
 
     if (readiness != null) {
+      // Nhịp học cá nhân (on-device, miễn phí) cá nhân hoá thứ tự ưu tiên:
+      // burnout → mời nghỉ nhẹ nhàng TRƯỚC mọi đòn bẩy (Principle 5 Calm,
+      // không đe doạ streak); có giờ vàng → môn khó nhất vào khung đó;
+      // môn bị bỏ quên → nhắc ghé lại.
+      final peak = StudyRhythm.peakHour();
+      final burnout = StudyRhythm.burnoutRisk();
+      final neglected = StudyRhythm.neglectedSubject();
+
+      if (burnout != null) {
+        focus.add(BriefingItem(
+          title: 'Hôm nay học nhẹ thôi — tối đa 1 phiên 25 phút',
+          detail:
+              'Hai phiên gần nhất đều nặng nhọc. Nghỉ ngơi cũng là một phần của kế hoạch.',
+        ));
+      } else if (peak != null) {
+        final window =
+            peak.summary.replaceFirst('Học hiệu quả nhất khung ', '');
+        focus.add(BriefingItem(
+          title: 'Học môn khó nhất trong khung $window',
+          detail: peak.evidence,
+        ));
+      }
       // 3 đòn bẩy = 3 việc ưu tiên hôm nay.
       for (final lever in readiness.levers) {
         focus.add(BriefingItem(title: lever));
+      }
+      if (neglected != null) {
+        focus.add(BriefingItem(
+          title: 'Ghé lại môn bị bỏ quên 20 phút',
+          detail: neglected.summary,
+        ));
       }
       for (final w in readiness.warnings) {
         risks.add(BriefingItem(title: w));
@@ -233,8 +286,13 @@ $context''';
       final intro = readiness.warnings.isEmpty
           ? '$greeting Chỉ số sẵn sàng thi của bạn đang ở mức ${readiness.band.toLowerCase()} (${readiness.score}/100).'
           : '$greeting Sẵn sàng thi ${readiness.score}/100 — có ${readiness.warnings.length} điểm cần chú ý.';
+      // Ma thuật vô hình: giờ vàng xuất hiện ngay trong lời chào khi đã đủ
+      // dữ liệu, học sinh không cần biết phía sau có bộ phân tích nhịp học.
+      final introWithRhythm = (peak != null && burnout == null)
+          ? '$intro ${peak.summary.toLowerCase()} — kế hoạch đã xếp theo khung đó.'
+          : intro;
       return DailyBriefing(
-        greeting: intro,
+        greeting: introWithRhythm,
         focus: focus.take(3).toList(),
         risks: risks.take(2).toList(),
         source: 'offline',

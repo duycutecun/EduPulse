@@ -33,6 +33,19 @@
         <!-- flutter_local_notifications: nhận sự kiện khởi động lại thiết bị để
              lên lại lịch notification đã lên. -->
         <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+
+        <!-- Widget màn hình chính: đếm ngược kỳ thi + nhiệm vụ hôm nay
+             (Giai đoạn 2 — chu trình AI sống ngoài app). -->
+        <receiver
+            android:name=".EdupulseWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/edupulse_widget_info" />
+        </receiver>
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
             android:exported="false">

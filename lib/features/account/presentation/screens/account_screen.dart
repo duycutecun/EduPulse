@@ -17,6 +17,7 @@ import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
+import '../widgets/family_report_sheet.dart';
 import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -359,6 +360,8 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
         const SizedBox(height: 18),
         _buildLearningProfileEntry(),
+        const SizedBox(height: 18),
+        _buildFamilyReportEntry(),
         const SizedBox(height: 18),
         _buildSyncStateCard(),
         const SizedBox(height: 18),
@@ -855,6 +858,46 @@ class _AccountScreenState extends State<AccountScreen> {
                         : AppColors.textMuted)),
           ],
         ),
+      ),
+    );
+  }
+
+  /// "Cửa sổ tin cậy" — học sinh chủ động chia sẻ tiến độ với gia đình
+  /// (Giai đoạn 3, bước 1). Không tài khoản phụ huynh, không ép chia sẻ.
+  Widget _buildFamilyReportEntry() {
+    return GlassCard(
+      onTap: () => FamilyReportSheet.show(context),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const AppIcon(
+            Icons.family_restroom_rounded,
+            tileSize: 36,
+            iconSize: 18,
+            color: AppColors.green,
+            bg: AppColors.greenSoft,
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Cửa sổ tin cậy',
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                SizedBox(height: 2),
+                Text('Tự tạo báo cáo tuần gửi ba mẹ — con chọn gì, gia đình thấy nấy',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.35)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+        ],
       ),
     );
   }

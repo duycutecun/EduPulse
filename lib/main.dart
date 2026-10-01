@@ -12,6 +12,7 @@ import 'core/theme/appearance_service.dart';
 import 'core/utils/auth_service.dart';
 import 'core/utils/storage_service.dart';
 import 'core/utils/supabase_service.dart';
+import 'core/widget/home_widget_service.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/study/domain/models/study_models.dart';
@@ -80,6 +81,9 @@ void main() async {
     // kênh gọi), flashcard đến hạn được dời lời nhắc 18:00.
     AiRefreshService.refreshNow();
     AdaptivePolicy.syncFlashcardReminder();
+    // Widget màn hình chính (Giai đoạn 2): đồng bộ dữ liệu mới nhất để
+    // widget hiển thị đúng ngay khi app được mở.
+    HomeWidgetService.sync();
   });
 }
 
