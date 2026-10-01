@@ -15,7 +15,9 @@ import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/ai_copilot_hub_card.dart';
+import '../widgets/ai_readiness_card.dart';
 import '../widgets/today_mission_card.dart';
+import '../../../ai_coach/presentation/screens/flashcard_review_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ExamModel? primaryExam;
@@ -416,6 +418,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
           const SizedBox(height: 14),
+          // Chỉ số sẵn sàng thi + bản tin AI hằng ngày (AI là trung tâm)
+          AiReadinessCard(),
+          const SizedBox(height: 14),
           // Trợ lý học tập EduPulse Copilot (Contextual & Actionable AI)
           AiCopilotHubCard(
             onOpenAiChat: widget.onOpenAiCoach,
@@ -435,6 +440,13 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             onOpenCalendar: widget.onOpenCalendar,
+            onOpenFlashcards: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (_) => const FlashcardReviewScreen()),
+              );
+            },
           ),
           const SizedBox(height: 14),
           TodayMissionCard(

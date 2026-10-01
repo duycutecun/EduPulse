@@ -8,12 +8,16 @@ class QuickActionCard extends StatelessWidget {
   final VoidCallback onOpenAiPlan;
   final VoidCallback onOpenCalendar;
 
+  /// Mở màn hình ôn flashcard (lịch ngắt quãng do AI sinh thẻ).
+  final VoidCallback? onOpenFlashcards;
+
   const QuickActionCard({
     super.key,
     required this.onOpenStudy,
     required this.onOpenAiCoach,
     required this.onOpenAiPlan,
     required this.onOpenCalendar,
+    this.onOpenFlashcards,
   });
 
   @override
@@ -40,6 +44,12 @@ class QuickActionCard extends StatelessWidget {
           label: 'Lịch',
           onTap: onOpenCalendar,
         ),
+        if (onOpenFlashcards != null)
+          _buildAction(
+            icon: Icons.style_outlined,
+            label: 'Flashcard',
+            onTap: onOpenFlashcards!,
+          ),
       ],
     );
   }

@@ -174,8 +174,13 @@ class ChatBubble extends StatelessWidget {
                 ),
               ),
             ],
-            // Actionable Buttons từ AI (không bỏ mặc học sinh)
-            if (!isUser && msg.text.trim().length > 30) ...[
+            // Chat biết HÀNH ĐỘNG: ưu tiên actions có cấu trúc AI chèn
+            // (đúng chủ đề, đúng số phút...); chỉ fallback suy đoán keyword
+            // khi AI không chèn khối ACTIONS và lời trả lời đủ dài.
+            if (!isUser && msg.actions.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _AiActionRow(actions: msg.actions),
+            ] else if (!isUser && msg.text.trim().length > 30) ...[
               const SizedBox(height: 10),
               _MessageActionChips(text: msg.text),
             ],
@@ -366,6 +371,56 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
           },
           icon: const Icon(Icons.copy, color: AppColors.textMuted),
         ),
+      ],
+    );
+  }
+}
+
+/// Hàng nút hành động có cấu trúc do AI đề xuất (chat biết HÀNH ĐỘNG).
+/// Khác [_MessageActionChips] (suy đoán từ keyword) — các nút này là hành
+/// động AI chủ động chèn với chủ đề/thời lượng chính xác theo ngữ cảnh.
+class _AiActionRow extends StatelessWidget {
+  final List<dynamic> actions;
+
+  const _AiActionRow({required this.actions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final action in actions)
+          InkWell(
+            onTap: () => AiCopilotService.executeAction(context, action),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: (action.color ?? AppColors.primary).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: (action.color ?? AppColors.primary).withValues(alpha: 0.35),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(action.icon, size: 13, color: action.color ?? AppColors.primary),
+                  const SizedBox(width: 5),
+                  Text(
+                    action.label,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: action.color ?? AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

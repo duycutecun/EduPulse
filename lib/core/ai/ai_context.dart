@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../utils/storage_service.dart';
+import 'flashcard_service.dart';
+import 'readiness_score.dart';
 
 /// Gom dữ liệu học tập của học sinh thành một khối văn bản gửi kèm mọi
 /// câu hỏi cho AI Coach (đặc tả mục 10.2).
@@ -44,11 +46,13 @@ class AiStudyContext {
     _profile(add);
     _exam(add, t);
     _momentum(add);
+    _readiness(add);
     _tasks(add);
     _sessions(add, t);
     _logs(add, t);
     _mockScores(add, t);
     _notes(add);
+    _flashcards(add);
 
     if (lines.isEmpty) return '';
     final block = lines.join('\n');
@@ -165,6 +169,20 @@ class AiStudyContext {
     final recordText = record > streak ? ', kỷ lục $record ngày' : '';
     add('ĐỘNG LỰC: chuỗi học $streak ngày$recordText · '
         'cấp $level (${progress.$1}/${progress.$2} EXP)');
+  }
+
+  /// Chỉ số sẵn sàng thi — AI dùng để trả lời các câu kiểu "mình sẵng sàng
+  /// chưa", "nên ưu tiên gì" mà không phải tính lại từ đầu.
+  static void _readiness(void Function(String) add) {
+    final r = ReadinessScore.compute();
+    if (r == null) return;
+    add('SẴN SÀNG THI: ${r.score}/100 (${r.band})');
+    for (final w in r.warnings.take(2)) {
+      add('  Rủi ro: $w');
+    }
+    if (r.levers.isNotEmpty) {
+      add('  Đòn bẩy hàng đầu: ${r.levers.first}');
+    }
   }
 
   static void _tasks(void Function(String) add) {
@@ -390,6 +408,17 @@ class AiStudyContext {
     }
     final latestText = notes.take(_maxListItems).map((n) => n.title).join('; ');
     add('  Mới nhất: $latestText');
+  }
+
+  static void _flashcards(void Function(String) add) {
+    try {
+      final due = FlashcardService.dueCount;
+      final total = FlashcardService.loadAll().length;
+      if (total == 0) return;
+      add('FLASHCARD: $total thẻ, $due thẻ đến hạn ôn hôm nay');
+    } catch (_) {
+      // Flashcard hỏng không được làm hỏng cả khối ngữ cảnh chat.
+    }
   }
 
   // --- Tiện ích ----------------------------------------------------------

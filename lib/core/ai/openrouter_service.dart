@@ -23,9 +23,21 @@ class OpenRouterService {
       '4. Nêu các lưu ý / bẫy trắc nghiệm thường gặp. '
       'Đôi khi câu hỏi sẽ kèm một khối "THAM KHẢO TỪ WEB" từ Wikipedia. '
       'Hãy cân nhắc thông tin đó nếu liên quan và hữu ích để trả lời chính xác, phong phú hơn; '
-      'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '
-      'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh. '
-      'Trả lời bằng tiếng Việt.';
+      'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '      'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh. '
+      'Trả lời bằng tiếng Việt.\n\n'
+      'QUAN TRỌNG — KHI BẠN KHUYÊN HỌC SINH LÀM GÕ ĐÓ CỤ THỂ (luyện quiz, '
+      'bắt đầu phiên focus, lưu công thức vào ghi chú, thêm nhiệm vụ...), '
+      'hãy chèn khối hành động ở CUỐI câu trả lời để học sinh bấm thực thi '
+      'ngay trong app:\n'
+      '<<<ACTIONS>>>\n'
+      '- label: <nút hiển thị, ≤ 30 ký tự> | type: quiz | subject: <môn> | topic: <chủ đề>\n'
+      '- label: <...> | type: focus | subject: <môn> | minutes: <25/30/45>\n'
+      '- label: <...> | type: note | title: <tên ghi chú> | subject: <môn>\n'
+      '- label: <...> | type: task | title: <tên nhiệm vụ> | subject: <môn> | minutes: <số> | priority: <high/medium/low>\n'
+      '<<<END>>>\n'
+      'Quy tắc: chỉ chèn khi thật sự hữu ích (1-3 dòng, không bắt buộc mỗi '
+      'câu trả lời); KHÔNG chèn khi học sinh chỉ hỏi khái niệm/kiểm tra; '
+      'giữ nguyên định dạng key: value như mẫu; type chỉ nhận quiz/focus/note/task.';
 
   /// Hướng dẫn cách dùng khối ngữ cảnh học tập (mục 10.2) — điều này biến AI
   /// từ khung chat chung chung thành trợ lý biết rõ tình huống học sinh.

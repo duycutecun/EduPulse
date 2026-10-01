@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
+import '../../../../core/ai/ai_chat_actions.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -538,16 +539,21 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
       imageBytes: attachedImage,
     );
 
+    // AI biết HÀNH ĐỘNG: tách khối <<<ACTIONS>>> khỏi câu trả lời — phần
+    // text sạch hiển thị, phần hành động thành nút bấm thật trong bubble.
+    final parsed = AiChatActionParser.parse(response);
+
     setState(() {
       _messages.remove(loadingMsg);
       _messages.add(ChatMessage(
         id: _uuid.v4(),
-        text: response,
+        text: parsed.text,
         isUser: false,
         timestamp: DateTime.now(),
         // Source card (mục 10.9): nguồn web đã dùng cho câu trả lời này.
         sourceTitle: AiRouter.lastWebSource?.title,
         sourceUrl: AiRouter.lastWebSource?.pageUrl,
+        actions: parsed.actions,
       ));
       _isLoading = false;
     });
@@ -600,15 +606,17 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
       return;
     }
 
+    final parsed = AiChatActionParser.parse(response);
     setState(() {
       _messages[index] = ChatMessage(
         id: _uuid.v4(),
-        text: response,
+        text: parsed.text,
         isUser: false,
         timestamp: DateTime.now(),
         imageBytes: userMessage.imageBytes,
         sourceTitle: AiRouter.lastWebSource?.title,
         sourceUrl: AiRouter.lastWebSource?.pageUrl,
+        actions: parsed.actions,
       );
       _isLoading = false;
     });

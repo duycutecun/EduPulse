@@ -273,6 +273,11 @@ class ChatMessage {
   String? sourceTitle;
   String? sourceUrl;
 
+  /// Hành động AI đề xuất (chat biết HÀNH ĐỘNG): được parse từ khối
+  /// `<<<ACTIONS>>>` trong câu trả lời. Không lưu vào JSON history — hành động
+  /// chỉ gắn với phiên hiện tại, lịch sử cũ vẫn hiển thị text thuần.
+  final List<dynamic> actions;
+
   ChatMessage({
     required this.id,
     required this.text,
@@ -283,6 +288,7 @@ class ChatMessage {
     this.imageName,
     this.sourceTitle,
     this.sourceUrl,
+    this.actions = const [],
   });
 
   Map<String, dynamic> toJson() => {
