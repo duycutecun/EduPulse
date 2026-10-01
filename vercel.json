@@ -1,7 +1,7 @@
 {
   "outputDirectory": "build/web",
   "framework": null,
-  "installCommand": "git clone --depth 1 -b stable https://github.com/flutter/flutter.git /vercel/flutter && /vercel/flutter/bin/flutter config --no-analytics >/dev/null 2>&1 && /vercel/flutter/bin/flutter --version",
+  "installCommand": "git clone --depth 1 -b 3.47.1 https://github.com/flutter/flutter.git /vercel/flutter && /vercel/flutter/bin/flutter config --no-analytics >/dev/null 2>&1 && /vercel/flutter/bin/flutter --version",
   "buildCommand": "bash build.sh",
   "rewrites": [
     {
