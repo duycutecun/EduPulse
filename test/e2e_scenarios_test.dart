@@ -283,8 +283,8 @@ void main() {
     final created = TaskRepository.instance.getAllTasks();
     expect(created, hasLength(3));
     // Id lấy từ action của AI → bấm lại lần nữa không sinh bản sao.
-    expect(created.map((t) => t.id).toSet(),
-        {'ai-act-1', 'ai-act-2', 'ai-act-3'});
+    expect(
+        created.map((t) => t.id).toSet(), {'ai-act-1', 'ai-act-2', 'ai-act-3'});
 
     // Áp dụng lại đúng kế hoạch đó: không tạo duplicate.
     await pumpPlanPreview(tester, plan);
@@ -302,7 +302,8 @@ void main() {
       TaskRepository.instance.getTasksForDay().map((t) => t.id),
       isNot(contains('ai-act-3')),
     );
-    expect(TaskRepository.instance.getTasksForDay(tomorrow).single.id, 'ai-act-3');
+    expect(
+        TaskRepository.instance.getTasksForDay(tomorrow).single.id, 'ai-act-3');
 
     // Vào app thật: task AI hiện ở Hôm nay và bắt đầu học được bình thường.
     await pumpShell(tester, clock.now);
@@ -342,7 +343,8 @@ void main() {
     expect(find.text('Ôn chuyên đề đạo hàm'), findsWidgets);
 
     // Mở chi tiết → Dời lịch → Ngày mai → Xác nhận dời.
-    await tester.tapAt(tester.getCenter(find.text('Ôn chuyên đề đạo hàm').first));
+    await tester
+        .tapAt(tester.getCenter(find.text('Ôn chuyên đề đạo hàm').first));
     await tester.pump(const Duration(milliseconds: 600));
     await tester.ensureVisible(find.text('Dời lịch'));
     await tester.pump(const Duration(milliseconds: 300));
@@ -391,7 +393,8 @@ void main() {
 
   // ─── E2E-4: Kịch bản D ───────────────────────────────────────────────────
 
-  testWidgets('D — ngoại tuyến: học và lưu vẫn an toàn, có mạng lại không mất gì',
+  testWidgets(
+      'D — ngoại tuyến: học và lưu vẫn an toàn, có mạng lại không mất gì',
       (tester) async {
     final clock = _FakeClock(todayAt8());
     PwaService.onlineNotifier.value = false;
@@ -404,13 +407,13 @@ void main() {
     await pumpShell(tester, clock.now);
 
     // App mở được khi offline và nói rõ dữ liệu vẫn an toàn.
-    expect(find.textContaining('Dữ liệu đang được lưu an toàn'), findsOneWidget);
+    expect(
+        find.textContaining('Dữ liệu đang được lưu an toàn'), findsOneWidget);
 
     // Tạo nhiệm vụ khi offline — ghi local phải thành công.
     await tester.tap(find.text('+ Thêm nhiệm vụ'));
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.enterText(
-        find.byType(TextField).first, 'Ôn tích phân thức');
+    await tester.enterText(find.byType(TextField).first, 'Ôn tích phân thức');
     await tester.tap(find.text('30 phút'));
     await tester.pump();
     await tester.tap(find.text('Thêm'));

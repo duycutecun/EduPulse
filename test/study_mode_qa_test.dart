@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
@@ -259,8 +259,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(repo.getAll(), hasLength(1),
-          reason: 'nghỉ không phải là học');
+      expect(repo.getAll(), hasLength(1), reason: 'nghỉ không phải là học');
       // Hết nghỉ thì sẵn sàng vòng focus mới (1 phút, như đã cài đặt).
       expect(find.textContaining('01:00'), findsOneWidget);
     });
@@ -297,7 +296,8 @@ void main() {
           reason: 'hai vòng 1 phút phải ra đúng 2 phút, không phải 26');
     });
 
-    testWidgets('phiên ghi xong phải đọc lại được từ storage (không phụ thuộc mạng)',
+    testWidgets(
+        'phiên ghi xong phải đọc lại được từ storage (không phụ thuộc mạng)',
         (tester) async {
       final clock = await openStudy(tester, focusMinutes: 1);
 
@@ -308,8 +308,7 @@ void main() {
 
       final session = repo.getAll().single;
       final reread = repo.getById(session.id);
-      expect(reread, isNotNull,
-          reason: 'phiên phải đọc lại được từ storage');
+      expect(reread, isNotNull, reason: 'phiên phải đọc lại được từ storage');
       expect(reread!.actualMinutes, 1);
       expect(reread.status, StudySession.statusCompleted);
     });
@@ -355,8 +354,8 @@ void main() {
       await tester.ensureVisible(
           find.byKey(const ValueKey('complete-task-and-go-today')));
       await tester.pumpAndSettle();
-      await tester.tap(
-          find.byKey(const ValueKey('complete-task-and-go-today')));
+      await tester
+          .tap(find.byKey(const ValueKey('complete-task-and-go-today')));
       await tester.pumpAndSettle();
 
       final task = TaskRepository.instance.getTaskById(taskId)!;
@@ -368,7 +367,8 @@ void main() {
       expect(repo.getAll().single.taskId, taskId);
     });
 
-    testWidgets('đánh giá được lưu kèm trong thao tác kết thúc', (tester) async {
+    testWidgets('đánh giá được lưu kèm trong thao tác kết thúc',
+        (tester) async {
       await openSheetWithTask(tester);
 
       await tester.tap(find.text('😐'));
@@ -378,8 +378,8 @@ void main() {
       await tester.ensureVisible(
           find.byKey(const ValueKey('complete-task-and-go-today')));
       await tester.pumpAndSettle();
-      await tester.tap(
-          find.byKey(const ValueKey('complete-task-and-go-today')));
+      await tester
+          .tap(find.byKey(const ValueKey('complete-task-and-go-today')));
       await tester.pumpAndSettle();
 
       expect(repo.getAll().single.mood, 2);
@@ -429,9 +429,12 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      if (find.byKey(const ValueKey('complete-task-and-go-today')).evaluate().isNotEmpty) {
-        await tester.tap(
-            find.byKey(const ValueKey('complete-task-and-go-today')));
+      if (find
+          .byKey(const ValueKey('complete-task-and-go-today'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester
+            .tap(find.byKey(const ValueKey('complete-task-and-go-today')));
         await tester.pumpAndSettle();
       }
 

@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/storage_service.dart';
 import '../utils/supabase_service.dart';
+import '../../features/exams/domain/exam_repository.dart';
+import '../../features/tasks/domain/repositories/task_repository.dart';
 
 /// Trạng thái đồng bộ dữ liệu local → cloud (đặc tả mục 19 — Sync states).
 ///
@@ -96,10 +98,17 @@ class SyncStateService {
   /// Cập nhật trạng thái offline/online từ PwaService.
   static void updateConnectivity({required bool isOnline}) {
     if (state.value.status == SyncStatus.syncing && isOnline) return;
+    final wasOffline = state.value.status == SyncStatus.offline;
     state.value = SyncState(
       status: isOnline ? SyncStatus.synced : SyncStatus.offline,
       lastSyncedAtMs: StorageService.getInt(_lastSyncKey),
     );
+    // Vừa có mạng lại: đẩy ngay thay đổi đã gẹn lúc offline, không bắt
+    // người dùng đợi tới chu kỳ 15 phút (hoặc tự bấm nút đồng bộ).
+    if (isOnline && wasOffline) {
+      ExamRepository.instance.flushNow();
+      TaskRepository.instance.flushNow();
+    }
   }
 
   /// Sync nền định kỳ 15 phút khi online (chỉ khi đã cấu hình cloud).

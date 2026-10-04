@@ -40,14 +40,15 @@ void main() {
       saveSessions([
         session('s1', DateTime(2026, 10, 1, 20), 25, focus: 5),
       ]);
-      expect(
-          StudyRhythm.peakHour(now: DateTime(2026, 10, 1, 22)), isNull);
+      expect(StudyRhythm.peakHour(now: DateTime(2026, 10, 1, 22)), isNull);
     });
 
     test('2 phiên tối muộn chất lượng cao → giờ vàng 20h', () {
       saveSessions([
-        session('s1', DateTime(2026, 9, 29, 20), 25, focus: 5, effectiveness: 5),
-        session('s2', DateTime(2026, 9, 30, 20), 45, focus: 4, effectiveness: 5),
+        session('s1', DateTime(2026, 9, 29, 20), 25,
+            focus: 5, effectiveness: 5),
+        session('s2', DateTime(2026, 9, 30, 20), 45,
+            focus: 4, effectiveness: 5),
         session('s3', DateTime(2026, 9, 30, 9), 25, focus: 2, effectiveness: 2),
       ]);
       final peak = StudyRhythm.peakHour(now: DateTime(2026, 10, 1, 22));
@@ -60,9 +61,12 @@ void main() {
   group('StudyRhythm — burnout', () {
     test('2 phiên gần nhất đều thấp → cảnh báo', () {
       saveSessions([
-        session('b1', DateTime(2026, 9, 30, 15), 60, focus: 2, effectiveness: 2),
-        session('b2', DateTime(2026, 10, 1, 16), 60, focus: 1, effectiveness: 2),
-        session('b3', DateTime(2026, 9, 25, 10), 25, focus: 5, effectiveness: 5),
+        session('b1', DateTime(2026, 9, 30, 15), 60,
+            focus: 2, effectiveness: 2),
+        session('b2', DateTime(2026, 10, 1, 16), 60,
+            focus: 1, effectiveness: 2),
+        session('b3', DateTime(2026, 9, 25, 10), 25,
+            focus: 5, effectiveness: 5),
       ]);
       final risk = StudyRhythm.burnoutRisk(now: DateTime(2026, 10, 1, 22));
       expect(risk, isNotNull);
@@ -71,11 +75,12 @@ void main() {
 
     test('phiên cuối khoẻ mạnh → không cảnh báo', () {
       saveSessions([
-        session('c1', DateTime(2026, 9, 30, 15), 60, focus: 2, effectiveness: 2),
-        session('c2', DateTime(2026, 10, 1, 16), 45, focus: 4, effectiveness: 4),
+        session('c1', DateTime(2026, 9, 30, 15), 60,
+            focus: 2, effectiveness: 2),
+        session('c2', DateTime(2026, 10, 1, 16), 45,
+            focus: 4, effectiveness: 4),
       ]);
-      expect(
-          StudyRhythm.burnoutRisk(now: DateTime(2026, 10, 1, 22)), isNull);
+      expect(StudyRhythm.burnoutRisk(now: DateTime(2026, 10, 1, 22)), isNull);
     });
   });
 
@@ -96,8 +101,8 @@ void main() {
       StorageService.setTodayTaskJson('t1', task.toJsonString());
       StorageService.setTodayTaskIds(['t1']);
 
-      final neglected = StudyRhythm.neglectedSubject(
-          now: DateTime(2026, 10, 1, 22));
+      final neglected =
+          StudyRhythm.neglectedSubject(now: DateTime(2026, 10, 1, 22));
       expect(neglected, isNotNull);
       expect(neglected!.subject, 'Hóa');
     });

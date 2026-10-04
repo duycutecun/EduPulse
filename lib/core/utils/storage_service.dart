@@ -112,6 +112,13 @@ class StorageService {
   static int? getInt(String key) => _prefs?.getInt(key);
   static void setInt(String key, int v) => _prefs?.setInt(key, v);
 
+  /// Danh sách chuỗi tổng quát — dùng cho hàng đợi chờ (vd: id kỳ thi đã xoá
+  /// nhưng chưa xoá được trên cloud).
+  static List<String>? getStringList(String key) => _prefs?.getStringList(key);
+
+  static void setStringList(String key, List<String> v) =>
+      _prefs?.setStringList(key, v);
+
   // XP / Level
   static int getXp() => _prefs?.getInt('user_xp') ?? 0;
   static void setXp(int v) => _prefs?.setInt('user_xp', v);

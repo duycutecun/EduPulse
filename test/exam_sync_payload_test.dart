@@ -46,9 +46,11 @@ void main() {
       expect(decoded, {'📐 Toán': 9.0, '🧪 Hóa': 8.5});
     });
 
-    test('kỳ thi không có mục tiêu vẫn gửi khoá rỗng, không được bỏ trường', () {
+    test('kỳ thi không có mục tiêu vẫn gửi khoá rỗng, không được bỏ trường',
+        () {
       final row = SupabaseService.examRow(
-        ExamModel(id: 'e2', name: 'Không mục tiêu', dateTime: DateTime(2026, 1, 1)),
+        ExamModel(
+            id: 'e2', name: 'Không mục tiêu', dateTime: DateTime(2026, 1, 1)),
         null,
       );
 

@@ -97,9 +97,15 @@ void main() {
 
     test('đếm nhiệm vụ hoàn thành / tổng theo ngày lịch', () {
       final tasks = [
-        _task(id: 'a', scheduledAt: DateTime(2026, 3, 18, 9), status: 'completed'),
+        _task(
+            id: 'a',
+            scheduledAt: DateTime(2026, 3, 18, 9),
+            status: 'completed'),
         _task(id: 'b', scheduledAt: DateTime(2026, 3, 18, 10), status: 'todo'),
-        _task(id: 'c', scheduledAt: DateTime(2026, 3, 19, 9), status: 'completed'),
+        _task(
+            id: 'c',
+            scheduledAt: DateTime(2026, 3, 19, 9),
+            status: 'completed'),
       ];
       final day = ProgressEngine.dayProgress(const [], tasks, now);
       expect(day.tasksTotal, 2);
@@ -111,7 +117,10 @@ void main() {
     test('thứ tự ưu tiên: scheduledAt rồi mới tới createdAt', () {
       final tasks = [
         _task(id: 'a', createdAt: DateTime(2026, 3, 18, 1)), // không có lịch
-        _task(id: 'b', scheduledAt: DateTime(2026, 3, 18, 9), createdAt: DateTime(2026, 1, 1)),
+        _task(
+            id: 'b',
+            scheduledAt: DateTime(2026, 3, 18, 9),
+            createdAt: DateTime(2026, 1, 1)),
       ];
       final day = ProgressEngine.dayProgress(const [], tasks, now);
       expect(day.tasksTotal, 2);
@@ -163,8 +172,8 @@ void main() {
     test("gộp 'Toán' và '📐 Toán' về một môn sau chuẩn hoá", () {
       final sessions = [_session(at: now, subject: 'Toán', minutes: 40)];
       final tasks = [
-        _task(id: 'a', subject: '📐 Toán', status: 'completed',
-            scheduledAt: now),
+        _task(
+            id: 'a', subject: '📐 Toán', status: 'completed', scheduledAt: now),
       ];
       final list = ProgressEngine.subjectProgress(sessions, tasks, now);
       expect(list.length, 1);
@@ -199,8 +208,8 @@ void main() {
 
   group('neglectedSubjects — môn bỏ quên', () {
     test('môn học cách đây 10 ngày bị coi là bỏ quên', () {
-      final tenDaysAgo = ProgressEngine.startOfDay(now)
-          .subtract(const Duration(days: 10));
+      final tenDaysAgo =
+          ProgressEngine.startOfDay(now).subtract(const Duration(days: 10));
       final sessions = [_session(at: tenDaysAgo, subject: '⚡ Lý', minutes: 20)];
       final list = ProgressEngine.neglectedSubjects(sessions, const [], now);
       expect(list.map((s) => s.subject), contains(AppSubjects.normalize('Lý')));
@@ -211,11 +220,13 @@ void main() {
           .subtract(const Duration(days: 1))
           .add(const Duration(hours: 9));
       final sessions = [_session(at: yesterday, subject: '⚡ Lý')];
-      expect(ProgressEngine.neglectedSubjects(sessions, const [], now), isEmpty);
+      expect(
+          ProgressEngine.neglectedSubjects(sessions, const [], now), isEmpty);
     });
 
     test('môn chưa từng có phiên học thì không báo động', () {
-      expect(ProgressEngine.neglectedSubjects(const [], const [], now), isEmpty);
+      expect(
+          ProgressEngine.neglectedSubjects(const [], const [], now), isEmpty);
     });
   });
 
@@ -231,11 +242,13 @@ void main() {
       expect(snap.week.totalMinutes, 30);
     });
 
-    test('weekDeltaPercent tăng/giảm đúng chiều, null khi tuần trước trống', () {
+    test('weekDeltaPercent tăng/giảm đúng chiều, null khi tuần trước trống',
+        () {
       final start = ProgressEngine.startOfWeek(now);
       final sessions = [
         _session(at: start.subtract(const Duration(days: 2)), minutes: 100),
-        _session(at: start.add(const Duration(days: 1, hours: 9)), minutes: 150),
+        _session(
+            at: start.add(const Duration(days: 1, hours: 9)), minutes: 150),
       ];
       final snap = ProgressEngine.snapshot(sessions, const [], now);
       expect(snap.weekDeltaPercent, 50);

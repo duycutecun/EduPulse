@@ -62,8 +62,7 @@ void main() {
 
     test('trùng tên, cùng môn nhưng khác ngày → vẫn tạo', () async {
       final now = DateTime.now();
-      await repo.createTaskIfMissing(
-          makeTask(id: 'a', scheduledAt: now));
+      await repo.createTaskIfMissing(makeTask(id: 'a', scheduledAt: now));
       final result = await repo.createTaskIfMissing(makeTask(
         id: 'b',
         scheduledAt: now.add(const Duration(days: 1)),

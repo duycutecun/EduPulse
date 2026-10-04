@@ -34,7 +34,8 @@ void main() {
     // CTA là nút nêu (ElevatedButton) — không phải TextButton/GestureDetector.
     expect(
       find.descendant(
-          of: find.byType(PrimaryButton), matching: find.byType(ElevatedButton)),
+          of: find.byType(PrimaryButton),
+          matching: find.byType(ElevatedButton)),
       findsOneWidget,
     );
 

@@ -45,7 +45,11 @@ void main() {
       final entries = buildStudyTimeline(
         logs: [
           StudyLog(id: 'l1', date: base, subject: 'A', hours: 1),
-          StudyLog(id: 'l2', date: base.add(const Duration(days: 2)), subject: 'B', hours: 1),
+          StudyLog(
+              id: 'l2',
+              date: base.add(const Duration(days: 2)),
+              subject: 'B',
+              hours: 1),
         ],
         sessions: [session(id: 's1', at: base.add(const Duration(days: 1)))],
       );
@@ -74,11 +78,17 @@ void main() {
       expect(entries.last.fromSession, isTrue);
     });
 
-    test('Ghi chú lấy từ reflectionNote của phiên, giữ nguyên ghi chép nhập tay', () {
+    test(
+        'Ghi chú lấy từ reflectionNote của phiên, giữ nguyên ghi chép nhập tay',
+        () {
       final base = DateTime(2026, 3, 4, 9);
       final entries = buildStudyTimeline(
-        logs: [StudyLog(id: 'l1', date: base, subject: 'A', hours: 1, note: 'tự ghi')],
-        sessions: [session(id: 's1', at: base, reflection: 'học chắc phần lý thuyết')],
+        logs: [
+          StudyLog(id: 'l1', date: base, subject: 'A', hours: 1, note: 'tự ghi')
+        ],
+        sessions: [
+          session(id: 's1', at: base, reflection: 'học chắc phần lý thuyết')
+        ],
       );
       final fromSession = entries.firstWhere((e) => e.fromSession);
       final fromLog = entries.firstWhere((e) => !e.fromSession);
@@ -116,7 +126,8 @@ void main() {
     test('Chỉ phiên học pomodoro vẫn ra tổng giờ tuần', () {
       final today = DateTime.now();
       final summary = summarizeWeek([
-        StudyTimelineEntry.fromSession(session(id: 's1', at: today, minutes: 45)),
+        StudyTimelineEntry.fromSession(
+            session(id: 's1', at: today, minutes: 45)),
       ]);
       expect(summary.totalHours, closeTo(0.75, 1e-9));
       expect(summary.subjectHours['Toán'], closeTo(0.75, 1e-9));
@@ -125,7 +136,10 @@ void main() {
     test('weeklyHoursOf cũng tính cả phiên học', () {
       final today = DateTime.now();
       expect(
-        weeklyHoursOf([StudyTimelineEntry.fromSession(session(id: 's1', at: today, minutes: 30))]),
+        weeklyHoursOf([
+          StudyTimelineEntry.fromSession(
+              session(id: 's1', at: today, minutes: 30))
+        ]),
         closeTo(0.5, 1e-9),
       );
     });
@@ -134,7 +148,8 @@ void main() {
       final now = DateTime.now();
       final lastWeek = now.subtract(const Duration(days: 7));
       final summary = summarizeWeek([
-        StudyTimelineEntry.fromSession(session(id: 'old', at: lastWeek, minutes: 60)),
+        StudyTimelineEntry.fromSession(
+            session(id: 'old', at: lastWeek, minutes: 60)),
       ]);
       expect(summary.totalHours, 0.0);
     });
@@ -142,7 +157,8 @@ void main() {
     test('Phiên học môn rỗng gộp vào nhóm "khác"', () {
       final today = DateTime.now();
       final summary = summarizeWeek([
-        StudyTimelineEntry.fromSession(session(id: 's1', at: today, subject: '', minutes: 20)),
+        StudyTimelineEntry.fromSession(
+            session(id: 's1', at: today, subject: '', minutes: 20)),
       ]);
       expect(summary.subjectHours.keys, contains('khác'));
     });
@@ -211,11 +227,13 @@ void main() {
       await StorageService.init();
     });
 
-    test('Một phiên 25 phút chỉ sinh một bản ghi, không có StudyLog đi kèm', () {
+    test('Một phiên 25 phút chỉ sinh một bản ghi, không có StudyLog đi kèm',
+        () {
       final now = DateTime.now();
       final pomodoroSession = session(id: 's1', at: now, minutes: 25);
 
-      StorageService.setStudySessionJson(pomodoroSession.id, pomodoroSession.toJsonString());
+      StorageService.setStudySessionJson(
+          pomodoroSession.id, pomodoroSession.toJsonString());
       final ids = StorageService.getStudySessionIds()..add(pomodoroSession.id);
       StorageService.setStudySessionIds(ids);
 

@@ -76,8 +76,8 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.byKey(const ValueKey('finish-session-early')),
-          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('finish-session-early')), findsOneWidget);
       expect(find.text('Hoàn thành'), findsOneWidget);
     });
 
@@ -99,17 +99,19 @@ void main() {
         clock.advance(const Duration(seconds: 1));
         await tester.pump(const Duration(seconds: 1));
       }
-      expect(repo.getAll(), isEmpty, reason: 'chưa kết thúc thì chưa ghi phiên');
+      expect(repo.getAll(), isEmpty,
+          reason: 'chưa kết thúc thì chưa ghi phiên');
 
       await tester.tap(find.byKey(const ValueKey('finish-session-early')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 700));
 
       expect(repo.getAll(), hasLength(1),
-          reason: 'xong việc thì phiên phải được ghi, không mất thời gian đã học');
+          reason:
+              'xong việc thì phiên phải được ghi, không mất thời gian đã học');
       // Bước đánh giá 1 chạm mở ra — không bắt điền thang chi tiết.
-      expect(find.byKey(const ValueKey('save-session-feedback')),
-          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('save-session-feedback')), findsOneWidget);
     });
 
     testWidgets('Bấm khi chưa học gì → nhắc, không ghi phiên rác',
@@ -129,7 +131,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(repo.getAll(), isEmpty);
-      expect(find.textContaining('Hãy bắt đầu phiên học trước'), findsOneWidget);
+      expect(
+          find.textContaining('Hãy bắt đầu phiên học trước'), findsOneWidget);
     });
   });
 
@@ -288,8 +291,7 @@ void main() {
 
       expect(emitted, isNotNull);
       expect(emitted!.length, 1, reason: 'môn để trống không sinh mục tiêu');
-      expect(emitted!.values.single, 9.5,
-          reason: 'dấu phẩy kiểu VN vẫn hiểu');
+      expect(emitted!.values.single, 9.5, reason: 'dấu phẩy kiểu VN vẫn hiểu');
     });
 
     testWidgets('Editor giữ mục tiêu cũ khi sửa', (tester) async {
@@ -374,8 +376,8 @@ void main() {
       );
       // Khoá môn đã chuẩn hoá qua danh mục (có emoji) — so khớp phải đi qua
       // cùng đường chuẩn hoá, không so chuỗi thô.
-      final math = list.firstWhere(
-          (s) => s.subject == AppSubjects.normalize('Toán'));
+      final math =
+          list.firstWhere((s) => s.subject == AppSubjects.normalize('Toán'));
 
       expect(math.minutes, 30);
       expect(math.lastPeriodMinutes, 10);

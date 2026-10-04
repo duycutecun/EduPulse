@@ -23,7 +23,8 @@ void main() {
     sessions = StudySessionRepository.instance;
   });
 
-  TodayTask makeTask({String id = 't1', String title = 'Ôn hàm số'}) => TodayTask(
+  TodayTask makeTask({String id = 't1', String title = 'Ôn hàm số'}) =>
+      TodayTask(
         id: id,
         title: title,
         subject: '📐 Toán',
@@ -87,7 +88,8 @@ void main() {
         );
       }
 
-      final extra = repo.addAttachment(task.id, name: 'a3.png', bytes: pngBytes());
+      final extra =
+          repo.addAttachment(task.id, name: 'a3.png', bytes: pngBytes());
       expect(extra.failed, isTrue);
       expect(extra.error, contains('3'));
       expect(repo.listAttachments(task.id), hasLength(TaskAttachment.maxCount));
@@ -95,10 +97,10 @@ void main() {
 
     test('tệp mới thêm lên đầu danh sách', () async {
       final task = await seedTask();
-      repo.addAttachment(task.id, name: 'cũ.png', bytes: pngBytes(),
-          addedAt: DateTime(2026, 1, 1));
-      repo.addAttachment(task.id, name: 'mới.png', bytes: pngBytes(),
-          addedAt: DateTime(2026, 5, 1));
+      repo.addAttachment(task.id,
+          name: 'cũ.png', bytes: pngBytes(), addedAt: DateTime(2026, 1, 1));
+      repo.addAttachment(task.id,
+          name: 'mới.png', bytes: pngBytes(), addedAt: DateTime(2026, 5, 1));
 
       expect(repo.listAttachments(task.id).first.name, 'mới.png');
     });
@@ -115,11 +117,11 @@ void main() {
 
     test('gỡ tài liệu rồi hoàn tác thì giữ nguyên id và thứ tự', () async {
       final task = await seedTask();
-      repo.addAttachment(task.id, name: 'a.png', bytes: pngBytes(),
-          addedAt: DateTime(2026, 3, 1));
+      repo.addAttachment(task.id,
+          name: 'a.png', bytes: pngBytes(), addedAt: DateTime(2026, 3, 1));
       final second = repo
-          .addAttachment(task.id, name: 'b.png', bytes: pngBytes(),
-              addedAt: DateTime(2026, 4, 1))
+          .addAttachment(task.id,
+              name: 'b.png', bytes: pngBytes(), addedAt: DateTime(2026, 4, 1))
           .success;
 
       expect(second, isTrue);
@@ -135,8 +137,8 @@ void main() {
 
     test('gắn tài liệu lên task không tồn tại thì báo lỗi, không ghi rác',
         () async {
-      final added = repo.addAttachment('khong-ton-tai',
-          name: 'x.png', bytes: pngBytes());
+      final added =
+          repo.addAttachment('khong-ton-tai', name: 'x.png', bytes: pngBytes());
       expect(added.failed, isTrue);
       expect(added.error, contains('Không tìm thấy'));
     });
@@ -385,7 +387,8 @@ void main() {
 
       expect(find.text('bài-tập-3.png'), findsOneWidget);
       expect(find.textContaining('1 KB'), findsOneWidget);
-      expect(find.textContaining('Đã học 30 phút trong 1 phiên'), findsOneWidget);
+      expect(
+          find.textContaining('Đã học 30 phút trong 1 phiên'), findsOneWidget);
       expect(find.textContaining('30/45 phút'), findsOneWidget);
     });
 
@@ -437,7 +440,8 @@ void main() {
       final start = end.subtract(const Duration(minutes: 25));
 
       final restored = StudySession.fromJsonString(
-        makeSession(at: end, startedAt: start, status: StudySession.statusCompleted)
+        makeSession(
+                at: end, startedAt: start, status: StudySession.statusCompleted)
             .toJsonString(),
       );
 
@@ -477,7 +481,14 @@ void main() {
     });
 
     test('feedbackRating tính từ các thang chi tiết, không lưu trùng', () {
-      expect(StudySession(id: 'x', completedAt: DateTime.now(), subject: '', plannedMinutes: 0, actualMinutes: 0).feedbackRating,
+      expect(
+          StudySession(
+                  id: 'x',
+                  completedAt: DateTime.now(),
+                  subject: '',
+                  plannedMinutes: 0,
+                  actualMinutes: 0)
+              .feedbackRating,
           isNull);
 
       final rated = makeSession()
@@ -496,9 +507,12 @@ void main() {
     });
 
     test('minutesOn chỉ tính phiên trong ngày được yêu cầu', () {
-      sessions.save(makeSession(id: 'd1', at: DateTime(2026, 3, 14, 8), actual: 25));
-      sessions.save(makeSession(id: 'd2', at: DateTime(2026, 3, 14, 21), actual: 25));
-      sessions.save(makeSession(id: 'd3', at: DateTime(2026, 3, 15, 8), actual: 50));
+      sessions.save(
+          makeSession(id: 'd1', at: DateTime(2026, 3, 14, 8), actual: 25));
+      sessions.save(
+          makeSession(id: 'd2', at: DateTime(2026, 3, 14, 21), actual: 25));
+      sessions.save(
+          makeSession(id: 'd3', at: DateTime(2026, 3, 15, 8), actual: 50));
 
       expect(sessions.minutesOn(DateTime(2026, 3, 14)), 50);
       expect(sessions.minutesOn(DateTime(2026, 3, 15)), 50);
@@ -524,7 +538,10 @@ void main() {
       expect(sessions.totalMinutesForTask('t1'), 25);
       expect(sessions.minutesOn(at), 25);
       expect(sessions.minutesForSubject('📐 Toán', day: at), 25);
-      expect(sessions.minutesForSubject('📐 Toán', day: at.add(const Duration(days: 1))), 0);
+      expect(
+          sessions.minutesForSubject('📐 Toán',
+              day: at.add(const Duration(days: 1))),
+          0);
     });
   });
 }

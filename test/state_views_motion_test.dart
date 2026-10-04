@@ -48,10 +48,11 @@ void main() {
       expect(find.byType(SkeletonBox), findsNWidgets(3));
     });
 
-    testWidgets('giảm chuyển động → skeleton tĩnh, không có AnimationController',
+    testWidgets(
+        'giảm chuyển động → skeleton tĩnh, không có AnimationController',
         (tester) async {
-      await tester.pumpWidget(
-          host(const SkeletonBox(), disableAnimations: true));
+      await tester
+          .pumpWidget(host(const SkeletonBox(), disableAnimations: true));
       expect(find.byType(SkeletonBox), findsOneWidget);
       // Không có ticker chạy → pumpAndSettle kết thúc ngay.
       await tester.pumpAndSettle();

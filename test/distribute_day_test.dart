@@ -61,8 +61,10 @@ void main() {
 
   test('KHÔNG BAO GIỜ dời task có deadline hôm nay hoặc đã quá hạn', () {
     final proposals = proposeDayBalance(tasks: [
-      task('urgent', 'Toán', 90, priority: 'low', deadline: DateTime(2026, 10, 1, 23)),
-      task('overdue', 'Hóa', 60, priority: 'low', deadline: DateTime(2026, 9, 28)),
+      task('urgent', 'Toán', 90,
+          priority: 'low', deadline: DateTime(2026, 10, 1, 23)),
+      task('overdue', 'Hóa', 60,
+          priority: 'low', deadline: DateTime(2026, 9, 28)),
     ], now: now);
     expect(proposals, isEmpty); // cả 2 đều bất động → không đủ ứng viên.
   });
@@ -93,7 +95,9 @@ void main() {
     expect(days.length, lessThanOrEqualTo(2));
   });
 
-  test('Task đã có giờ cụ thể hôm nay vẫn được xem là nằm trong kế hoạch hôm nay', () {
+  test(
+      'Task đã có giờ cụ thể hôm nay vẫn được xem là nằm trong kế hoạch hôm nay',
+      () {
     final proposals = proposeDayBalance(tasks: [
       task('fixed', 'Toán', 100,
           priority: 'low', scheduledAt: DateTime(2026, 10, 1, 19)),

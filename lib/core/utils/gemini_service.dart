@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import '../../features/study/domain/models/study_models.dart';
 import 'now_context.dart';
+import '../ai/openrouter_service.dart';
 
 class GeminiService {
   static const String _baseUrl =
@@ -177,7 +178,10 @@ class GeminiService {
             'AI không trả lời được nội dung này. Vui lòng thử lại.';
         return text;
       } else if (resp.statusCode == 429) {
-        return '❌ Đang bị giới hạn tần suất (HTTP 429): gửi quá nhanh hoặc key hết quota. Chờ 1–2 phút rồi thử lại.';
+        // Dùng chung bộ phân loại với OpenRouter: 429 của Gemini CŨNG có thể
+        // là hạn mức **theo ngày** — bảo người dùng “chờ 1–2 phút” khi đó là
+        // bảo họ làm một việc vô ích. Cùng lỗi, cùng cách sửa.
+        return OpenRouterService.rateLimitMessage(resp.body);
       } else if (resp.statusCode == 400) {
         return '❌ API Key không hợp lệ hoặc yêu cầu không hợp lệ. Vui lòng kiểm tra lại trong phần Tài khoản.';
       } else if (resp.statusCode == 403) {

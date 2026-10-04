@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:edupulse/core/migration/data_migration.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
@@ -96,7 +96,7 @@ void main() {
   });
 
   group('toggleTaskDone — qua state machine', () {
-test('todo → completed, isDone đồng bộ', () async {
+    test('todo → completed, isDone đồng bộ', () async {
       await repo.createTask(makeTask());
 
       final result = await repo.toggleTaskDone('t1');
@@ -133,14 +133,14 @@ test('todo → completed, isDone đồng bộ', () async {
       await repo.toggleTaskDone('t1');
       final doneAt = repo.getTaskById('t1')!.updatedAt;
 
-      final result =
-          await repo.setTaskStatus('t1', TaskStatus.rescheduled);
+      final result = await repo.setTaskStatus('t1', TaskStatus.rescheduled);
 
       expect(result.failed, isTrue);
       expect(result.error, contains('Không thể chuyển'));
       final task = repo.getTaskById('t1')!;
       expect(task.status, TaskStatus.completed.value);
-      expect(task.updatedAt, doneAt, reason: 'bị từ chối thì không được ghi lại');
+      expect(task.updatedAt, doneAt,
+          reason: 'bị từ chối thì không được ghi lại');
     });
 
     test('skipped → completed bị từ chối', () async {
@@ -164,7 +164,8 @@ test('todo → completed, isDone đồng bộ', () async {
     });
   });
 
-  group('rescheduleTask — cập nhật task hiện tại, không tạo bản sao (FE-2.4)', () {
+  group('rescheduleTask — cập nhật task hiện tại, không tạo bản sao (FE-2.4)',
+      () {
     test('đổi ngày, tăng rescheduleCount, reset về todo', () async {
       final now = DateTime.now();
       await repo.createTask(makeTask(scheduledAt: now));
@@ -179,14 +180,14 @@ test('todo → completed, isDone đồng bộ', () async {
       expect(task.rescheduleCount, 1);
       expect(task.status, TaskStatus.scheduled.value);
       expect(task.isDone, isFalse);
-      expect(DateUtils.dateOnly(task.scheduledAt!),
-          DateUtils.dateOnly(tomorrow));
+      expect(
+          DateUtils.dateOnly(task.scheduledAt!), DateUtils.dateOnly(tomorrow));
     });
 
     test('giữ nguyên giờ đã hẹn, chỉ đổi ngày', () async {
       final now = DateTime.now();
-      await repo.createTask(
-          makeTask(scheduledAt: DateTime(now.year, now.month, now.day, 20, 30)));
+      await repo.createTask(makeTask(
+          scheduledAt: DateTime(now.year, now.month, now.day, 20, 30)));
 
       final target = now.add(const Duration(days: 3));
       await repo.rescheduleTask('t1', target);
@@ -201,8 +202,8 @@ test('todo → completed, isDone đồng bộ', () async {
       await repo.createTask(makeTask());
       await repo.toggleTaskDone('t1');
 
-      final result =
-          await repo.rescheduleTask('t1', DateTime.now().add(const Duration(days: 2)));
+      final result = await repo.rescheduleTask(
+          't1', DateTime.now().add(const Duration(days: 2)));
       expect(result.failed, isTrue);
       expect(repo.getTaskById('t1')!.status, TaskStatus.completed.value);
     });
@@ -235,7 +236,7 @@ test('todo → completed, isDone đồng bộ', () async {
       expect(restored.createdAt, isNotNull);
     });
 
-test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () async {
+    test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () async {
       await repo.createTask(makeTask(id: 'a'));
       await repo.createTask(makeTask(id: 'b'));
 
@@ -316,7 +317,8 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
       }
     });
 
-    test('giữ môn, chủ đề, hạn chót, giờ hẹn; ghi chú chỉ ở phần đầu', () async {
+    test('giữ môn, chủ đề, hạn chót, giờ hẹn; ghi chú chỉ ở phần đầu',
+        () async {
       final now = DateTime.now();
       await repo.createTask(makeTask(
         scheduledAt: now,
@@ -337,7 +339,8 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
 
     test('phần đều nhau: 60 phút ÷ 3 = 20 mỗi phần', () async {
       await repo.createTask(makeTask());
-      await repo.updateTask(repo.getTaskById('t1')!.copyWith(estimateMinutes: 60));
+      await repo
+          .updateTask(repo.getTaskById('t1')!.copyWith(estimateMinutes: 60));
 
       final split = await repo.splitTask('t1', parts: 3);
       expect(split.parts.map((p) => p.estimateMinutes), [20, 20, 20]);
@@ -378,8 +381,8 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
     test('undoSplit trả lại đúng task gốc và đúng vị trí', () async {
       await repo.createTask(makeTask(id: 'a'));
       await repo.createTask(makeTask(id: 'b', title: 'Bài dài 90 phút'));
-      await repo.updateTask(
-          repo.getTaskById('b')!.copyWith(estimateMinutes: 90));
+      await repo
+          .updateTask(repo.getTaskById('b')!.copyWith(estimateMinutes: 90));
 
       final split = await repo.splitTask('b');
       expect(split.success, isTrue);
@@ -409,7 +412,8 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
 
     test('chia nhỏ nhiều lần không sinh id trùng, không mất task', () async {
       await repo.createTask(makeTask());
-      await repo.updateTask(repo.getTaskById('t1')!.copyWith(estimateMinutes: 90));
+      await repo
+          .updateTask(repo.getTaskById('t1')!.copyWith(estimateMinutes: 90));
 
       final first = await repo.splitTask('t1', parts: 2);
       expect(first.parts.map((p) => p.estimateMinutes), [45, 45]);
@@ -429,8 +433,7 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
 
   group('getTasksForDay — bộ lọc "hôm nay" duy nhất', () {
     test('task ngày mai không hiện ở hôm nay', () async {
-      await repo.createTask(makeTask(
-          id: 'today', scheduledAt: DateTime.now()));
+      await repo.createTask(makeTask(id: 'today', scheduledAt: DateTime.now()));
       await repo.createTask(makeTask(
           id: 'tomorrow',
           scheduledAt: DateTime.now().add(const Duration(days: 1))));
@@ -448,8 +451,7 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
     });
 
     test('task đã hoàn thành không kéo theo vào ngày mới', () async {
-      await repo.createTask(makeTask(
-          id: 'done', scheduledAt: DateTime.now()));
+      await repo.createTask(makeTask(id: 'done', scheduledAt: DateTime.now()));
       await repo.toggleTaskDone('done');
 
       expect(repo.getTasksForDay(), isEmpty);
@@ -468,13 +470,16 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
 
     test('lọc theo ngày được yêu cầu', () async {
       final now = DateTime.now();
-      await repo.createTask(makeTask(
-          id: 'd1', scheduledAt: now.add(const Duration(days: 1))));
-      await repo.createTask(makeTask(
-          id: 'd2', scheduledAt: now.add(const Duration(days: 2))));
+      await repo.createTask(
+          makeTask(id: 'd1', scheduledAt: now.add(const Duration(days: 1))));
+      await repo.createTask(
+          makeTask(id: 'd2', scheduledAt: now.add(const Duration(days: 2))));
 
-      expect(repo.getTasksForDay(now.add(const Duration(days: 2)))
-          .map((t) => t.id), ['d2']);
+      expect(
+          repo
+              .getTasksForDay(now.add(const Duration(days: 2)))
+              .map((t) => t.id),
+          ['d2']);
     });
 
     test('task JSON hỏng không làm sập danh sách', () async {
@@ -499,8 +504,7 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
       await repo.toggleTaskDone('t1');
       final before = repo.revision.value;
 
-      final rejected =
-          await repo.setTaskStatus('t1', TaskStatus.rescheduled);
+      final rejected = await repo.setTaskStatus('t1', TaskStatus.rescheduled);
       expect(rejected.failed, isTrue);
       expect(repo.revision.value, before);
     });
@@ -517,15 +521,15 @@ test('hoàn tác nhiều lần xóa liên tiếp giữ đúng thứ tự', () as
     test('dữ liệu sống sót qua vòng đời app (đọc lại từ storage)', () async {
       await repo.createTask(makeTask(note: 'ghi chú'));
       // Mô phỏng app bị kill và mở lại: chỉ storage còn.
-      final reloaded = TodayTask.fromJsonString(
-          StorageService.getTodayTaskJson('t1')!);
+      final reloaded =
+          TodayTask.fromJsonString(StorageService.getTodayTaskJson('t1')!);
       expect(reloaded.note, 'ghi chú');
       expect(reloaded.subject, '📐 Toán');
     });
   });
 
   group('migration v2 (BE-2.3) tương thích dữ liệu cũ', () {
-test('task v1 không có createdAt/updatedAt → được backfill', () async {
+    test('task v1 không có createdAt/updatedAt → được backfill', () async {
       SharedPreferences.setMockInitialValues({
         'today_task_ids': ['legacy-1'],
         'task_legacy-1': '{"id":"legacy-1","title":"Bài cũ",'
@@ -577,7 +581,7 @@ test('task v1 không có createdAt/updatedAt → được backfill', () async {
     test('isDone và status mâu thuẫn → vá theo status', () async {
       SharedPreferences.setMockInitialValues({
         'today_task_ids': ['conflict'],
-'task_conflict': '{"id":"conflict","title":"X",'
+        'task_conflict': '{"id":"conflict","title":"X",'
             '"subject":"📐 Toán","estimateMinutes":20,'
             '"status":"todo","isDone":true}',
       });
@@ -607,7 +611,7 @@ test('task v1 không có createdAt/updatedAt → được backfill', () async {
       expect(task.isDone, isFalse);
     });
 
-test('migration là idempotent — chạy lại không đổi dữ liệu', () async {
+    test('migration là idempotent — chạy lại không đổi dữ liệu', () async {
       SharedPreferences.setMockInitialValues({
         'today_task_ids': ['a'],
         'task_a': '{"id":"a","title":"A","subject":"📐 Toán",'
@@ -625,7 +629,7 @@ test('migration là idempotent — chạy lại không đổi dữ liệu', () a
       expect(DataMigration.needsMigration(), isTrue);
       DataMigration.run(DataMigration.defaultSteps());
 
-expect(StorageService.getTodayTaskIds(), ['a']);
+      expect(StorageService.getTodayTaskIds(), ['a']);
       expect(repo.getTaskById('a')!.toJsonString(), first);
       expect(repo.getTaskById('a')!.createdAt, created1,
           reason: 'không được đổi createdAt');
@@ -633,7 +637,8 @@ expect(StorageService.getTodayTaskIds(), ['a']);
   });
 
   group('migration v3 — dọn StudyLog trùng của pomodoro', () {
-    String logJson(String id, String subject, double hours, String note, String iso) =>
+    String logJson(
+            String id, String subject, double hours, String note, String iso) =>
         '{"id":"$id","subject":"$subject","hours":$hours,'
         '"date":"$iso","note":"$note"}';
 
@@ -662,8 +667,8 @@ expect(StorageService.getTodayTaskIds(), ['a']);
         logs: [
           {
             'id': 'dup',
-            'json': logJson('dup', '📐 Toán', 0.4166666666666667,
-                'Focus: On tap phan', at),
+            'json': logJson(
+                'dup', '📐 Toán', 0.4166666666666667, 'Focus: On tap phan', at),
           }
         ],
         sessions: [
@@ -690,7 +695,8 @@ expect(StorageService.getTodayTaskIds(), ['a']);
         logs: [
           {
             'id': 'manual',
-            'json': logJson('manual', '📐 Toán', 1.5, 'Ôn bài tập chưa làm', at),
+            'json':
+                logJson('manual', '📐 Toán', 1.5, 'Ôn bài tập chưa làm', at),
           }
         ],
         sessions: const [],
@@ -706,7 +712,10 @@ expect(StorageService.getTodayTaskIds(), ['a']);
       final at = DateTime(2026, 4, 1, 8).toIso8601String();
       await seed(
         logs: [
-          {'id': 'r1', 'json': logJson('r1', 'Pomodoro', 0.4166666666666667, 'Phiên 3', at)}
+          {
+            'id': 'r1',
+            'json': logJson('r1', 'Pomodoro', 0.4166666666666667, 'Phiên 3', at)
+          }
         ],
         sessions: const [],
       );
@@ -722,7 +731,8 @@ expect(StorageService.getTodayTaskIds(), ['a']);
         logs: [
           {
             'id': 'other-subject',
-            'json': logJson('other-subject', '📚 Văn', 0.4166666666666667, '', at),
+            'json':
+                logJson('other-subject', '📚 Văn', 0.4166666666666667, '', at),
           },
           {
             'id': 'other-length',
@@ -748,8 +758,14 @@ expect(StorageService.getTodayTaskIds(), ['a']);
       final at = DateTime(2026, 5, 4, 9).toIso8601String();
       await seed(
         logs: [
-          {'id': 'dup', 'json': logJson('dup', '📐 Toán', 0.4166666666666667, 'Phiên 1', at)},
-          {'id': 'manual', 'json': logJson('manual', '📐 Toán', 1.0, 'tự ghi', at)},
+          {
+            'id': 'dup',
+            'json': logJson('dup', '📐 Toán', 0.4166666666666667, 'Phiên 1', at)
+          },
+          {
+            'id': 'manual',
+            'json': logJson('manual', '📐 Toán', 1.0, 'tự ghi', at)
+          },
         ],
         sessions: const [],
       );
@@ -838,4 +854,3 @@ expect(StorageService.getTodayTaskIds(), ['a']);
     });
   });
 }
-

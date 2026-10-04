@@ -42,8 +42,7 @@ void main() {
     void mock(String id, String subject, double score, DateTime at) {
       final m = MockScore(id: id, subject: subject, score: score, date: at);
       StorageService.setMockScoreJson(id, m.toJsonString());
-      StorageService.setMockScoreIds(
-          [...StorageService.getMockScoreIds(), id]);
+      StorageService.setMockScoreIds([...StorageService.getMockScoreIds(), id]);
     }
 
     mock('m1', 'Toán', 7.0, now.subtract(const Duration(days: 30)));

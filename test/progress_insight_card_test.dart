@@ -18,7 +18,8 @@ void main() {
     await StorageService.init();
   });
 
-  Future<void> seedSession(DateTime at, {int minutes = 30, String subject = '📐 Toán'}) {
+  Future<void> seedSession(DateTime at,
+      {int minutes = 30, String subject = '📐 Toán'}) {
     return StudySessionRepository.instance.save(StudySession(
       id: 's-${at.microsecondsSinceEpoch}',
       completedAt: at,

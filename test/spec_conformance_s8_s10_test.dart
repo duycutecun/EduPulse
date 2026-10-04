@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edupulse/core/utils/feedback_service.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/features/ai_coach/presentation/screens/ai_coach_screen.dart';
-import 'package:edupulse/features/ai_coach/presentation/widgets/ai_coach_header.dart' as hdr;
+import 'package:edupulse/features/ai_coach/presentation/widgets/ai_coach_header.dart'
+    as hdr;
 import 'package:edupulse/features/ai_coach/presentation/widgets/chat_bubble.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
 import 'package:edupulse/features/study/domain/repositories/study_session_repository.dart';
@@ -50,7 +51,8 @@ void main() {
       ));
       await tester.pump();
 
-      final header = tester.widget<hdr.AICoachHeader>(find.byType(hdr.AICoachHeader));
+      final header =
+          tester.widget<hdr.AICoachHeader>(find.byType(hdr.AICoachHeader));
       expect(header.model.slug, 'google/gemma-4-31b-it:free');
       expect(header.pinned, isTrue);
     });
@@ -62,7 +64,8 @@ void main() {
       ));
       await tester.pump();
 
-      final header = tester.widget<hdr.AICoachHeader>(find.byType(hdr.AICoachHeader));
+      final header =
+          tester.widget<hdr.AICoachHeader>(find.byType(hdr.AICoachHeader));
       expect(header.pinned, isFalse);
     });
 
@@ -155,8 +158,7 @@ void main() {
       expect(find.textContaining('giờ focus'), findsOneWidget);
       // Cả thẻ phân tích focus lẫn biểu đồ tuần đều có CTA — hai lối vào,
       // không để người học phải đoán.
-      expect(find.byKey(const ValueKey('start-first-session')),
-          findsOneWidget);
+      expect(find.byKey(const ValueKey('start-first-session')), findsOneWidget);
       expect(find.byKey(const ValueKey('weekly-chart-start-study')),
           findsOneWidget);
       expect(find.text('Bắt đầu học'), findsNWidgets(2));
@@ -199,8 +201,8 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.byKey(const ValueKey('weekly-chart-start-study')),
-          findsNothing);
+      expect(
+          find.byKey(const ValueKey('weekly-chart-start-study')), findsNothing);
       expect(find.text('Chưa có dữ liệu học tập'), findsOneWidget);
     });
   });
@@ -212,7 +214,8 @@ void main() {
       var continued = false;
       final msg = ChatMessage(
         id: 'err-1',
-        text: 'AI đang không phản hồi. Bạn vẫn có thể tiếp tục học hoặc thử lại sau.',
+        text:
+            'AI đang không phản hồi. Bạn vẫn có thể tiếp tục học hoặc thử lại sau.',
         isUser: false,
         timestamp: DateTime(2026, 5, 1, 8),
         isError: true,
@@ -244,7 +247,8 @@ void main() {
       expect(continued, isTrue);
     });
 
-    test('retryPrompt sống sót qua serialize — lỗi vẫn thử lại được sau khi mở app',
+    test(
+        'retryPrompt sống sót qua serialize — lỗi vẫn thử lại được sau khi mở app',
         () {
       final msg = ChatMessage(
         id: 'err-2',
@@ -299,7 +303,8 @@ void main() {
       );
     });
 
-    testWidgets('Lịch nặng → mở sheet duyệt từng dòng, chưa duyệt thì không dời',
+    testWidgets(
+        'Lịch nặng → mở sheet duyệt từng dòng, chưa duyệt thì không dời',
         (tester) async {
       final repo = TaskRepository.instance;
       // 3 bài 90 phút = 270 phút > quỹ ngày mặc định.

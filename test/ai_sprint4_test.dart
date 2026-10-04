@@ -105,7 +105,9 @@ void main() {
       final now = DateTime(2026, 10, 3, 9, 30);
       seedTask('t1', 'Ôn hàm số', 'Toán', minutes: 45);
       seedTask('t2', 'Luyện đề Lý', 'Lý',
-          priority: 'high', minutes: 60, scheduledAt: now.subtract(const Duration(days: 1)));
+          priority: 'high',
+          minutes: 60,
+          scheduledAt: now.subtract(const Duration(days: 1)));
       seedTask('t3', 'Đã xong', 'Hóa', status: 'completed');
 
       final ctx = AiStudyContext.buildFor(
@@ -154,8 +156,7 @@ void main() {
         subject: 'Toán',
         note: 'y' * 2000,
       );
-      final ctx =
-          AiStudyContext.buildFor(AiContextLevel.task, task: task);
+      final ctx = AiStudyContext.buildFor(AiContextLevel.task, task: task);
       expect(ctx.length, lessThan(1400));
     });
   });
@@ -202,7 +203,8 @@ void main() {
 
     test('bỏ qua phần tử thiếu title và không vỡ khi JSON lỗi', () {
       final now = DateTime(2026, 10, 3, 9);
-      const raw = '{"summary":"x","tasks":[{"subject":"Toán"},{"title":"Hợp lệ"}]}';
+      const raw =
+          '{"summary":"x","tasks":[{"subject":"Toán"},{"title":"Hợp lệ"}]}';
       final plan = AiStudyPlannerService.parsePlan(raw, now);
       expect(plan.tasks.length, 1);
       expect(plan.tasks.first.title, 'Hợp lệ');

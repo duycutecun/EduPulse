@@ -707,14 +707,29 @@ class TaskRepository {
   void _scheduleCloudSync() {
     if (!SupabaseService.isConfigured || !PwaService.isOnline) return;
     _syncDebounce?.cancel();
-    _syncDebounce = Timer(const Duration(seconds: 2), () async {
-      try {
-        final ok = await SupabaseService.syncTasks(getAllTasks());
-        if (ok) SyncStateService.markSynced();
-      } catch (e) {
-        debugPrint('[TaskRepository] Cloud sync failed (offline-first): $e');
-      }
-    });
+    _syncDebounce = Timer(const Duration(seconds: 2), _pushToCloud);
+  }
+
+  /// Đẩy lên cloud NGAY, bỏ qua debounce — xem [ExamRepository.flushNow].
+  ///
+  /// Đặt cùng chỗ với kỳ thi để hai nguồn dữ liệu chính luôn được đẩy đồng
+  /// thời điểm; nếu một cái chờ mà một cái không, sẽ khó truy nguồn khi lệch.
+  void flushNow() {
+    _syncDebounce?.cancel();
+    _syncDebounce = null;
+    if (!SupabaseService.isConfigured || !PwaService.isOnline) return;
+    unawaited(_pushToCloud());
+  }
+
+  Future<bool> _pushToCloud() async {
+    try {
+      final ok = await SupabaseService.syncTasks(getAllTasks());
+      if (ok) SyncStateService.markSynced();
+      return ok;
+    } catch (e) {
+      debugPrint('[TaskRepository] Cloud sync failed (offline-first): $e');
+      return false;
+    }
   }
 }
 

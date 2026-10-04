@@ -8,6 +8,21 @@ import '../../features/study/domain/models/study_models.dart';
 import 'auth_service.dart';
 import 'storage_service.dart';
 
+/// Hai phiên bản của cùng một kỳ thi, cần người dùng tự chọn.
+///
+/// Thừa ra khi khôi phục: máy và cloud đều có kỳ thi này nhưng dữ liệu khác
+/// nhau. Khôi phục KHÔNG tự lấy bản cloud đè lên bản máy — mất cả hai là mất
+/// cả tuần làm việc.
+class ExamConflict {
+  const ExamConflict({required this.local, required this.cloud});
+
+  /// Bản đang có trên máy.
+  final ExamModel local;
+
+  /// Bản trên cloud.
+  final ExamModel cloud;
+}
+
 /// Chuyển đổi an toàn giá trị từ JSON (Supabase) sang số, thay cho `as num`
 /// vốn có thể throw nếu DB trả kiểu lạ (vd String). Trả về [fallback] nếu
 /// không parse được.
@@ -102,7 +117,9 @@ class SupabaseService {
     } catch (_) {
       // Bảng xếp hạng là tính năng phụ — lỗi không ảnh hưởng sync chính.
     }
-  }  /// Dựng một dòng bảng `exams` từ [ExamModel].
+  }
+
+  /// Dựng một dòng bảng `exams` từ [ExamModel].
   ///
   /// Tách riêng khỏi [syncExams] để **kiểm thử được**: đây là nơi từng âm
   /// thầm bỏ sót `current_score` / `target_score` / `subject_targets`, làm
@@ -125,13 +142,37 @@ class SupabaseService {
         // Khoá là tên môn ĐÃ CHUẨN HOÁ, nên khi kéo về vẫn khớp.
         'subject_targets': jsonEncode(e.subjectTargets),
         'subjects': e.subjects,
+        'updated_at': e.updatedAt?.toIso8601String(),
       };
 
-  static Future<bool> syncExams(List<ExamModel> exams, String? primaryId) async {
+  static Future<bool> syncExams(
+      List<ExamModel> exams, String? primaryId) async {
     if (!isConfigured || exams.isEmpty) return true;
     try {
       final payload = exams.map((e) => examRow(e, primaryId)).toList();
       await _client!.from('exams').upsert(payload, onConflict: 'id');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Xoá hẳn kỳ thi trên cloud.
+  ///
+  /// Bắt buộc cho "xoá là xoá thật": `syncExams` chỉ upsert nên khoá bản ghi
+  /// đã xoá ở máy, và lần khôi phục sau sẽ **mang nó quay lại**.
+  ///
+  /// Khoá `user_id` trong điều kiện xoá là bắt buộc: không có nó thì một id
+  /// trùng ở tài khoản khác cũng bị xoá.
+  static Future<bool> deleteExams(List<String> localIds) async {
+    if (!isConfigured || localIds.isEmpty) return true;
+    try {
+      final remoteIds = localIds.map((id) => '${_userId}_$id').toList();
+      await _client!
+          .from('exams')
+          .delete()
+          .eq('user_id', _userId)
+          .inFilter('id', remoteIds);
       return true;
     } catch (_) {
       return false;
@@ -265,8 +306,27 @@ class SupabaseService {
   }
 
   /// Khôi phục toàn bộ dữ liệu từ Supabase Cloud về Local Storage
+  /// Kỳ thi bị TRÙNG PHIÊN BẢN giữa máy và cloud.
+  ///
+  /// Giữ cả hai bản để người dùng tự chọn — không bao giờ tự lấy bản cloud
+  /// đè lên bản máy.
+  static final List<ExamConflict> examConflicts = [];
+
+  /// Hai bản là cùng một phiên bản?
+  ///
+  /// Cùng mốc sửa → coi như một (an toàn khi lưu lại không nội dung nào đổi).
+  /// Thiếu mốc ở một bên → KHÔNG đoán: coi là khác nhau để hỏi. Dữ liệu cũ
+  /// không có mốc, nếu đoán bừa sẽ âm thầm mất việc người dùng đã làm.
+  static bool _isSameVersion(ExamModel a, ExamModel b) {
+    final at = a.updatedAt;
+    final bt = b.updatedAt;
+    if (at == null || bt == null) return false;
+    return at.isAtSameMomentAs(bt);
+  }
+
   static Future<bool> restoreAll() async {
     if (!isConfigured) return false;
+    examConflicts.clear();
     try {
       // 1. Restore Profile
       final profileRes = await _client!
@@ -321,7 +381,7 @@ class SupabaseService {
             }
           }
           final subjects = row['subjects'];
-          final exam = ExamModel(
+          final cloud = ExamModel(
             id: id,
             name: row['name'] ?? '',
             dateTime:
@@ -333,10 +393,28 @@ class SupabaseService {
             subjectTargets: targets,
             subjects:
                 subjects is List ? subjects.map((e) => '$e').toList() : null,
+            updatedAt: row['updated_at'] == null
+                ? null
+                : DateTime.tryParse(row['updated_at'] as String),
           );
-          StorageService.setExamJson(exam.id, exam.toJsonString());
-          examIds.add(exam.id);
-          if (row['is_primary'] == true) primaryFromCloud ??= exam.id;
+
+          final local = ExamRepository.instance.getById(id);
+          // ── Quy tắc xung đột ───────────────────────────────────────────
+          // Mất cả hai bản là mất cả tuần làm việc, nên **KHÔNG BAO GIỜ**
+          // ghi đè bản máy khi chưa hỏi. Ba trường hợp:
+          //  • Máy chưa có           → lấy về, không hỏi (không mất gì).
+          //  • Hai bản CÙNG mốc sửa → là một phiên bản, lấy về bình thường.
+          //  • Khác nhau, hoặc thiếu mốc → XUNG ĐỘT: giữ bản máy, báo lên
+          //    để người dùng tự quyết.
+          if (local != null && !_isSameVersion(local, cloud)) {
+            examConflicts.add(ExamConflict(local: local, cloud: cloud));
+            examIds.add(local.id);
+            continue;
+          }
+
+          StorageService.setExamJson(cloud.id, cloud.toJsonString());
+          examIds.add(cloud.id);
+          if (row['is_primary'] == true) primaryFromCloud ??= cloud.id;
         }
         StorageService.setExamIds(examIds);
         // Chỉ dùng khi máy này CHƯA ghim — không ghi đè lựa chọn cục bộ.

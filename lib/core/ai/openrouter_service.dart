@@ -247,7 +247,7 @@ class OpenRouterService {
         }
         return 'AI không trả lời được nội dung này. Vui lòng thử lại.';
       } else if (resp.statusCode == 429) {
-        return '❌ Đang bị giới hạn tần suất (HTTP 429): model free hết lượt hoặc gửi quá nhanh. Chờ 1–2 phút rồi thử lại, hoặc đổi model khác trong danh sách.';
+        return rateLimitMessage(resp.body);
       } else if (resp.statusCode == 401 || resp.statusCode == 403) {
         return '❌ Lỗi xác thực: OpenRouter API Key không hợp lệ. Vui lòng liên hệ chủ app.';
       } else if (resp.statusCode == 400) {
@@ -283,6 +283,59 @@ class OpenRouterService {
     }
     return text;
   }
+
+  /// Thông báo cho HTTP 429 — **phân biệt hai nguyên nhân rất khác nhau**.
+  ///
+  /// Trước đây mọi 429 đều bị gộp thành “chờ 1–2 phút”. Nhưng OpenRouter có
+  /// hai loại giới hạn rất khác:
+  ///  - **ngắn hạn**: gửi quá nhanh → chờ vài chục giây là dùng lại được.
+  ///  - **theo ngày** (`free-models-per-day`): hết lượt cả ngày — chờ 1–2 phút
+  ///    **vô ích**, phải chờ tới giờ reset hoặc đổi model.
+  ///
+  /// Nói sai khiến người dùng thử lại mãi mà không bao giờ được — nên đọc
+  /// `error.code` và `X-RateLimit-Reset` mà OpenRouter gửi kèm.
+  static String rateLimitMessage(String? body) {
+    var isDaily = false;
+    DateTime? resetAt;
+
+    if (body != null && body.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(body);
+        final error = decoded is Map ? decoded['error'] : null;
+        final code = error is Map ? error['code']?.toString() : null;
+        final message = error is Map ? error['message']?.toString() : null;
+        isDaily = (code ?? '').contains('free-models-per-day') ||
+            (message ?? '').contains('free-models-per-day') ||
+            (message ?? '').contains('per day');
+
+        final meta = error is Map ? error['metadata'] : null;
+        final headers = meta is Map ? meta['headers'] : null;
+        final millis =
+            int.tryParse('${headers is Map ? headers['X-RateLimit-Reset'] : null}');
+        if (millis != null) {
+          resetAt = DateTime.fromMillisecondsSinceEpoch(millis);
+        }
+      } catch (_) {
+        // Body không phải JSON (proxy lỗi, mạng đứt) → rơi về thông báo chung.
+      }
+    }
+
+    if (!isDaily) {
+      return '❌ Gửi hơi nhanh (HTTP 429). Chờ khoảng một phút rồi thử lại, '
+          'hoặc đổi sang model khác trong danh sách.';
+    }
+
+    final until = resetAt == null
+        ? 'ngày mai'
+        : 'tới ${_hhmm(resetAt.toLocal())} ngày mai';
+    return '❌ Đã hết lượt model miễn phí hôm nay (50 lượt/ngày), hồi lại '
+        '$until.\n\n'
+        'Chờ không giải quyết được — hãy đổi sang model trả phí trong danh sách, '
+        'hoặc nạp thêm tiền vào OpenRouter để có 1000 lượt/ngày.';
+  }
+
+  static String _hhmm(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   static String _resolveText(String userMessage, Uint8List? imageBytes) {
     if (userMessage.trim().isNotEmpty) return userMessage;

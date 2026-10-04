@@ -21,7 +21,8 @@ void main() {
     final sameSubject = note(
         'b', 'Tích phân', 'Ôn công thức tích phân và đạo hàm',
         subject: 'Toán');
-    final other = note('c', 'Hóa hữu cơ', 'Phản ứng và liên kết hóa học', subject: 'Hóa');
+    final other =
+        note('c', 'Hóa hữu cơ', 'Phản ứng và liên kết hóa học', subject: 'Hóa');
 
     final links = SmartNoteLinker.relatedTo(source, [sameSubject, other]);
 

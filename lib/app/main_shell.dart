@@ -1,3 +1,4 @@
+import 'package:edupulse/features/tasks/domain/repositories/task_repository.dart';
 import 'dart:async';
 import '../../../../core/utils/feedback_service.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,8 @@ class MainShellScreen extends StatefulWidget {
   State<MainShellScreen> createState() => _MainShellScreenState();
 }
 
-class _MainShellScreenState extends State<MainShellScreen> {
+class _MainShellScreenState extends State<MainShellScreen>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
   List<ExamModel> _exams = [];
   int _streak = 0;
@@ -60,6 +62,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _visited[0] = true;
     _loadInitialData();
     // Notify user khi migration rollback (mục 42) — SnackBar nhẹ nhàng,
@@ -124,10 +127,26 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     PwaService.onlineNotifier.removeListener(_onNetworkChanged);
     ExamRepository.instance.revision.removeListener(_loadInitialData);
     ServicesBinding.instance.keyboard.removeHandler(_handleKey);
     super.dispose();
+  }
+
+  /// App chuyển nền = sắp bị treo hoặc giết.
+  ///
+  /// Đẩy ngay thay đổi đang chờ debounce: timer 2 giây không sống sót qua
+  /// lúc app bị treo, nên không làm bước này thì sửa xong tắt app là mất.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.paused &&
+        state != AppLifecycleState.hidden &&
+        state != AppLifecycleState.inactive) {
+      return;
+    }
+    ExamRepository.instance.flushNow();
+    TaskRepository.instance.flushNow();
   }
 
   void _loadInitialData() {

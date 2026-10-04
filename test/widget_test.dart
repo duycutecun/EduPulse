@@ -205,7 +205,8 @@ void main() {
       subject: '📐 Toán',
       scheduledAt: scheduled,
     );
-    expect(TodayTask.fromJsonString(task.toJsonString()).scheduledAt, scheduled);
+    expect(
+        TodayTask.fromJsonString(task.toJsonString()).scheduledAt, scheduled);
 
     final note = StudyNote(
       id: 'note-1',
@@ -217,7 +218,8 @@ void main() {
     );
     StorageService.setStudyNoteJson(note.id, note.toJsonString());
     StorageService.setStudyNoteIds([note.id]);
-    final restored = StudyNote.fromJsonString(StorageService.getStudyNoteJson(note.id)!);
+    final restored =
+        StudyNote.fromJsonString(StorageService.getStudyNoteJson(note.id)!);
     expect(restored.tags, ['Toán', 'công thức']);
     expect(restored.body, 'Ghi nhớ quy tắc chuỗi.');
   });
@@ -357,7 +359,9 @@ void main() {
       expect(result.message, 'Tuần này bạn học nhiều hơn 18%.');
     });
 
-    test('So sánh tuần: tuần trước trống → không phần trăm, thông điệp khích lệ', () {
+    test(
+        'So sánh tuần: tuần trước trống → không phần trăm, thông điệp khích lệ',
+        () {
       final result = compareWeeks([
         session(at: now, minutes: 30),
       ], now);
@@ -380,14 +384,27 @@ void main() {
         session(at: now, focus: 5, effectiveness: 5, understanding: 4),
         session(at: now, focus: 5, effectiveness: 5, understanding: 4),
         // Tuần trước: 3 phiên focus 3, eff 3, hiểu 3.
-        session(at: now.subtract(const Duration(days: 7)), focus: 3, effectiveness: 3, understanding: 3),
-        session(at: now.subtract(const Duration(days: 7)), focus: 3, effectiveness: 3, understanding: 3),
-        session(at: now.subtract(const Duration(days: 7)), focus: 3, effectiveness: 3, understanding: 3),
+        session(
+            at: now.subtract(const Duration(days: 7)),
+            focus: 3,
+            effectiveness: 3,
+            understanding: 3),
+        session(
+            at: now.subtract(const Duration(days: 7)),
+            focus: 3,
+            effectiveness: 3,
+            understanding: 3),
+        session(
+            at: now.subtract(const Duration(days: 7)),
+            focus: 3,
+            effectiveness: 3,
+            understanding: 3),
       ], now);
       expect(result, isNotNull);
       // (5*0.4 + 5*0.35 + 4*0.25) / 5 = 0.95 → 95.
       expect(result!.score, 95);
-      expect(result.deltaVsLastWeek, 35); // tuần trước: (3*0.4+3*0.35+3*0.25)/5 = 0.6 → 60.
+      expect(result.deltaVsLastWeek,
+          35); // tuần trước: (3*0.4+3*0.35+3*0.25)/5 = 0.6 → 60.
       expect(result.sampleCount, 3);
     });
 
@@ -448,7 +465,8 @@ void main() {
         home: Scaffold(
           body: SingleChildScrollView(
             child: NoteMarkdown(
-              body: '# Ôn tập\n## Lý thuyết\nĐạo hàm là **quan trọng** và *hay ra đề*.\n- Chuỗi: [f(g(x))]' 
+              body:
+                  '# Ôn tập\n## Lý thuyết\nĐạo hàm là **quan trọng** và *hay ra đề*.\n- Chuỗi: [f(g(x))]'
                   '\n1. Lấy đạo hàm\n2. Thay số\n- [x] Học thuộc công thức\n- [ ] Làm bài tập\n> Ghi nhớ: quy tắc chuỗi'
                   '\n```\nf(x) = x^2\n```\nCông thức: \$x^2 + 1\$\n---',
             ),
@@ -537,9 +555,15 @@ void main() {
         tasks: [
           TodayTask(id: 't1', title: 'Giải đề Toán', subject: '📐 Toán'),
           TodayTask(
-              id: 't2', title: 'Học từ vựng', subject: '🇬🇧 Anh', isDone: true),
+              id: 't2',
+              title: 'Học từ vựng',
+              subject: '🇬🇧 Anh',
+              isDone: true),
           TodayTask(
-              id: 't3', title: 'Đã bỏ qua', subject: '📖 Văn', status: 'skipped'),
+              id: 't3',
+              title: 'Đã bỏ qua',
+              subject: '📖 Văn',
+              status: 'skipped'),
           TodayTask(
               id: 't4',
               title: 'Ngày mai mới làm',
@@ -568,13 +592,16 @@ void main() {
       expect(digest.body, contains('Giải đề Toán'));
       expect(digest.body, isNot(contains('Học từ vựng'))); // đã done
       expect(digest.body, isNot(contains('Đã bỏ qua'))); // skipped
-      expect(digest.body, isNot(contains('Ngày mai mới làm'))); // scheduled khác ngày
+      expect(digest.body,
+          isNot(contains('Ngày mai mới làm'))); // scheduled khác ngày
       expect(digest.body, contains('THPT QG còn 42 ngày'));
     });
 
     test('Digest khi hoàn thành hết: chúc mừng thay vì ép học thêm', () {
       final digest = AdaptivePolicy.buildDigest(
-        tasks: [TodayTask(id: 't1', title: 'X', subject: '📐 Toán', isDone: true)],
+        tasks: [
+          TodayTask(id: 't1', title: 'X', subject: '📐 Toán', isDone: true)
+        ],
         sessions: const [],
         primaryExam: null,
         now: DateTime(2026, 9, 30, 20),
@@ -625,7 +652,8 @@ void main() {
         tasks: const [],
         overrides: const {},
       );
-      final time = traits.firstWhere((t) => t.label == 'Thời gian học hiệu quả');
+      final time =
+          traits.firstWhere((t) => t.label == 'Thời gian học hiệu quả');
       expect(time.value, 'Tối (17h–23h)');
       expect(time.confidence, Confidence.medium);
       expect(time.isUserOverride, isFalse);
@@ -641,7 +669,8 @@ void main() {
         tasks: const [],
         overrides: const {'best_time': 'Sáng (5h–11h)'},
       );
-      final time = traits.firstWhere((t) => t.label == 'Thời gian học hiệu quả');
+      final time =
+          traits.firstWhere((t) => t.label == 'Thời gian học hiệu quả');
       expect(time.value, 'Sáng (5h–11h)');
       expect(time.isUserOverride, isTrue);
     });
@@ -649,21 +678,25 @@ void main() {
     test('Session length: mode bội 15 vượt trội mới kết luận', () {
       // 5 phiên 25 phút → bucket 15 (1 phiên) và 3 phiên... tính lại:
       // 25 phút → bucket 15; cần rõ ràng.
-      final sessions = List.generate(5, (i) => sess(at: DateTime(2026, 9, 30, 19 + i)));
+      final sessions =
+          List.generate(5, (i) => sess(at: DateTime(2026, 9, 30, 19 + i)));
       final traits = buildLearningProfile(
         sessions: sessions,
         tasks: const [],
         overrides: const {},
       );
       // Tất cả 25 phút → bucket 15 duy nhất, không cần so sánh.
-      final length = traits.firstWhere((t) => t.label == 'Độ dài phiên phù hợp');
+      final length =
+          traits.firstWhere((t) => t.label == 'Độ dài phiên phù hợp');
       expect(length.value, '15 phút');
     });
 
     test('Môn bị bỏ qua nhiều hơn hoàn thành → hypothesis Low confidence', () {
       final tasks = [
-        TodayTask(id: 'a', title: 'Toán 1', subject: '📐 Toán', status: 'skipped'),
-        TodayTask(id: 'b', title: 'Toán 2', subject: '📐 Toán', status: 'skipped'),
+        TodayTask(
+            id: 'a', title: 'Toán 1', subject: '📐 Toán', status: 'skipped'),
+        TodayTask(
+            id: 'b', title: 'Toán 2', subject: '📐 Toán', status: 'skipped'),
         TodayTask(id: 'c', title: 'Toán 3', subject: '📐 Toán', isDone: true),
       ];
       final traits = buildLearningProfile(
@@ -671,8 +704,8 @@ void main() {
         tasks: tasks,
         overrides: const {},
       );
-      final avoided = traits.firstWhere(
-          (t) => t.label == 'Môn có vẻ đang bị trì hoãn');
+      final avoided =
+          traits.firstWhere((t) => t.label == 'Môn có vẻ đang bị trì hoãn');
       expect(avoided.value, '📐 Toán');
       expect(avoided.confidence, Confidence.low);
       expect(avoided.evidence, contains('Có thể'));
@@ -681,8 +714,8 @@ void main() {
 
   group('Data export/import (đặc tả mục 19)', () {
     test('Export JSON chứa đủ toàn bộ dữ liệu', () {
-      final task = TodayTask(
-          id: 'exp-t1', title: 'Giải đề', subject: '📐 Toán');
+      final task =
+          TodayTask(id: 'exp-t1', title: 'Giải đề', subject: '📐 Toán');
       StorageService.setTodayTaskJson(task.id, task.toJsonString());
       StorageService.setTodayTaskIds(['exp-t1']);
 
@@ -692,8 +725,8 @@ void main() {
     });
 
     test('Import roundtrip: thêm bản ghi mới, bỏ qua trùng, giữ data cũ', () {
-      final task = TodayTask(
-          id: 'rt-t1', title: 'Task gốc', subject: '📐 Toán');
+      final task =
+          TodayTask(id: 'rt-t1', title: 'Task gốc', subject: '📐 Toán');
       StorageService.setTodayTaskJson(task.id, task.toJsonString());
       StorageService.setTodayTaskIds(['rt-t1']);
 
@@ -714,7 +747,8 @@ void main() {
 
     test('Import JSON hỏng / sai app → lỗi rõ ràng, không crash', () {
       // Seed 1 task để xác nhận dữ liệu cũ không bị ảnh hưởng.
-      final task = TodayTask(id: 'safe-t1', title: 'An toàn', subject: '📐 Toán');
+      final task =
+          TodayTask(id: 'safe-t1', title: 'An toàn', subject: '📐 Toán');
       StorageService.setTodayTaskJson(task.id, task.toJsonString());
       StorageService.setTodayTaskIds(['safe-t1']);
 
@@ -804,7 +838,8 @@ void main() {
     final past = ExamModel(
       id: 'past',
       name: 'Thi thử 10',
-      dateTime: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
+      dateTime: DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 1)),
     );
     expect(past.examPhase, ExamPhase.postExam);
 
@@ -814,12 +849,22 @@ void main() {
       isNull,
     );
     expect(
-      ExamModel(id: 'p2', name: 'x', dateTime: past.dateTime, currentScore: 9.0, targetScore: 9.0)
+      ExamModel(
+              id: 'p2',
+              name: 'x',
+              dateTime: past.dateTime,
+              currentScore: 9.0,
+              targetScore: 9.0)
           .postExamResult,
       isTrue,
     );
     expect(
-      ExamModel(id: 'p3', name: 'x', dateTime: past.dateTime, currentScore: 8.5, targetScore: 9.0)
+      ExamModel(
+              id: 'p3',
+              name: 'x',
+              dateTime: past.dateTime,
+              currentScore: 8.5,
+              targetScore: 9.0)
           .postExamResult,
       isFalse,
     );
@@ -875,7 +920,8 @@ void main() {
       ExamModel(
         id: 'exam-mode',
         name: 'THPT QG 2026',
-        dateTime: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
+        dateTime: DateTime(now.year, now.month, now.day)
+            .subtract(const Duration(days: 1)),
       ).toJsonString(),
     );
     await tester.pumpWidget(shell());
@@ -946,7 +992,8 @@ void main() {
       expect(insight, contains('giảm khối lượng'));
     });
 
-    test('Điểm tăng → ghi nhận nhịp học phù hợp (không khẳng định nguyên nhân)', () {
+    test('Điểm tăng → ghi nhận nhịp học phù hợp (không khẳng định nguyên nhân)',
+        () {
       final insight = scoreInsight([
         ms(1, 6.5),
         ms(10, 7.5),
@@ -999,12 +1046,13 @@ void main() {
       await tester.pumpWidget(host([
         ms(1, 6.5),
         ms(10, 7.5),
-      ], exam: ExamModel(
-        id: 'exam-1',
-        name: 'THPT QG 2027',
-        dateTime: DateTime(2027, 6, 26),
-        targetScore: 9.0,
-      )));
+      ],
+          exam: ExamModel(
+            id: 'exam-1',
+            name: 'THPT QG 2027',
+            dateTime: DateTime(2027, 6, 26),
+            targetScore: 9.0,
+          )));
       await tester.pump();
 
       expect(find.text('Tiến bộ điểm thi thử'), findsOneWidget);
@@ -1064,7 +1112,8 @@ void main() {
       expect(StorageService.getInt('last_cloud_sync_ms'), isNotNull);
     });
 
-    testWidgets('SyncStatusBar: offline → chip cam nhẹ nhàng, không đỏ cảnh báo',
+    testWidgets(
+        'SyncStatusBar: offline → chip cam nhẹ nhàng, không đỏ cảnh báo',
         (WidgetTester tester) async {
       SyncStateService.updateConnectivity(isOnline: false);
       await tester.pumpWidget(const MaterialApp(
@@ -1093,7 +1142,8 @@ void main() {
 
   group('Data migration (đặc tả mục 42)', () {
     test('Schema mới nhất → bỏ qua, idempotent', () {
-      StorageService.setInt('data_schema_version', DataMigration.currentSchemaVersion);
+      StorageService.setInt(
+          'data_schema_version', DataMigration.currentSchemaVersion);
       final report = DataMigration.run([
         MigrationStep('noop', () => true),
       ]);
@@ -1136,10 +1186,12 @@ void main() {
     });
 
     test('dedupe_id_lists: dẹp trùng giữ thứ tự', () {
-      StorageService.prefs.setStringList('today_task_ids', ['a', 'b', 'a', 'c', 'b']);
+      StorageService.prefs
+          .setStringList('today_task_ids', ['a', 'b', 'a', 'c', 'b']);
       StorageService.setInt('data_schema_version', 0);
       DataMigration.run(DataMigration.defaultSteps());
-      expect(StorageService.prefs.getStringList('today_task_ids'), ['a', 'b', 'c']);
+      expect(StorageService.prefs.getStringList('today_task_ids'),
+          ['a', 'b', 'c']);
     });
 
     test('normalize_task_json: JSON thống nhất shape, giữ entry hỏng', () {
@@ -1156,7 +1208,10 @@ void main() {
       final report = DataMigration.run(DataMigration.defaultSteps());
       expect(report.success, isTrue);
       // Entry tốt vẫn đọc được; entry hỏng KHÔNG bị xóa (không mất dữ liệu).
-      expect(TodayTask.fromJsonString(StorageService.getTodayTaskJson('mig-1')!).title, 'Học toán');
+      expect(
+          TodayTask.fromJsonString(StorageService.getTodayTaskJson('mig-1')!)
+              .title,
+          'Học toán');
       expect(StorageService.getTodayTaskJson('mig-broken'), '{không phải json');
     });
   });
@@ -1199,7 +1254,8 @@ void main() {
       await tester.pump();
 
       // Focus mục đầu (Học) — node index 0 trong danh sách nav của state.
-      final state = tester.state<DesktopSidebarState>(find.byType(DesktopSidebar));
+      final state =
+          tester.state<DesktopSidebarState>(find.byType(DesktopSidebar));
       state.navFocusNodes.first.requestFocus();
       await tester.pump();
 
@@ -1215,7 +1271,8 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pump();
-      expect(FocusManager.instance.primaryFocus, same(state.navFocusNodes.last));
+      expect(
+          FocusManager.instance.primaryFocus, same(state.navFocusNodes.last));
     });
 
     testWidgets('Enter kích hoạt mục đang focus → đổi tab',
@@ -1241,7 +1298,8 @@ void main() {
       ));
       await tester.pump();
 
-      final state = tester.state<DesktopSidebarState>(find.byType(DesktopSidebar));
+      final state =
+          tester.state<DesktopSidebarState>(find.byType(DesktopSidebar));
       state.navFocusNodes[1].requestFocus(); // mục 'AI'.
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -1285,7 +1343,8 @@ void main() {
       expect(proposeWeekPlan([], now: DateTime(2026, 9, 30)), isEmpty);
     });
 
-    test('Deadline gần xếp trước; không bao giờ xếp vào đúng ngày deadline', () {
+    test('Deadline gần xếp trước; không bao giờ xếp vào đúng ngày deadline',
+        () {
       final now = DateTime(2026, 9, 30, 10);
       final proposals = proposeWeekPlan([
         task('far', deadline: DateTime(2026, 10, 20)),
@@ -1318,7 +1377,8 @@ void main() {
       expect(proposals.single.reason, contains('bạn học tốt buổi sáng'));
     });
 
-    test('Chưa đủ dữ liệu phiên → giờ mặc định 19h và lý do ghi rõ "mặc định"', () {
+    test('Chưa đủ dữ liệu phiên → giờ mặc định 19h và lý do ghi rõ "mặc định"',
+        () {
       final proposals = proposeWeekPlan(
         [task('a')],
         sessions: [session(8, 5)], // 1 phiên — không đủ kết luận.
@@ -1381,8 +1441,8 @@ void main() {
 
       // Copy đúng đặc tả UX mục 11 "No tasks".
       expect(find.text('Hôm nay chưa có nhiệm vụ.'), findsOneWidget);
-      expect(find.text('Tạo kế hoạch để biết mình nên học gì.'),
-          findsOneWidget);
+      expect(
+          find.text('Tạo kế hoạch để biết mình nên học gì.'), findsOneWidget);
       expect(find.text('+ Thêm nhiệm vụ'), findsOneWidget);
       expect(find.text('AI lập kế hoạch'), findsOneWidget);
       expect(find.text('Gợi ý sẵn từ kỳ thi mục tiêu'), findsOneWidget);
@@ -1457,7 +1517,8 @@ void main() {
       expect(detailOpened, isTrue);
 
       // Tap nút tròn vẫn đánh dấu hoàn thành.
-      final check = tester.getRect(find.bySemanticsLabel('Đánh dấu hoàn thành'));
+      final check =
+          tester.getRect(find.bySemanticsLabel('Đánh dấu hoàn thành'));
       await tester.tapAt(check.center);
       await tester.pump();
       expect(toggled, isTrue);
@@ -1504,7 +1565,11 @@ void main() {
       StorageService.setPrimaryExamId('e-dyn');
       StorageService.setExamJson(
         'e-dyn',
-        ExamModel(id: 'e-dyn', name: 'Kỳ thi Đại học', dateTime: DateTime.now().add(const Duration(days: 30))).toJsonString(),
+        ExamModel(
+                id: 'e-dyn',
+                name: 'Kỳ thi Đại học',
+                dateTime: DateTime.now().add(const Duration(days: 30)))
+            .toJsonString(),
       );
 
       await tester.pumpWidget(const MaterialApp(
@@ -1557,15 +1622,17 @@ void main() {
 
     test('Danh sách lý do 👎 khớp đặc tả mục 10.10', () {
       final values = kAiFeedbackReasons.map((r) => r.$1).toSet();
-      expect(values, containsAll([
-        'sai_kien_thuc',
-        'khong_hieu_cau_hoi',
-        'giai_thich_kho_hieu',
-        'nguon_khong_dang_tin',
-        'qua_dai',
-        'qua_ngan',
-        'khac',
-      ]));
+      expect(
+          values,
+          containsAll([
+            'sai_kien_thuc',
+            'khong_hieu_cau_hoi',
+            'giai_thich_kho_hieu',
+            'nguon_khong_dang_tin',
+            'qua_dai',
+            'qua_ngan',
+            'khac',
+          ]));
     });
 
     testWidgets('ChatBubble AI: bấm 👍 lưu feedback, icon đổi màu',
@@ -1673,14 +1740,15 @@ void main() {
       expect(find.text('Nội dung sheet'), findsOneWidget);
       final handles = find.byWidgetPredicate((w) =>
           w is Container &&
-          w.constraints == const BoxConstraints.tightFor(
-              width: 44, height: 5));
+          w.constraints == const BoxConstraints.tightFor(width: 44, height: 5));
       expect(handles, findsOneWidget);
     });
   });
 
   group('Notes links + draft (mục 14/35)', () {
-    test('StudyNote parse ngược tương thích: note cũ không field mới vẫn đọc được', () {
+    test(
+        'StudyNote parse ngược tương thích: note cũ không field mới vẫn đọc được',
+        () {
       final oldJson = '{"id":"n1","title":"Cũ","body":"nội dung",'
           '"createdAt":"2026-09-01T10:00:00.000","updatedAt":"2026-09-01T10:00:00.000","tags":["toan"]}';
       final note = StudyNote.fromJsonString(oldJson);
@@ -1721,8 +1789,8 @@ void main() {
       );
       StorageService.setString('note_draft_v1', draft.toJsonString());
 
-      final restored = StudyNote.fromJsonString(
-          StorageService.getString('note_draft_v1')!);
+      final restored =
+          StudyNote.fromJsonString(StorageService.getString('note_draft_v1')!);
       expect(restored.body, 'bản nháp chưa kịp lưu');
       expect(restored.subject, '📖 Văn');
 
@@ -1857,7 +1925,8 @@ void main() {
       await tester.pump();
 
       // Theme high contrast: divider đậm hơn (so sánh với theme thường).
-      final normalDivider = AppTheme.lightWithContrast(false).dividerTheme.color;
+      final normalDivider =
+          AppTheme.lightWithContrast(false).dividerTheme.color;
       final hcDivider = AppTheme.lightWithContrast(true).dividerTheme.color;
       expect(hcDivider, AppColors.borderStrong);
       expect(hcDivider, isNot(normalDivider));
@@ -1944,8 +2013,7 @@ void main() {
     });
 
     test('Priority: "quan trọng" → high, "nhẹ" → low', () {
-      expect(
-          parseQuickAdd('Mai 7h làm toán 30 phút quan trọng', now)!.priority,
+      expect(parseQuickAdd('Mai 7h làm toán 30 phút quan trọng', now)!.priority,
           'high');
       expect(parseQuickAdd('Mai đọc thêm sử 15p nhẹ', now)!.priority, 'low');
     });
@@ -1958,7 +2026,8 @@ void main() {
 
   testWidgets('Appearance: đổi cỡ chữ S/M/L áp dụng tức thì; Ctrl+2 đổi tab AI',
       (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1440, 900); // desktop để test shortcut
+    tester.view.physicalSize =
+        const Size(1440, 900); // desktop để test shortcut
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
@@ -1997,7 +2066,8 @@ void main() {
     expect(AppearanceService.fontScale.value, 1.0);
   });
 
-  testWidgets('iPhone 390x844: 4 tab + trang Mục tiêu/Tập trung không tràn layout',
+  testWidgets(
+      'iPhone 390x844: 4 tab + trang Mục tiêu/Tập trung không tràn layout',
       (WidgetTester tester) async {
     // Logical 390x844 = iPhone 14/15 (physical 1170x2532 @3x).
     tester.view.physicalSize = const Size(1170, 2532);

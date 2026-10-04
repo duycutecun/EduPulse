@@ -132,8 +132,8 @@ void main() {
     });
 
     test('vòng tạm dừng thì khôi phục vẫn dừng', () {
-      final clock = snapshot(remaining: 1200, paused: true)
-          .restoreClock(now: at(120));
+      final clock =
+          snapshot(remaining: 1200, paused: true).restoreClock(now: at(120));
 
       expect(clock.isRunning, isFalse);
       expect(clock.remainingAt(at(9999)), 1200);
@@ -199,9 +199,9 @@ void main() {
   });
 
   group('Trên màn hình thật', () {
-/// Ảnh chụp của một vòng chạy được 12 phút rồi bị kill 3 phút trước:
-/// còn 780s = 13 phút.
-void seedAbandoned() {
+    /// Ảnh chụp của một vòng chạy được 12 phút rồi bị kill 3 phút trước:
+    /// còn 780s = 13 phút.
+    void seedAbandoned() {
       repo.saveActive(ActiveStudySession(
         taskId: 't1',
         taskTitle: 'On tich phan',
@@ -214,7 +214,7 @@ void seedAbandoned() {
       ));
     }
 
-Future<void> pumpStudy(WidgetTester tester) async {
+    Future<void> pumpStudy(WidgetTester tester) async {
       // StudyScreen không tự bọc `Material`, nên test cần Scaffold bao ngoài —
       // giống hệt lúc nó nằm trong một tab thật.
       await tester.pumpWidget(const MaterialApp(
@@ -251,8 +251,7 @@ Future<void> pumpStudy(WidgetTester tester) async {
       expect(sessions.single.plannedMinutes, 25);
     });
 
-    testWidgets('vong moi mo man hinh thi khong hoi gì ca',
-        (tester) async {
+    testWidgets('vong moi mo man hinh thi khong hoi gì ca', (tester) async {
       await pumpStudy(tester);
 
       expect(find.text('Phiên học đang bở dở'), findsNothing);
@@ -292,8 +291,7 @@ Future<void> pumpStudy(WidgetTester tester) async {
       expect(repo.getActive(), isNull);
     });
 
-    testWidgets('anh chup qua han 6 gio thi tu don, khong hoi',
-        (tester) async {
+    testWidgets('anh chup qua han 6 gio thi tu don, khong hoi', (tester) async {
       // Ảnh chụp tạm dừng còn giờ nhưng đã quá hạn: nếu hỏi, người dùng bấm
       // "Tiếp tục" sẽ được một đồng hồ không chạy (đứng yên vĩnh viễn).
       repo.saveActive(ActiveStudySession(

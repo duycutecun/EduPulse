@@ -30,6 +30,13 @@ class ExamModel {
   /// các task đã gắn kỳ thi này, nên không cần thêm một trường phải nhập tay.
   final List<String> subjects;
 
+  /// Lúc sửa lần cuối — dùng để **phát hiện xung đột** giữa máy này và cloud.
+  ///
+  /// Cố ý NULLABLE: dữ liệu tạo trước khi có trường này không có mốc thời
+  /// gian. `null` được hiểu là “không rõ” — xem [ExamRepository.mergeFromCloud]
+  /// để biết quy tắc xử lý, không đoán bừa.
+  final DateTime? updatedAt;
+
   ExamModel({
     required this.id,
     required this.name,
@@ -41,6 +48,7 @@ class ExamModel {
     this.targetScore,
     Map<String, double> subjectTargets = const {},
     List<String>? subjects,
+    this.updatedAt,
   })  : subjectTargets = subjectTargets,
         // Không bắt học sinh khai báo môn hai lần: đặt mục tiêu cho môn nào
         // là môn đó có mặt trong kỳ thi (đặc tả 5.13).
@@ -180,6 +188,7 @@ class ExamModel {
         'targetScore': targetScore,
         'subjectTargets': subjectTargets,
         'subjects': subjects,
+        'updatedAt': updatedAt?.toIso8601String(),
       };
 
   factory ExamModel.fromJson(Map<String, dynamic> j) => ExamModel(
@@ -197,9 +206,29 @@ class ExamModel {
         subjects: ((j['subjects'] as List?) ?? const [])
             .map((e) => e.toString())
             .toList(),
+        updatedAt: j['updatedAt'] == null
+            ? null
+            : DateTime.tryParse(j['updatedAt'] as String),
       );
 
   String toJsonString() => jsonEncode(toJson());
+
+  /// Bản sao có mốc sửa mới — repository dùng khi lưu để đóng dấu “phiên bản
+  /// này thuộc máy này”. `copyWith` chung không cần: trường duy nhất cần đổi
+  /// là `updatedAt`, gói riêng cho rõ ý nghĩa.
+  ExamModel copyWithUpdatedAt(DateTime at) => ExamModel(
+        id: id,
+        name: name,
+        dateTime: dateTime,
+        type: type,
+        description: description,
+        emoji: emoji,
+        currentScore: currentScore,
+        targetScore: targetScore,
+        subjectTargets: subjectTargets,
+        subjects: subjects,
+        updatedAt: at,
+      );
   factory ExamModel.fromJsonString(String s) =>
       ExamModel.fromJson(jsonDecode(s));
 }

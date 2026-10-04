@@ -15,6 +15,7 @@ import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/utils/supabase_service.dart';
+import '../../../exams/domain/exam_repository.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
@@ -161,6 +162,14 @@ class _AccountScreenState extends State<AccountScreen> {
     } else {
       SyncStateService.markError();
     }
+
+    // Có kỳ thi trùng phiên bản → HỎI, không tự lấy bản cloud đè lên bản máy.
+    // Bản máy đã được giữ nguyên trong lúc khôi phục.
+    if (mounted && SupabaseService.examConflicts.isNotEmpty) {
+      await _askExamConflictResolution();
+      return;
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Đã khôi phục!' : 'Khôi phục thất bại!'),
@@ -168,6 +177,79 @@ class _AccountScreenState extends State<AccountScreen> {
       ));
     }
   }
+
+  /// Hỏi người dùng chọn bản nào cho các kỳ thi bị trùng phiên bản.
+  ///
+  /// Gom **tất cả** mục vào MỘT hộp thoại: mười kỳ thi xung đột mà hỏi mười
+  /// lần thì người dùng sẽ bấm bừa và thành mất cả hai bản. Mặc định giữ bản
+  /// máy — luôn an toàn, không bao giờ mất dữ liệu người dùng vừa gõ.
+  Future<void> _askExamConflictResolution() async {
+    final conflicts = List<ExamConflict>.from(SupabaseService.examConflicts);
+    SupabaseService.examConflicts.clear();
+
+    final takeCloud = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Có kỳ thi khác nhau trên máy và cloud'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${conflicts.length} kỳ thi bị khác phiên bản. Bạn đang giữ '
+                  'bản trên máy — chọn “Dùng bản cloud” để lấy bản trên cloud '
+                  'thay cho chúng.',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                for (final c in conflicts)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(c.local.name,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700)),
+                    subtitle: Text(
+                      'Máy sửa ${_fmt(c.local.updatedAt)} · '
+                      'Cloud sửa ${_fmt(c.cloud.updatedAt)}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Giữ bản trên máy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Dùng bản cloud'),
+          ),
+        ],
+      ),
+    );
+
+    if (takeCloud != true) return;
+    for (final c in conflicts) {
+      ExamRepository.instance.save(c.cloud);
+    }
+    if (!mounted) return;
+    _loadData();
+    widget.onDataChanged();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Đã lấy bản kỳ thi từ cloud')),
+    );
+  }
+
+  String _fmt(DateTime? at) => at == null
+      ? 'không rõ'
+      : '${at.day}/${at.month} ${at.hour}h${at.minute.toString().padLeft(2, '0')}';
 
   void _openAuthScreen() {
     Navigator.of(context).push(CupertinoPageRoute(

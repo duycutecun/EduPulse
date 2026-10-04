@@ -75,8 +75,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
-  testWidgets('chỉ hiện cột phụ khi màn đủ rộng (≥1440px)',
-      (tester) async {
+  testWidgets('chỉ hiện cột phụ khi màn đủ rộng (≥1440px)', (tester) async {
     // Desktop nhưng hẹp → giữ bố cục một cột như trước.
     await pumpShell(tester, const Size(1280, 800));
     expect(find.byType(DesktopAuxColumn), findsNothing);

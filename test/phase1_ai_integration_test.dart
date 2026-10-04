@@ -37,7 +37,8 @@ void main() {
   });
 
   group('Phase 1.2: Calendar AI Auto-Schedule', () {
-    testWidgets('Lập lịch tuần AI tạo 5 nhiệm vụ cân đối rải đều', (tester) async {
+    testWidgets('Lập lịch tuần AI tạo 5 nhiệm vụ cân đối rải đều',
+        (tester) async {
       final exam = ExamModel(
         id: 'exam-1',
         name: 'Tốt nghiệp THPT 2026',
@@ -79,7 +80,8 @@ void main() {
       expect(taskIds.length, 5);
 
       final tasks = taskIds
-          .map((id) => TodayTask.fromJsonString(StorageService.getTodayTaskJson(id)!))
+          .map((id) =>
+              TodayTask.fromJsonString(StorageService.getTodayTaskJson(id)!))
           .toList();
 
       expect(tasks.any((t) => t.subject == 'Vật lý'), isTrue);

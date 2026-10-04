@@ -103,7 +103,8 @@ void main() {
       expect(find.text('Sĩ tử 2k9'), findsOneWidget);
     });
 
-    testWidgets('đánh dấu hoàn thành nhiệm vụ ghi qua repository, không lệch UI',
+    testWidgets(
+        'đánh dấu hoàn thành nhiệm vụ ghi qua repository, không lệch UI',
         (tester) async {
       final task = TodayTask(
         id: 'gate-task',
@@ -167,7 +168,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    test('AI không tự ghi thay người dùng: chỉ `applyPlan` mới ghi vào kế hoạch',
+    test(
+        'AI không tự ghi thay người dùng: chỉ `applyPlan` mới ghi vào kế hoạch',
         () async {
       // Cùng nguyên tắc với kịch bản E2E-2 nhưng khẳng định ở tầng service:
       // dựng kế hoạch không đụng vào dữ liệu.
@@ -275,8 +277,7 @@ void main() {
     };
 
     for (final entry in sizes.entries) {
-      testWidgets('${entry.key}: duyệt 4 tab không vỡ layout',
-          (tester) async {
+      testWidgets('${entry.key}: duyệt 4 tab không vỡ layout', (tester) async {
         await pumpShell(tester, size: entry.value);
         expect(tester.takeException(), isNull);
 

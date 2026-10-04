@@ -47,8 +47,7 @@ void main() {
     });
 
     test('Bỏ lỡ >= 1 ngày → reset về 1', () {
-      final threeDaysAgo =
-          DateTime.now().subtract(const Duration(days: 3));
+      final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
       StorageService.setString('last_study_date', _dayKey(threeDaysAgo));
       StorageService.setStreak(10);
       StorageService.setStreakRecord(10);
@@ -74,7 +73,8 @@ void main() {
     DateTime mondayNoon(int weekOffset) {
       final now = DateTime.now();
       final monday = now.subtract(Duration(days: now.weekday - 1));
-      return DateTime(monday.year, monday.month, monday.day + 7 * weekOffset, 12);
+      return DateTime(
+          monday.year, monday.month, monday.day + 7 * weekOffset, 12);
     }
 
     test('Log hôm nay rơi đúng cột weekday', () {
@@ -278,7 +278,8 @@ void main() {
 
   group('parseQuiz (quiz từ ảnh)', () {
     test('Parse JSON quiz đầy đủ', () {
-      const raw = '{"questions":[{"question":"1+1=?","options":["2","3","4","5"],"correctIndex":0,"explanation":"Cộng cơ bản"}]}';
+      const raw =
+          '{"questions":[{"question":"1+1=?","options":["2","3","4","5"],"correctIndex":0,"explanation":"Cộng cơ bản"}]}';
       final qs = parseQuiz(raw);
       expect(qs.length, 1);
       expect(qs.first.question, '1+1=?');
@@ -288,13 +289,15 @@ void main() {
     });
 
     test('correctIndex ngoài phạm vi → clamp về options hợp lệ', () {
-      const raw = '{"questions":[{"question":"Q","options":["A","B"],"correctIndex":9}]}';
+      const raw =
+          '{"questions":[{"question":"Q","options":["A","B"],"correctIndex":9}]}';
       final qs = parseQuiz(raw);
       expect(qs.first.correctIndex, 1); // clamp 0..1
     });
 
     test('Bỏ câu hỏi thiếu options hợp lệ', () {
-      const raw = '{"questions":[{"question":"Q1","options":["A"]},{"question":"","options":["A","B"]},{"question":"Q2","options":["A","B"],"correctIndex":1}]}';
+      const raw =
+          '{"questions":[{"question":"Q1","options":["A"]},{"question":"","options":["A","B"]},{"question":"Q2","options":["A","B"],"correctIndex":1}]}';
       final qs = parseQuiz(raw);
       expect(qs.length, 1);
       expect(qs.first.question, 'Q2');
@@ -306,7 +309,8 @@ void main() {
   });
 
   group('Onboarding seed', () {
-    test('Chọn preset THPTQG → tạo kỳ thi chính + 3 nhiệm vụ mẫu + đánh dấu done',
+    test(
+        'Chọn preset THPTQG → tạo kỳ thi chính + 3 nhiệm vụ mẫu + đánh dấu done',
         () {
       // Mô phỏng đúng logic _pickPreset của OnboardingScreen.
       final exam = ExamModel(
@@ -321,9 +325,24 @@ void main() {
       StorageService.setPrimaryExamId(exam.id);
 
       const samples = [
-        (title: 'Giải 1 đề Toán THPTQG (50 câu)', subject: '📐 Toán', priority: 'high', minutes: 90),
-        (title: 'Luyện đọc hiểu tiếng Anh 30 phút', subject: '🇬🇧 Anh', priority: 'medium', minutes: 30),
-        (title: 'Ôn nghị luận xã hội — dàn ý + viết mở bài', subject: '📖 Văn', priority: 'medium', minutes: 45),
+        (
+          title: 'Giải 1 đề Toán THPTQG (50 câu)',
+          subject: '📐 Toán',
+          priority: 'high',
+          minutes: 90
+        ),
+        (
+          title: 'Luyện đọc hiểu tiếng Anh 30 phút',
+          subject: '🇬🇧 Anh',
+          priority: 'medium',
+          minutes: 30
+        ),
+        (
+          title: 'Ôn nghị luận xã hội — dàn ý + viết mở bài',
+          subject: '📖 Văn',
+          priority: 'medium',
+          minutes: 45
+        ),
       ];
       for (final t in samples) {
         final task = TodayTask(
@@ -343,7 +362,8 @@ void main() {
       expect(StorageService.getExamIds(), ['thptqg']);
       expect(StorageService.getPrimaryExamId(), 'thptqg');
       expect(StorageService.getTodayTaskIds().length, 3);
-      final first = StorageService.getTodayTaskJson(StorageService.getTodayTaskIds().first);
+      final first = StorageService.getTodayTaskJson(
+          StorageService.getTodayTaskIds().first);
       expect(first, isNotNull);
       expect(TodayTask.fromJsonString(first!).priority, 'high');
     });
