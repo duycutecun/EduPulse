@@ -1,25 +1,37 @@
 import 'dart:async';
+import '../../../../core/utils/feedback_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/study_rhythm.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_tokens.dart';
+import '../../../../core/constants/subject_catalog.dart';
 import '../../../../features/study/domain/distribute_day.dart';
+import '../../../study/presentation/widgets/day_balance_sheet.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
+import '../../../../shared/widgets/skeleton_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../exams/domain/preset_exams.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/quick_add_parser.dart';
-import '../../../study/domain/optimize_week.dart';
+import '../../../study/domain/repositories/study_session_repository.dart';
+import '../../../tasks/domain/models/task_state.dart';
+import '../../../tasks/domain/repositories/task_repository.dart';
+import '../../../tasks/presentation/widgets/delete_task_dialog.dart';
+import '../../../tasks/presentation/widgets/reschedule_dialog.dart';
+import '../../../tasks/presentation/widgets/split_task_dialog.dart';
+import '../../../tasks/presentation/widgets/task_detail_sheet.dart';
+import '../../../tasks/presentation/widgets/task_edit_sheet.dart';
 import '../../../study/presentation/screens/ai_plan_screen.dart';
-import '../widgets/hero_countdown_card.dart';
 import '../widgets/home_header.dart';
-import '../widgets/quick_action_card.dart';
-import '../widgets/ai_copilot_hub_card.dart';
-import '../widgets/ai_readiness_card.dart';
+import '../widgets/ai_actions_row.dart';
 import '../widgets/today_mission_card.dart';
+import '../widgets/daily_summary_card.dart';
+import '../widgets/progress_insight_card.dart';
+import '../../domain/services/today_service.dart';
+import '../../../study/presentation/screens/study_page.dart';
 import '../../../ai_coach/presentation/screens/flashcard_review_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -33,18 +45,28 @@ class HomeScreen extends StatefulWidget {
   /// Có thể null thì bấm gợi ý chỉ chuyển tab AI như thường.
   final ValueChanged<String>? onOpenAiCoachWith;
   final VoidCallback onOpenCalendar;
+
+  /// Chuyển sang tab Tiến độ — thẻ "Nhận định tuần" dùng để mở chi tiết.
+  final VoidCallback? onOpenProgress;
   final int streak;
   final bool isActive;
   final VoidCallback? onStreakChanged;
 
+  /// Nguồn thời gian truyền xuống màn Tập trung, xem [StudyPage.clock].
+  /// Mặc định là đồng hồ thật; test E2E truyền đồng hồ giả để chạy hết một
+  /// vòng focus mà không phải chờ 25 phút thật.
+  final DateTime Function() clock;
+
   const HomeScreen({
     super.key,
+    this.clock = DateTime.now,
     required this.primaryExam,
     required this.exams,
     required this.onExamTap,
     required this.onOpenStudy,
     required this.onOpenAiCoach,
     required this.onOpenCalendar,
+    this.onOpenProgress,
     required this.streak,
     this.isActive = true,
     this.onStreakChanged,
@@ -55,46 +77,63 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _GoalProgressCard extends StatelessWidget {
-  const _GoalProgressCard({required this.exam, required this.tasks});
+/// G3-A — ngữ nghĩa phản hồi bằng BA kênh: icon + màu nền + chữ.
+///
+/// Trước đây mọi SnackBar đều nền xanh mặc định và chỉ có chữ: học sinh không
+/// phân biệt được “đã xoá” với “không xoá được” nếu không đọc kỹ từng chữ.
+/// Giờ mỗi loại có một icon riêng — người mù màu vẫn đọc được.
+enum SnackKind {
+  /// Hành động đã thành công.
+  success(Icons.check_circle_rounded, AppColors.greenDark),
 
-  final ExamModel exam;
-  final List<TodayTask> tasks;
+  /// Thông tin trung tính / thay đổi lịch.
+  moved(Icons.event_rounded, AppColors.orangeDark),
+
+  /// Xoá hẳn — cần nút Hoàn tác đi kèm.
+  destructive(Icons.delete_rounded, AppColors.red),
+
+  /// Không làm được vì lý do chủ quan (đã có dữ liệu, hết hạn…).
+  warning(Icons.warning_rounded, AppColors.orangeDark),
+
+  /// Lỗi hệ thống / thất bại.
+  error(Icons.error_rounded, AppColors.redDark),
+
+  /// Trạng thái trung tính, không có gì để ăn mừng.
+  info(Icons.info_rounded, AppColors.blueDark);
+
+  const SnackKind(this.icon, this.background);
+
+  final IconData icon;
+  final Color background;
+
+  /// Nền snack đậm → chữ/nút luôn dùng trắng để đủ tương phản (WCAG AA).
+  Color get onBackground => Colors.white;
+}
+
+/// Icon + chữ trong SnackBar. Tách riêng để phần trình bày không lẫn vào
+/// logic của [HomeScreenState._showSnack].
+class _SnackMessage extends StatelessWidget {
+  const _SnackMessage({required this.message, required this.kind});
+
+  final String message;
+  final SnackKind kind;
 
   @override
   Widget build(BuildContext context) {
-    final completed = tasks.where((task) => task.isDone).length;
-    final progress = tasks.isEmpty ? 0.0 : completed / tasks.length;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Tiến độ mục tiêu',
-              style: const TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text(tasks.isEmpty
-              ? 'Chưa có nhiệm vụ gắn với ${exam.name}.'
-              : '$completed/${tasks.length} nhiệm vụ đã hoàn thành'),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: LinearProgressIndicator(
-              minHeight: 7,
-              value: progress,
-              backgroundColor: AppColors.progressBg,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+    return Row(
+      children: [
+        Icon(kind.icon, size: 20, color: kind.onBackground),
+        const SizedBox(width: AppTokens.space8),
+        Expanded(
+          child: Text(
+            message,
+            style: AppTokens.body.copyWith(
+              color: kind.onBackground,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -105,6 +144,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ValueNotifier<Duration>(Duration.zero);
   List<TodayTask> _tasks = [];
   List<TodayTask> _allTasks = [];
+
+  /// G3-C: khung đầu tiên hiện khung xương thay vì màn trắng, rồi mới đổ
+  /// dữ liệu thật vào. Bộ nhớ cục bộ đọc đồng bộ nên vốn không có “đang tải” —
+  /// nhưng vẫn cần một khung hình: đọc + dựng cây widget đủ để thấy nháy
+  /// trắng khi mở app lạnh trên máy yếu.
+  bool _isLoadingTasks = true;
   final _uuid = const Uuid();
 
   @override
@@ -115,6 +160,33 @@ class _HomeScreenState extends State<HomeScreen> {
       _startTimer();
     }
     _loadTasks();
+    // Mọi thay đổi task — kể cả do AI, onboarding hay màn khác — đều báo qua
+    // repository. Trước đây Home chỉ tự load lại lúc vào màn, nên task AI tạo
+    // ở nền không hiện cho tới khi người dùng chuyển tab.
+    TaskRepository.instance.revision.addListener(_onTasksChanged);
+    // Phiên học vừa kết thúc (BE-3.3): tổng giờ học hôm nay phải nhảy ngay,
+    // không chờ người dùng điều hướng. Thẻ tổng kết đọc `TodayService` trong
+    // `build`, nên chỉ cần vẽ lại là số phút mới hiện.
+    StudySessionRepository.instance.revision.addListener(_onSessionsChanged);
+    // Khung xương chỉ tồn tại đúng MỘT khung hình rồi được thay bằng dữ liệu
+    // thật — đủ để không thấy màn trắng, không thêm độ trễ nhân tạo.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _loadTasks();
+        _isLoadingTasks = false;
+      });
+    });
+  }
+
+  void _onTasksChanged() {
+    if (!mounted) return;
+    setState(_loadTasks);
+  }
+
+  void _onSessionsChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _startTimer() {
@@ -154,23 +226,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadTasks() {
-    final ids = StorageService.getTodayTaskIds();
-    _allTasks = ids
-        .map((id) {
-          final json = StorageService.getTodayTaskJson(id);
-          if (json == null) return null;
-          return TodayTask.fromJsonString(json);
-        })
-        .whereType<TodayTask>()
-        .toList();
-    final now = DateTime.now();
-    _tasks = _allTasks.where((task) {
-      final scheduled = task.scheduledAt;
-      return scheduled == null ||
-          (scheduled.year == now.year &&
-              scheduled.month == now.month &&
-              scheduled.day == now.day);
-    }).toList();
+    _tasks = TodayService.getTodayTasksSorted();
+    _allTasks = TaskRepository.instance.getAllTasks();
+  }
+
+  void _startStudyForTask(TodayTask task) {
+    // G3-B: bắt đầu học = rung nhẹ, báo hiệu "sẵn sàng" mà không giật.
+    FeedbackService.light();
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => StudyPage(
+          initialTask: task,
+          initialSubject: task.subject,
+          initialMinutes: task.estimateMinutes,
+          autoStart: true,
+          clock: widget.clock,
+          onStreakChanged: _notifyStreakChanged,
+          onSessionCompleted: () {
+            if (mounted) setState(() {});
+          },
+        ),
+      ),
+    )
+        .then((_) {
+      _loadTasks();
+      if (mounted) setState(() {});
+    });
   }
 
   void _addTask(String title, String subject, String priority, int minutes,
@@ -179,11 +262,12 @@ class _HomeScreenState extends State<HomeScreen> {
       String? note,
       String? goalId,
       List<String> subtasks = const [],
-      String? recurrence}) {
+      String? recurrence,
+      bool announce = true}) {
     final task = TodayTask(
       id: _uuid.v4(),
       title: title,
-      subject: subject,
+      subject: AppSubjects.normalize(subject),
       priority: priority,
       estimateMinutes: minutes,
       topic: topic,
@@ -193,20 +277,25 @@ class _HomeScreenState extends State<HomeScreen> {
       subtasks: subtasks,
       recurrence: recurrence,
     );
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
-    final ids = StorageService.getTodayTaskIds()..add(task.id);
-    StorageService.setTodayTaskIds(ids);
-    setState(() {
-      _allTasks.add(task);
-      _tasks.add(task);
-    });
+    // Mọi ghi task đi qua repository (BE-2.1): đóng dấu thời gian, phát tín
+    // hiệu refresh UI, kích hoạt chu trình AI và hẹn sync cloud.
+    TaskRepository.instance.createTask(task);
+    setState(_loadTasks);
+    // Đặc tả 5.3: sau khi tạo phải khẳng định rõ đã vào hôm nay, rồi đưa ra
+    // lựa chọn tiếp theo — bắt đầu luôn, hay tiếp tục lập kế hoạch.
+    if (!announce) return;
+    _showSnack(
+      'Đã thêm vào hôm nay',
+      kind: SnackKind.success,
+      primaryLabel: 'Bắt đầu ngay',
+      onPrimary: () => _startStudyForTask(task),
+    );
   }
 
   /// Banner "hôm nay hơi nặng" — chỉ hiện khi kế hoạch hôm nay vượt quỹ
   /// phút hợp lý và còn task có thể dời. Nhẹ nhàng, bấm mới mở đề xuất.
   Widget _buildDayBalanceBanner() {
-    final proposals =
-        proposeDayBalance(tasks: _allTasks, now: DateTime.now());
+    final proposals = proposeDayBalance(tasks: _allTasks, now: DateTime.now());
     if (proposals.isEmpty) return const SizedBox.shrink();
 
     return GestureDetector(
@@ -243,144 +332,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Phân bố hợp lý: duyệt từng đề xuất dời task sang ngày còn quỹ.
-  /// Mỗi dòng Accept/Reject (mục 10.6) — không có gì bị dời khi chưa duyệt.
-  void _showDayBalanceSheet() {
-    final proposals =
-        proposeDayBalance(tasks: _allTasks, now: DateTime.now());
-    if (proposals.isEmpty) return;
-
-    final accepted = List<bool>.filled(proposals.length, true);
-    showAppBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setSheetState) => SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Phân bố lại cho vừa sức 🧺',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 4),
-                Text(
-                  'Hôm nay hơi nặng — AI đề xuất dời bớt sang ngày còn quỹ. Con chốt từng dòng nhé.',
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.textSecondary,
-                      height: 1.4),
-                ),
-                const SizedBox(height: 14),
-                ...List.generate(proposals.length, (i) {
-                  final p = proposals[i];
-                  final d = p.proposedStart;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: accepted[i]
-                            ? AppColors.greenSoft.withValues(alpha: 0.4)
-                            : AppColors.bgPage,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: accepted[i]
-                                ? AppColors.primary
-                                : AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(p.task.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '→ ${d.day}/${d.month} • ${p.task.estimateMinutes} phút • ${p.reason}',
-                                  style: const TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Switch(
-                            value: accepted[i],
-                            activeThumbColor: AppColors.primary,
-                            onChanged: (v) =>
-                                setSheetState(() => accepted[i] = v),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        child: const Text('Để nguyên'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          var applied = 0;
-                          for (var i = 0; i < proposals.length; i++) {
-                            if (!accepted[i]) continue;
-                            final task = proposals[i].task;
-                            task.scheduledAt = proposals[i].proposedStart;
-                            StorageService.setTodayTaskJson(
-                                task.id, task.toJsonString());
-                            applied++;
-                          }
-                          Navigator.pop(sheetContext);
-                          if (applied > 0) {
-                            AiRefreshService
-                                .notifyDataChanged(); // chu trình AI
-                            _loadTasks();
-                            setState(() {});
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Đã dời $applied nhiệm vụ — hôm nay nhẹ hơn rồi!'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text(accepted.any((a) => a)
-                            ? 'Dời ${accepted.where((a) => a).length} nhiệm vụ'
-                            : 'Dời'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  /// Dùng chung sheet với Quick Action "Điều chỉnh lịch" của AI Coach —
+  /// rule engine, không gọi LLM (AI-24).
+  Future<void> _showDayBalanceSheet() async {
+    final moved = await showDayBalanceSheet(context, tasks: _allTasks);
+    if (moved <= 0 || !mounted) return;
+    setState(_loadTasks);
+    _toast('Đã dời $moved nhiệm vụ — hôm nay nhẹ hơn rồi!',
+        kind: SnackKind.moved);
   }
 
   /// Nhịp học cá nhân đề xuất thứ tự: môn khó + môn bị bỏ quên lên trước.
@@ -397,57 +356,42 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     if (sameOrder) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Thứ tự hiện tại đã hợp lý rồi — không cần đổi gì!'),
-        behavior: SnackBarBehavior.floating,
-      ));
+      _toast('Thứ tự hiện tại đã hợp lý rồi — không cần đổi gì!',
+          kind: SnackKind.info);
       return;
     }
     setState(() => _tasks = ordered);
-    StorageService.setTodayTaskIds(ordered.map((t) => t.id).toList());
-    HapticFeedback.selectionClick();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Đã xếp môn cần sức nhất lên trước — theo nhịp học của bạn'),
-      behavior: SnackBarBehavior.floating,
-    ));
+    // Đổi thứ tự cũng là ghi dữ liệu → qua repository để không tụt chu trình AI.
+    TaskRepository.instance.reorderTasks(ordered.map((t) => t.id).toList());
+    FeedbackService.selection();
+    _toast('Đã xếp môn cần sức nhất lên trước — theo nhịp học của bạn',
+        kind: SnackKind.success);
   }
 
-  void _toggleTask(TodayTask task) {
-    final wasDone = task.isDone;
-    task.isDone = !task.isDone;
-    task.status = task.isDone ? 'completed' : 'todo';
-    if (task.isDone) task.skipReason = null;
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
-    setState(() {});
-
-    if (!wasDone && task.isDone) {
-      HapticFeedback.mediumImpact();
-      StorageService.addXp(10);
-      StorageService.registerStudyActivity(); // cập nhật streak theo ngày
-      StorageService.addMascotBondExp(10); // gắn kết linh vật
-      _createNextRecurringTask(task);
-      // Chu trình AI: task xong → bản tin/gợi ý tính lại nền sau 5s.
-      AiRefreshService.notifyDataChanged();
-      setState(() {});
-      _notifyStreakChanged();
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('Đã hoàn thành nhiệm vụ'),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Hoàn tác',
-              onPressed: () {
-                task.isDone = false;
-                task.status = 'todo';
-                StorageService.setTodayTaskJson(task.id, task.toJsonString());
-                if (mounted) setState(() {});
-              },
-            ),
-          ),
-        );
+  Future<void> _toggleTask(TodayTask task) async {
+    final result = await TaskRepository.instance.toggleTaskDone(task.id);
+    if (result.failed) {
+      _toast(result.error ?? 'Không cập nhật được nhiệm vụ',
+          kind: SnackKind.error);
+      return;
     }
+
+    final nowDone = result.task?.isDone ?? task.isDone;
+    setState(_loadTasks);
+    if (!nowDone) return;
+
+    FeedbackService.medium();
+    StorageService.addXp(10);
+    StorageService.registerStudyActivity(); // cập nhật streak theo ngày
+    StorageService.addMascotBondExp(10); // gắn kết linh vật
+    final doneTask = result.task;
+    if (doneTask != null) _createNextRecurringTask(doneTask);
+    _notifyStreakChanged();
+    _toast(
+      'Đã hoàn thành nhiệm vụ',
+      kind: SnackKind.success,
+      undo: () => TaskRepository.instance.toggleTaskDone(task.id),
+    );
   }
 
   void _createNextRecurringTask(TodayTask completedTask) {
@@ -469,10 +413,8 @@ class _HomeScreenState extends State<HomeScreen> {
       scheduledAt:
           DateTime(base.year, base.month, base.day).add(Duration(days: days)),
     );
-    StorageService.setTodayTaskJson(next.id, next.toJsonString());
-    StorageService.setTodayTaskIds(
-        [...StorageService.getTodayTaskIds(), next.id]);
-    _allTasks.add(next);
+    // Task lặp phải sinh qua repository để không bỏ sót sync cloud + chu trình AI.
+    TaskRepository.instance.createTask(next);
   }
 
   void _showSkipSheet(TodayTask task) {
@@ -502,14 +444,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(reason),
                     trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {
-                      task.isDone = false;
-                      task.status = 'skipped';
-                      task.skipReason = reason;
-                      StorageService.setTodayTaskJson(
-                          task.id, task.toJsonString());
+                    onTap: () async {
                       Navigator.pop(sheetContext);
-                      setState(() {});
+                      final result = await TaskRepository.instance
+                          .skipTask(task.id, reason: reason);
+                      if (!mounted) return;
+                      if (result.failed) {
+                        _toast(result.error ?? 'Không bỏ qua được',
+                            kind: SnackKind.error);
+                        return;
+                      }
+                      setState(_loadTasks);
+                      // Undo: bỏ qua có thể là nhấn nhầm, cần lối quay lại.
+                      _toast(
+                        'Đã bỏ qua: $reason',
+                        kind: SnackKind.warning,
+                        undo: () => TaskRepository.instance
+                            .setTaskStatus(task.id, TaskStatus.scheduled),
+                      );
                     },
                   )),
             ],
@@ -520,67 +472,244 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _rescheduleTask(TodayTask task) async {
-    // Cảnh báo dời lịch nhiều lần + đề xuất chia nhỏ (mục 7.10) —
-    // hiển thị TRƯỚC khi dời để user có thông tin quyết định.
-    final splitTip = rescheduleSplitSuggestion(task);
-    if (splitTip != null && mounted) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(children: [
-            Icon(Icons.content_cut_rounded, color: AppColors.orange),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text('Dời lại lần nữa?', style: TextStyle(fontSize: 17)),
-            ),
-          ]),
-          content: Text(splitTip),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Để nguyên'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Vẫn dời',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-            ),
-          ],
+    if (!mounted) return;
+    final picked = await RescheduleDialog.show(
+      context,
+      task: task,
+      onSplitWithAi: () => _askAiToSplit(task),
+      onSplit: () => _splitTask(task),
+    );
+    if (picked == null) {
+      if (mounted) setState(_loadTasks);
+      return;
+    }
+    await _applyReschedule(task, picked);
+  }
+
+  /// Ghi lịch mới — cập nhật chính task này, **không tạo bản sao** (FE-2.4).
+  Future<void> _applyReschedule(TodayTask task, DateTime date) async {
+    // G3-B: dời lịch là thao tác duyệt chọn → rung “tick” nhẹ, KHÔNG rung như
+    // khi hoàn thành hay xoá (người dùng chưa mất dữ liệu).
+    FeedbackService.selection();
+    final result = await TaskRepository.instance.rescheduleTask(task.id, date);
+    if (!mounted) return;
+    if (result.failed) {
+      _toast(result.error ?? 'Không dời lịch được', kind: SnackKind.error);
+      return;
+    }
+    setState(_loadTasks);
+    final moved = result.task ?? task;
+    _toast('Đã dời "${task.title}" sang ngày mới', kind: SnackKind.moved);
+    // Đặc tả 5.5: dời nhiều lần thì gợi ý thu nhỏ — đề nghị chứ không tự
+    // sửa. AI must suggest, not silently modify.
+    if (moved.rescheduleCount >= 3) {
+      await _offerShrinkTask(moved);
+    }
+  }
+
+  /// Hộp thoại sau lần dời thứ 3: giảm thời lượng / chia nhỏ / giữ nguyên.
+  ///
+  /// Không có lựa chọn nào được chọn sẵn và hành động nào cũng phải bấm mới
+  /// chạy — người học hoàn toàn quyết định.
+  Future<void> _offerShrinkTask(TodayTask task) async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.border, width: 2),
         ),
-      );
-      if (proceed != true) return; // user chọn giữ nguyên — không đếm dời.
+        title: const Text('Bài này có vẻ hơi lớn',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(
+          'Bạn đã dời "${task.title}" ${task.rescheduleCount} lần. '
+          'Có thể giảm thời lượng hoặc chia nhỏ nhiệm vụ không?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'shrink'),
+            child: const Text('Giảm thời lượng'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'split'),
+            child: const Text('Chia nhỏ'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Giữ nguyên',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || choice == null) return;
+
+    if (choice == 'split') {
+      await _splitTask(TaskRepository.instance.getTaskById(task.id) ?? task);
+      return;
     }
 
-    if (!mounted) return;
-    final now = DateTime.now();
-    final selected = await showDatePicker(
-      context: context,
-      initialDate:
-          task.scheduledAt?.isAfter(now) == true ? task.scheduledAt! : now,
-      firstDate: DateTime(now.year, now.month, now.day),
-      lastDate: DateTime(now.year + 10),
-      helpText: 'Chọn ngày làm nhiệm vụ',
-    );
-    if (selected == null || !mounted) return;
-    task.scheduledAt = selected;
-    task.status = 'todo';
-    task.skipReason = null;
-    task.rescheduleCount++;
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
+    // Giữ nguyên thứ tự ưu tiên: chia nhỏ giữ được nội dung, giảm thời lượng
+    // chỉ khi bài đã ngắn mà vẫn quá tải.
+    final current = TaskRepository.instance.getTaskById(task.id) ?? task;
+    final minutes = (current.estimateMinutes / 2).round().clamp(10, 240);
+    current.estimateMinutes = minutes;
+    final updated = await TaskRepository.instance.updateTask(current);
+    if (!mounted || updated.failed) {
+      _toast(updated.error ?? 'Không đổi được thời lượng',
+          kind: SnackKind.error);
+      return;
+    }
     setState(_loadTasks);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Đã dời "${task.title}" sang ngày mới')),
+    _toast('Đã giảm còn $minutes phút', kind: SnackKind.success);
+  }
+
+  /// Gợi ý AI chia nhỏ bài học (FE-2.4 / AI-2.1) — có nguồn hiển thị, không
+  /// tự tạo task rác (§10).
+  void _askAiToSplit(TodayTask task) {
+    final prompt = 'Bài học "${task.title}" môn ${task.subject} tôi đã dời '
+        '${task.rescheduleCount} lần. Gợi ý chia thành các phần nhỏ hơn '
+        'mỗi phần khoảng 25 phút, mỗi phần nêu rõ nội dung cụ thể.';
+    widget.onOpenAiCoachWith?.call(prompt);
+  }
+
+  /// Chia nhỏ nhiệm vụ dài thành các phần 25–30 phút (FE-2.1/FE-2.2).
+  ///
+  /// Xem trước → xác nhận → ghi qua repository, rồi **luôn** kèm Hoàn tác.
+  Future<void> _splitTask(TodayTask task) async {
+    if (!mounted) return;
+    final parts = await SplitTaskDialog.show(context, task: task);
+    if (parts == null || !mounted) return;
+
+    final split =
+        await TaskRepository.instance.splitTask(task.id, parts: parts);
+    if (!mounted) return;
+    if (split.failed) {
+      _toast(split.error ?? 'Không chia nhỏ được nhiệm vụ',
+          kind: SnackKind.error);
+      return;
+    }
+    setState(_loadTasks);
+    _toast(
+      'Đã chia "${task.title}" thành ${split.parts.length} phần',
+      kind: SnackKind.success,
+      undo: () => TaskRepository.instance.undoSplit(split),
     );
   }
 
-  void _deleteTask(TodayTask task) {
-    StorageService.removeTodayTask(task.id);
-    setState(() {
-      _tasks.remove(task);
-      _allTasks.remove(task);
-    });
+  /// Xóa nhiệm vụ — **luôn xác nhận trước, luôn có Hoàn tác** (FE-2.5).
+  Future<void> _deleteTask(TodayTask task) async {
+    if (!mounted) return;
+    final confirmed = await showConfirmDelete(context, task);
+    if (confirmed != true || !mounted) return;
+    // G3-B: xoá là hành động không hoàn lại được trong mắt người dùng cho tới
+    // khi bấm “Hoàn tác” — rung NẶNG để họ biết mình vừa phá huỷ thứ gì đó.
+    FeedbackService.heavy();
+
+    try {
+      final ref = await TaskRepository.instance.deleteTask(task.id);
+      setState(_loadTasks);
+      _toast(
+        'Đã xóa "${task.title}"',
+        kind: SnackKind.destructive,
+        undo: () => TaskRepository.instance.restoreTask(ref),
+      );
+    } catch (e) {
+      _toast('Không xóa được nhiệm vụ', kind: SnackKind.error);
+    }
+  }
+
+  /// Mở form sửa nhiệm vụ (FE-2.3). `copyWith` giữ nguyên id/createdAt/lịch sử.
+  Future<void> _editTask(TodayTask task) async {
+    final result = await TaskEditSheet.show(context, initialTask: task);
+    if (result == null || !mounted) return;
+    if (result.isNew) {
+      await TaskRepository.instance.createTask(result.task);
+    } else {
+      await TaskRepository.instance.updateTask(result.task);
+    }
+    if (!mounted) return;
+    setState(_loadTasks);
+    _toast(result.isNew ? 'Đã tạo nhiệm vụ' : 'Đã lưu thay đổi',
+        kind: SnackKind.success);
+  }
+
+  /// Mở màn chi tiết nhiệm vụ (FE-2.2) — mọi hành động bên trong đều ghi qua
+  /// repository, không có đường ghi tắt.
+  Future<void> _openTaskDetail(TodayTask task) async {
+    await TaskDetailSheet.show(
+      context,
+      task: task,
+      onTaskUpdated: _toggleTask,
+      onStartStudy: _startStudyForTask,
+      onEdit: _editTask,
+      onReschedule: _rescheduleTask,
+      onDelete: _deleteTask,
+      onSplit: _splitTask,
+      onAskAi: (t) => _askAiAbout(t),
+      onSplitWithAi: _askAiToSplit,
+    );
+    if (mounted) setState(_loadTasks);
+  }
+
+  void _askAiAbout(TodayTask task) {
+    widget.onOpenAiCoachWith?.call(
+      'Cho tôi xin tài liệu tham khảo và hướng dẫn học bài "${task.title}" '
+      'môn ${AppSubjects.displayName(task.subject)}'
+      '${task.topic == null ? '' : ', chủ đề ${task.topic}'}.',
+    );
+  }
+
+  /// SnackBar thống nhất, hỗ trợ nút Hoàn tác (đặc tả FE-2.5).
+  ///
+  /// G3-A: `kind` quyết định icon + màu nền để phản hồi mang ngữ nghĩa —
+  /// chỉ đọc màu cũng không đủ, nên luôn kèm ICON.
+  void _toast(String message,
+      {Future<void> Function()? undo, SnackKind kind = SnackKind.info}) {
+    _showSnack(message, undo: undo, kind: kind);
+  }
+
+  /// SnackBar có hành động chính (ví dụ "Bắt đầu ngay" sau khi tạo nhiệm vụ).
+  ///
+  /// `SnackBar` chỉ cho một `action`, nên khi có hành động chính thì thao tác
+  /// hoàn tác được bỏ qua — thao tác chính quan trọng hơn vào lúc này.
+  void _showSnack(
+    String message, {
+    Future<void> Function()? undo,
+    String? primaryLabel,
+    VoidCallback? onPrimary,
+    SnackKind kind = SnackKind.info,
+  }) {
+    if (!mounted) return;
+    final hasPrimary = primaryLabel != null && onPrimary != null;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: kind.background,
+          content: _SnackMessage(message: message, kind: kind),
+          duration: Duration(seconds: (undo == null && !hasPrimary) ? 3 : 6),
+          behavior: SnackBarBehavior.floating,
+          action: hasPrimary
+              ? SnackBarAction(
+                  label: primaryLabel,
+                  textColor: kind.onBackground,
+                  onPressed: () {
+                    onPrimary();
+                  },
+                )
+              : (undo == null
+                  ? null
+                  : SnackBarAction(
+                      label: 'Hoàn tác',
+                      textColor: kind.onBackground,
+                      onPressed: () async {
+                        await undo();
+                        if (mounted) setState(_loadTasks);
+                      },
+                    )),
+        ),
+      );
   }
 
   /// MainShell đọc lại streak sau khi task thay đổi để header cập nhật 🔥.
@@ -599,6 +728,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _timer?.cancel();
     _remainingNotifier.dispose();
+    TaskRepository.instance.revision.removeListener(_onTasksChanged);
+    StudySessionRepository.instance.revision.removeListener(_onSessionsChanged);
     super.dispose();
   }
 
@@ -612,49 +743,60 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header 1 hàng (~48px): lời chào không được đẩy nhiệm vụ xuống fold.
           HomeHeader(
             userName: userName,
             streak: widget.streak,
             mascotVisible: StorageService.getBool('mascot_enabled') ?? true,
           ),
-          const SizedBox(height: 16),
-          HeroCountdownCard(
+          const SizedBox(height: 12),
+          DailySummaryCard(
+            summary: TodayService.getDailySummary(),
             primaryExam: widget.primaryExam,
-            onTap: widget.onExamTap,
-            remainingListenable: _remainingNotifier,
+            onExamTap: widget.onExamTap,
           ),
-          if (widget.primaryExam != null) ...[
-            const SizedBox(height: 14),
-            _GoalProgressCard(
-              exam: widget.primaryExam!,
-              tasks: _allTasks
-                  .where((task) => task.goalId == widget.primaryExam!.id)
-                  .toList(),
+          const SizedBox(height: 14),
+          // **Nhiệm vụ hôm nay lên ngay** — nguyên tắc "Mở app là biết mình
+          // phải làm gì": thứ người học cần thấy đầu tiên là việc cần làm,
+          // không phải nhận định AI hay công cụ.
+          if (_isLoadingTasks)
+            const SkeletonTaskList()
+          else
+            TodayMissionCard(
+              tasks: _tasks,
+              onAddTask: _showAddTaskDialog,
+              onToggle: _toggleTask,
+              onDelete: _deleteTask,
+              onSkip: _showSkipSheet,
+              onReschedule: _rescheduleTask,
+              onSplit: _splitTask,
+              onAddSample: _showSampleTasksSheet,
+              onOpenAiPlan: _openAiPlanScreen,
+              onQuickAdd: _showQuickAddSheet,
+              onSuggestOrder: _applySuggestedOrder,
+              onStartStudy: _startStudyForTask,
+              onEdit: _editTask,
+              onOpenDetail: _openTaskDetail,
             ),
-          ],
           const SizedBox(height: 14),
-          // Chỉ số sẵn sàng thi + bản tin AI hằng ngày (AI là trung tâm)
-          AiReadinessCard(),
+          // Nhận định tiến độ tuần (AI-5.1): số liệu thật, offline-safe.
+          // Đặt SAU nhiệm vụ — nó là thông tin bổ sung, không phải việc cần làm.
+          ProgressInsightCard(
+            onOpenProgress: widget.onOpenProgress,
+            onAskAi: widget.onOpenAiCoachWith,
+          ),
           const SizedBox(height: 14),
-          // Trợ lý học tập EduPulse Copilot (Contextual & Actionable AI)
-          AiCopilotHubCard(
+          // Gộp 3 block AI cũ (Copilot hub / Quick action / Readiness) thành
+          // **một** hàng hành động: 3 card AI riêng biệt cạnh tranh chỗ dưới
+          // fold và làm loãng điểm nhấn (U-03).
+          AiActionsRow(
+            onOpenStudy: widget.onOpenStudy,
             onOpenAiChat: widget.onOpenAiCoach,
             onOpenAiChatWith: widget.onOpenAiCoachWith,
+            onOpenAiPlan: _openAiPlanScreen,
+            onOpenCalendar: widget.onOpenCalendar,
             onTasksChanged: _loadTasks,
             onStreakChanged: _notifyStreakChanged,
-          ),
-          const SizedBox(height: 14),
-          // Exam Mode (đặc tả mục 39–40): revision ≤7 ngày, exam day và post-exam.
-          ..._examModeWidgets(),
-          QuickActionCard(
-            onOpenStudy: widget.onOpenStudy,
-            onOpenAiCoach: widget.onOpenAiCoach,
-            onOpenAiPlan: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AiPlanScreen()),
-              );
-            },
-            onOpenCalendar: widget.onOpenCalendar,
             onOpenFlashcards: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -664,19 +806,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           const SizedBox(height: 14),
-          _buildDayBalanceBanner(),
+          // Exam Mode (đặc tả mục 39–40): revision ≤7 ngày, exam day và post-exam.
+          ..._examModeWidgets(),
           const SizedBox(height: 14),
-          TodayMissionCard(
-            tasks: _tasks,
-            onAddTask: _showAddTaskDialog,
-            onToggle: _toggleTask,
-            onDelete: _deleteTask,
-            onSkip: _showSkipSheet,
-            onReschedule: _rescheduleTask,
-            onAddSample: _showSampleTasksSheet,
-            onQuickAdd: _showQuickAddSheet,
-            onSuggestOrder: _applySuggestedOrder,
-          ),
+          _buildDayBalanceBanner(),
         ],
       ),
     );
@@ -718,6 +851,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Quick Add bằng ngôn ngữ tự nhiên (đặc tả mục 25): parse offline →
   /// preview → user xác nhận. Không tự thêm task khi chưa confirm.
+  /// Mở màn "Lộ trình AI" — nhánh "AI lập kế hoạch" của empty state (đặc tả 11).
+  void _openAiPlanScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AiPlanScreen()),
+    );
+  }
+
   void _showQuickAddSheet() {
     final controller = TextEditingController();
     showAppBottomSheet<void>(
@@ -881,7 +1021,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: added
                     ? null
                     : () {
-                        _addTask(t.title, t.subject, t.priority, t.minutes);
+                        _addTask(t.title, t.subject, t.priority, t.minutes,
+                            announce: false);
                         Navigator.pop(ctx);
                       },
                 child: Container(
@@ -1384,21 +1525,12 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
   final _topicCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   final _subtasksCtrl = TextEditingController();
-  String _subject = '📐 Toán';
+  String _subject = AppSubjects.toan.name;
   String _priority = 'medium';
   int _minutes = 45;
   DateTime? _deadline;
   String? _goalId;
   String? _recurrence;
-  final _subjects = [
-    '📐 Toán',
-    '⚡ Lý',
-    '🧪 Hóa',
-    '📖 Văn',
-    '🇬🇧 Anh',
-    '🧬 Sinh',
-    '💡 Khác'
-  ];
   final _durations = [15, 30, 45, 60, 90];
   final Map<String, String> _priorities = const {
     'high': '🔥 Quan trọng',
@@ -1424,7 +1556,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
   void _submit() {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
-      HapticFeedback.vibrate();
+      FeedbackService.vibrate();
       return;
     }
     widget.onAdd(
@@ -1493,23 +1625,24 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: _subjects.map((sub) {
-                final sel = _subject == sub;
+              children: AppSubjects.all.map((subject) {
+                final sel = _subject == subject.name;
+                final color = subject.color;
                 return GestureDetector(
-                  onTap: () => setState(() => _subject = sub),
+                  onTap: () => setState(() => _subject = subject.name),
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: sel ? AppColors.primary : AppColors.bgPage,
+                      color: sel ? color : AppColors.bgPage,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: sel ? AppColors.primary : AppColors.border,
+                        color: sel ? color : AppColors.border,
                         width: 2,
                       ),
                     ),
                     child: Text(
-                      sub,
+                      subject.plainName,
                       style: TextStyle(
                         fontSize: 12,
                         color: sel ? Colors.white : AppColors.textPrimary,

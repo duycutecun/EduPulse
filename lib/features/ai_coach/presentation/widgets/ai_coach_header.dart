@@ -4,6 +4,11 @@ import '../../../../core/constants/app_colors.dart';
 
 class AICoachHeader extends StatelessWidget {
   final AIModel model;
+
+  /// Học sinh đã ghim model ở Tôi → Cài đặt → AI nâng cao hay chưa.
+  final bool pinned;
+
+  /// Bấm chip AI → giải thích nơi đổi model (không mở picker tại màn chat).
   final VoidCallback onModelTap;
   final VoidCallback onRefresh;
   final VoidCallback onAnalyze;
@@ -14,6 +19,7 @@ class AICoachHeader extends StatelessWidget {
   const AICoachHeader({
     super.key,
     required this.model,
+    required this.pinned,
     required this.onModelTap,
     required this.onRefresh,
     required this.onAnalyze,
@@ -53,11 +59,19 @@ class AICoachHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // Wrap thay vì Row: tiêu đề + 2 chip model/Web xuống dòng khi
+                // màn hẹp (320px) thay vì tràn ngang.
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text('AI Coach',
                         style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                    const SizedBox(width: 8),
+                    // UX 5.11: "Normal users should not need to understand…
+                    // model names, provider details." Nên header chỉ nói
+                    // "AI tự động" / "AI đã ghim", KHÔNG lộ tên model/nhà
+                    // cung cấp. Đổi model nằm ở Tôi → Cài đặt → AI nâng cao.
                     GestureDetector(
                       onTap: onModelTap,
                       child: Container(
@@ -70,15 +84,14 @@ class AICoachHeader extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(aiModelIcon(model.slug), size: 11, color: AppColors.primary),
+                            const Icon(Icons.auto_awesome_rounded, size: 11, color: AppColors.primary),
                             const SizedBox(width: 4),
-                            Text(model.label.split(' ').first,
+                            Text(pinned ? 'AI đã ghim' : 'AI tự động',
                                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary)),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
@@ -99,10 +112,12 @@ class AICoachHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  model.label,
+                  pinned
+                      ? 'Bạn đã ghim model — bấm để đổi trong Cài đặt.'
+                      : 'EduPulse tự chọn model phù hợp câu hỏi.',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
             ),

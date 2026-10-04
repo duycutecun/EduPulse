@@ -40,7 +40,9 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
           color: AppColors.cardWhite,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: phase == ExamPhase.examDay ? AppColors.orange : AppColors.border,
+            color: phase == ExamPhase.examDay
+                ? AppColors.orange
+                : AppColors.border,
             width: phase == ExamPhase.examDay ? 2 : 1,
           ),
           boxShadow: [
@@ -77,8 +79,8 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                 ),
                 if (primaryExam != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: urgencyColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
@@ -137,7 +139,8 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: AppColors.orangeLight,
                     borderRadius: BorderRadius.circular(10),
@@ -157,7 +160,8 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: AppColors.blueLight,
                     borderRadius: BorderRadius.circular(10),

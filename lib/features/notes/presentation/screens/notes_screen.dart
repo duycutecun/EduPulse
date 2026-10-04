@@ -14,6 +14,7 @@ import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/note_markdown.dart';
+import '../../../../shared/widgets/state_views.dart';
 import '../../../study/domain/models/study_models.dart';
 
 /// Simple, offline-first notes with search and tags. The editor deliberately
@@ -72,8 +73,9 @@ class _NotesScreenState extends State<NotesScreen> {
   void _save(StudyNote note) {
     StorageService.setStudyNoteJson(note.id, note.toJsonString());
     final ids = StorageService.getStudyNoteIds();
-    if (!ids.contains(note.id))
+    if (!ids.contains(note.id)) {
       StorageService.setStudyNoteIds([...ids, note.id]);
+    }
     AiRefreshService.notifyDataChanged();
     setState(_load);
   }
@@ -126,7 +128,7 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
           Expanded(
             child: _filtered.isEmpty
-                ? const _NotesEmpty()
+                ? _NotesEmpty(onCreate: () => _openEditor())
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                     itemCount: _filtered.length,
@@ -283,21 +285,17 @@ class NoteEditor {
 }
 
 class _NotesEmpty extends StatelessWidget {
-  const _NotesEmpty();
+  final VoidCallback? onCreate;
+  const _NotesEmpty({this.onCreate});
+
   @override
-  Widget build(BuildContext context) => const Center(
-      child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.sticky_note_2_outlined,
-                size: 44, color: AppColors.textMuted),
-            SizedBox(height: 10),
-            Text('Chưa có ghi chú',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            SizedBox(height: 5),
-            Text('Lưu công thức, lỗi sai và ý tưởng để ôn lại sau.',
-                textAlign: TextAlign.center)
-          ])));
+  Widget build(BuildContext context) => EmptyStateView(
+        icon: Icons.sticky_note_2_outlined,
+        title: 'Chưa có ghi chú',
+        description: 'Lưu công thức, lỗi sai và ý tưởng để ôn lại sau.',
+        actionLabel: 'Tạo ghi chú',
+        onAction: onCreate,
+      );
 }
 
 class _NoteEditor extends StatefulWidget {

@@ -56,7 +56,8 @@ void main() {
 
   Finder navIcon(IconData icon) => find.byIcon(icon);
 
-  testWidgets('Điều hướng 3 tab (Học, AI, Tôi)', (WidgetTester tester) async {
+  testWidgets('Điều hướng 4 tab (Hôm nay, Tiến độ, AI, Tôi)',
+      (WidgetTester tester) async {
     // Viewport mobile logic 390x844 — không đụng desktop breakpoint 1024.
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -70,16 +71,20 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 200));
 
-    // 1. Home (Học) — active mặc định
+    // 1. Tab Hôm nay — active mặc định
     expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
     expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
 
-    // 2. Tab Tập trung (Pomodoro / Nhật ký học)
-    await tester.tap(find.text('Tập trung').last);
+    // 2. Tab Tiến độ (Tổng quan tiến độ tuần + theo môn)
+    await tester.tap(find.text('Tiến độ').last);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Pomodoro'), findsOneWidget);
+    expect(find.text('Tiến độ học tập'), findsOneWidget);
 
-    // 3. Tôi (Account)
+    // 3. Tab AI Copilot
+    await tester.tap(find.text('AI').last);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 4. Tab Tôi (Account)
     await tester.tap(find.text('Tôi'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sĩ tử 2k9'), findsOneWidget);
@@ -1355,6 +1360,7 @@ void main() {
         (WidgetTester tester) async {
       var addTapped = false;
       var sampleTapped = false;
+      var planTapped = false;
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
@@ -1366,20 +1372,26 @@ void main() {
               onSkip: noopTask,
               onReschedule: noopTask,
               onAddSample: () => sampleTapped = true,
+              onOpenAiPlan: () => planTapped = true,
             ),
           ),
         ),
       ));
       await tester.pump();
 
-      // Copy đúng đặc tả mục 33 — Empty Task.
-      expect(find.text('Hôm nay chưa có kế hoạch.'), findsOneWidget);
-      expect(find.text('Tạo kế hoạch'), findsOneWidget);
-      expect(find.text('Gợi ý sẵn'), findsOneWidget);
+      // Copy đúng đặc tả UX mục 11 "No tasks".
+      expect(find.text('Hôm nay chưa có nhiệm vụ.'), findsOneWidget);
+      expect(find.text('Tạo kế hoạch để biết mình nên học gì.'),
+          findsOneWidget);
+      expect(find.text('+ Thêm nhiệm vụ'), findsOneWidget);
+      expect(find.text('AI lập kế hoạch'), findsOneWidget);
+      expect(find.text('Gợi ý sẵn từ kỳ thi mục tiêu'), findsOneWidget);
 
-      await tester.tap(find.text('Tạo kế hoạch'));
+      await tester.tap(find.text('+ Thêm nhiệm vụ'));
       expect(addTapped, isTrue);
-      await tester.tap(find.text('Gợi ý sẵn'));
+      await tester.tap(find.text('AI lập kế hoạch'));
+      expect(planTapped, isTrue);
+      await tester.tap(find.text('Gợi ý sẵn từ kỳ thi mục tiêu'));
       expect(sampleTapped, isTrue);
     });
 
@@ -1407,6 +1419,7 @@ void main() {
         (WidgetTester tester) async {
       final t = TodayTask(id: 'a11y', title: 'Hàm số', subject: '📐 Toán');
       var toggled = false;
+      var detailOpened = false;
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
@@ -1417,45 +1430,101 @@ void main() {
               onDelete: noopTask,
               onSkip: noopTask,
               onReschedule: noopTask,
+              onOpenDetail: (_) => detailOpened = true,
             ),
           ),
         ),
       ));
       await tester.pump();
 
-      // Screen-reader đọc được nhãn mô tả trạng thái + hành động.
+      // Screen-reader đọc được nhãn mô tả trạng thái + hành động. Nhãn mới tách
+      // rõ "chạm để mở chi tiết" (hàng) và "đánh dấu hoàn thành" (nút tròn), vì
+      // bản v1 gộp chung khiến người dùng không biết chạm đâu để đánh dấu.
+      // Nhãn hàng bị framework gộp thêm text con nên so khớp bằng RegExp.
+      final rowLabel = RegExp(
+          r'^Nhiệm vụ Hàm số, môn Toán, chưa hoàn thành\. Chạm để mở chi tiết\.');
+      expect(find.bySemanticsLabel(rowLabel), findsOneWidget);
       expect(
-        find.bySemanticsLabel(
-            'Nhiệm vụ Hàm số, 📐 Toán, chưa hoàn thành — chạm để đánh dấu hoàn thành'),
+        find.bySemanticsLabel('Đánh dấu hoàn thành'),
         findsOneWidget,
+        reason: 'nút tròn phải tự mô tả hành động của nó',
       );
 
-      // Tap qua semantics vẫn kích hoạt toggle.
-      final semantics = tester.getRect(
-          find.bySemanticsLabel(
-              'Nhiệm vụ Hàm số, 📐 Toán, chưa hoàn thành — chạm để đánh dấu hoàn thành'));
-      await tester.tapAt(semantics.center);
+      // Tap qua semantics trên hàng mở chi tiết.
+      final row = tester.getRect(find.bySemanticsLabel(rowLabel));
+      await tester.tapAt(row.center);
+      await tester.pump();
+      expect(detailOpened, isTrue);
+
+      // Tap nút tròn vẫn đánh dấu hoàn thành.
+      final check = tester.getRect(find.bySemanticsLabel('Đánh dấu hoàn thành'));
+      await tester.tapAt(check.center);
       await tester.pump();
       expect(toggled, isTrue);
     });
 
-    testWidgets('Empty AI: gợi ý prompt chạm để điền vào ô nhập',
+    testWidgets('Task đã hoàn thành: nhãn semantics đổi trạng thái',
         (WidgetTester tester) async {
+      final t = TodayTask(
+        id: 'a11y-done',
+        title: 'Hàm số',
+        subject: '📐 Toán',
+        isDone: true,
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: TodayMissionCard(
+              tasks: [t],
+              onAddTask: noop,
+              onToggle: noopTask,
+              onDelete: noopTask,
+              onSkip: noopTask,
+              onReschedule: noopTask,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      expect(
+        find.bySemanticsLabel(RegExp(
+            r'^Nhiệm vụ Hàm số, môn Toán, đã hoàn thành\. Chạm để đánh dấu hoàn thành\.')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Bỏ đánh dấu hoàn thành'), findsOneWidget);
+    });
+
+    testWidgets('Empty AI: gợi ý prompt ĐỘNG chạm để điền vào ô nhập',
+        (WidgetTester tester) async {
+      // G2-C: chip gợi ý không còn là chuỗi tĩnh mà dựng từ dữ liệu thật —
+      // nên test phải gieo dữ liệu thật rồi khẳng định đúng nội dung suy ra.
       // Chat history trống → màn AI ở trạng thái intro (mục 33 — Empty AI).
       StorageService.setString('ai_chat_history_v1', '');
+      StorageService.setPrimaryExamId('e-dyn');
+      StorageService.setExamJson(
+        'e-dyn',
+        ExamModel(id: 'e-dyn', name: 'Kỳ thi Đại học', dateTime: DateTime.now().add(const Duration(days: 30))).toJsonString(),
+      );
+
       await tester.pumpWidget(const MaterialApp(
         home: Scaffold(body: AiCoachScreen()),
       ));
       await tester.pump(const Duration(milliseconds: 300));
 
-      // Gợi ý prompt hiển thị dạng chip.
-      expect(find.text('Lập kế hoạch 3 ngày trước thi'), findsOneWidget);
+      // Gợi ý hiển thị dạng chip, lấy đúng TÊN kỳ thi đang lưu.
+      const prompt = 'Lập kế hoạch ôn thi Kỳ thi Đại học';
+      expect(find.text(prompt), findsOneWidget);
+
+      // Luôn có chip dự phòng kể cả khi chưa có kỳ thi / nhiệm vụ nào.
+      expect(find.text('Kiểm tra lần này sai ở đâu?'), findsOneWidget);
 
       // Chạm chip → prompt được điền vào ô nhập, KHÔNG tự gửi (mục 10.4).
-      await tester.tap(find.text('Lập kế hoạch 3 ngày trước thi'));
+      await tester.tap(find.text(prompt));
       await tester.pump();
-      expect(find.widgetWithText(TextField, 'Lập kế hoạch 3 ngày trước thi'),
-          findsOneWidget);
+      expect(find.widgetWithText(TextField, prompt), findsOneWidget);
+
+      StorageService.removeString('primary_exam_id');
     });
   });
 
@@ -1901,9 +1970,9 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 300));
 
-    // Mở tab Tôi qua shortcut Ctrl+3.
+    // Mở tab Tôi qua shortcut Ctrl+4.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-    await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Cỡ chữ'), findsOneWidget);
@@ -1915,12 +1984,12 @@ void main() {
     expect(AppearanceService.fontScaleKey, 'large');
     expect(StorageService.getString('appearance_font_scale'), 'large');
 
-    // Ctrl+2 sang tab Tập trung vẫn hoạt động với font lớn (không overflow).
+    // Ctrl+3 sang tab Tiến độ vẫn hoạt động với font lớn (không overflow).
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-    await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Pomodoro'), findsOneWidget);
+    expect(find.text('Tiến độ học tập'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // Reset về vừa.
@@ -1928,7 +1997,7 @@ void main() {
     expect(AppearanceService.fontScale.value, 1.0);
   });
 
-  testWidgets('iPhone 390x844: 3 tab + trang Mục tiêu/Tập trung không tràn layout',
+  testWidgets('iPhone 390x844: 4 tab + trang Mục tiêu/Tập trung không tràn layout',
       (WidgetTester tester) async {
     // Logical 390x844 = iPhone 14/15 (physical 1170x2532 @3x).
     tester.view.physicalSize = const Size(1170, 2532);
@@ -1948,10 +2017,10 @@ void main() {
     expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
     expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
 
-    // Tab Tập trung.
-    await tester.tap(find.text('Tập trung').last);
+    // Tab Tiến độ.
+    await tester.tap(find.text('Tiến độ').last);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Pomodoro'), findsOneWidget);
+    expect(find.text('Tiến độ học tập'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // Tab Tôi.
@@ -1961,7 +2030,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     // Về Home, mở trang Mục tiêu qua thẻ đếm ngược.
-    await tester.tap(find.text('Học'));
+    await tester.tap(find.text('Hôm nay'));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Chưa chọn kỳ thi mục tiêu'));
     await tester.pumpAndSettle();

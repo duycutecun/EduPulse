@@ -109,6 +109,7 @@ class StorageService {
 
   static String? getString(String key) => _prefs?.getString(key);
   static void setString(String key, String v) => _prefs?.setString(key, v);
+  static void removeString(String key) => _prefs?.remove(key);
 
   static bool? getBool(String key) => _prefs?.getBool(key);
   static void setBool(String key, bool v) => _prefs?.setBool(key, v);
@@ -198,6 +199,31 @@ class StorageService {
       _prefs?.getString('study_session_$id');
   static void setStudySessionJson(String id, String json) =>
       _prefs?.setString('study_session_$id', json);
+  static void removeStudySession(String id) {
+    _prefs?.remove('study_session_$id');
+    final ids = getStudySessionIds()..remove(id);
+    setStudySessionIds(ids);
+  }
+
+  // Tài liệu đính kèm của nhiệm vụ (FE-2.2).
+  //
+  // Cố ý KHÔNG nhét base64 vào JSON của task: mỗi lần tick hoàn thành hay
+  // đổi tiêu đề sẽ ghi lại cả ảnh, prefs phình to và ghi đè là chậm. Mỗi
+  // tệp nằm ở khoá riêng nên đổi thông tin task không đụng tới ảnh.
+  static List<String> getTaskAttachmentIds(String taskId) =>
+      _prefs?.getStringList('task_attachments_$taskId') ?? [];
+  static void setTaskAttachmentIds(String taskId, List<String> ids) =>
+      _prefs?.setStringList('task_attachments_$taskId', ids);
+  static String? getTaskAttachmentJson(String taskId, String attachmentId) =>
+      _prefs?.getString('task_attachment_${taskId}_$attachmentId');
+  static void setTaskAttachmentJson(
+          String taskId, String attachmentId, String json) =>
+      _prefs?.setString('task_attachment_${taskId}_$attachmentId', json);
+  static void removeTaskAttachment(String taskId, String attachmentId) {
+    _prefs?.remove('task_attachment_${taskId}_$attachmentId');
+    final ids = getTaskAttachmentIds(taskId)..remove(attachmentId);
+    setTaskAttachmentIds(taskId, ids);
+  }
 
   // Profile
   static String getUserName() =>

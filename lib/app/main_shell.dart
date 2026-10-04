@@ -1,28 +1,35 @@
 import 'dart:async';
+import '../../../../core/utils/feedback_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../core/constants/app_colors.dart';
-import '../core/ai/ai_refresh_service.dart';
 import '../core/migration/data_migration.dart';
 import '../core/pwa/pwa_service.dart';
 import '../core/sync/sync_state.dart';
+import '../core/constants/app_colors.dart';
 import '../core/utils/storage_service.dart';
 import '../core/utils/supabase_service.dart';
 import '../features/home/presentation/screens/home_screen.dart';
+import '../features/exams/domain/exam_repository.dart';
 import '../features/exams/domain/models/exam_model.dart';
 import '../features/exams/presentation/screens/exams_page.dart';
 import '../features/ai_coach/presentation/screens/ai_coach_screen.dart';
-import '../features/study/presentation/screens/study_screen.dart';
+import '../features/progress/presentation/screens/progress_screen.dart';
 import '../features/study/presentation/screens/study_page.dart';
 import '../features/calendar/presentation/screens/calendar_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
 import '../features/notes/presentation/screens/notes_screen.dart';
 import 'desktop_sidebar.dart';
+import 'desktop_aux_column.dart';
 import 'tab_chrome.dart';
 
 class MainShellScreen extends StatefulWidget {
+  /// Nguồn thời gian dùng cho các màn học tập (Home → Tập trung, Tập trung từ
+  /// sidebar). Mặc định là đồng hồ thật; test E2E truyền đồng hồ giả.
+  final DateTime Function() clock;
+
   const MainShellScreen({
     super.key,
+    this.clock = DateTime.now,
   });
 
   @override
@@ -35,10 +42,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
   String? _primaryExamId;
   int _streak = 0;
 
-  // Lazy tab: các tab chỉ được tạo (chạy initState + build lần đầu) khi user
-  // mở lần đầu tiên, sau đó giữ nguyên trong IndexedStack. Tránh khởi động
-  // chậm vì phải dựng đồng thời cả 3 màn hình (AI chat, Bảng vàng...).
-  final List<bool> _visited = List.filled(3, false);
+  // Lazy tab: các tab chỉ được tạo khi user mở lần đầu tiên, sau đó giữ nguyên trong IndexedStack.
+  final List<bool> _visited = List.filled(4, false);
+  Widget? _cachedAi;
   Widget? _cachedStudy;
   Widget? _cachedAccount;
 
@@ -47,6 +53,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
   final _aiCoachKey = GlobalKey<AiCoachScreenState>();
 
   bool _sidebarCollapsed = SidebarPreference.isCollapsed;
+
+  /// Tablet (< desktop): sidebar rail thu gọn mặc định, nhưng vẫn cho phép mở
+  /// rộng — trạng thái này tách khỏi preference của desktop.
+  bool _tabletSidebarExpanded = false;
 
   @override
   void initState() {
@@ -65,6 +75,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ));
     });
     PwaService.onlineNotifier.addListener(_onNetworkChanged);
+    // Kỳ thi có thể đổi từ màn Tiến độ / onboarding — nghe repository để Home
+    // luôn thấy bản mới nhất thay vì giữ bản sao cũ trong state.
+    ExamRepository.instance.revision.addListener(_loadInitialData);
     SyncStateService.updateConnectivity(isOnline: PwaService.isOnline);
     // Keyboard navigation desktop (đặc tả mục 21): Ctrl+1/2/3 đổi tab,
     // Ctrl+B thu gọn/mở sidebar.
@@ -85,6 +98,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
     if (event.logicalKey == LogicalKeyboardKey.digit3) {
       _switchTab(2);
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.digit4) {
+      _switchTab(3);
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.keyB &&
@@ -109,113 +126,41 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   void dispose() {
     PwaService.onlineNotifier.removeListener(_onNetworkChanged);
+    ExamRepository.instance.revision.removeListener(_loadInitialData);
     ServicesBinding.instance.keyboard.removeHandler(_handleKey);
     super.dispose();
   }
 
   void _loadInitialData() {
-    final ids = StorageService.getExamIds();
-    if (ids.isEmpty) {
-      _exams = [];
-      _primaryExamId = null;
-    } else {
-      _exams = ids
-          .map((id) {
-            final json = StorageService.getExamJson(id);
-            if (json == null) return null;
-            return ExamModel.fromJsonString(json);
-          })
-          .whereType<ExamModel>()
-          .toList();
-      _primaryExamId = StorageService.getPrimaryExamId();
-    }
-
+    if (!mounted) return;
+    // Mọi đọc/ghi kỳ thi đi qua [ExamRepository] — một nguồn sự thật duy nhất.
+    _exams = ExamRepository.instance.getAll();
+    _primaryExamId = ExamRepository.instance.primaryExamId;
     _streak = StorageService.getStreak();
-
     setState(() {});
   }
 
   void _setPrimaryExam(ExamModel exam) {
-    StorageService.setPrimaryExamId(exam.id);
-    // Gợi ý AI cũ nói về kỳ thi cũ nên phải tính lại, nếu không thẻ ở Home
-    // sẽ tư vấn sai bối cảnh. Qua AiRefreshService để cả bản tin hằng ngày
-    // cũng được tính lại — một kỳ thi mục tiêu mới là một chu trình mới.
-    AiRefreshService.notifyDataChanged();
-    setState(() {
-      _primaryExamId = exam.id;
-    });
+    // Repository tự bắn revision → _loadInitialData đọc lại và vẽ.
+    ExamRepository.instance.setPrimary(exam.id);
   }
 
   void _addExam(ExamModel exam) {
-    StorageService.setExamJson(exam.id, exam.toJsonString());
-    AiRefreshService.notifyDataChanged();
-    final ids = StorageService.getExamIds();
-    if (!ids.contains(exam.id)) {
-      ids.add(exam.id);
-      StorageService.setExamIds(ids);
-    }
-    setState(() {
-      _exams.removeWhere((e) => e.id == exam.id);
-      _exams.add(exam);
-    });
+    ExamRepository.instance.save(exam);
   }
 
   void _deleteExam(String id) {
-    StorageService.removeExam(id);
-    setState(() {
-      _exams.removeWhere((e) => e.id == id);
-      if (_primaryExamId == id) {
-        _primaryExamId = _exams.isNotEmpty ? _exams.first.id : null;
-        if (_primaryExamId != null) {
-          StorageService.setPrimaryExamId(_primaryExamId!);
-        }
-      }
-    });
+    ExamRepository.instance.delete(id);
   }
 
   void _updateExam(ExamModel exam) {
-    StorageService.setExamJson(exam.id, exam.toJsonString());
-    setState(() {
-      final index = _exams.indexWhere((e) => e.id == exam.id);
-      if (index != -1) {
-        _exams[index] = exam;
-      }
-    });
+    ExamRepository.instance.save(exam);
   }
 
-  ExamModel? get _primaryExam {
-    try {
-      return _exams.firstWhere((e) => e.id == _primaryExamId);
-    } catch (_) {
-      return _exams.isNotEmpty ? _exams.first : null;
-    }
-  }
-
-  /// Kỳ thi chính theo đặc tả (mục 9.1, 40): khi kỳ thi đã qua, tự chuyển
-  /// sang kỳ thi sắp tới gần nhất (nếu có) và lưu lựa chọn mới.
-  ExamModel? get _effectivePrimaryExam {
-    final current = _primaryExam;
-    if (current != null && !current.isExamDayOver) return current;
-    if (current != null && current.isExamDayOver) {
-      // Tự chuyển primary exam + giữ kỳ thi cũ trong lịch sử.
-      final upcoming = _upcomingExams.where((e) => e.id != current.id).toList()
-        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-      if (upcoming.isNotEmpty) {
-        final next = upcoming.first;
-        StorageService.setPrimaryExamId(next.id);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _primaryExamId = next.id);
-        });
-      }
-      return current;
-    }
-    if (_exams.isNotEmpty) return _exams.first;
-    return null;
-  }
-
-  /// Các kỳ thi chưa qua (chưa kết thúc ngày thi).
-  List<ExamModel> get _upcomingExams =>
-      _exams.where((e) => !e.isExamDayOver).toList();
+  /// Kỳ thi chính theo đặc tả (mục 9.1, 40): ưu tiên kỳ thi đã ghim, tự chuyển
+  /// sang kỳ thi sắp tới gần nhất khi kỳ thi ghim đã qua. Logic nằm ở
+  /// [ExamRepository] để cả app dùng chung một quy tắc.
+  ExamModel? get _effectivePrimaryExam => ExamRepository.instance.primaryExam;
 
   /// Đọc lại streak từ storage (gọi khi task hoàn thành / Pomodoro xong).
   void _reloadStreak() {
@@ -227,38 +172,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _switchTab(int index) {
     if (_currentIndex != index) {
-      HapticFeedback.selectionClick();
+      FeedbackService.selection();
       setState(() {
         _currentIndex = index;
         _visited[index] = true;
       });
     }
-  }
-
-  /// Mở bảng Trợ lý AI Copilot tương tác thông minh.
-  void _openAiCopilotSheet([String? prompt]) {
-    HapticFeedback.selectionClick();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => DraggableScrollableSheet(
-        initialChildSize: 0.92,
-        minChildSize: 0.50,
-        maxChildSize: 0.96,
-        builder: (ctx, scrollController) => ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: Scaffold(
-            backgroundColor: AppColors.bgPage,
-            body: AiCoachScreen(
-              key: _aiCoachKey,
-              initialPrompt: prompt,
-              onClose: () => Navigator.pop(sheetContext),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   /// Mở "Mục tiêu" (kỳ thi) và "Tập trung" (Pomodoro/Nhật ký) dưới dạng
@@ -283,7 +202,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => StudyPage(onStreakChanged: _reloadStreak),
+        builder: (_) => StudyPage(
+          onStreakChanged: _reloadStreak,
+          onSessionCompleted: _reloadStreak,
+          clock: widget.clock,
+        ),
       ),
     );
   }
@@ -307,30 +230,48 @@ class _MainShellScreenState extends State<MainShellScreen> {
   Widget _tabAt(int index) {
     switch (index) {
       case 0:
-        // Tab mặc định — luôn tạo mới để nhận streak/exam cập nhật từ MainShell.
+        // Tab mặc định — Hôm nay
         return HomeScreen(
+          clock: widget.clock,
           primaryExam: _effectivePrimaryExam,
           exams: _exams,
           onExamTap: _openExamsPage,
           onOpenStudy: _openStudyPage,
-          onOpenAiCoach: () => _openAiCopilotSheet(),
-          onOpenAiCoachWith: _openAiCopilotSheet,
+          onOpenAiCoach: () => _switchTab(1),
+          onOpenAiCoachWith: (prompt) {
+            _switchTab(1);
+            _aiCoachKey.currentState?.sendPrompt(prompt);
+          },
           onOpenCalendar: _openCalendarPage,
+          onOpenProgress: () => _switchTab(2),
           streak: _streak,
           isActive: _currentIndex == 0,
           onStreakChanged: _reloadStreak,
         );
       case 1:
-        return StudyScreen(onStreakChanged: _reloadStreak);
+        // Tab 1: Trợ lý AI Copilot
+        return AiCoachScreen(key: _aiCoachKey);
       case 2:
+        // Tab 2: Tổng quan Tiến độ (FE-5.1/FE-5.2) — biểu đồ tuần, tiến độ
+        // theo môn, đếm ngược kỳ thi. Pomodoro/Nhật ký vẫn ở trang "Tập trung".
+        return ProgressScreen(
+            onOpenExams: _openExamsPage, onStartStudy: _openStudyPage);
+      case 3:
+        // Tab 3: Tài khoản & cài đặt cá nhân
         return AccountScreen(onDataChanged: _loadInitialData);
       default:
         return const SizedBox.shrink();
     }
   }
 
-  /// Mục phụ trên sidebar desktop (đặc tả mục 52): Calendar, Goals, Focus,
-  /// Notes + Trợ lý AI Copilot.
+  static const List<NavItem> _primaryNavItems = [
+    NavItem(Icons.today_outlined, Icons.today_rounded, 'Hôm nay'),
+    NavItem(Icons.auto_awesome_outlined, Icons.auto_awesome_rounded, 'AI'),
+    NavItem(Icons.trending_up_rounded, Icons.insights_rounded, 'Tiến độ'),
+    NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
+  ];
+
+  /// Mục phụ trên sidebar desktop: Calendar, Goals, Focus, Notes.
   List<DesktopNavAction> _desktopSecondaryActions() => [
         DesktopNavAction(
           icon: Icons.calendar_month_outlined,
@@ -345,39 +286,44 @@ class _MainShellScreenState extends State<MainShellScreen> {
         DesktopNavAction(
           icon: Icons.timer_outlined,
           label: 'Focus',
-          onOpen: () => _switchTab(1),
+          onOpen: _openStudyPage,
         ),
         DesktopNavAction(
           icon: Icons.sticky_note_2_outlined,
           label: 'Notes',
           onOpen: _openNotesPage,
         ),
-        DesktopNavAction(
-          icon: Icons.auto_awesome_rounded,
-          label: 'AI Coach',
-          onOpen: () => _openAiCopilotSheet(),
-        ),
       ];
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = isDesktopWidth(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= kDesktopBreakpoint;
+    final isWide = width >= kTabletBreakpoint;
+    final tabChildren = [
+      _tabAt(0),
+      _visited[1]
+          ? (_cachedAi ??= AiCoachScreen(key: _aiCoachKey))
+          : const SizedBox.shrink(),
+      _visited[2]
+          ? (_cachedStudy ??= ProgressScreen(
+              onOpenExams: _openExamsPage, onStartStudy: _openStudyPage))
+          : const SizedBox.shrink(),
+      _visited[3]
+          ? (_cachedAccount ??= AccountScreen(onDataChanged: _loadInitialData))
+          : const SizedBox.shrink(),
+    ];
+
     final content = IndexedStack(
       index: _currentIndex,
-      children: [
-        _tabAt(0),
-        _visited[1]
-            ? (_cachedStudy ??= StudyScreen(onStreakChanged: _reloadStreak))
-            : const SizedBox.shrink(),
-        _visited[2]
-            ? (_cachedAccount ??=
-                AccountScreen(onDataChanged: _loadInitialData))
-            : const SizedBox.shrink(),
-      ],
+      children: tabChildren,
     );
 
-    // Desktop (≥1024): sidebar trái + nội dung — cùng IA, khác layout.
-    if (isDesktop) {
+    // Tablet (≥768) + Desktop (≥1024): sidebar trái + nội dung — 4 tabs chính
+    // + mục phụ. Tablet dùng rail thu gọn để tận dụng chiều ngang thay vì
+    // phóng to giao diện điện thoại (FE-6.2).
+    if (isWide) {
+      final collapsed = isDesktop ? _sidebarCollapsed : !_tabletSidebarExpanded;
       return Scaffold(
         backgroundColor: AppColors.bgPage,
         body: Row(
@@ -385,19 +331,18 @@ class _MainShellScreenState extends State<MainShellScreen> {
           children: [
             DesktopSidebar(
               index: _currentIndex,
-              items: const [
-                NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
-                NavItem(Icons.timer_outlined, Icons.timer_rounded, 'Tập trung'),
-                NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
-              ],
-              // ignore: avoid_redundant_argument_values
+              items: _primaryNavItems,
               onChanged: _switchTab,
               secondaryItems: _desktopSecondaryActions(),
-              collapsed: _sidebarCollapsed,
+              collapsed: collapsed,
               onToggleCollapse: () {
                 setState(() {
-                  _sidebarCollapsed = !_sidebarCollapsed;
-                  SidebarPreference.setCollapsed(_sidebarCollapsed);
+                  if (isDesktop) {
+                    _sidebarCollapsed = !_sidebarCollapsed;
+                    SidebarPreference.setCollapsed(_sidebarCollapsed);
+                  } else {
+                    _tabletSidebarExpanded = !_tabletSidebarExpanded;
+                  }
                 });
               },
               userName: StorageService.getUserName(),
@@ -406,7 +351,39 @@ class _MainShellScreenState extends State<MainShellScreen> {
               child: Column(
                 children: [
                   const _OfflineBanner(),
-                  Expanded(child: content),
+                  // Desktop: giới hạn độ rộng nội dung cho dễ đọc, thay vì kéo
+                  // dài hết màn hình rộng (FE-6.3). Khi màn đủ rộng, chừa thêm
+                  // cột phụ để thông tin quan trọng luôn hiện, không phải cuộn
+                  // mới thấy.
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: isDesktop
+                              ? Align(
+                                  alignment: Alignment.topCenter,
+                                  child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 1200),
+                                    child: content,
+                                  ),
+                                )
+                              : content,
+                        ),
+                        if (isDesktop && hasAuxColumn(context))
+                          DesktopAuxColumn(
+                            tabIndex: _currentIndex,
+                            primaryExam: _effectivePrimaryExam,
+                            userName: StorageService.getUserName(),
+                            streak: _streak,
+                            onOpenCalendar: _openCalendarPage,
+                            onOpenNotes: _openNotesPage,
+                            onOpenExams: _openExamsPage,
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -415,7 +392,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       );
     }
 
-    // Mobile/tablet: bottom navigation theo 3 trụ cột học tập.
+    // Mobile/tablet: bottom navigation chuẩn 4 tab của EduPulse v2.
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       body: SafeArea(
@@ -428,21 +405,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
               child: TabChrome(
                 index: _currentIndex,
                 onChanged: _switchTab,
-                items: const [
-                  NavItem(Icons.home_outlined, Icons.home_rounded, 'Học'),
-                  NavItem(Icons.timer_outlined, Icons.timer_rounded, 'Tập trung'),
-                  NavItem(Icons.person_outline, Icons.person_rounded, 'Tôi'),
-                ],
-                children: [
-                  _tabAt(0),
-                  _visited[1]
-                      ? (_cachedStudy ??= StudyScreen(onStreakChanged: _reloadStreak))
-                      : const SizedBox.shrink(),
-                  _visited[2]
-                      ? (_cachedAccount ??=
-                          AccountScreen(onDataChanged: _loadInitialData))
-                      : const SizedBox.shrink(),
-                ],
+                items: _primaryNavItems,
+                children: tabChildren,
               ),
             ),
           ],

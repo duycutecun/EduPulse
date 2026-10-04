@@ -14,10 +14,76 @@ class ChatBubble extends StatelessWidget {
   /// (vd màn quiz).
   final VoidCallback? onRegenerate;
 
-  const ChatBubble({super.key, required this.msg, this.onRegenerate});
+  /// Thử lại câu hỏi bị lỗi (đặc tả 12 / AI-30).
+  final VoidCallback? onRetry;
+
+  /// Bỏ lỗi và quay về tự học — lỗi AI không bao giờ chặn người học.
+  final VoidCallback? onContinueSelfStudy;
+
+  const ChatBubble({
+    super.key,
+    required this.msg,
+    this.onRegenerate,
+    this.onRetry,
+    this.onContinueSelfStudy,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (msg.isError) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: GlassCard(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          shadows: const [],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.cloud_off_rounded,
+                      size: 18, color: AppColors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      msg.text,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
+              if (onRetry != null || onContinueSelfStudy != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (onRetry != null)
+                      TextButton.icon(
+                        onPressed: onRetry,
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Thử lại',
+                            style: TextStyle(fontSize: 12.5)),
+                      ),
+                    if (onContinueSelfStudy != null)
+                      TextButton.icon(
+                        onPressed: onContinueSelfStudy,
+                        icon:
+                            const Icon(Icons.school_outlined, size: 16),
+                        label: const Text('Tiếp tục tự học',
+                            style: TextStyle(fontSize: 12.5)),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
     if (msg.isLoading) {
       return Align(
         alignment: Alignment.centerLeft,

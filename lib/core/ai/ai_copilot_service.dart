@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/utils/feedback_service.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../features/ai_coach/domain/quiz_models.dart';
@@ -8,7 +8,11 @@ import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/notes/presentation/screens/notes_screen.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../features/study/presentation/screens/study_page.dart';
+import '../../features/tasks/presentation/widgets/delete_task_dialog.dart';
+import '../../features/tasks/presentation/widgets/task_edit_sheet.dart';
+import '../../features/tasks/domain/repositories/task_repository.dart';
 import '../constants/app_colors.dart';
+import '../constants/subject_catalog.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/storage_service.dart';
 import 'ai_models.dart';
@@ -22,6 +26,15 @@ enum AiActionType {
   takeQuiz,
   openExams,
   openNotes,
+
+  /// Sửa nhiệm vụ đang có (AI-2.1) — mở form sửa, không tự ý đổi.
+  editTask,
+
+  /// Dời lịch nhiệm vụ (AI-2.1) — có xác nhận.
+  rescheduleTask,
+
+  /// Xoá nhiệm vụ (AI-2.1) — **bắt buộc xác nhận** trước khi xoá.
+  deleteTask,
 }
 
 /// Một hành động cụ thể có thể bấm để thực thi ngay (1-click actionable)
@@ -521,12 +534,18 @@ class AiCopilotService {
     action.payload['onStreakChanged'] = onStreakChanged;
     // Xoá callback khi rời khỏi context để không giữ reference rác.
     // (payload là map thường nên gán callback an toàn, được đọc lại phía sau.)
-    HapticFeedback.mediumImpact();
+    FeedbackService.medium();
 
     switch (action.type) {
       case AiActionType.addTask:
+        // Giữ messenger từ đầu case: sau các `await` sẽ không còn dùng
+        // BuildContext nữa.
+        final messenger = ScaffoldMessenger.of(context);
         final title = (action.payload['title'] ?? 'Nhiệm vụ mới').toString();
-        final subject = (action.payload['subject'] ?? 'Toán').toString();
+        // AI-2.1: chuẩn hoá môn trước khi ghi, nếu không AI gõ "Toán" sẽ tạo ra
+        // môn khác với '📐 Toán' đang lưu ⇒ thống kê theo môn vỡ tan.
+        final subject = AppSubjects.normalize(
+            (action.payload['subject'] ?? 'Toán').toString());
         final minutes = (action.payload['minutes'] as num?)?.toInt() ?? 30;
         final priority = (action.payload['priority'] ?? 'medium').toString();
 
@@ -539,46 +558,57 @@ class AiCopilotService {
           scheduledAt: DateTime.now(),
         );
 
-        StorageService.setTodayTaskJson(task.id, task.toJsonString());
-        final ids = StorageService.getTodayTaskIds();
-        if (!ids.contains(task.id)) {
-          ids.add(task.id);
-          StorageService.setTodayTaskIds(ids);
+        // Mọi ghi của AI đi qua TaskRepository — và bị chặn nếu trùng.
+        final result = await TaskRepository.instance.createTaskIfMissing(task);
+        if (result.isDuplicate) {
+          if (context.mounted) {
+            _showAiSnackBar(
+              messenger,
+              message: result.error ?? 'Nhiệm vụ này đã có trong kế hoạch',
+              icon: Icons.info_outline_rounded,
+              color: AppColors.textMuted,
+            );
+          }
+          break;
+        }
+        if (result.failed) {
+          if (context.mounted) {
+            _showAiSnackBar(
+              messenger,
+              message: result.error ?? 'Không thêm được nhiệm vụ',
+              icon: Icons.error_outline_rounded,
+              color: AppColors.red,
+            );
+          }
+          break;
         }
 
         onTasksChanged?.call();
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle_rounded,
-                      color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text('Đã thêm: "$title"',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-              backgroundColor: AppColors.primary,
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 4),
-              action: SnackBarAction(
-                label: 'Hoàn tác',
-                textColor: Colors.white,
-                onPressed: () {
-                  StorageService.removeTodayTask(task.id);
-                  onTasksChanged?.call();
-                },
-              ),
-            ),
+          // Undo đi đúng đường của người dùng: xoá rồi khôi phục lại y hệt.
+          final ref = await TaskRepository.instance.deleteTask(task.id);
+          _showAiSnackBar(
+            messenger,
+            message: 'Đã thêm: "$title"',
+            icon: Icons.check_circle_rounded,
+            color: AppColors.primary,
+            onUndo: () async {
+              await TaskRepository.instance.restoreTask(ref);
+              onTasksChanged?.call();
+            },
           );
         }
+        break;
+
+      case AiActionType.editTask:
+      case AiActionType.rescheduleTask:
+      case AiActionType.deleteTask:
+        await _executeTaskMutationAction(
+          context,
+          action,
+          onTasksChanged: onTasksChanged,
+        );
         break;
 
       case AiActionType.startFocus:
@@ -794,5 +824,193 @@ class AiCopilotService {
     // trạng thái thuần dữ liệu (không giữ reference UI).
     action.payload.remove('onTasksChanged');
     action.payload.remove('onStreakChanged');
+  }
+
+  // ─── AI-2.1: các hành động sửa / dời lịch / xoá nhiệm vụ ────────────────
+
+  /// Thực thi hành động AI lên một nhiệm vụ **đang có sẵn**.
+  ///
+  /// Ba nguyên tắc không được lỏng:
+  /// 1. Không đoán bừa — không tìm thấy task khớp tên thì báo, không tạo mới.
+  /// 2. **Xoá luôn phải xác nhận** (AI-2.1), dùng đúng hộp thoại của FE-2.5.
+  /// 3. Mọi ghi đi qua `TaskRepository` — AI và người dùng dùng chung một đường.
+  static Future<void> _executeTaskMutationAction(
+    BuildContext context,
+    AiCopilotAction action, {
+    VoidCallback? onTasksChanged,
+  }) async {
+final title = (action.payload['title'] ?? action.label).toString();
+    final subjectRaw = action.payload['subject']?.toString();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final match = _findTaskByTitle(title, subjectRaw);
+    if (match == null) {
+      _showAiSnackBar(
+        messenger,
+        message: 'Không tìm thấy nhiệm vụ "$title" trong kế hoạch',
+        icon: Icons.search_off_rounded,
+        color: AppColors.textMuted,
+      );
+      return;
+    }
+
+    final repo = TaskRepository.instance;
+
+    switch (action.type) {
+      case AiActionType.editTask:
+        if (!context.mounted) return;
+        final edited = await TaskEditSheet.show(context, initialTask: match);
+        if (edited == null || !context.mounted) return;
+        // Bỏ qua nếu người dùng đóng form mà không sửa gì.
+        final dirty = edited.task.title != match.title ||
+            edited.task.estimateMinutes != match.estimateMinutes ||
+            edited.task.subject != match.subject ||
+            edited.task.deadline != match.deadline ||
+            edited.task.scheduledAt != match.scheduledAt ||
+            edited.task.priority != match.priority ||
+            edited.task.note != match.note;
+        if (!dirty) return;
+        final result = await repo.updateTask(edited.task);
+        onTasksChanged?.call();
+        _showAiSnackBar(
+          messenger,
+          message: result.failed
+              ? (result.error ?? 'Không lưu được thay đổi')
+              : 'Đã cập nhật "${match.title}"',
+          icon: result.failed ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+          color: result.failed ? AppColors.red : AppColors.primary,
+        );
+
+      case AiActionType.rescheduleTask:
+        final days = (action.payload['days'] as num?)?.toInt() ?? 1;
+        final when = (action.payload['date']?.toString()) != null
+            ? DateTime.tryParse(action.payload['date'].toString())
+            : DateTime.now().add(Duration(days: days));
+        if (when == null || !context.mounted) return;
+        if (match.isDone) {
+          _showAiSnackBar(
+            messenger,
+            message: '"${match.title}" đã hoàn thành nên không dời lịch được',
+            icon: Icons.info_outline_rounded,
+            color: AppColors.textMuted,
+          );
+          return;
+        }
+        final result = await repo.rescheduleTask(match.id, when);
+        onTasksChanged?.call();
+        _showAiSnackBar(
+          messenger,
+          message: result.failed
+              ? (result.error ?? 'Không dời lịch được')
+              : 'Đã dời "${match.title}" sang ${when.day}/${when.month}',
+          icon: result.failed ? Icons.error_outline_rounded : Icons.event_available_rounded,
+          color: result.failed ? AppColors.red : AppColors.primary,
+        );
+
+      case AiActionType.deleteTask:
+        if (!context.mounted) return;
+        // Bắt buộc xác nhận — dùng chung hộp thoại của người dùng (FE-2.5).
+        final confirmed = await showConfirmDelete(context, match);
+        if (confirmed != true || !context.mounted) return;
+        try {
+          final ref = await repo.deleteTask(match.id);
+          onTasksChanged?.call();
+          _showAiSnackBar(
+            messenger,
+            message: 'Đã xoá "${match.title}"',
+            icon: Icons.delete_outline_rounded,
+            color: AppColors.red,
+            onUndo: () async {
+              await repo.restoreTask(ref);
+              onTasksChanged?.call();
+            },
+          );
+        } catch (_) {
+          _showAiSnackBar(
+            messenger,
+            message: 'Không xoá được nhiệm vụ',
+            icon: Icons.error_outline_rounded,
+            color: AppColors.red,
+          );
+        }
+
+      default:
+        break;
+    }
+  }
+
+  /// Tìm task theo tên mà AI đưa ra — so khớp "chứa" sau khi bỏ dấu/emoji.
+  /// Trả `null` nếu không chắc chắn, để AI không sửa nhầm task.
+  static TodayTask? _findTaskByTitle(String title, String? subject) {
+    final needle = _foldText(title);
+    if (needle.isEmpty) return null;
+
+    final subjectKey =
+        subject == null ? null : AppSubjects.normalize(subject).toLowerCase();
+
+    TodayTask? fallback;
+    for (final task in TaskRepository.instance.getTasksForDay()) {
+      final name = _foldText(task.title);
+      if (!name.contains(needle) && !needle.contains(name)) continue;
+      if (subjectKey != null &&
+          AppSubjects.normalize(task.subject).toLowerCase() != subjectKey) {
+        continue;
+      }
+      // Ưu tiên task chưa xong và khớp chính xác.
+      if (name == needle && !task.isDone) return task;
+      if (!task.isDone) fallback ??= task;
+      fallback ??= task;
+    }
+    return fallback;
+  }
+
+  static String _foldText(String value) => AppSubjects.foldDiacritics(value)
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^\w\s]', unicode: true), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+
+  /// SnackBar thống nhất cho hành động AI (có tuỳ chọn Hoàn tác).
+  ///
+  /// Nhận `ScaffoldMessengerState` thay vì `BuildContext` vì hành động luôn có
+  /// `await` ở giữa — giữ context sống dai là mời lỗi "dùng context sau khi
+  /// widget đã bị huỷ".
+  static void _showAiSnackBar(
+    ScaffoldMessengerState messenger, {
+    required String message,
+    required IconData icon,
+    required Color color,
+    VoidCallback? onUndo,
+  }) {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: onUndo == null ? 4 : 5),
+          action: onUndo == null
+              ? null
+              : SnackBarAction(
+                  label: 'Hoàn tác',
+                  textColor: Colors.white,
+                  onPressed: onUndo,
+                ),
+        ),
+      );
   }
 }

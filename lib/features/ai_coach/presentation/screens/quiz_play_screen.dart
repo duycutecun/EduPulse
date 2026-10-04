@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/utils/feedback_service.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../domain/quiz_models.dart';
 
 /// Màn hình luyện quiz do AI sinh: chọn đáp án từng câu, xem giải thích,
@@ -67,7 +69,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
 
   void _choose(int i) {
     if (_selected != null) return;
-    HapticFeedback.selectionClick();
+    FeedbackService.selection();
     setState(() {
       _selected = i;
       _answers.add(i);
@@ -301,7 +303,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
 
   /// Tạo task ôn lại liên kết với ghi chú lỗi sai vừa lưu (task-linked,
   /// mục 14) — AI lần sau thấy task này + ghi chú và tư vấn nhất quán.
-  void _createReviewTask() {
+  Future<void> _createReviewTask() async {
     final wrong = _wrongQuestions;
     if (wrong.isEmpty) return;
 
@@ -328,7 +330,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     final task = TodayTask(
       id: _uuid.v4(),
       title: 'Ôn lại ${wrong.length} câu sai: ${widget.topic}',
-      subject: widget.subject,
+      subject: AppSubjects.normalize(widget.subject),
       priority: 'high',
       estimateMinutes: 20,
       note: latestBody == null
@@ -336,11 +338,20 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
           : 'Xem ghi chú "Lỗi sai — ${widget.topic}" để ôn đúng chỗ yếu.',
       scheduledAt: DateTime.now(),
     );
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
-    final ids = StorageService.getTodayTaskIds();
-    if (!ids.contains(task.id)) {
-      ids.add(task.id);
-      StorageService.setTodayTaskIds(ids);
+    // Qua repository: lần luyện lại cùng chủ đề trong ngày sẽ không tạo
+    // thêm một task ôn trùng nữa.
+    final result = await TaskRepository.instance.createTaskIfMissing(task);
+    if (!result.success) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(result.isDuplicate
+              ? 'Hôm nay đã có task ôn lại phần sai của ${widget.topic}.'
+              : 'Không tạo được task ôn lại.'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      return;
     }
     widget.onTasksChanged?.call();
 
@@ -397,7 +408,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
           },
         ),
       ));
-    HapticFeedback.mediumImpact();
+    FeedbackService.medium();
   }
 
   /// Hỏi AI cách khắc phục: gửi ngữ cảnh câu sai (kèm giải thích AI đã tạo)

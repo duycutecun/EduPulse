@@ -1,16 +1,29 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/feedback_service.dart';
 import 'package:flutter/services.dart';
 
 import '../core/constants/app_colors.dart';
 import '../core/utils/storage_service.dart';
 import '../shared/widgets/sync_status_bar.dart';
 
-/// Chiều rộng tối thiểu để chuyển sang layout desktop với sidebar
-/// (đặc tả mục 22: Mobile < 768, Tablet 768–1024, Desktop ≥ 1024).
+/// Ngưỡng breakpoint (đặc tả mục 22: Mobile < 768, Tablet 768–1024,
+/// Desktop ≥ 1024).
+const double kTabletBreakpoint = 768;
 const double kDesktopBreakpoint = 1024;
 
 bool isDesktopWidth(BuildContext context) =>
     MediaQuery.sizeOf(context).width >= kDesktopBreakpoint;
+
+bool isTabletWidth(BuildContext context) {
+  final w = MediaQuery.sizeOf(context).width;
+  return w >= kTabletBreakpoint && w < kDesktopBreakpoint;
+}
+
+/// Cả tablet lẫn desktop dùng layout sidebar (thay vì bottom nav của phone) —
+/// tablet dùng rail thu gọn để tận dụng chiều ngang thay vì phóng to giao diện
+/// điện thoại (FE-6.2).
+bool isWideLayout(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= kTabletBreakpoint;
 
 /// Mô tả một mục điều hướng (dùng chung cho bottom nav và sidebar).
 class NavItem {
@@ -91,7 +104,8 @@ class DesktopSidebarState extends State<DesktopSidebar> {
   /// Đảm bảo số FocusNode khớp số mục nav (mục phụ có thể đổi runtime).
   void _syncNodeCount() {
     while (navFocusNodes.length < _totalNavItems) {
-      navFocusNodes.add(FocusNode(debugLabel: 'sidebar-nav-${navFocusNodes.length}'));
+      navFocusNodes
+          .add(FocusNode(debugLabel: 'sidebar-nav-${navFocusNodes.length}'));
     }
     while (navFocusNodes.length > _totalNavItems) {
       navFocusNodes.removeLast().dispose();
@@ -145,11 +159,19 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                       children: [
                         _collapseButton(),
                         const SizedBox(width: 8),
-                        const Text('EduPulse',
+                        // Sidebar hẹp cố định 232px: cỡ chữ lớn phải cắt nhãn
+                        // chứ không tràn ra ngoài.
+                        const Flexible(
+                          child: Text(
+                            'EduPulse',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.primary)),
+                                color: AppColors.primary),
+                          ),
+                        ),
                       ],
                     ),
             ),
@@ -166,7 +188,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                 label: widget.items[i].label,
                 active: i == widget.index,
                 onTap: () {
-                  HapticFeedback.selectionClick();
+                  FeedbackService.selection();
                   if (i != widget.index) widget.onChanged(i);
                 },
               ),
@@ -273,14 +295,12 @@ class DesktopSidebarState extends State<DesktopSidebar> {
     required VoidCallback onTap,
   }) {
     final row = Padding(
-      padding:
-          EdgeInsets.symmetric(horizontal: widget.collapsed ? 0 : 12, vertical: 2),
+      padding: EdgeInsets.symmetric(
+          horizontal: widget.collapsed ? 0 : 12, vertical: 2),
       child: Shortcuts(
         shortcuts: const <ShortcutActivator, Intent>{
-          SingleActivator(LogicalKeyboardKey.arrowDown):
-              _SidebarMoveIntent(1),
-          SingleActivator(LogicalKeyboardKey.arrowUp):
-              _SidebarMoveIntent(-1),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _SidebarMoveIntent(1),
+          SingleActivator(LogicalKeyboardKey.arrowUp): _SidebarMoveIntent(-1),
         },
         child: Actions(
           actions: <Type, Action<Intent>>{
@@ -298,8 +318,21 @@ class DesktopSidebarState extends State<DesktopSidebar> {
               // Tab skip qua mục nav — điều hướng chính bằng arrow keys.
               child: Container(
                 height: 42,
-                padding: EdgeInsets.symmetric(
-                    horizontal: widget.collapsed ? 0 : 12),
+                // G4-C: vạch chỉ báo bên trái. Khi sidebar mở rộng, người dùng
+                // đã đọc được trạng thái qua màu chữ + nét đậm; nhưng lúc THU
+                // GỌN chỉ còn icon, màu chữ gần như không đủ để phân biệt —
+                // vạch này là tín hiệu duy nhất còn lại nên phải luôn hiện.
+                key: active ? const Key('sidebar-active-indicator') : null,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: active
+                      ? const Border(
+                          left: BorderSide(color: AppColors.primary, width: 3),
+                        )
+                      : null,
+                ),
+                padding:
+                    EdgeInsets.symmetric(horizontal: widget.collapsed ? 0 : 12),
                 child: Row(
                   mainAxisAlignment: widget.collapsed
                       ? MainAxisAlignment.center
@@ -307,20 +340,24 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                   children: [
                     Icon(icon,
                         size: 22,
-                        color: active
-                            ? AppColors.primary
-                            : AppColors.textMuted),
+                        color:
+                            active ? AppColors.primary : AppColors.textMuted),
                     if (!widget.collapsed) ...[
                       const SizedBox(width: 12),
-                      Text(label,
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 13.5,
-                              fontWeight: active
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
+                              fontWeight:
+                                  active ? FontWeight.w800 : FontWeight.w600,
                               color: active
                                   ? AppColors.primary
-                                  : AppColors.textPrimary)),
+                                  : AppColors.textPrimary),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -330,9 +367,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
         ),
       ),
     );
-    return widget.collapsed
-        ? Tooltip(message: label, child: row)
-        : row;
+    return widget.collapsed ? Tooltip(message: label, child: row) : row;
   }
 }
 

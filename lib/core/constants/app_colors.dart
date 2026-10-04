@@ -68,6 +68,25 @@ class AppColors {
   /// Nền phụ trợ cho chip, section.
   static const Color tertiaryBg = Color(0xFFF3F4F6);
 
+  // ─── Semantic Aliases (đặc tả v2 §10.3) ──────────────────────────────────
+  /// Ngữ nghĩa thay vì tên hiển thị — màn hình mới chỉ dùng nhóm này.
+  static const Color background = bgPageSoft;
+  static const Color surface = cardWhite;
+  static const Color text = textPrimary;
+  static const Color textSubtle = textSecondary;
+  static const Color success = primary;
+  static const Color successDark = primaryDark;
+  static const Color successLight = primaryLight;
+  static const Color warning = orange;
+  static const Color warningDark = orangeDark;
+  static const Color warningLight = orangeLight;
+  static const Color error = red;
+  static const Color errorDark = redDark;
+  static const Color errorLight = redLight;
+  static const Color info = blue;
+  static const Color infoDark = blueDark;
+  static const Color infoLight = blueLight;
+
   // ─── Duolingo-specific accents ──────────────────────────────────────────
   /// Xanh lá nhạt cho progress done.
   static const Color progressDone = Color(0xFF58CC02);

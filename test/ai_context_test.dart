@@ -161,6 +161,26 @@ void main() {
       seedStudent(now);
       expect(AiStudyContext.build(now: now).length, lessThan(3000));
     });
+
+    test('tổng giờ học cộng cả phiên học lẫn ghi chép nhập tay', () {
+      final now = DateTime(2026, 9, 30, 10);
+      seedStudent(now);
+      final ctx = AiStudyContext.build(now: now);
+
+      // Phiên học: 90 + 45 + 60 phút = 3.25h; ghi chép nhập tay: 3.5 + 1.0h.
+      // Trước khi gộp, AI chỉ thấy 4.5h và bỏ sót toàn bộ thời gian pomodoro.
+      expect(ctx, contains('7.8 giờ tích lũy'));
+      expect(ctx, contains('Toán'));
+    });
+
+    test('chỉ có phiên học pomodoro thì AI vẫn thấy thời gian học', () {
+      final now = DateTime(2026, 9, 30, 10);
+      seedStudent(now);
+      StorageService.setStudyLogIds([]);
+      final ctx = AiStudyContext.build(now: now);
+      // 3.25h từ ba phiên học, không còn dòng log nhập tay nào.
+      expect(ctx, contains('3.3 giờ tích lũy'));
+    });
   });
 }
 

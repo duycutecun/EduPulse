@@ -1,4 +1,5 @@
 import '../../features/study/domain/models/study_models.dart';
+import '../../features/study/domain/repositories/study_session_repository.dart';
 import '../utils/storage_service.dart';
 
 /// Một kết luận về nhịp học của học sinh, kèm độ tin cậy và bằng chứng.
@@ -40,19 +41,10 @@ class StudyRhythm {
   static const int _minPerHour = 2;
 
   /// Đọc toàn bộ phiên focus từ Storage (local-first).
-  static List<StudySession> sessions() {
-    final out = <StudySession>[];
-    for (final id in StorageService.getStudySessionIds()) {
-      final raw = StorageService.getStudySessionJson(id);
-      if (raw == null || raw.isEmpty) continue;
-      try {
-        out.add(StudySession.fromJsonString(raw));
-      } catch (_) {
-        continue;
-      }
-    }
-    return out;
-  }
+  ///
+  /// Qua [StudySessionRepository] để mọi nơi đọc phiên học thấy cùng một
+  /// cách xử lý phiên JSON hỏng.
+  static List<StudySession> sessions() => StudySessionRepository.instance.getAll();
 
   // ------------------------------------------------------------------
   // Giờ vàng

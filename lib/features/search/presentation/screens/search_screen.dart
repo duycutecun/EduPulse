@@ -5,6 +5,7 @@ import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/repositories/study_session_repository.dart';
 
 /// Global search (đặc tả mục 15): tìm đủ Tasks, Goals/Exams, Calendar
 /// (task đã xếp lịch), Notes, Study sessions, AI conversations.
@@ -84,19 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
         }
       },
     );
-    _sessions = safeParse(
-      StorageService.getStudySessionIds()
-          .map(StorageService.getStudySessionJson)
-          .whereType<String>()
-          .toList(),
-      (v) {
-        try {
-          return StudySession.fromJsonString(v);
-        } catch (_) {
-          return null;
-        }
-      },
-    );
+    _sessions = StudySessionRepository.instance.getAll();
     _exams = safeParse(
       StorageService.getExamIds()
           .map(StorageService.getExamJson)

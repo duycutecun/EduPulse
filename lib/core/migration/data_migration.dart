@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../../features/study/domain/repositories/study_session_repository.dart';
+import '../../features/tasks/domain/models/task_state.dart';
+import '../constants/subject_catalog.dart';
 import '../utils/storage_service.dart';
 
 /// Kết quả một lần migration (đặc tả mục 42 — Migration).
@@ -50,9 +53,19 @@ class MigrationStep {
 /// 4. Thành công → lưu `data_schema_version`, xoá backup tạm.
 class DataMigration {
   /// Version schema hiện tại của code (tăng khi đổi data model).
-  static const int currentSchemaVersion = 1;
+  ///
+  /// - **v1** — shape `TodayTask` chuẩn hoá (bổ sung field mới với giá trị mặc định).
+  /// - **v2** — Sprint 2 (BE-2.3): backfill `createdAt`/`updatedAt`, chuẩn hoá
+  ///   `status` về giá trị canonical, cứu task "mồ côi", vá mâu thuẫn `isDone`.
+  /// - **v3** — Sprint 3 (STUDY-LOG-MERGE): xoá các dòng `StudyLog` mà bản cũ
+  ///   tự sinh cho *cùng* một vòng Pomodoro đã có `StudySession`.
+  static const int currentSchemaVersion = 3;
 
   static const String _versionKey = 'data_schema_version';
+
+  /// Tiền tố khoá lưu từng TodayTask — phải khớp `StorageService`
+  /// (`task_$id`). Sai tiền tố ⇒ bước cứu task mồ côi im lặng không làm gì.
+  static const String _taskKeyPrefix = 'task_';
 
   /// Báo cáo lần chạy gần nhất trong phiên — UI dùng để notify user khi
   /// rollback (mục 42). In-memory, không lưu storage.
@@ -108,11 +121,15 @@ class DataMigration {
         backup.map((k, v) => MapEntry(k, {'t': v.runtimeType.toString(), 'v': v.toString()})),
       );
 
-  /// Các bước migration v0 → v1 hiện tại. Thêm bước mới khi tăng
+  /// Các bước migration v0 → v2 hiện tại. Thêm bước mới khi tăng
   /// [currentSchemaVersion] — mỗi bước phải idempotent và không mất dữ liệu.
   static List<MigrationStep> defaultSteps() => [
         MigrationStep('dedupe_id_lists', _dedupeIdLists),
         MigrationStep('normalize_task_json', _normalizeTaskJson),
+        MigrationStep('recover_orphan_tasks', _recoverOrphanTasks),
+        MigrationStep('backfill_task_timestamps', _backfillTaskTimestamps),
+        MigrationStep('heal_task_consistency', _healTaskConsistency),
+        MigrationStep('drop_legacy_pomodoro_logs', _dropLegacyPomodoroLogs),
       ];
 
   /// Danh sách keys chứa danh sách id (StringList) — dẹp trùng lặp giữ thứ tự.
@@ -158,7 +175,166 @@ class DataMigration {
     return true;
   }
 
-  /// Chạy migration với các bước khai báo. Trả [MigrationReport].
+  /// Cứu task "mồ côi" (BE-2.3): JSON của task còn trong storage nhưng `id`
+  /// đã bị mất khỏi `today_task_ids` (rủi ro thật khi app bị kill giữa lúc
+  /// ghi). Không có bước này thì task đó **biến mất vĩnh viễn khỏi UI**.
+  ///
+  /// Cách dò: mọi key `today_task_*` trong storage là JSON, trừ chính
+  /// `today_task_ids`. Task parse được → thêm lại id vào danh sách (giữ thứ tự
+  /// cũ cho các id đã có, task mồ côi xếp cuối).
+  static bool _recoverOrphanTasks() {
+    final known = StorageService.getTodayTaskIds().toSet();
+    final orphans = <String>[];
+
+    for (final key in StorageService.prefs.getKeys().toList()) {
+      // Khoá thật của TodayTask là `task_$id` (xem StorageService).
+      if (!key.startsWith(_taskKeyPrefix)) continue;
+      final id = key.substring(_taskKeyPrefix.length);
+      if (id.isEmpty || known.contains(id)) continue;
+      // Chỉ nhận lại nếu JSON thực sự parse được thành task hợp lệ.
+      final raw = StorageService.prefs.getString(key);
+      if (raw == null) continue;
+      try {
+        final task = TodayTask.fromJsonString(raw);
+        if (task.id.isEmpty) continue;
+        orphans.add(task.id);
+      } catch (_) {
+        // JSON hỏng → để nguyên cho user tự xuất dữ liệu, không xoá.
+      }
+    }
+
+    if (orphans.isEmpty) return true;
+    StorageService.setTodayTaskIds([...StorageService.getTodayTaskIds(), ...orphans]);
+    return true;
+  }
+
+  /// Backfill `createdAt`/`updatedAt` cho task tạo ở bản v1 (BE-2.1 yêu cầu
+  /// timestamp bắt buộc nhưng dữ liệu cũ không có).
+  ///
+  /// Suy ra từ dữ liệu sẵn có để giá trị gần đúng, không bịa đặt:
+  /// `updatedAt` = task có `deadline`/`scheduledAt` không? dùng mốc đó :
+  /// `createdAt` = `scheduledAt` : `deadline` : `now`.
+  static bool _backfillTaskTimestamps() {
+    final now = DateTime.now();
+    for (final id in StorageService.getTodayTaskIds()) {
+      final raw = StorageService.getTodayTaskJson(id);
+      if (raw == null) continue;
+      try {
+        final task = TodayTask.fromJsonString(raw);
+        if (task.createdAt != null && task.updatedAt != null) continue;
+
+        final inferred = task.scheduledAt ?? task.deadline;
+        task.createdAt ??= inferred ?? now;
+        task.updatedAt ??= inferred ?? now;
+
+        StorageService.setTodayTaskJson(id, task.toJsonString());
+      } catch (_) {
+        // Giữ nguyên entry hỏng — không xoá dữ liệu người dùng.
+      }
+    }
+    return true;
+  }
+
+  /// Vá mâu thuẫn giữa `isDone` và `status` (BE-2.3): v1 cho phép hai trường này
+  /// lệch nhau do nhiều nơi tự ghi, khiến state machine và UI hiển thị khác nhau.
+  ///
+  /// Quy tắc: `status` là nguồn chân lý, `isDone` chỉ là cờ dẫn xuất.
+  /// - `completed` → `isDone = true`.
+  /// - `todo`/`started`/`rescheduled` → `isDone = false`.
+  /// - `skipped` giữ `isDone = false` nhưng **không** xoá `skipReason`.
+  static bool _healTaskConsistency() {
+    for (final id in StorageService.getTodayTaskIds()) {
+      final raw = StorageService.getTodayTaskJson(id);
+      if (raw == null) continue;
+      try {
+        final task = TodayTask.fromJsonString(raw);
+        final status = TaskStatus.fromString(task.status);
+        final canonical = status.value;
+        final expectedIsDone = status == TaskStatus.completed;
+        final normalizedStatus = canonical != task.status;
+
+        if (!normalizedStatus && task.isDone == expectedIsDone) continue;
+
+        task.status = canonical;
+        task.isDone = expectedIsDone;
+        StorageService.setTodayTaskJson(id, task.toJsonString());
+      } catch (_) {
+        // Giữ nguyên entry hỏng.
+      }
+    }
+    return true;
+  }
+
+  /// Xoá dòng `StudyLog` mà bản cũ tự sinh cho một vòng Pomodoro (v3).
+  ///
+  /// Bản cũ ghi **hai** bản ghi cho cùng một khoảng thời gian: `StudySession`
+  /// (phút, có phản hồi) và `StudyLog` (giờ thập phân). Mọi tổng hợp đã gộp hai
+  /// nguồn nên thời gian học cũ đang bị đếm hai lần.
+  ///
+  /// Xoá phía `StudyLog`, giữ `StudySession`, vì phiên học là bản ghi giàu
+  /// thông tin hơn (`startedAt`/`endedAt`, phản hồi, `taskId`).
+  ///
+  /// **Chỉ xoá khi có bằng chứng**, không đoán bừa:
+  /// 1. `note` đúng mẫu `Phiên <số>` — nguyên văn chuỗi bản cũ tự sinh, người
+  ///    dùng không gõ thế.
+  /// 2. Hoặc khớp được một phiên học thật: cùng môn, giờ lệch ≤ 3 phút (chênh
+  ///    do làm tròn `_focusMinutes / 60`), và cách nhau ≤ 2 giờ.
+  ///
+  /// Dòng không khớp điều kiện nào được giữ nguyên — đó là ghi chép nhập tay,
+  /// xoá nhầm là mất dữ liệu thật của người dùng.
+  static bool _dropLegacyPomodoroLogs() {
+    final sessions = StudySessionRepository.instance.getAll();
+    final ids = StorageService.getStudyLogIds().toList();
+    final duplicates = <String>[];
+
+    for (final id in ids) {
+      final raw = StorageService.getStudyLogJson(id);
+      if (raw == null) continue;
+      StudyLog log;
+      try {
+        log = StudyLog.fromJsonString(raw);
+      } catch (_) {
+        continue; // JSON hỏng — để nguyên cho user tự xuất dữ liệu.
+      }
+      if (_isLegacyPomodoroLog(log, sessions)) duplicates.add(id);
+    }
+
+    for (final id in duplicates) {
+      StorageService.removeStudyLog(id);
+    }
+    return true;
+  }
+
+  /// Nguyên văn ghi chú bản cũ tự sinh khi vòng Pomodoro không gắn task.
+  static final RegExp _legacyRoundNote = RegExp(r'^Phi\u00ean \d+$');
+
+  /// Cùng loại trùng: khớp được một `StudySession` cùng môn, cùng độ dài,
+  /// sát thời điểm. Lệch giờ nhiều hơn 3 phút hoặc lệch thời gian quá 2 giờ
+  /// thì coi là ghi chép riêng của người dùng — giữ lại.
+  static const double _legacyHoursTolerance = 3 / 60;
+
+  static const Duration _legacyTimeTolerance = Duration(hours: 2);
+
+  static bool _isLegacyPomodoroLog(StudyLog log, List<StudySession> sessions) {
+    final note = (log.note ?? '').trim();
+    if (_legacyRoundNote.hasMatch(note)) return true;
+
+    final subject = _normalizeSubject(log.subject);
+    if (subject.isEmpty) return false;
+    for (final session in sessions) {
+      if (_normalizeSubject(session.subject) != subject) continue;
+      final sessionHours = session.actualMinutes / 60;
+      if ((log.hours - sessionHours).abs() > _legacyHoursTolerance) continue;
+      final gap = log.date.difference(session.completedAt).abs();
+      if (gap <= _legacyTimeTolerance) return true;
+    }
+    return false;
+  }
+
+  static String _normalizeSubject(String value) =>
+      AppSubjects.normalize(value).toLowerCase();
+
+
   static MigrationReport run(List<MigrationStep> steps) {
     final from = storedVersion();
 

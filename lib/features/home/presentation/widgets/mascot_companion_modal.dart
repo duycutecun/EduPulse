@@ -192,7 +192,8 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
     if (StorageService.getMascotBondExp() < cost) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Bạn chưa đủ EXP — hãy hoàn thành nhiệm vụ & Pomodoro!'),
+          content:
+              Text('Bạn chưa đủ EXP — hãy hoàn thành nhiệm vụ & Pomodoro!'),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
@@ -306,83 +307,83 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
-                    // Aura circle
-                    Container(
-                      width: 120,
-                      height: 120,
+                  // Aura circle
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      border: Border.all(color: AppColors.primary, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Image.asset(
+                        'assets/images/mascot.png',
+                        fit: BoxFit.contain,
+                        cacheWidth: 360,
+                      ),
+                    ),
+                  ),
+
+                  // Equipped Accessory Badge
+                  Positioned(
+                    top: -6,
+                    right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
+                        color: AppColors.cardWhite,
                         shape: BoxShape.circle,
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        border: Border.all(color: AppColors.primary, width: 3),
+                        border: Border.all(color: AppColors.orange, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.25),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          'assets/images/mascot.png',
-                          fit: BoxFit.contain,
-                          cacheWidth: 360,
-                        ),
+                      child: Text(
+                        kMascotAccessories
+                            .firstWhere(
+                              (a) => a.id == _equippedAccessory,
+                              orElse: () => kMascotAccessories.first,
+                            )
+                            .icon,
+                        style: const TextStyle(fontSize: 22),
                       ),
                     ),
+                  ),
 
-                    // Equipped Accessory Badge
-                    Positioned(
-                      top: -6,
-                      right: 4,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardWhite,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.orange, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          kMascotAccessories
-                              .firstWhere(
-                                (a) => a.id == _equippedAccessory,
-                                orElse: () => kMascotAccessories.first,
-                              )
-                              .icon,
-                          style: const TextStyle(fontSize: 22),
+                  // Pet hint
+                  Positioned(
+                    bottom: -10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Chạm để xoa đầu ✨',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-
-                    // Pet hint
-                    Positioned(
-                      bottom: -10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'Chạm để xoa đầu ✨',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 26),
@@ -431,8 +432,8 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       value: progressInLevel,
                       minHeight: 8,
                       backgroundColor: AppColors.border,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -670,7 +671,8 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                               : AppColors.border.withValues(alpha: 0.4)),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
+                        color:
+                            isSelected ? AppColors.primary : AppColors.border,
                         width: isSelected ? 2.5 : 1.5,
                       ),
                     ),

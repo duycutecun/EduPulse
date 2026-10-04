@@ -19,6 +19,17 @@ class ExamModel {
   final double? currentScore;
   final double? targetScore;
 
+  /// Điểm mục tiêu theo từng môn — đặc tả 5.13 (`Toán 9.0 / Lý 9.0 / Hóa 9.0`)
+  /// và BE-5.2 (`Support: subjects, target`).
+  ///
+  /// Khoá là tên môn đã chuẩn hoá qua [AppSubjects.normalize] khi ghi; đọc thì
+  /// chấp nhận cả khoá thô để dữ liệu cũ không bị mất.
+  final Map<String, double> subjectTargets;
+
+  /// Danh sách môn của kỳ thi (đặc tả 5.13) — suy ra từ [subjectTargets] và
+  /// các task đã gắn kỳ thi này, nên không cần thêm một trường phải nhập tay.
+  final List<String> subjects;
+
   ExamModel({
     required this.id,
     required this.name,
@@ -28,12 +39,56 @@ class ExamModel {
     this.emoji = '🎯',
     this.currentScore,
     this.targetScore,
-  });
+    Map<String, double> subjectTargets = const {},
+    List<String>? subjects,
+  })  : subjectTargets = subjectTargets,
+        // Không bắt học sinh khai báo môn hai lần: đặt mục tiêu cho môn nào
+        // là môn đó có mặt trong kỳ thi (đặc tả 5.13).
+        subjects = subjects == null || subjects.isEmpty
+            ? subjectTargets.keys.toList()
+            : subjects;
 
-  Duration get remaining => dateTime.difference(DateTime.now());
-  bool get isPast => dateTime.isBefore(DateTime.now());
+  Duration get remaining => remainingAt(DateTime.now());
+  bool get isPast => isPastAt(DateTime.now());
 
-  int get daysLeft => remaining.inDays;
+  int get daysLeft => daysLeftAt(DateTime.now());
+
+  // ─── Realtime (BE-5.2) ────────────────────────────────────────────────────
+  //
+  // Các getter trên đọc `DateTime.now()` trực tiếp — tiện cho UI nhưng không
+  // kiểm thử được việc đếm ngược "theo thời gian thực". Bộ hàm `...At(now)`
+  // dưới đây tách mốc thời gian ra tham số để test chuyển giao ngày thi chính
+  // xác, và để widget đếm ngược tự truyền mốc của nó.
+
+  Duration remainingAt(DateTime now) => dateTime.difference(now);
+
+  bool isPastAt(DateTime now) => dateTime.isBefore(now);
+
+  /// Số ngày còn lại tính tại [now].
+  int daysLeftAt(DateTime now) => remainingAt(now).inDays;
+
+  /// true nếu đã qua 23:59:59 ngày thi tính tại [now].
+  bool isExamDayOverAt(DateTime now) {
+    final endOfDay =
+        DateTime(dateTime.year, dateTime.month, dateTime.day, 23, 59, 59);
+    return now.isAfter(endOfDay);
+  }
+
+  /// true nếu [now] là ngày thi.
+  bool isExamDayAt(DateTime now) =>
+      !isExamDayOverAt(now) &&
+      now.year == dateTime.year &&
+      now.month == dateTime.month &&
+      now.day == dateTime.day;
+
+  /// Giai đoạn tại [now] — bản thuần của [examPhase].
+  ExamPhase phaseAt(DateTime now) {
+    if (isExamDayOverAt(now)) return ExamPhase.postExam;
+    if (isExamDayAt(now)) return ExamPhase.examDay;
+    final days = daysLeftAt(now);
+    if (days <= 7) return ExamPhase.revision;
+    return ExamPhase.normal;
+  }
 
   /// true nếu đã qua thời điểm kết thúc của ngày thi (23:59:59 ngày thi).
   bool get isExamDayOver {
@@ -83,6 +138,26 @@ class ExamModel {
         emoji: emoji,
         currentScore: currentScore,
         targetScore: targetScore,
+        subjectTargets: subjectTargets,
+        subjects: subjects,
+      );
+
+  /// Bản sao với điểm mục tiêu tổng / theo môn khác (dùng khi sửa kỳ thi).
+  ExamModel copyWith({
+    double? targetScore,
+    Map<String, double>? subjectTargets,
+  }) =>
+      ExamModel(
+        id: id,
+        name: name,
+        dateTime: dateTime,
+        type: type,
+        description: description,
+        emoji: emoji,
+        currentScore: currentScore,
+        targetScore: targetScore ?? this.targetScore,
+        subjectTargets: subjectTargets ?? this.subjectTargets,
+        subjects: subjects,
       );
 
   /// Color category based on days left
@@ -102,6 +177,8 @@ class ExamModel {
     'emoji': emoji,
     'currentScore': currentScore,
     'targetScore': targetScore,
+    'subjectTargets': subjectTargets,
+    'subjects': subjects,
   };
 
   factory ExamModel.fromJson(Map<String, dynamic> j) => ExamModel(
@@ -113,6 +190,11 @@ class ExamModel {
     emoji: j['emoji'] ?? '🎯',
     currentScore: (j['currentScore'] as num?)?.toDouble(),
     targetScore: (j['targetScore'] as num?)?.toDouble(),
+    subjectTargets: ((j['subjectTargets'] as Map?) ?? {}).map(
+      (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
+    ),
+    subjects:
+        ((j['subjects'] as List?) ?? const []).map((e) => e.toString()).toList(),
   );
 
   String toJsonString() => jsonEncode(toJson());

@@ -40,6 +40,91 @@ class AiRouter {
   /// UI đọc để hiển thị source card; null khi câu hỏi không tra web.
   static WebLookup? lastWebSource;
 
+  static Stream<String> chatStream({
+    required AIModel model,
+    required List<ChatMessage> history,
+    required String userMessage,
+    Uint8List? imageBytes,
+    String? mimeType,
+    bool searchWeb = true,
+    AiContextLevel contextLevel = AiContextLevel.full,
+    TodayTask? contextTask,
+    int? availableMinutes,
+  }) async* {
+    final hasImage = imageBytes != null && imageBytes.isNotEmpty;
+
+    if (hasImage && imageBytes.length > 3 * 1024 * 1024 && _onWeb) {
+      yield '❌ Ảnh quá lớn (${(imageBytes.length / (1024 * 1024)).toStringAsFixed(1)} MB). '
+          'Máy chủ web giới hạn ~4MB — hãy chọn ảnh nhỏ hơn hoặc nén ảnh trước khi gửi.';
+      return;
+    }
+
+    String? webContext;
+    lastWebSource = null;
+    if (searchWeb && !hasImage) {
+      try {
+        final lookup = await WebSearchService.lookup(userMessage,
+            tavilyApiKey: AppConfig.tavilyApiKey);
+        webContext = lookup?.toPromptBlock();
+        lastWebSource = lookup;
+      } catch (_) {
+        webContext = null;
+      }
+    }
+
+    final candidates = _candidates(model, hasImage);
+
+    String? studyContext;
+    try {
+      studyContext = AiStudyContext.buildFor(
+        contextLevel,
+        task: contextTask,
+        availableMinutes: availableMinutes,
+      );
+    } catch (_) {
+      studyContext = null;
+    }
+
+    String? lastError;
+    var tried = 0;
+    for (final m in candidates) {
+      if (hasImage && !m.supportsVision) continue;
+      tried += 1;
+      if (tried > _maxAttempts) break;
+
+      var fullResponse = '';
+      var hasError = false;
+
+      await for (final chunk in _callStream(
+        m,
+        history: history,
+        userMessage: userMessage,
+        imageBytes: imageBytes,
+        mimeType: mimeType,
+        webContext: webContext,
+        studyContext: studyContext,
+      )) {
+        if (chunk.startsWith('❌')) {
+          lastError = chunk;
+          hasError = true;
+          break;
+        }
+        fullResponse += chunk;
+        yield chunk;
+      }
+
+      if (!hasError && fullResponse.isNotEmpty) return;
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+
+    if (hasImage && candidates.every((m) => !m.supportsVision)) {
+      yield '❌ Không có model nào trong danh sách hỗ trợ đọc ảnh.';
+      return;
+    }
+    yield lastError ??
+        '❌ Các model AI đều đang lỗi. Chờ vài giây rồi thử lại nhé.';
+  }
+
   static Future<String> chat({
     required AIModel model,
     required List<ChatMessage> history,
@@ -47,6 +132,9 @@ class AiRouter {
     Uint8List? imageBytes,
     String? mimeType,
     bool searchWeb = true,
+    AiContextLevel contextLevel = AiContextLevel.full,
+    TodayTask? contextTask,
+    int? availableMinutes,
   }) async {
     final hasImage = imageBytes != null && imageBytes.isNotEmpty;
 
@@ -82,7 +170,11 @@ class AiRouter {
     // không được làm sập chat.
     String? studyContext;
     try {
-      studyContext = AiStudyContext.build();
+      studyContext = AiStudyContext.buildFor(
+        contextLevel,
+        task: contextTask,
+        availableMinutes: availableMinutes,
+      );
     } catch (_) {
       studyContext = null;
     }
@@ -196,6 +288,39 @@ class AiRouter {
   static bool _isOk(String result) {
     final t = result.trim();
     return t.isNotEmpty && !t.startsWith('❌');
+  }
+
+  static Stream<String> _callStream(
+    AIModel m, {
+    required List<ChatMessage> history,
+    required String userMessage,
+    Uint8List? imageBytes,
+    String? mimeType,
+    String? webContext,
+    String? studyContext,
+  }) async* {
+    if (m.slug.startsWith('gemini/')) {
+      final response = await GeminiService.chat(
+        apiKey: AppConfig.geminiApiKey,
+        history: history,
+        userMessage: userMessage,
+        imageBytes: imageBytes,
+        mimeType: mimeType,
+        webContext: webContext,
+        studyContext: studyContext,
+      );
+      yield response;
+      return;
+    }
+    yield* OpenRouterService.chatStream(
+      model: m.slug,
+      history: history,
+      userMessage: userMessage,
+      imageBytes: imageBytes,
+      mimeType: mimeType,
+      webContext: webContext,
+      studyContext: studyContext,
+    );
   }
 
   static Future<String> _call(

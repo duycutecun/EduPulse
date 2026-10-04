@@ -12,6 +12,8 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/theme/appearance_service.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../core/utils/feedback_service.dart';
+import '../../../../core/ai/ai_models.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
@@ -234,7 +236,14 @@ class _AccountScreenState extends State<AccountScreen> {
             children: [
               Icon(icon, size: 16, color: active ? Colors.white : AppColors.textMuted),
               const SizedBox(width: 6),
-              Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: active ? Colors.white : AppColors.textPrimary)),
+              // Flexible + ellipsis: nhãn dài không đẩy tràn nút segment khi
+              // màn hẹp (320px).
+              Flexible(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: active ? Colors.white : AppColors.textPrimary)),
+              ),
             ],
           ),
         ),
@@ -492,7 +501,33 @@ class _AccountScreenState extends State<AccountScreen> {
             value: _reduceMotion,
             onChanged: (value) => setState(() { _reduceMotion = value; StorageService.setBool('reduce_motion', value); }),
           ),
+          // Đặc tả 5.14 — hai mục cài đặt này phải tắt được thật, nên mọi rung /
+          // âm thanh đều đi qua FeedbackService thay vì gọi thẳng platform.
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Rung'),
+            subtitle: const Text('Rung nhẹ khi bấm nút, tick nhiệm vụ, hết giờ',
+                style: TextStyle(fontSize: 11)),
+            value: FeedbackService.hapticsEnabled,
+            onChanged: (value) => setState(() => FeedbackService.setHaptics(value)),
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Âm thanh'),
+            subtitle: const Text('Âm báo hoàn thành phiên và tương tác linh vật',
+                style: TextStyle(fontSize: 11)),
+            value: FeedbackService.soundEnabled,
+            onChanged: (value) => setState(() => FeedbackService.setSound(value)),
+          ),
           const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.tune_rounded, color: AppColors.purple),
+            title: const Text('AI nâng cao'),
+            subtitle: const Text('Chọn model, quyền AI, lịch sử hội thoại',
+                style: TextStyle(fontSize: 11)),
+            onTap: _openAiAdvancedSheet,
+          ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.ios_share_rounded, color: AppColors.blue),
@@ -507,6 +542,122 @@ class _AccountScreenState extends State<AccountScreen> {
             onTap: _clearAiHistory,
           ),
         ],
+      ),
+    );
+  }
+
+  /// Đặc tả UX 5.11 — "AI nâng cao": chọn model, hành vi AI, lịch sử hội thoại.
+  ///
+  /// Mặc định app tự chọn model phù hợp (Auto); chỉ khi học sinh chủ động ghim
+  /// model ở đây thì màn AI mới dùng model đó. Không lộ tên nhà cung cấp /
+  /// thông số kỹ thuật ra UI chính (UX 5.11 "Never show").
+  void _openAiAdvancedSheet() {
+    final runtime = AIModel.runtimeDefinitions;
+    final models =
+        (runtime != null && runtime.isNotEmpty) ? runtime : AIModel.definitions;
+
+    Widget modelRow(AIModel? model, {required bool isAuto}) {
+      final slug = isAuto ? '' : model!.slug;
+      final selected = StorageService.getAiModel() == slug;
+      return ListTile(
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        leading: Icon(
+          isAuto ? Icons.auto_awesome_rounded : aiModelIcon(model!.slug),
+          color: selected ? AppColors.primary : AppColors.textMuted,
+          size: 20,
+        ),
+        title: Text(
+          isAuto ? 'Tự động (khuyên dùng)' : model!.label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          isAuto
+              ? 'Tự chuyển model theo độ khó câu hỏi.'
+              : (model!.description.isEmpty ? model.slug : model.description),
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        ),
+        trailing: selected
+            ? const Icon(Icons.check_circle_rounded,
+                color: AppColors.primary, size: 20)
+            : null,
+        onTap: () {
+          StorageService.setAiModel(slug);
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isAuto
+                  ? 'Đã chuyển AI về chế độ tự động chọn model.'
+                  : 'Đã ghim model ${model!.label}.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+      );
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: StatefulBuilder(
+          builder: (sheetContext, setSheetState) => ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              children: [
+                const Text('AI nâng cao',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text(
+                  'EduPulse tự chọn model phù hợp với từng câu hỏi. Bạn có thể '
+                  'ghin một model nếu muốn.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 10),
+                modelRow(null, isAuto: true),
+                const Divider(),
+                for (final m in models) modelRow(m, isAuto: false),
+                const Divider(),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Tự phân tích ảnh kèm theo'),
+                  subtitle: const Text(
+                      'Gửi ảnh chụp bài/đề vào AI ngay khi chọn, không cần gõ prompt.',
+                      style: TextStyle(fontSize: 11)),
+                  value: StorageService.getAiAutoReadImage(),
+                  onChanged: (v) {
+                    StorageService.setAiAutoReadImage(v);
+                    setSheetState(() {});
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.delete_sweep_outlined,
+                      color: AppColors.red),
+                  title: const Text('Xóa lịch sử trò chuyện AI',
+                      style: TextStyle(color: AppColors.red)),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _clearAiHistory();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

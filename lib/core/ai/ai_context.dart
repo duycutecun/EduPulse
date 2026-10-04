@@ -1,13 +1,15 @@
-import 'dart:convert';
 
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../../features/study/domain/study_timeline.dart';
+import '../../features/study/domain/repositories/study_session_repository.dart';
 import '../utils/storage_service.dart';
 import 'flashcard_service.dart';
 import 'exam_countdown_strategy.dart';
 import 'learning_pattern_detector.dart';
 import 'readiness_score.dart';
 import 'study_wellbeing_signal.dart';
+import 'ai_memory_service.dart';
 
 /// Gom dữ liệu học tập của học sinh thành một khối văn bản gửi kèm mọi
 /// câu hỏi cho AI Coach (đặc tả mục 10.2).
@@ -25,6 +27,28 @@ import 'study_wellbeing_signal.dart';
 ///
 /// Khối ngữ cảnh luôn được cắt gọn: proxy web (`api/openrouter.js`) giới hạn
 /// payload ~20.000 ký tự, và context thừa làm model xao nhãng.
+/// Cấp độ ngữ cảnh gửi kèm một request AI (đặc tả AI mục 5).
+///
+/// Không phải câu hỏi nào cũng cần toàn bộ dữ liệu học tập. Gửi thừa làm model
+/// xao nhãng và tốn payload; gửi thiếu làm câu trả lời chung chung. Vì vậy mỗi
+/// loại tương tác chọn đúng cấp độ thay vì luôn ném cả kho dữ liệu.
+enum AiContextLevel {
+  /// Level 0 — không gửi gì: kiến thức phổ thông, câu hỏi không liên quan.
+  none,
+
+  /// Level 1 — chỉ bài học hiện tại ("Hỏi AI bài này").
+  task,
+
+  /// Level 2 — tình hình hôm nay ("Hôm nay nên học gì?").
+  today,
+
+  /// Level 3 — hồ sơ học tập: môn mạnh/yếu, lịch sử, tự đánh giá.
+  learningProfile,
+
+  /// Level 4 — toàn bộ ngữ cảnh để lập kế hoạch / phân tích sâu.
+  full,
+}
+
 class AiStudyContext {
   /// Ngưỡng ký tự của cả khối. Chừa chỗ cho ảnh + lịch sử chat trong payload.
   static const int _maxChars = 2500;
@@ -63,6 +87,174 @@ class AiStudyContext {
     final block = lines.join('\n');
     if (block.length <= _maxChars) return block;
     return '${block.substring(0, _maxChars)}\n(ngữ cảnh bị rút gọn phía cuối)';
+  }
+
+  /// Giới hạn ký tự theo từng cấp — cấp càng hẹp càng phải gọn.
+  static int _capFor(AiContextLevel level) {
+    switch (level) {
+      case AiContextLevel.none:
+        return 0;
+      case AiContextLevel.task:
+        return 1200;
+      case AiContextLevel.today:
+        return 1500;
+      case AiContextLevel.learningProfile:
+        return 2000;
+      case AiContextLevel.full:
+        return _maxChars;
+    }
+  }
+
+  /// Dựng ngữ cảnh theo ĐÚNG cấp độ người gọi cần (đặc tả AI mục 5).
+  ///
+  /// [AiContextLevel.full] giữ nguyên hành vi [build] (tương thích ngược).
+  /// [AiContextLevel.task] cần truyền [task] — thiếu bài học thì trả chuỗi
+  /// rỗng thay vì đoán bừa một nhiệm vụ nào đó của học sinh.
+  static String buildFor(
+    AiContextLevel level, {
+    DateTime? now,
+    TodayTask? task,
+    int? availableMinutes,
+  }) {
+    if (level == AiContextLevel.none) return '';
+    if (level == AiContextLevel.full) return build(now: now);
+    if (StorageService.getBool('ai_permission_read') == false) return '';
+
+    final t = now ?? DateTime.now();
+    final lines = <String>[];
+    void add(String line) {
+      if (line.trim().isNotEmpty) lines.add(line);
+    }
+
+    switch (level) {
+      case AiContextLevel.task:
+        _taskContext(add, task);
+      case AiContextLevel.today:
+        _todayContext(add, t, availableMinutes);
+      case AiContextLevel.learningProfile:
+        _learningProfileContext(add, t);
+      case AiContextLevel.none:
+      case AiContextLevel.full:
+        break;
+    }
+
+    final memoryPrompt = AiMemoryService.buildMemoryPrompt();
+    if (memoryPrompt.isNotEmpty) {
+      add(memoryPrompt);
+    }
+
+    if (lines.isEmpty) return '';
+    final block = lines.join('\n');
+    final cap = _capFor(level);
+    if (block.length <= cap) return block;
+    return '${block.substring(0, cap)}\n(ngữ cảnh bị rút gọn)';
+  }
+
+  /// Level 1 — mô tả trọn vẹn một bài học đang mở.
+  static void _taskContext(void Function(String) add, TodayTask? task) {
+    if (task == null) return;
+    add('BÀI HỌC HIỆN TẠI: ${task.title}');
+    final topic = task.topic;
+    add('  Môn: ${task.subject}'
+        '${topic == null || topic.isEmpty ? '' : ' · Chủ đề: $topic'}');
+    final state = task.isDone
+        ? 'đã hoàn thành'
+        : task.status == 'skipped'
+            ? 'đã bỏ qua'
+            : 'chưa làm';
+    add('  Trạng thái: $state · Ưu tiên: ${task.priority} · '
+        'Dự kiến: ${task.estimateMinutes} phút');
+    final deadline = task.deadline;
+    if (deadline != null) {
+      add('  Hạn chót: ${deadline.day}/${deadline.month}/${deadline.year}');
+    }
+    if (task.rescheduleCount > 0) {
+      add('  Đã dời lịch ${task.rescheduleCount} lần');
+    }
+    final note = task.note?.trim();
+    if (note != null && note.isNotEmpty) add('  Ghi chú: $note');
+    if (task.subtasks.isNotEmpty) {
+      add('  Đã chia nhỏ: ${task.subtasks.take(_maxListItems).join('; ')}');
+    }
+    // Phiên học gắn đúng bài này — AI biết học sinh đã bỏ ra bao nhiêu thời gian.
+    final related =
+        _allSessions().where((s) => s.taskId == task.id).toList(growable: false);
+    if (related.isNotEmpty) {
+      final mins = related.fold<int>(0, (a, s) => a + s.actualMinutes);
+      add('  Phiên học của bài này: ${related.length} phiên / ${_hours(mins)}');
+    }
+  }
+
+  /// Level 2 — tình hình hôm nay: giờ hiện tại, thời gian rảnh, việc quá hạn.
+  static void _todayContext(
+    void Function(String) add,
+    DateTime now,
+    int? availableMinutes,
+  ) {
+    _profile(add);
+    const weekdays = [
+      '',
+      'thứ 2',
+      'thứ 3',
+      'thứ 4',
+      'thứ 5',
+      'thứ 6',
+      'thứ 7',
+      'chủ nhật',
+    ];
+    final hh = now.hour.toString().padLeft(2, '0');
+    final mm = now.minute.toString().padLeft(2, '0');
+    add('THỜI ĐIỂM HIỆN TẠI: ${weekdays[now.weekday]} $hh:$mm, '
+        'ngày ${now.day}/${now.month}');
+    if (availableMinutes != null && availableMinutes > 0) {
+      add('THỜI GIAN RẢNH HÔM NAY: khoảng $availableMinutes phút');
+    }
+
+    final tasks = _readAll(
+      StorageService.getTodayTaskIds(),
+      StorageService.getTodayTaskJson,
+      TodayTask.fromJsonString,
+    );
+    if (tasks.isEmpty) return;
+
+    final todo = tasks
+        .where((t) => !t.isDone && t.status != 'skipped')
+        .toList(growable: false);
+    final todoMinutes = todo.fold<int>(0, (a, t) => a + t.estimateMinutes);
+    add('NHIỆM VỤ HÔM NAY: ${tasks.length - todo.length}/${tasks.length} đã xong · '
+        '${todo.length} chưa làm · tổng dự kiến $todoMinutes phút');
+
+    final overdue = todo.where((t) {
+      final due = t.deadline ?? t.scheduledAt;
+      return due != null && due.isBefore(now);
+    }).toList(growable: false);
+    if (overdue.isNotEmpty) {
+      add('  QUÁ HẠN (${overdue.length}): '
+          '${overdue.take(_maxListItems).map((t) => t.title).join('; ')}');
+    }
+
+    final ranked = [...todo]..sort((a, b) =>
+        _priorityRank(a.priority).compareTo(_priorityRank(b.priority)));
+    if (ranked.isNotEmpty) {
+      final text = ranked
+          .take(_maxListItems)
+          .map((t) => '${t.title} [${t.subject}, ${t.priority}, '
+              '${t.estimateMinutes}p]')
+          .join('; ');
+      add('  Cần làm: $text');
+    }
+  }
+
+  /// Level 3 — hồ sơ học tập: hiệu quả theo môn, lịch sử, tự đánh giá.
+  static void _learningProfileContext(void Function(String) add, DateTime now) {
+    _profile(add);
+    _momentum(add);
+    _readiness(add);
+    _sessions(add, now);
+    _mockScores(add, now);
+    _learningPatterns(add, now);
+    _wellbeing(add, now);
+    _logs(add, now);
   }
 
   // --- Từng phần ---------------------------------------------------------
@@ -258,7 +450,7 @@ class AiStudyContext {
   }
 
   static void _sessions(void Function(String) add, DateTime now) {
-    final all = _sessionsFrom(StorageService.getStudySessionIds());
+    final all = _allSessions();
     if (all.isEmpty) return;
 
     var totalMinutes = 0;
@@ -316,7 +508,7 @@ class AiStudyContext {
   }
 
   static void _learningPatterns(void Function(String) add, DateTime now) {
-    final sessions = _sessionsFrom(StorageService.getStudySessionIds());
+    final sessions = _allSessions();
     final patterns = LearningPatternDetector.detect(sessions, now: now);
     if (patterns.isEmpty) return;
     add('LEARNING PATTERNS (recent, offline):');
@@ -327,7 +519,7 @@ class AiStudyContext {
 
   static void _wellbeing(void Function(String) add, DateTime now) {
     final signal = StudyWellbeingDetector.detect(
-      _sessionsFrom(StorageService.getStudySessionIds()),
+      _allSessions(),
       now: now,
     );
     if (signal.state == StudyWellbeingState.unknown) return;
@@ -335,22 +527,24 @@ class AiStudyContext {
   }
 
   static void _logs(void Function(String) add, DateTime now) {
-    final logs = _readAll(
+    // Gộp cả phiên học thật lẫn ghi chép nhập tay: chỉ đọc `StudyLog` thì AI
+    // sẽ thấy gần như không có gì, vì pomodoro không còn ghi dòng log nữa.
+    final entries = buildStudyTimeline(logs: _readAll(
       StorageService.getStudyLogIds(),
       StorageService.getStudyLogJson,
       StudyLog.fromJsonString,
-    );
-    if (logs.isEmpty) return;
+    ), sessions: _allSessions());
+    if (entries.isEmpty) return;
 
     var totalHours = 0.0;
     var recentHours = 0.0;
     final bySubject = <String, double>{};
-    for (final l in logs) {
-      totalHours += l.hours;
-      bySubject[l.subject.isEmpty ? 'khác' : l.subject] =
-          (bySubject[l.subject.isEmpty ? 'khác' : l.subject] ?? 0) + l.hours;
-      if (now.difference(l.date).inDays <= _recentDays) {
-        recentHours += l.hours;
+    for (final entry in entries) {
+      totalHours += entry.hours;
+      final subject = entry.subject.isEmpty ? 'khác' : entry.subject;
+      bySubject[subject] = (bySubject[subject] ?? 0) + entry.hours;
+      if (now.difference(entry.date).inDays <= _recentDays) {
+        recentHours += entry.hours;
       }
     }
     add('NHẬT KÝ HỌC: ${totalHours.toStringAsFixed(1)} giờ tích lũy · '
@@ -474,20 +668,11 @@ class AiStudyContext {
     return out;
   }
 
-  /// [StudySession] chưa có hàm `fromJsonString` nên tự giải mã.
-  static List<StudySession> _sessionsFrom(List<String> ids) {
-    final out = <StudySession>[];
-    for (final id in ids) {
-      final raw = StorageService.getStudySessionJson(id);
-      if (raw == null || raw.isEmpty) continue;
-      try {
-        out.add(StudySession.fromJson(jsonDecode(raw) as Map<String, dynamic>));
-      } catch (_) {
-        continue;
-      }
-    }
-    return out;
-  }
+  /// Phiên học đã đọc qua [StudySessionRepository] — một nguồn duy nhất, có
+  /// ghi log khi gặp phiên JSON hỏng thay vì bỏ qua im lặng. (Bình luận cũ
+  /// "chưa có hàm fromJsonString nên tự giải mã" đã lỗi thời từ lâu.)
+  static List<StudySession> _allSessions() =>
+      StudySessionRepository.instance.getAll();
 
   static String _hours(int minutes) => '${(minutes / 60).toStringAsFixed(1)}h';
 }

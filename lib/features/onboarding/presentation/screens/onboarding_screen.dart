@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/main_shell.dart';
-import '../../../../core/ai/ai_models.dart';
-import '../../../../core/ai/ai_router.dart';
+import '../../../../core/ai/ai_sprint4_planner.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../exams/domain/preset_exams.dart';
 import '../../domain/onboarding_response_parser.dart';
-import '../../../study/domain/ai_plan.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../tasks/domain/repositories/task_repository.dart';
 
 /// Onboarding theo đặc tả mục 46: flow 3–5 phút, adaptive, thu thập
 ///
@@ -42,7 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   double? _targetScore;
   int _dailyMinutes = 120;
 
-  List<AiPlanTask> _plan = const [];
+  List<AiPlannedTask> _plan = const [];
 
   bool _conversationalMode = false;
   int _chatStage = 0; // 0: name, 1: exam, 2: weak subject, 3: time, 4: complete
@@ -78,7 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   /// Lưu kỳ thi + (nếu có) task từ lộ trình đã duyệt. Nếu không có task
   /// nào được duyệt, seed nhiệm vụ mẫu của preset để Home không trống.
-  void _finish() {
+  Future<void> _finish() async {
     final exam = ExamModel(
       id: _preset?.id ?? _uuid.v4(),
       name: _preset?.name ?? 'Kỳ thi mục tiêu',
@@ -97,15 +97,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     // Lấy đề xuất còn lại trong preview (user có thể đã bỏ bớt task).
     final accepted = _plan;
-    final List<TodayTask> created = [];
+    final repo = TaskRepository.instance;
     for (final t in accepted) {
       final assignedDay = t.day.clamp(1, 7);
       final task = TodayTask(
         id: _uuid.v4(),
         title: t.title,
-        subject: t.subject,
+        subject: AppSubjects.normalize(t.subject),
         priority: t.priority,
-        estimateMinutes: t.minutes,
+        estimateMinutes: t.estimateMinutes,
         goalId: exam.id,
         scheduledAt: DateTime(
           _examDate.year,
@@ -113,30 +113,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _examDate.day,
         ).subtract(Duration(days: 7 - assignedDay)),
       );
-      StorageService.setTodayTaskJson(task.id, task.toJsonString());
-      created.add(task);
+      await repo.createTaskIfMissing(task);
     }
 
     // Không duyệt đề xuất nào (hoặc AI lỗi hoặc qua chat) → seed mẫu để có gì đó bắt đầu.
-    if (created.isEmpty) {
+    if (repo.getAllTasks().isEmpty) {
       final samplePreset = _preset ?? PresetExams.all.first;
       for (final t in samplePreset.sampleTasks) {
-        final task = TodayTask(
+        await repo.createTaskIfMissing(TodayTask(
           id: _uuid.v4(),
           title: t.title,
-          subject: t.subject,
+          subject: AppSubjects.normalize(t.subject),
           priority: t.priority,
           estimateMinutes: t.minutes,
           goalId: exam.id,
-        );
-        StorageService.setTodayTaskJson(task.id, task.toJsonString());
-        created.add(task);
+        ));
       }
     }
-
-    final ids = StorageService.getTodayTaskIds()
-      ..addAll(created.map((t) => t.id));
-    StorageService.setTodayTaskIds(ids);
 
     // Lưu điểm xuất phát môn yếu (để AiCopilotService và Home nhận diện ngay)
     if (_chatWeakSubject.isNotEmpty) {
@@ -179,24 +172,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     final daysLeft = _examDate.difference(DateTime.now()).inDays;
-    final prompt = buildAiPlanPrompt(
-      examName: _preset?.name ?? 'kỳ thi của bạn',
-      daysLeft: daysLeft > 0 ? daysLeft : 180,
-      dailyMinutes: _dailyMinutes,
-      planDays: 7,
-    );
-
     try {
-      final raw = await AiRouter.chat(
-        model: AIModel.defaultModel,
-        history: const [],
-        userMessage: prompt,
-        searchWeb: false,
+      // Dùng chung [AiStudyPlannerService] với màn "Lộ trình AI" và Quick Action
+      // ở tab AI — một luồng lập kế hoạch duy nhất cho toàn app.
+      final plan = await AiStudyPlannerService.generatePlan(
+        daysAhead: 7,
+        dailyMinutes: _dailyMinutes,
+        examName: _preset?.name ?? 'kỳ thi của bạn',
+        daysLeft: daysLeft > 0 ? daysLeft : 180,
       );
       if (!mounted) return;
       setState(() {
         _generating = false;
-        _plan = parseAiPlan(raw);
+        _plan = plan.tasks;
         if (_plan.isEmpty) _aiFailed = true;
       });
     } catch (_) {
@@ -897,7 +885,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary)),
-                Text('⏱ ${t.minutes} phút • ${_priorityLabel(t.priority)}',
+                Text(
+                    '⏱ ${t.estimateMinutes} phút • ${_priorityLabel(t.priority)}',
                     style: const TextStyle(
                         fontSize: 11, color: AppColors.textMuted)),
               ],
@@ -971,7 +960,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _chatMessages.add({
           'isAi': true,
           'text':
-              'Rất vui được gặp ${clean}! 🎯 Bạn đang chuẩn bị cho kỳ thi nào?',
+              'Rất vui được gặp $clean! 🎯 Bạn đang chuẩn bị cho kỳ thi nào?',
         });
       } else if (_chatStage == 1) {
         final lower = clean.toLowerCase();

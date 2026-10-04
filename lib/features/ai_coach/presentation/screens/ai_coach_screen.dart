@@ -6,16 +6,27 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/ai/ai_chat_actions.dart';
+import '../../../../core/ai/ai_context.dart';
+import '../../../../core/ai/ai_copilot_service.dart';
+import '../../../../core/ai/ai_sprint4_planner.dart';
+import '../../../../core/ai/ai_weakness_analyzer.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/image_compressor.dart';
+import '../../../exams/domain/models/exam_model.dart';
+import '../../../home/domain/services/today_service.dart';
+import '../../../study/domain/distribute_day.dart';
+import '../../../study/domain/optimize_week.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/presentation/widgets/day_balance_sheet.dart';
+import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../domain/quiz_models.dart';
 import '../widgets/ai_coach_header.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
-import '../widgets/model_picker_sheet.dart';
+import '../../../../shared/widgets/state_views.dart';
+
 import 'quiz_play_screen.dart';
 
 class AiCoachScreen extends StatefulWidget {
@@ -56,10 +67,10 @@ class AiCoachScreenState extends State<AiCoachScreen> {
   @override
   void initState() {
     super.initState();
-    // Luôn chạy ở chế độ Auto: AI chọn model hợp lý theo câu hỏi và tự chuyển
-    // sang model khác khi model đang dùng bị lỗi.
-    _model = AIModel.defaultModel;
-    _autoReadImage = true;
+    // Đọc model đã ghim ở Tôi → Cài đặt → AI nâng cao (UX 5.11); rỗng = Auto.
+    // AI vẫn tự chuyển model khi model đang dùng bị lỗi (Model Routing, AI-23).
+    _model = AIModel.fromSlug(StorageService.getAiModel());
+    _autoReadImage = StorageService.getAiAutoReadImage();
     _loadChatHistory();
 
     if (widget.initialPrompt != null && widget.initialPrompt!.trim().isNotEmpty) {
@@ -256,9 +267,19 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                       );
                     }
                     if (snap.hasError) {
+                      // Gate 2 (AI): không đẩy lỗi kỹ thuật vào mặt người
+                      // dùng — nói rõ chuyện gì xảy ra và làm sao đi tiếp.
                       return Center(
-                        child: Text('Lỗi: ${snap.error}',
-                            style: const TextStyle(color: AppColors.red)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            'Chưa phân tích được lịch sử chat lúc này. '
+                            'Kiểm tra kết nối rồi thử lại nhé.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                        ),
                       );
                     }
                     return SingleChildScrollView(
@@ -295,6 +316,256 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
         ),
       ),
     );
+  }
+
+  // ─── Sprint 4 — Quick Actions (FE-4.1) ────────────────────────────────
+
+  /// Đẩy một câu trả lời AI cục bộ (không cần mạng) vào hội thoại, kèm nút
+  /// hành động. Dùng cho gợi ý tức thời như "Tôi nên học gì?" (AI-4.2).
+  void _pushAiMessage(String text, {List<dynamic> actions = const []}) {
+    setState(() {
+      _messages.add(ChatMessage(
+        id: _uuid.v4(),
+        text: text,
+        isUser: false,
+        timestamp: DateTime.now(),
+        actions: actions,
+      ));
+    });
+    _saveChatHistory();
+    _scrollToBottom();
+  }
+
+  /// AI-4.2 — "Tôi nên học gì bây giờ?": một khuyến nghị rõ ràng kèm nút bắt
+  /// đầu. Phân tích cục bộ theo giờ hiện tại, deadline và độ ưu tiên nên luôn
+  /// chạy được cả khi ngoại tuyến.
+  void _quickRecommend() {
+    final report = AiCopilotService.buildSituationReport();
+    final text =
+        '${report.statusTitle}\n\n${report.headline}\n\n${report.details}';
+    _pushAiMessage(text, actions: report.actions);
+  }
+
+  /// AI-4.3 — Giải thích bài học theo ngữ cảnh: chọn bài chưa xong đầu tiên
+  /// và gửi kèm đúng ngữ cảnh cấp 1 (bài hiện tại) thay vì cả kho dữ liệu.
+  void _quickExplain() {
+    final tasks = TodayService.getTodayTasksSorted()
+        .where((t) => !t.isDone && t.status != 'skipped')
+        .toList();
+    if (tasks.isEmpty) {
+      const hint = 'Giải thích giúp tôi bài học...';
+      _ctrl.text = hint;
+      _ctrl.selection = TextSelection.collapsed(offset: hint.length);
+      _focusNode.requestFocus();
+      return;
+    }
+    final task = tasks.first;
+    final topic = task.topic;
+    _sendMessage(
+      'Hãy giải thích trọng tâm kiến thức của bài "${task.title}" môn '
+      '${task.subject}${topic == null || topic.isEmpty ? '' : ', chủ đề $topic'}. '
+      'Nêu ý chính, lỗi/bẫy thường gặp và 2-3 câu hỏi để tôi tự kiểm tra.',
+      contextLevel: AiContextLevel.task,
+      contextTask: task,
+    );
+  }
+
+  /// AI-4.4 — Lập kế hoạch ôn tập: sinh kế hoạch rồi mở Preview để học sinh
+  /// duyệt (AI-4.6: không ghi gì khi chưa xác nhận).
+  Future<void> _quickPlan() async {
+    if (_isLoading) return;
+    if (!PwaService.isOnline) {
+      _showAiToast('AI tạm thời không khả dụng khi ngoại tuyến — '
+          'bạn vẫn có thể tự học bình thường.');
+      return;
+    }
+
+    _showLoadingDialog('AI đang lập kế hoạch ôn tập...');
+    AiStudyPlan? plan;
+    Object? error;
+    try {
+      plan = await AiStudyPlannerService.generatePlan();
+    } catch (e) {
+      error = e;
+    }
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+
+    if (plan == null || plan.isEmpty) {
+      _showAiToast(error == null
+          ? 'AI chưa tạo được kế hoạch phù hợp. Hãy thử lại sau một lát.'
+          : 'AI tạm thời không khả dụng, bạn vẫn có thể tự học bình thường.');
+      return;
+    }
+    await AiPlanPreviewSheet.show(context, plan: plan);
+  }
+
+  /// AI-4.5 — Phân tích điểm yếu từ dữ liệu thật (điểm thi thử, thời gian học,
+  /// số lần dời lịch). Cục bộ nên không cần mạng; thiếu dữ liệu thì nói thật.
+  void _quickWeakness() {
+    final report = WeaknessAnalyzer.analyze();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.insights_rounded,
+                      color: AppColors.purple, size: 22),
+                  SizedBox(width: 8),
+                  Text('Phân tích điểm yếu',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                report.summary.replaceAll('**', ''),
+                style: const TextStyle(
+                    fontSize: 13.5,
+                    height: 1.5,
+                    color: AppColors.textPrimary),
+              ),
+              if (report.suggestions.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                const Text('Nên làm gì tiếp:',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 8),
+                ...report.suggestions.map((s) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.chevron_right_rounded,
+                              size: 18, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(s,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    color: AppColors.textSecondary)),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Đã hiểu',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// AI-4.7 — Quick Action "Điều chỉnh lịch" (AI mục 22).
+  ///
+  /// Cố tình **KHÔNG gọi LLM**: việc này chỉ là sort task + cộng tổng thời
+  /// gian theo quỹ ngày, đúng danh sách "Không gọi AI khi…" ở AI-24. Rule
+  /// engine [proposeDayBalance] chạy tức thì, cả khi ngoại tuyến, và cho ra
+  /// đề xuất có lý do rõ ràng để học sinh duyệt (AI-4.6).
+  Future<void> _quickReschedule() async {
+    if (_isLoading) return;
+    final tasks = TaskRepository.instance.getAllTasks();
+    final proposals = proposeDayBalance(tasks: tasks, now: DateTime.now());
+
+    if (proposals.isEmpty) {
+      // AI-17: nói thật khi không đủ dữ liệu, không bịa đề xuất.
+      final open = tasks
+          .where((t) => !t.isDone && t.status != 'skipped')
+          .length;
+      _pushAiMessage(
+        open == 0
+            ? 'Chưa có nhiệm vụ nào đang mở nên chưa có gì để điều chỉnh. '
+                'Tạo nhiệm vụ trước nhé.'
+            : 'Lịch hiện tại đã vừa sức — mỗi ngày không vượt quỹ '
+                '$kDefaultDailyCapacityMinutes phút nên chưa cần dời gì. '
+                'Bạn vẫn có thể tự kéo các bài sang ngày khác trong thẻ nhiệm vụ.',
+      );
+      return;
+    }
+
+    final moved = await showDayBalanceSheet(
+      context,
+      tasks: tasks,
+      title: 'Điều chỉnh lịch 🧺',
+      subtitle:
+          'Hôm nay đang nặng hơn quỹ. Chọn những bài muốn dời — không có gì '
+          'bị đổi khi bạn chưa duyệt.',
+    );
+    if (!mounted) return;
+    if (moved > 0) {
+      _pushAiMessage(
+        'Đã dời $moved nhiệm vụ sang ngày còn quỹ. Hôm nay nhẹ hơn rồi 🧺',
+      );
+    }
+  }
+
+  void _showLoadingDialog(String message) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(message,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAiToast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ));
   }
 
   /// Suy đoán tên môn từ tên file/nội dung người dùng chọn để quiz từ ảnh
@@ -386,24 +657,19 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                   ),
                   builder: (ctx, snap) {
                     if (snap.connectionState != ConnectionState.done) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircularProgressIndicator(
-                                color: AppColors.purple),
-                            const SizedBox(height: 12),
-                            Text('AI đang đọc ảnh & soạn câu hỏi...',
-                                style: TextStyle(
-                                    fontSize: 13, color: AppColors.textMuted)),
-                          ],
-                        ),
-                      );
+                      return const SkeletonList(lines: 3);
                     }
                     if (snap.hasError) {
-                      return Center(
-                        child: Text('Lỗi: ${snap.error}',
-                            style: const TextStyle(color: AppColors.red)),
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'Chưa soạn được câu hỏi lúc này. Kiểm tra kết nối rồi thử lại nhé.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                        ),
                       );
                     }
                     final questions = parseQuiz(snap.data ?? '');
@@ -474,7 +740,11 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     );
   }
 
-  Future<void> _sendMessage(String text) async {
+  Future<void> _sendMessage(
+    String text, {
+    AiContextLevel contextLevel = AiContextLevel.full,
+    TodayTask? contextTask,
+  }) async {
     if (text.trim().isEmpty && _selectedImageBytes == null) return;
 
     if (!PwaService.isOnline) {
@@ -532,12 +802,36 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     _saveChatHistory();
     _scrollToBottom();
 
-    final response = await AiRouter.chat(
-      model: _model,
-      history: _messages.where((m) => !m.isLoading).toList(),
-      userMessage: messageText,
-      imageBytes: attachedImage,
-    );
+    final String response;
+    try {
+      response = await AiRouter.chat(
+        model: _model,
+        history: _messages.where((m) => !m.isLoading).toList(),
+        userMessage: messageText,
+        imageBytes: attachedImage,
+        contextLevel: contextLevel,
+        contextTask: contextTask,
+      );
+    } catch (_) {
+      // Đặc tả 12 / AI-30: không xoá câu hỏi của người dùng, nói rõ chuyện gì
+      // xảy ra và đưa hai lối ra — thử lại, hoặc tự học tiếp.
+      if (!mounted) return;
+      setState(() {
+        _messages.remove(loadingMsg);
+        _messages.add(ChatMessage(
+          id: _uuid.v4(),
+          text: 'AI đang không phản hồi. Bạn vẫn có thể tiếp tục học '
+              'hoặc thử lại sau.',
+          isUser: false,
+          timestamp: DateTime.now(),
+          isError: true,
+          retryPrompt: messageText,
+        ));
+        _isLoading = false;
+      });
+      _scrollToBottom();
+      return;
+    }
 
     // AI biết HÀNH ĐỘNG: tách khối <<<ACTIONS>>> khỏi câu trả lời — phần
     // text sạch hiển thị, phần hành động thành nút bấm thật trong bubble.
@@ -559,6 +853,19 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     });
     _saveChatHistory();
     _scrollToBottom();
+  }
+
+  /// Thử lại một câu hỏi bị lỗi — giữ nguyên nội dung gốc (đặc tả 12).
+  void _retryFailed(ChatMessage error) {
+    final prompt = error.retryPrompt;
+    if (prompt == null || prompt.isEmpty) return;
+    setState(() => _messages.remove(error));
+    _sendMessage(prompt);
+  }
+
+  /// "Tiếp tục tự học" — bỏ thông báo lỗi, đưa người dùng về kế hoạch hôm nay.
+  void _closeErrorAndGoToday(ChatMessage error) {
+    setState(() => _messages.remove(error));
   }
 
   /// Regenerate câu trả lời AI (đặc tả mục 10.10): gửi lại câu hỏi
@@ -632,16 +939,58 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     });
   }
 
-  void _showModelPicker() {
-    showModelPickerSheet(
-      context: context,
-      currentModel: _model,
-      onSelect: (m) {
-        setState(() => _model = m);
-        StorageService.setAiModel(m.slug);
-      },
-    );
+  /// Trước đây chip là chuỗi tĩnh ("Giải thích dạng bài đạo hàm lớp 12") —
+  /// với học sinh thi Lý hoặc chưa chọn kỳ thi thì gợi ý sai lệch hoàn toàn.
+  /// Nay dựng từ: nhiệm vụ đầu tiên hôm nay, môn ưu tiên (yếu nhất theo điểm
+  /// thi thử), tên kỳ thi thật và điểm yếu thật — nên luôn liên quan tới
+  /// người đang dùng.
+  /// Thiếu dữ liệu thì nói thật ("Chưa có kỳ thi…") thay vì bịa tên môn.
+  List<String> _dynamicPrompts() {
+    final prompts = <String>[];
+
+    final firstTask = TodayService.getTodayTasksSorted()
+        .where((t) => !t.isDone && t.status != 'skipped')
+        .firstOrNull;
+    if (firstTask != null) {
+      prompts.add('Giải thích trọng tâm bài "${firstTask.title}"');
+    }
+
+    final examId = StorageService.getPrimaryExamId();
+    final examName = examId == null
+        ? null
+        : () {
+            final json = StorageService.getExamJson(examId);
+            return json == null
+                ? null
+                : () {
+                    try {
+                      return ExamModel.fromJsonString(json).name;
+                    } catch (_) {
+                      return null;
+                    }
+                  }();
+          }();
+    if (examName != null) {
+      prompts.add('Lập kế hoạch ôn thi $examName');
+    }
+
+    final weakest = AiCopilotService.weakestSubject();
+    if (weakest != null) {
+      prompts.add('Môn ${weakest.$1} (${weakest.$2.toStringAsFixed(1)} điểm) cần cải thiện gì?');
+    }
+
+    prompts.add('Kiểm tra lần này sai ở đâu?');
+    return prompts;
   }
+
+  /// UX 5.11 — không mở picker model ngay tại màn chat (học sinh không cần
+  /// biết tên model/nhà cung cấp). Chỉ chỉ đường dẫn tới Cài đặt.
+  void _showModelPicker() {
+    _showAiToast('Đổi model AI ở Tôi → Cài đặt → AI nâng cao. '
+        'Mặc định EduPulse tự chọn model phù hợp câu hỏi.');
+  }
+
+  bool get _isModelPinned => StorageService.getAiModel().isNotEmpty;
 
   void _refreshChat() {
     StorageService.clearAiChatHistory();
@@ -658,6 +1007,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
       children: [
         AICoachHeader(
           model: _model,
+          pinned: _isModelPinned,
           onModelTap: _showModelPicker,
           onRefresh: _refreshChat,
           onAnalyze: _analyzeWeakTopics,
@@ -693,22 +1043,36 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                         ),
                       ),
                       const SizedBox(height: 14),
-                      Text('Hôm nay ôn gì together? 🦁',
+                      Text('Bạn cần gì? 🦁',
                           style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary)),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 4),
+                      Text('Chọn nhanh một việc, hoặc hỏi tự do bên dưới.',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.textMuted)),
+                      const SizedBox(height: 16),
+                      _AiQuickActions(
+                        onRecommend: _quickRecommend,
+                        onExplain: _quickExplain,
+                        onPlan: _quickPlan,
+                        onWeakness: _quickWeakness,
+                        onReschedule: _quickReschedule,
+                      ),
+                      const SizedBox(height: 18),
+                      Text('Hoặc hỏi nhanh:',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary)),
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         alignment: WrapAlignment.center,
                         children: [
-                          for (final prompt in const [
-                            'Giải thích dạng bài đạo hàm lớp 12',
-                            'Lập kế hoạch 3 ngày trước thi',
-                            'Kiểm tra lần này sai ở đâu?',
-                          ])
+                          for (final prompt in _dynamicPrompts())
                             ActionChip(
                               label: Text(prompt,
                                   style: const TextStyle(fontSize: 12)),
@@ -730,6 +1094,12 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                 onRegenerate: _isIntroOnly
                     ? null
                     : () => _regenerate(_messages[i - (_isIntroOnly ? 1 : 0)]),
+                onRetry: _isIntroOnly
+                    ? null
+                    : () => _retryFailed(_messages[i - (_isIntroOnly ? 1 : 0)]),
+                onContinueSelfStudy: _isIntroOnly
+                    ? null
+                    : () => _closeErrorAndGoToday(_messages[i - (_isIntroOnly ? 1 : 0)]),
               );
             },
           ),
@@ -746,6 +1116,86 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
           onSend: _sendMessage,
         ),
       ],
+    );
+  }
+}
+
+/// Lưới 4 Quick Actions của màn AI (FE-4.1).
+///
+/// Thay vì để màn chat trống trơn, người dùng được định hướng vào 4 việc thực
+/// tế: hỏi nên học gì, giải thích bài, lập kế hoạch, phân tích điểm yếu.
+class _AiQuickActions extends StatelessWidget {
+  final VoidCallback onRecommend;
+  final VoidCallback onExplain;
+  final VoidCallback onPlan;
+  final VoidCallback onWeakness;
+
+  /// AI-4.7 — "Điều chỉnh lịch" (rule engine, không gọi LLM).
+  final VoidCallback onReschedule;
+
+  const _AiQuickActions({
+    required this.onRecommend,
+    required this.onExplain,
+    required this.onPlan,
+    required this.onWeakness,
+    required this.onReschedule,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(IconData, String, Color, VoidCallback)>[
+      (Icons.lightbulb_outline_rounded, 'Tôi nên học gì?', AppColors.greenDark,
+          onRecommend),
+      (Icons.menu_book_rounded, 'Giải thích bài này', AppColors.blueDark, onExplain),
+      (Icons.calendar_month_rounded, 'Lập kế hoạch', AppColors.purpleDark, onPlan),
+      (Icons.insights_rounded, 'Phân tích điểm yếu', AppColors.orangeDark,
+          onWeakness),
+      (Icons.balance_rounded, 'Điều chỉnh lịch', AppColors.blueDark, onReschedule),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final half = (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final (icon, label, color, onTap) in items)
+              SizedBox(
+                width: half,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: color.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, size: 18, color: color),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

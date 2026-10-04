@@ -5,6 +5,7 @@ import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/learning_profile.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/repositories/study_session_repository.dart';
 
 /// Hồ sơ học tập (đặc tả mục 17): personalization + learning dashboard.
 ///
@@ -26,18 +27,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
       };
 
   List<LearningTrait> _buildTraits() {
-    final sessions = StorageService.getStudySessionIds()
-        .map(StorageService.getStudySessionJson)
-        .whereType<String>()
-        .map((json) {
-          try {
-            return StudySession.fromJsonString(json);
-          } catch (_) {
-            return null;
-          }
-        })
-        .whereType<StudySession>()
-        .toList();
+    final sessions = StudySessionRepository.instance.getAll();
 
     final tasks = StorageService.getTodayTaskIds()
         .map(StorageService.getTodayTaskJson)

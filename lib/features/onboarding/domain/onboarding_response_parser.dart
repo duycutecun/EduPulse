@@ -32,7 +32,9 @@ class OnboardingResponseParser {
     // DateTime tự chuẩn hóa 31/02, vì vậy xác nhận lại phần người dùng nhập.
     if (candidate.year != year ||
         candidate.month != month ||
-        candidate.day != day) return null;
+        candidate.day != day) {
+      return null;
+    }
     return candidate;
   }
 

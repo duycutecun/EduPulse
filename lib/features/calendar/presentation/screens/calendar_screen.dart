@@ -9,9 +9,11 @@ import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../study/domain/optimize_week.dart';
 import '../../../notes/presentation/screens/notes_screen.dart';
 import '../../../search/presentation/screens/search_screen.dart';
+import '../../../tasks/domain/repositories/task_repository.dart';
 
 /// Agenda-first calendar for mobile. It intentionally shows only actionable
 /// work: scheduled tasks, deadlines and recorded focus sessions.
@@ -34,35 +36,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _load();
   }
 
-  void _load() {
-    _tasks = StorageService.getTodayTaskIds()
-        .map(StorageService.getTodayTaskJson)
-        .whereType<String>()
-        .map(_taskOrNull)
-        .whereType<TodayTask>()
-        .toList();
-    _sessions = StorageService.getStudySessionIds()
-        .map(StorageService.getStudySessionJson)
-        .whereType<String>()
-        .map(_sessionOrNull)
-        .whereType<StudySession>()
-        .toList();
-  }
-
-  TodayTask? _taskOrNull(String value) {
-    try {
-      return TodayTask.fromJsonString(value);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  StudySession? _sessionOrNull(String value) {
-    try {
-      return StudySession.fromJsonString(value);
-    } catch (_) {
-      return null;
-    }
+void _load() {
+    _tasks = TaskRepository.instance.getAllTasks();
+    _sessions = StudySessionRepository.instance.getAll();
   }
 
   /// Kỳ thi chính + revision milestone (mục 13: calendar hiển thị
@@ -312,21 +288,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           var applied = 0;
+                          final messenger = ScaffoldMessenger.of(context);
                           for (var i = 0; i < proposals.length; i++) {
                             if (!accepted[i]) continue;
                             final task = proposals[i].task;
                             task.scheduledAt = proposals[i].proposedStart;
-                            StorageService.setTodayTaskJson(
-                                task.id, task.toJsonString());
-                            applied++;
+                            // Đi qua repository để giữ luật dời lịch của
+                            // toàn app (đồng bộ updatedAt + revision).
+                            final result =
+                                await TaskRepository.instance.updateTask(task);
+                            if (result.success) applied++;
                           }
+                          if (!mounted || !sheetContext.mounted) return;
                           Navigator.pop(sheetContext);
                           if (applied > 0) {
                             AiRefreshService.notifyDataChanged();
                             setState(_load);
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               SnackBar(
                                   content:
                                       Text('Đã áp dụng $applied nhiệm vụ vào lịch.')),
@@ -387,7 +367,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _generateAiWeeklySchedule() {
+  Future<void> _generateAiWeeklySchedule() async {
     const uuid = Uuid();
     final now = DateTime.now();
     final weak = AiCopilotService.weakestSubject();
@@ -452,15 +432,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     ];
 
+    var applied = 0;
     for (final t in newTasks) {
-      StorageService.setTodayTaskJson(t.id, t.toJsonString());
+      final result = await TaskRepository.instance.createTaskIfMissing(t);
+      if (result.success) applied++;
     }
-    final ids = StorageService.getTodayTaskIds()
-      ..addAll(newTasks.map((t) => t.id));
-    StorageService.setTodayTaskIds(ids);
     AiRefreshService.notifyDataChanged();
 
     setState(_load);
+    if (!mounted) return;
+    if (applied < newTasks.length) {
+      // Nói rõ phần nào bị chặn trùng — im lặng sẽ khiến người dùng tưởng
+      // đã thêm đủ 5 việc.
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Đã thêm $applied/${newTasks.length} nhiệm vụ, '
+            '${newTasks.length - applied} nhiệm vụ đã có sẵn trong lịch.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -645,9 +635,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: const Text('Dùng đề xuất'),
             ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext);
-              _applyReschedule(task, newDay); // người dùng quyết định.
+              await _applyReschedule(task, newDay); // người dùng quyết định.
             },
             child: const Text('Vẫn dời', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
@@ -656,9 +646,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _applyReschedule(TodayTask task, DateTime newDay) {
-    task.scheduledAt = _dateOnly(newDay);
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
+  /// Dời lịch theo lịch đã chọn.
+  ///
+  /// Dùng [TaskRepository.rescheduleTask] để giữ **giờ đã hẹn** và tăng
+  /// `rescheduleCount` như mọi nơi khác (trước đây ghi tay nên bị reset về
+  /// 00:00 và AI không biết nhiệm vụ này đã bị dời mấy lần).
+  Future<void> _applyReschedule(TodayTask task, DateTime newDay) async {
+    final result =
+        await TaskRepository.instance.rescheduleTask(task.id, newDay);
+    if (!mounted) return;
+    if (result.failed) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.error ?? 'Không dời được nhiệm vụ.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     AiRefreshService.notifyDataChanged();
     setState(_load);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

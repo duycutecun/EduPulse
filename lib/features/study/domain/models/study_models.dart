@@ -112,19 +112,26 @@ class TodayTask {
   final String id;
   String title;
   bool isDone;
-  final String subject;
-  final String? topic;
-  final String priority; // 'high', 'medium', 'low'
-  final int estimateMinutes;
+  String subject;
+  String? topic;
+  String priority; // 'high', 'medium', 'low'
+  int estimateMinutes;
   DateTime? deadline;
   DateTime? scheduledAt;
-  final String? note;
-  final String? goalId;
-  final List<String> subtasks;
-  final String? recurrence;
+  String? note;
+  String? goalId;
+  List<String> subtasks;
+  String? recurrence;
   String status; // 'todo', 'completed', 'skipped'
   String? skipReason;
   int rescheduleCount;
+
+  /// Thời điểm tạo nhiệm vụ (BE-2.1). Nullable + fallback để dữ liệu v1
+  /// (không có trường này) vẫn parse được mà không cần migration.
+  DateTime? createdAt;
+
+  /// Thời điểm sửa gần nhất. Được TaskRepository cập nhật mỗi lần ghi.
+  DateTime? updatedAt;
 
   TodayTask({
     required this.id,
@@ -143,6 +150,8 @@ class TodayTask {
     this.status = 'todo',
     this.skipReason,
     this.rescheduleCount = 0,
+    this.createdAt,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toJson() => {
@@ -162,6 +171,8 @@ class TodayTask {
     'status': status,
     'skipReason': skipReason,
     'rescheduleCount': rescheduleCount,
+    'createdAt': createdAt?.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
   };
 
   factory TodayTask.fromJson(Map<String, dynamic> j) => TodayTask(
@@ -185,22 +196,91 @@ class TodayTask {
     status: j['status'] ?? ((j['isDone'] ?? false) ? 'completed' : 'todo'),
     skipReason: j['skipReason'],
     rescheduleCount: j['rescheduleCount'] ?? 0,
+    createdAt: j['createdAt'] == null
+        ? null
+        : DateTime.tryParse(j['createdAt'].toString()),
+    updatedAt: j['updatedAt'] == null
+        ? null
+        : DateTime.tryParse(j['updatedAt'].toString()),
   );
 
   String toJsonString() => jsonEncode(toJson());
   factory TodayTask.fromJsonString(String s) =>
       TodayTask.fromJson(jsonDecode(s));
+
+  /// Bản sao giữ nguyên `id` — dùng cho edit/reschedule để không phá vỡ
+  /// định danh nhiệm vụ và lịch sử phiên học đã tham chiếu tới (BE-2.1).
+  TodayTask copyWith({
+    String? title,
+    bool? isDone,
+    String? subject,
+    String? topic,
+    String? priority,
+    int? estimateMinutes,
+    DateTime? deadline,
+    DateTime? scheduledAt,
+    String? note,
+    String? goalId,
+    List<String>? subtasks,
+    String? recurrence,
+    String? status,
+    String? skipReason,
+    int? rescheduleCount,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return TodayTask(
+      id: id,
+      title: title ?? this.title,
+      isDone: isDone ?? this.isDone,
+      subject: subject ?? this.subject,
+      topic: topic ?? this.topic,
+      priority: priority ?? this.priority,
+      estimateMinutes: estimateMinutes ?? this.estimateMinutes,
+      deadline: deadline ?? this.deadline,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      note: note ?? this.note,
+      goalId: goalId ?? this.goalId,
+      subtasks: subtasks ?? this.subtasks,
+      recurrence: recurrence ?? this.recurrence,
+      status: status ?? this.status,
+      skipReason: skipReason ?? this.skipReason,
+      rescheduleCount: rescheduleCount ?? this.rescheduleCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 /// A completed focus period. Kept separately from the lightweight daily log so
 /// task history can later power task-level analytics and AI recommendations.
+///
+/// BE-3.1: thêm `startedAt`/`endedAt`/`status`. Cả ba đều **nullable** nên phiên
+/// cũ (chỉ có `completedAt`) vẫn đọc được nguyên vẹn, không cần migration.
 class StudySession {
+  /// Phiên chạy trọn vẹn.
+  static const String statusCompleted = 'completed';
+
+  /// Phiên bị dừng giữa chừng — vẫn tính thời gian đã học nhưng không đạt mục tiêu.
+  static const String statusCancelled = 'cancelled';
+
   final String id;
   final DateTime completedAt;
   final String? taskId;
   final String subject;
   final int plannedMinutes;
   final int actualMinutes;
+
+  /// Lúc bấm bắt đầu Focus. Phiên cũ không có → coi như bằng `completedAt`.
+  final DateTime? startedAt;
+
+  /// Lúc kết thúc phiên (thường trùng `completedAt`).
+  final DateTime? endedAt;
+
+  /// Xem [statusCompleted] / [statusCancelled]; phiên cũ mặc định
+  /// [statusCompleted] vì trước đây chỉ ghi phiên hoàn thành.
+  final String? status;
+
   int? mood;
   int? focus;
   int? difficulty;
@@ -215,6 +295,9 @@ class StudySession {
     required this.subject,
     required this.plannedMinutes,
     required this.actualMinutes,
+    this.startedAt,
+    this.endedAt,
+    this.status,
     this.mood,
     this.focus,
     this.difficulty,
@@ -223,6 +306,36 @@ class StudySession {
     this.reflectionNote,
   });
 
+  /// Phiên có chạy trọn vẹn không.
+  bool get isCompleted =>
+      (status ?? statusCompleted) == statusCompleted;
+
+  /// Điểm phản hồi tổng hợp 1–5, **tính ra** từ các thang đánh giá chi tiết.
+  ///
+  /// Cố ý không lưu thêm một trường `feedbackRating`: hai nguồn sự thật cho
+  /// cùng một câu hỏi là cách chắc chắn nhất để chúng lệch nhau.
+  int? get feedbackRating {
+    final values = <int>[
+      if (mood != null) mood!,
+      if (focus != null) focus!,
+      if (difficulty != null) difficulty!,
+      if (understanding != null) understanding!,
+      if (effectiveness != null) effectiveness!,
+    ];
+    if (values.isEmpty) return null;
+    final sum = values.fold<int>(0, (a, b) => a + b);
+    return (sum / values.length).round();
+  }
+
+  /// Thời lượng thực tế tính từ mốc bắt đầu/kết thúc — hữu ích khi bản ghi
+  /// cũ không có `actualMinutes` chính xác.
+  Duration? get elapsed {
+    final from = startedAt ?? completedAt;
+    final to = endedAt ?? completedAt;
+    final diff = to.difference(from);
+    return diff.isNegative ? null : diff;
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'completedAt': completedAt.toIso8601String(),
@@ -230,6 +343,9 @@ class StudySession {
         'subject': subject,
         'plannedMinutes': plannedMinutes,
         'actualMinutes': actualMinutes,
+        'startedAt': startedAt?.toIso8601String(),
+        'endedAt': endedAt?.toIso8601String(),
+        'status': status,
         'mood': mood,
         'focus': focus,
         'difficulty': difficulty,
@@ -245,6 +361,9 @@ class StudySession {
         subject: json['subject'] ?? '',
         plannedMinutes: json['plannedMinutes'] ?? 0,
         actualMinutes: json['actualMinutes'] ?? 0,
+        startedAt: DateTime.tryParse(json['startedAt'] ?? ''),
+        endedAt: DateTime.tryParse(json['endedAt'] ?? ''),
+        status: json['status'],
         mood: json['mood'],
         focus: json['focus'],
         difficulty: json['difficulty'],
@@ -278,6 +397,12 @@ class ChatMessage {
   /// chỉ gắn với phiên hiện tại, lịch sử cũ vẫn hiển thị text thuần.
   final List<dynamic> actions;
 
+  /// Tin nhắn lỗi của AI (đặc tả 12 / 30): hiện kèm [Thử lại] và
+  /// [Tiếp tục tự học] thay vì chỉ báo lỗi. `retryPrompt` giữ nguyên câu hỏi
+  /// gốc để thử lại đúng ý người dùng.
+  final bool isError;
+  final String? retryPrompt;
+
   ChatMessage({
     required this.id,
     required this.text,
@@ -289,6 +414,8 @@ class ChatMessage {
     this.sourceTitle,
     this.sourceUrl,
     this.actions = const [],
+    this.isError = false,
+    this.retryPrompt,
   });
 
   Map<String, dynamic> toJson() => {
@@ -297,6 +424,10 @@ class ChatMessage {
     'isUser': isUser,
     'timestamp': timestamp.toIso8601String(),
     'imageName': imageName,
+    // Lỗi AI phải sống sót qua lịch sử: mở app lại vẫn thấy nút
+    // "Thử lại" với đúng câu hỏi gốc (UX 12 / AI-30).
+    'isError': isError,
+    'retryPrompt': retryPrompt,
   };
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
@@ -307,6 +438,8 @@ class ChatMessage {
         ? DateTime.tryParse(j['timestamp']) ?? DateTime.now()
         : DateTime.now(),
     imageName: j['imageName'],
+    isError: j['isError'] ?? false,
+    retryPrompt: j['retryPrompt'],
   );
 }
 

@@ -18,6 +18,8 @@ import 'ai_copilot_service.dart';
 /// - label: Focus 25p ngay | type: focus | subject: Hóa học | minutes: 25
 /// - label: Lưu vào ghi chú | type: note | title: Công thức điện phân | subject: Hóa học
 /// - label: Thêm task ôn | type: task | title: Ôn điện phân | subject: Hóa học | minutes: 30 | priority: high
+/// - label: Dời ôn điện phân sang mai | type: reschedule_task | title: Ôn điện phân | days: 1
+/// - label: Xoá task ôn tối qua | type: delete_task | title: Ôn điện phân
 /// <<<END>>>
 /// ```
 ///
@@ -123,6 +125,45 @@ class AiChatActionParser {
             'subject': kv['subject'] ?? 'Toán',
             'minutes': minutes,
             'priority': kv['priority'] ?? 'medium',
+          },
+        );
+
+      // AI-2.1 — sửa / dời / xoá nhiệm vụ đang có. Môn `subject` và ngày
+      // `date` là tuỳ chọn: thiếu thì AI vẫn gợi ý được, app tự dò theo tên.
+      case 'edit_task':
+        return AiCopilotAction(
+          type: AiActionType.editTask,
+          label: '✏️ $label',
+          icon: Icons.edit_rounded,
+          color: AppColors.primary,
+          payload: {
+            if (kv['title'] != null) 'title': kv['title'],
+            if (kv['subject'] != null) 'subject': kv['subject'],
+          },
+        );
+      case 'reschedule_task':
+        return AiCopilotAction(
+          type: AiActionType.rescheduleTask,
+          label: '📅 $label',
+          icon: Icons.event_repeat_rounded,
+          color: AppColors.orangeDark,
+          payload: {
+            if (kv['title'] != null) 'title': kv['title'],
+            if (kv['subject'] != null) 'subject': kv['subject'],
+            if (kv['date'] != null) 'date': kv['date'],
+            if (kv['days'] != null) 'days': int.tryParse(kv['days']!),
+          },
+        );
+      case 'delete_task':
+        // Nhãn ghi rõ sẽ hỏi lại — xoá luôn phải có xác nhận.
+        return AiCopilotAction(
+          type: AiActionType.deleteTask,
+          label: '🗑 $label',
+          icon: Icons.delete_outline_rounded,
+          color: AppColors.red,
+          payload: {
+            if (kv['title'] != null) 'title': kv['title'],
+            if (kv['subject'] != null) 'subject': kv['subject'],
           },
         );
       default:

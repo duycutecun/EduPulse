@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
-import '../../domain/models/study_models.dart';
+import '../../domain/study_timeline.dart';
 import '../../domain/weekly_summary.dart';
 
 class WeeklyChartWidget extends StatelessWidget {
-  final List<StudyLog> logs;
+  /// Dòng nhật ký đã gộp cả phiên học lẫn ghi chép nhập tay.
+  final List<StudyTimelineEntry> entries;
 
-  const WeeklyChartWidget({super.key, required this.logs});
+  /// CTA của empty state (UX mục 11: phải trả lời "làm gì tiếp theo").
+  /// Null = không hiện nút (dùng ở nơi không mở được màn học).
+  final VoidCallback? onStartStudy;
+
+  const WeeklyChartWidget({
+    super.key,
+    required this.entries,
+    this.onStartStudy,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final summary = summarizeWeek(logs);
+    final summary = summarizeWeek(entries);
     final now = DateTime.now();
     final dayNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
     final dailyHours = summary.dailyHours;
@@ -254,6 +263,23 @@ class WeeklyChartWidget extends StatelessWidget {
                   'Bắt đầu một phiên Pomodoro để thống kê giờ học thực tế của bạn.',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
+                if (onStartStudy != null) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 34,
+                    child: FilledButton.icon(
+                      key: const ValueKey('weekly-chart-start-study'),
+                      onPressed: onStartStudy,
+                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                      label: const Text('Bắt đầu học'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

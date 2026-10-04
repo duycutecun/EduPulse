@@ -124,14 +124,14 @@ class NotificationService {
   }
 
   /// Hủy một notification theo id.
-  static Future<void> cancelId(int id) async {
-    if (!isSupported) return;
-    await _plugin.cancel(id: id);
-  }
+      static Future<void> cancelId(int id) async {
+        if (!isSupported || !_initialized) return;
+        await _plugin.cancel(id: id);
+      }
 
-  /// Hủy lịch nhắc đã đặt (nếu có).
-  static Future<void> cancel() async {
-    if (!isSupported) return;
-    await _plugin.cancel(id: 1001);
-  }
+      /// Hủy lịch nhắc đã đặt (nếu có).
+      static Future<void> cancel() async {
+        if (!isSupported || !_initialized) return;
+        await _plugin.cancel(id: 1001);
+      }
 }

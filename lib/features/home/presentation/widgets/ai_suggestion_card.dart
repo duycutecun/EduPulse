@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/utils/feedback_service.dart';
 
 import '../../../../core/ai/ai_insights.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -82,7 +82,7 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
       _toast('Bạn đang ngoại tuyến — cần mạng để AI phân tích lại.');
       return;
     }
-    HapticFeedback.selectionClick();
+    FeedbackService.selection();
     await _load(force: true);
     if (!mounted) return;
     if (_bundle == null) {
@@ -108,7 +108,7 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
   }
 
   void _open(String text) {
-    HapticFeedback.selectionClick();
+    FeedbackService.selection();
     if (widget.onOpenInsight != null) {
       widget.onOpenInsight!(text);
     } else {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../tasks/presentation/widgets/task_card.dart';
 
 class TodayMissionCard extends StatelessWidget {
   final List<TodayTask> tasks;
@@ -12,14 +13,29 @@ class TodayMissionCard extends StatelessWidget {
   final ValueChanged<TodayTask> onSkip;
   final ValueChanged<TodayTask> onReschedule;
 
+  /// Chia nhỏ nhiệm vụ dài (FE-2.1 "Chia nhỏ").
+  final ValueChanged<TodayTask>? onSplit;
+
   /// Hiện danh sách nhiệm vụ mẫu theo kỳ thi.
   final VoidCallback? onAddSample;
+
+  /// Mở lộ trình AI — nhánh "AI lập kế hoạch" của empty state (đặc tả 11).
+  final VoidCallback? onOpenAiPlan;
 
   /// Quick Add ngôn ngữ tự nhiên (đặc tả mục 25).
   final VoidCallback? onQuickAdd;
 
+  /// Bắt đầu phiên học trực tiếp từ task (FE-1.2, FE-2.1).
+  final ValueChanged<TodayTask>? onStartStudy;
+
   /// Nhịp học cá nhân: gợi ý xếp môn khó lên trước (Giai đoạn "AI hiểu bạn").
   final VoidCallback? onSuggestOrder;
+
+  /// Mở form chỉnh sửa nhiệm vụ (FE-2.3).
+  final ValueChanged<TodayTask>? onEdit;
+
+  /// Mở màn chi tiết nhiệm vụ (FE-2.2).
+  final ValueChanged<TodayTask>? onOpenDetail;
 
   const TodayMissionCard({
     super.key,
@@ -29,9 +45,14 @@ class TodayMissionCard extends StatelessWidget {
     required this.onDelete,
     required this.onSkip,
     required this.onReschedule,
+    this.onSplit,
     this.onAddSample,
     this.onQuickAdd,
+    this.onOpenAiPlan,
     this.onSuggestOrder,
+    this.onStartStudy,
+    this.onEdit,
+    this.onOpenDetail,
   });
 
   @override
@@ -63,17 +84,17 @@ class TodayMissionCard extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    const Text('📋', style: TextStyle(fontSize: 18)),
+                    const Text('📋',
+                        style: TextStyle(
+                            fontSize:
+                                18)), // icon, kh\u00f3ng ph\u1ea3i typography
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
                         'Nhiệm vụ hôm nay',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary),
+                        style: AppTokens.sectionTitle,
                       ),
                     ),
                   ],
@@ -83,8 +104,7 @@ class TodayMissionCard extends StatelessWidget {
                 children: [
                   Text(
                     '$done/${tasks.length}',
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: AppTokens.bodySubtle.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.textMuted,
                     ),
@@ -94,7 +114,8 @@ class TodayMissionCard extends StatelessWidget {
                   // chưa tắt AI cá nhân hoá.
                   if (onSuggestOrder != null &&
                       tasks.where((t) => !t.isDone).length >= 2 &&
-                      StorageService.getBool('ai_permission_analyze') != false) ...[
+                      StorageService.getBool('ai_permission_analyze') !=
+                          false) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: onSuggestOrder,
@@ -155,7 +176,8 @@ class TodayMissionCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.add, color: Colors.white, size: 20),
+                      child:
+                          const Icon(Icons.add, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -174,19 +196,48 @@ class TodayMissionCard extends StatelessWidget {
                     const AlwaysStoppedAnimation<Color>(AppColors.progressDone),
               ),
             ),
-            const SizedBox(height: 8),
-            ...tasks.map((task) => _buildTaskItem(task)),
+            const SizedBox(height: 10),
+            ...tasks.map(
+              (task) => TaskCard(
+                key: ValueKey(task.id),
+                task: task,
+                onToggle: onToggle,
+                onStartStudy: onStartStudy,
+                onEdit: onEdit,
+                onReschedule: onReschedule,
+                onSkip: onSkip,
+                onSplit: onSplit,
+                onDelete: onDelete,
+                onTap: onOpenDetail == null ? null : () => onOpenDetail!(task),
+              ),
+            ),
           ] else ...[
-            // Empty state đúng đặc tả mục 33 — Empty Task: câu dẫn nhẹ
-            // nhàng + 2 actions rõ ràng (Tạo kế hoạch / Gợi ý sẵn).
+            // Empty state đúng đặc tả mục 11 — ba câu hỏi bắt buộc: đang thiếu
+            // gì, vì sao quan trọng, và làm gì tiếp theo.
             const SizedBox(height: 4),
             const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  'Hôm nay chưa có kế hoạch.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                child: Column(
+                  children: [
+                    Text(
+                      'Hôm nay chưa có nhiệm vụ.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Tạo kế hoạch để biết mình nên học gì.',
+                      textAlign: TextAlign.center,
+                      style: AppTokens.caption,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -201,235 +252,49 @@ class TodayMissionCard extends StatelessWidget {
                       foregroundColor: AppColors.primaryDark,
                     ),
                     icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('Tạo kế hoạch',
-                        style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      '+ Thêm nhiệm vụ',
+                      style: AppTokens.labelSmall,
+                    ),
                   ),
                 ),
-                if (onAddSample != null) ...[
+                if (onOpenAiPlan != null) ...[
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: onAddSample,
+                      onPressed: onOpenAiPlan,
                       style: OutlinedButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         side: const BorderSide(color: AppColors.blue),
                         foregroundColor: AppColors.blueDark,
                       ),
                       icon: const Icon(Icons.auto_awesome_rounded, size: 15),
-                      label: const Text('Gợi ý sẵn',
-                          style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'AI lập kế hoạch',
+                        style: AppTokens.labelSmall,
+                      ),
                     ),
                   ),
                 ],
               ],
             ),
+            if (onAddSample != null) ...[
+              const SizedBox(height: 6),
+              Center(
+                child: TextButton.icon(
+                  onPressed: onAddSample,
+                  icon: const Icon(Icons.lightbulb_outline_rounded, size: 16),
+                  label: const Text(
+                    'Gợi ý sẵn từ kỳ thi mục tiêu',
+                    style: AppTokens.labelSmall,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 4),
           ],
         ],
       ),
     );
   }
-
-  Widget _buildTaskItem(TodayTask task) {
-    String priorityText = 'Quan trọng';
-    if (task.priority == 'high') {
-      priorityText = 'Quan trọng';
-    } else if (task.priority == 'medium') {
-      priorityText = 'Vừa';
-    }
-
-    final isOverdue = task.deadline != null &&
-        DateUtils.dateOnly(task.deadline!).isBefore(DateUtils.dateOnly(DateTime.now())) &&
-        !task.isDone;
-    final isSkipped = task.status == 'skipped';
-
-    return Dismissible(
-      key: Key(task.id),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDelete(task),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        margin: const EdgeInsets.only(bottom: 6),
-        decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
-      ),
-      // Screen-reader (mục 21): hàng task là nút có nhãn mô tả trạng
-      // thái + hành động, không phụ thuộc màu đơn độc.
-      child: Semantics(
-        button: true,
-        enabled: true,
-        onTap: () => onToggle(task),
-        label: 'Nhiệm vụ ${task.title}, ${task.subject}, '
-            '${task.isDone ? 'đã hoàn thành' : 'chưa hoàn thành'} '
-            '— chạm để ${task.isDone ? 'bỏ đánh dấu' : 'đánh dấu hoàn thành'}',
-        excludeSemantics: true,
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onToggle(task);
-          },
-          child: Container(
-          margin: const EdgeInsets.only(bottom: 3),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              // Checkbox xanh lá khi done.
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: task.isDone
-                      ? AppColors.progressDone
-                      : (isSkipped ? AppColors.textMuted : Colors.transparent),
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(
-                    color: task.isDone || isSkipped
-                        ? (task.isDone ? AppColors.progressDone : AppColors.textMuted)
-                        : AppColors.border,
-                    width: 1.5,
-                  ),
-                ),
-                child: task.isDone || isSkipped
-                    ? const Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 15,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${task.subject} ${task.title}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: task.isDone || isSkipped
-                            ? AppColors.textMuted
-                            : AppColors.textPrimary,
-                        decoration: task.isDone
-                            ? TextDecoration.lineThrough
-                            : null,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (task.topic != null && task.topic!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        task.topic!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                    if (isSkipped) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Đã bỏ qua${task.skipReason == null ? '' : ': ${task.skipReason}'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                    Row(
-                      children: [
-                        Text(
-                          '${task.estimateMinutes} phút',
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.textMuted),
-                        ),
-                        if (task.deadline != null) ...[
-                          const SizedBox(width: 8),
-                          Icon(
-                            isOverdue
-                                ? Icons.error_outline_rounded
-                                : Icons.event_outlined,
-                            size: 13,
-                            color: isOverdue
-                                ? AppColors.red
-                                : AppColors.textMuted,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            isOverdue
-                                ? 'Quá hạn'
-                                : '${task.deadline!.day.toString().padLeft(2, '0')}/${task.deadline!.month.toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isOverdue
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                              color: isOverdue
-                                  ? AppColors.red
-                                  : AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                        if (task.priority == 'high') ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              priorityText,
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.red),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (!task.isDone)
-                PopupMenuButton<_TaskAction>(
-                  tooltip: 'Tùy chọn nhiệm vụ',
-                  icon: const Icon(Icons.more_horiz_rounded,
-                      color: AppColors.textMuted),
-                  onSelected: (action) {
-                    if (action == _TaskAction.reschedule) onReschedule(task);
-                    if (action == _TaskAction.skip) onSkip(task);
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: _TaskAction.reschedule,
-                      child: Text('Đổi lịch'),
-                    ),
-                    PopupMenuItem(
-                      value: _TaskAction.skip,
-                      child: Text('Bỏ qua'),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ),
-      ),
-    );
-  }
 }
-
-enum _TaskAction { reschedule, skip }

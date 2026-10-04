@@ -110,6 +110,85 @@ class OpenRouterService {
     return messages;
   }
 
+  static Stream<String> chatStream({
+    required String model,
+    required List<ChatMessage> history,
+    required String userMessage,
+    Uint8List? imageBytes,
+    String? mimeType,
+    String? webContext,
+    String? studyContext,
+  }) async* {
+    final onWeb = _onWeb;
+    if (!onWeb && AppConfig.openRouterApiKey.isEmpty) {
+      yield '❌ Chưa cấu hình OpenRouter API Key.';
+      return;
+    }
+
+    final messages = buildMessages(
+      history: history,
+      userMessage: userMessage,
+      imageBytes: imageBytes,
+      webContext: webContext,
+      studyContext: studyContext,
+    );
+
+    try {
+      final uri =
+          onWeb ? Uri.base.resolve('/api/openrouter') : Uri.parse(_baseUrl);
+      final headers = onWeb
+          ? {'Content-Type': 'application/json'}
+          : {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${AppConfig.openRouterApiKey}',
+              'HTTP-Referer': 'https://edu-pulse-five.vercel.app',
+              'X-Title': 'EduPulse',
+            };
+
+      final request = http.Request('POST', uri);
+      request.headers.addAll(headers);
+      request.body = jsonEncode({
+        'model': model,
+        'messages': messages,
+        'temperature': 0.6,
+        'max_tokens': 2048,
+        'stream': true,
+      });
+
+      final response = await request.send().timeout(const Duration(seconds: 45));
+
+      if (response.statusCode != 200) {
+        yield '❌ Lỗi ${response.statusCode}: Không thể kết nối AI.';
+        return;
+      }
+
+      final buffer = StringBuffer();
+      await for (final chunk in response.stream.transform(utf8.decoder)) {
+        for (final line in chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          final data = line.substring(6).trim();
+          if (data == '[DONE]') return;
+          try {
+            final json = jsonDecode(data) as Map<String, dynamic>;
+            final delta = json['choices']?[0]?['delta']?['content'];
+            if (delta is String && delta.isNotEmpty) {
+              buffer.write(delta);
+              yield delta;
+            }
+          } catch (_) {
+            // Skip malformed SSE lines
+          }
+        }
+      }
+
+      if (buffer.isEmpty) {
+        yield 'AI không trả lời được nội dung này. Vui lòng thử lại.';
+      }
+    } catch (e) {
+      yield '❌ Lỗi kết nối: $e';
+    }
+  }
+
   static Future<String> chat({
     required String model,
     required List<ChatMessage> history,

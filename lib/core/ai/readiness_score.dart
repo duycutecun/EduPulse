@@ -1,7 +1,7 @@
-import 'dart:convert';
 
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../../features/study/domain/repositories/study_session_repository.dart';
 import '../utils/storage_service.dart';
 
 /// Kết quả tính chỉ số sẵn sàng thi AI (0–100).
@@ -293,17 +293,8 @@ class ReadinessScore {
     return out;
   }
 
-  static List<StudySession> _sessions() {
-    final out = <StudySession>[];
-    for (final id in StorageService.getStudySessionIds()) {
-      final raw = StorageService.getStudySessionJson(id);
-      if (raw == null) continue;
-      try {
-        out.add(StudySession.fromJson(jsonDecode(raw) as Map<String, dynamic>));
-      } catch (_) {}
-    }
-    return out;
-  }
+  static List<StudySession> _sessions() =>
+      StudySessionRepository.instance.getAll();
 
   static List<TodayTask> _tasks() {
     final out = <TodayTask>[];

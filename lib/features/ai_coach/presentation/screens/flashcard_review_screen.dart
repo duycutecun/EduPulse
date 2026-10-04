@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/utils/feedback_service.dart';
 
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/flashcard_service.dart';
@@ -47,7 +47,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
   void _grade(ReviewGrade g) {
     final card = _current;
     if (card == null) return;
-    HapticFeedback.selectionClick();
+    FeedbackService.selection();
     FlashcardService.grade(card, g);
     switch (g) {
       case ReviewGrade.again:
@@ -302,7 +302,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
             child: GestureDetector(
               onTap: () {
                 if (!_showBack) {
-                  HapticFeedback.lightImpact();
+                  FeedbackService.light();
                   setState(() => _showBack = true);
                 }
               },

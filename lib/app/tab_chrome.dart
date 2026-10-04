@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/utils/feedback_service.dart';
 import '../core/constants/app_colors.dart';
 import 'desktop_sidebar.dart' show NavItem;
 
@@ -47,7 +47,9 @@ class TabChrome extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          // Cao theo cỡ chữ hệ thống: cỡ lớn làm icon + nhãn vượt quá chiều
+          // cao cố định và cắt mất nhãn tab.
+          height: MediaQuery.textScalerOf(context).scale(64),
           child: Row(
             children: List.generate(items.length, (i) {
               final active = i == index;
@@ -55,7 +57,7 @@ class TabChrome extends StatelessWidget {
               return Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    HapticFeedback.selectionClick();
+                    FeedbackService.selection();
                     if (i != index) onChanged(i);
                   },
                   behavior: HitTestBehavior.opaque,
@@ -73,7 +75,8 @@ class TabChrome extends StatelessWidget {
                               right: 4,
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.10),
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.10),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
@@ -81,7 +84,9 @@ class TabChrome extends StatelessWidget {
                           Icon(
                             active ? item.activeIcon : item.icon,
                             size: 24,
-                            color: active ? AppColors.primary : AppColors.textMuted,
+                            color: active
+                                ? AppColors.primary
+                                : AppColors.textMuted,
                           ),
                         ],
                       ),

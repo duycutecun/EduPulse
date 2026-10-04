@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/utils/feedback_service.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/state_views.dart';
 import '../../domain/models/exam_model.dart';
+import '../../../../core/constants/subject_catalog.dart';
+import '../widgets/subject_targets_editor.dart';
 
 class ExamsScreen extends StatefulWidget {
   final List<ExamModel> exams;
@@ -286,7 +289,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
               ],
             )
           else
-            _buildEmptyState('Chưa có kỳ thi nào', 'Hãy nhấn nút Thêm để tạo kỳ thi của bạn!'),
+            EmptyStateView(
+              icon: Icons.flag_outlined,
+              title: 'Chưa có kỳ thi nào',
+              description:
+                  'Tạo kỳ thi mục tiêu để EduPulse xếp kế hoạch ôn cho bạn.',
+              actionLabel: 'Thêm kỳ thi',
+              onAction: _showAddCustomDialog,
+            ),
         ],
       ),
     );
@@ -339,7 +349,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
       ),
       child: GestureDetector(
         onTap: () {
-          HapticFeedback.selectionClick();
+          FeedbackService.selection();
           widget.onSetPrimary(exam);
         },
         onLongPress: () => _showEditDialog(exam),
@@ -420,6 +430,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             color: AppColors.blueDark),
                       ),
                     ],
+                    if (exam.subjectTargets.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      SubjectTargetsChips(targets: exam.subjectTargets),
+                    ],
                   ],
                 ),
               ),
@@ -430,36 +444,12 @@ class _ExamsScreenState extends State<ExamsScreen> {
     );
   }
 
-  Widget _buildEmptyState(String title, String subtitle) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/mascot.png',
-                width: 88,
-                height: 88,
-                fit: BoxFit.contain,
-                cacheWidth: 264,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-            const SizedBox(height: 4),
-            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showAddCustomDialog() {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final currentScoreCtrl = TextEditingController();
     final targetScoreCtrl = TextEditingController();
+    var subjectTargets = <String, double>{};
     DateTime selectedDate = DateTime.now().add(const Duration(days: 30));
     String selectedEmoji = '📝';
 
@@ -525,7 +515,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
+                SubjectTargetsEditor(
+                  initial: subjectTargets,
+                  onChanged: (map) => subjectTargets = map,
+                ),
                 GestureDetector(
                   onTap: () async {
                     final picked = await showDatePicker(
@@ -584,6 +578,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     emoji: selectedEmoji,
                     currentScore: double.tryParse(currentScoreCtrl.text.trim().replaceAll(',', '.')),
                     targetScore: double.tryParse(targetScoreCtrl.text.trim().replaceAll(',', '.')),
+                    subjectTargets: subjectTargets,
+                    subjects:
+                        subjectTargets.keys.map(AppSubjects.displayName).toList(),
                   ));
                 }
                 Navigator.pop(ctx);
@@ -603,6 +600,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         text: exam.currentScore?.toString() ?? '');
     final targetScoreCtrl = TextEditingController(
         text: exam.targetScore?.toString() ?? '');
+    var subjectTargets = Map<String, double>.from(exam.subjectTargets);
     DateTime selectedDate = exam.dateTime;
     String selectedEmoji = exam.emoji;
 
@@ -667,7 +665,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
+                SubjectTargetsEditor(
+                  initial: subjectTargets,
+                  onChanged: (map) => subjectTargets = map,
+                ),
                 GestureDetector(
                   onTap: () async {
                     final picked = await showDatePicker(
@@ -726,6 +728,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     emoji: selectedEmoji,
                     currentScore: double.tryParse(currentScoreCtrl.text.trim().replaceAll(',', '.')),
                     targetScore: double.tryParse(targetScoreCtrl.text.trim().replaceAll(',', '.')),
+                    subjectTargets: subjectTargets,
+                    subjects:
+                        subjectTargets.keys.map(AppSubjects.displayName).toList(),
                   ));
                 }
                 Navigator.pop(ctx);

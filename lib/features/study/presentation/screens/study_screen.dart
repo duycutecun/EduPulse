@@ -1,42 +1,65 @@
 import 'dart:async';
+import '../../../../core/utils/feedback_service.dart';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
+import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../domain/models/study_models.dart';
+import '../../domain/active_study_session.dart';
 import '../../domain/app_leaving.dart';
+import '../../domain/focus_clock.dart';
+import '../../domain/study_timeline.dart';
+import '../../../tasks/domain/models/task_state.dart';
 import '../../domain/score_summary.dart';
 import '../../domain/score_recovery_plan.dart';
 import '../../domain/study_analytics.dart';
+import '../../domain/repositories/study_session_repository.dart';
 import '../widgets/score_chart_widget.dart';
 import '../widgets/weekly_chart_widget.dart';
+import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../../exams/domain/models/exam_model.dart';
 
 class StudyScreen extends StatefulWidget {
   final VoidCallback? onStreakChanged;
+
+  /// Gọi sau khi phiên học vừa kết thúc (BE-3.3) để màn bên ngoài vẽ lại tổng
+  /// thời gian học ngay, không chờ người dùng tự điều hướng.
+  final VoidCallback? onSessionCompleted;
   final String? initialSubject;
   final int? initialMinutes;
   final TodayTask? initialTask;
   final bool autoStart;
 
+  /// Nguồn thời gian cho toàn bộ màn hình, mặc định là đồng hồ thật.
+  ///
+  /// `FocusClock` neo theo mốc thời gian (FE-3.2) — đúng cho sản phẩm, nhưng
+  /// `tester.pump()` chỉ đẩy được `Timer`, không đẩy được `DateTime.now()`.
+  /// Không có tham số này thì **không test nổi** việc một vòng 25 phút thật sự
+  /// kết thúc, và test buộc phải chờ hoặc giả vờ — tức là không kiểm chứng
+  /// được đường ghi dữ liệu quan trọng nhất của màn hình.
+  final DateTime Function() clock;
+
   const StudyScreen({
     super.key,
     this.onStreakChanged,
+    this.onSessionCompleted,
     this.initialSubject,
     this.initialMinutes,
     this.initialTask,
     this.autoStart = false,
+    this.clock = DateTime.now,
   });
 
   @override
@@ -57,21 +80,28 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   late final ValueNotifier<int> _pomSecondsNotifier =
       ValueNotifier<int>(_focusMinutes * 60);
   bool _pomRunning = false;
+  /// Đang chờ bắt đầu vòng mới vì câu hỏi khôi phục chưa được trả lời xong.
+  bool _pendingAutoStart = false;
   bool _isBreak = false;
   int _pomRound = 0;
   Timer? _pomTimer;
 
+  // Đồng hồ neo theo mốc thời gian thật (FE-3.2): timer chỉ đẩy giao diện
+  // cập nhật, số giây còn lại luôn tính từ `DateTime.now()`.
+  FocusClock _clock = FocusClock(totalSeconds: 25 * 60);
+
   // App-leaving tracking (mục 11.5): đo phút đã học trước khi rời app
   // giữa phiên; pattern phân tích khi user quay lại.
-  DateTime? _pomStartedAt;
   DateTime? _leftAt;
   AppLeavingInsight _leavingInsight = AppLeavingInsight.none;
 
   @override
   void initState() {
     super.initState();
+    _clock = FocusClock(totalSeconds: _focusMinutes * 60);
     if (widget.initialMinutes != null) {
       _focusMinutes = widget.initialMinutes!;
+      _clock = FocusClock(totalSeconds: _focusMinutes * 60);
       _pomSecondsNotifier.value = _focusMinutes * 60;
     }
     if (widget.initialTask != null) {
@@ -84,23 +114,38 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     // Lifecycle để phát hiện rời app giữa phiên focus (mục 11.5).
     WidgetsBinding.instance.addObserver(this);
 
-    if (widget.autoStart) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_pomRunning) {
-          _togglePomodoro();
-        }
-      });
-    }
+    // Hỏi sau khi cây dựng xong: `showDialog` cần `Localizations`/`Navigator`
+    // của context, mà trong `initState` context chưa gắn vào cây.
+    //
+    // Auto-start cũng phải qua đây: mở bằng "học ngay" mà có phiên bỏ dở thì
+    // bắt đầu vòng mới sẽ xoá mất ảnh chụp của phiên cũ (BE-3.2).
+    final wantsAutoStart = widget.autoStart;
+    _pendingAutoStart = wantsAutoStart;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final snapshot = StudySessionRepository.instance.getActive();
+      if (snapshot != null) {
+        await _offerActiveSessionRecovery();
+      }
+      _startPendingAutoStart();
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Lưu ảnh chụp vòng đang chạy **trước** mọi nhánh còn lại: đây là lúc cuối
+    // cùng app còn sống, và nó phải chạy kể cả khi vòng đang nghỉ (BE-3.2).
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _persistActiveSession();
+    }
+
     if (!_pomRunning || _isBreak) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      _leftAt = DateTime.now();
+      _leftAt = widget.clock();
     } else if (state == AppLifecycleState.resumed && _leftAt != null) {
-      final away = DateTime.now().difference(_leftAt!);
+      final away = widget.clock().difference(_leftAt!);
       _leftAt = null;
       // Rời app lâu hơn 2 phút coi như bỏ dở phiên này — ghi sự kiện
       // và phân tích pattern khi đủ dữ liệu (mục 11.5).
@@ -108,14 +153,26 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
         _recordAppLeaving();
       }
     }
+    // App vừa quay lại: đồng hồ phải nhảy thẳng tới số giây đúng, không chờ
+    // tick kế tiếp. Đây là chỗ lỗi "mất thời gian học" lộ ra rõ nhất (FE-3.2).
+    if (state == AppLifecycleState.resumed) {
+      _syncClockToUi();
+    }
+  }
+
+  /// Đồng bộ giao diện với mốc thời gian thật; vòng đã hết thì kết thúc ngay.
+  void _syncClockToUi() {
+    if (!mounted || !_pomRunning || _isBreak) return;
+    final remaining = _clock.remainingAt(widget.clock());
+    _pomSecondsNotifier.value = remaining;
+    if (remaining == 0) _finishRound();
   }
 
   void _recordAppLeaving() {
     final planned = _focusMinutes;
-    final studied = DateTime.now()
-        .difference(_pomStartedAt ?? DateTime.now())
-        .inMinutes
-        .clamp(0, planned);
+    // Lấy từ đồng hồ chứ không tự trừ: đây là lúc app đang bị vùy, tức là lúc
+    // `Timer.periodic` đã bị hệ điều hành giữ lại và số đếm không đáng tin.
+    final studied = (_clock.elapsedAt(widget.clock()) / 60).round().clamp(0, planned);
     StorageService.setString(
       'app_leaving_events',
       _appendLeavingEvent(planned, studied),
@@ -159,26 +216,20 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   void _loadSessions() {
-    _sessions = StorageService.getStudySessionIds()
-        .map((id) {
-          final json = StorageService.getStudySessionJson(id);
-          return json == null ? null : StudySession.fromJsonString(json);
-        })
-        .whereType<StudySession>()
-        .toList()
-      ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    _sessions = StudySessionRepository.instance.getAll();
   }
 
   void _loadTasks() {
-    _tasks = StorageService.getTodayTaskIds()
-        .map((id) {
-          final json = StorageService.getTodayTaskJson(id);
-          return json == null ? null : TodayTask.fromJsonString(json);
-        })
-        .whereType<TodayTask>()
+    _tasks = TaskRepository.instance
+        .getAllTasks()
         .where((task) => !task.isDone && task.status != 'skipped')
         .toList();
   }
+
+  /// Tên task theo ID, để dòng nhật ký từ phiên học hiện đúng nơi đã học.
+  Map<String, String> get _taskTitles => {
+        for (final task in TaskRepository.instance.getAllTasks()) task.id: task.title,
+      };
 
   void _loadScores() {
     final ids = StorageService.getMockScoreIds();
@@ -225,6 +276,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     _logs.sort((a, b) => b.date.compareTo(a.date));
   }
 
+  /// Ghi chép nhập tay. Vòng Pomodoro **không** gọi hàm này nữa — nó đã được
+  /// ghi thành `StudySession`, ghi thêm ở đây là đếm trùng một khoảng thời gian
+  /// vào hai bảng.
   void _addLog(String subject, double hours, String? note) {
     final log = StudyLog(
         id: _uuid.v4(),
@@ -238,9 +292,35 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     setState(() => _logs.insert(0, log));
   }
 
-  void _deleteLog(StudyLog log) {
-    StorageService.removeStudyLog(log.id);
-    setState(() => _logs.remove(log));
+  /// Nhật ký học gộp cả phiên học lẫn ghi chép nhập tay, mới nhất trước.
+  List<StudyTimelineEntry> get _timeline =>
+      buildStudyTimeline(logs: _logs, sessions: _sessions);
+
+  /// Xoá một dòng nhật ký — về đúng bảng gốc của nó.
+  ///
+  /// Xoá nhầm bảng là mất dữ liệu âm thầm: xoá `StudyLog` của một phiên học
+  /// thì phiên vẫn còn trong thống kê, và ngược lại thì phiên biến mất khỏi
+  /// lịch sử của nhiệm vụ.
+  void _deleteTimelineEntry(StudyTimelineEntry entry) {
+    if (entry.fromSession) {
+      StudySessionRepository.instance.delete(entry.id);
+      setState(() => _sessions.removeWhere((s) => s.id == entry.id));
+    } else {
+      StorageService.removeStudyLog(entry.id);
+      setState(() => _logs.removeWhere((l) => l.id == entry.id));
+    }
+  }
+
+  /// Ghi chú hiển thị cho một dòng nhật ký.
+  ///
+  /// Dòng từ phiên học gắn task nên hiện tên task; task đã bị xoá thì không bịa
+  /// lại tên, chỉ ghi "Pomodoro".
+  String? _entryNote(StudyTimelineEntry entry) {
+    if (entry.note != null && entry.note!.isNotEmpty) return entry.note;
+    final taskId = entry.taskId;
+    if (taskId == null) return null;
+    final title = _taskTitles[taskId];
+    return title == null ? 'Pomodoro' : 'Focus: $title';
   }
 
   void _setPomodoroMode(int focus, int brk) {
@@ -249,71 +329,276 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     _breakMinutes = brk;
     _pomRunning = false;
     _isBreak = false;
+    _clock = FocusClock(totalSeconds: focus * 60);
     _pomSecondsNotifier.value = focus * 60;
+    StudySessionRepository.instance.clearActive();
     setState(() {});
   }
 
   void _togglePomodoro() {
-    HapticFeedback.lightImpact();
+    FeedbackService.light();
     if (_pomRunning) {
       _pomTimer?.cancel();
-      _pomStartedAt = null;
+      _clock.pause(widget.clock());
       setState(() => _pomRunning = false);
       // Thoát Focus → cho phép notification thường trở lại.
       AdaptivePolicy.setInFocus(false);
     } else {
-      _pomStartedAt = DateTime.now();
+      _clock.start(widget.clock());
       setState(() => _pomRunning = true);
       // Vào Focus → tạm dừng notification không quan trọng (đặc tả mục 16).
       AdaptivePolicy.setInFocus(true);
-      _pomTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (_pomSecondsNotifier.value > 0) {
-          _pomSecondsNotifier.value--;
-        } else {
-          _pomTimer?.cancel();
-          setState(() {
-            _pomRunning = false;
-            if (_isBreak) {
-              _isBreak = false;
-              _pomSecondsNotifier.value = _focusMinutes * 60;
-            } else {
-              _pomRound++;
-              _isBreak = true;
-              _pomSecondsNotifier.value = _breakMinutes * 60;
-              // Haptic hết giờ (mục 54: Timer end) — báo ngay cả khi
-              // người dùng đang nhìn chỗ khác.
-              HapticFeedback.mediumImpact();
-              _recordCompletedFocus();
-              // Kết thúc phiên tập trung → streak + EXP gắn kết linh vật.
-              StorageService.registerStudyActivity();
-              StorageService.addMascotBondExp(25);
-              widget.onStreakChanged?.call();
-            }
-          });
-        }
-      });
+      _startPomodoroTimer();
     }
+    _persistActiveSession();
   }
 
-  void _recordCompletedFocus() {
+  /// Ghi ảnh chụp vòng đang chạy xuống storage (BE-3.2).
+  ///
+  /// Không chụp khi vòng chưa từng chạy: một vòng 25 phút mới mở màn hình rồi
+  /// bị kill cũng không phải phiên học, và hỏi "tiếp tục?" cho nó là hỏi nhầm.
+  void _persistActiveSession() {
+    final repo = StudySessionRepository.instance;
+    if (!_clock.hasStarted) {
+      repo.clearActive();
+      return;
+    }
     final task = _selectedTask;
-    final subject = task?.subject ?? 'Pomodoro';
-    final note = task == null ? 'Phiên $_pomRound' : 'Focus: ${task.title}';
-    _addLog(subject, _focusMinutes / 60.0, note);
+    repo.saveActive(ActiveStudySession.fromClock(
+      clock: _clock,
+      taskId: task?.id ?? 'pomodoro',
+      taskTitle: task?.title,
+      subject: task?.subject ?? 'Pomodoro',
+      round: _pomRound,
+      isBreak: _isBreak,
+    ));
+  }
+
+  /// Hỏi khôi phục vòng bị bỏ dở khi app bị kill (BE-3.2).
+  ///
+  /// Chỉ hỏi khi vòng **còn giá trị**: đã học được ít nhất 1 phút và còn giờ.
+  /// Hỏi về một vòng mới 3 giây là gây phiền vô nghĩa.
+  Future<void> _offerActiveSessionRecovery() async {
+    final snapshot = StudySessionRepository.instance.getActive();
+    if (snapshot == null || !mounted) return;
+
+    final now = widget.clock();
+    // Ảnh chụp quá hạn (mặc định 6 giờ) là dữ liệu tạm cũ, và một vòng focus
+    // dài nhất cũng chỉ 60 phút — hỏi người dùng về nó chỉ gây rối. Ảnh chụp còn
+    // hiệu lực thì hỏi như bình thường.
+    if (snapshot.isExpiredAt(now)) {
+      StudySessionRepository.instance.clearActive();
+      return;
+    }
+    final elapsedMinutes = snapshot.elapsedMinutesAt(now);
+    final remaining = snapshot.remainingAt(now);
+    if (elapsedMinutes < 1 || remaining <= 0) {
+      StudySessionRepository.instance.clearActive();
+      return;
+    }
+
+    final shouldResume = await ConfirmationDialog.show(
+      context,
+      title: 'Phiên học đang bỏ dở',
+      content: 'Bạn đã học $elapsedMinutes phút của phiên '
+          '"${snapshot.taskTitle ?? snapshot.subject}" trước khi ứng dụng bị đóng.\n'
+          'Còn ${snapshot.remainingAt(now) ~/ 60} phút. Bạn muốn tiếp tục?',
+      confirmLabel: 'Tiếp tục',
+      cancelLabel: 'Kết thúc phiên',
+      isDestructive: true,
+    );
+    if (!mounted) return;
+
+    if (shouldResume == true) {
+      _resumeFromSnapshot(snapshot, now);
+    } else if (shouldResume == false) {
+      _finishAbandonedSession(snapshot, now);
+    }
+    // `null` = bấm ra ngoài: giữ ảnh chụp lại, lần sau còn hỏi được.
+    _startPendingAutoStart();
+  }
+
+  /// Mở màn hình học bằng nút "học ngay" (`autoStart`) không được âm thầm bỏ qua
+  /// một phiên đang bỏ dở: nó sẽ ghi đè ảnh chụp và mất thời gian đã học.
+  ///
+  /// Vì vậy auto-start phải đợi người dùng trả lời xong câu hỏi khôi phục.
+  void _startPendingAutoStart() {
+    final shouldStart = _pendingAutoStart;
+    _pendingAutoStart = false;
+    if (!shouldStart || !mounted || _pomRunning) return;
+    _togglePomodoro();
+  }
+
+  /// Nối lại đồng hồ đã khôi phục và chạy tiếp.
+  void _resumeFromSnapshot(ActiveStudySession snapshot, DateTime now) {
+    setState(() {
+      _clock = snapshot.restoreClock(now: now);
+      _isBreak = snapshot.isBreak;
+      _pomRound = snapshot.round;
+      _pomSecondsNotifier.value = _clock.remainingAt(now);
+    });
+    if (_clock.remainingAt(now) <= 0) return;
+
+    // Đồng hồ khôi phục phải đang chạy thì mới bật được nút chạy. Nếu không,
+    // giao diện báo "đang học" trong khi đồng hồ đứng yên — số giây không bao
+    // giờ giảm, vòng treo vô hạn và thời gian học không được ghi.
+    if (!_clock.isRunning) return;
+
+    setState(() => _pomRunning = true);
+    AdaptivePolicy.setInFocus(true);
+    _startPomodoroTimer();
+  }
+
+  /// Người dùng chọn kết thúc: ghi phần đã học thành phiên `cancelled` rồi xoá
+  /// ảnh chụp — bỏ dở không được nghĩa là không có gì được ghi.
+  void _finishAbandonedSession(ActiveStudySession snapshot, DateTime now) {
+    final minutes = snapshot.elapsedMinutesAt(now);
+    final repo = StudySessionRepository.instance;
+    repo.clearActive();
+    if (minutes < 1) return;
 
     final session = StudySession(
       id: _uuid.v4(),
-      completedAt: DateTime.now(),
+      completedAt: now,
+      taskId: snapshot.taskId == 'pomodoro' ? null : snapshot.taskId,
+      subject: snapshot.subject,
+      plannedMinutes: (snapshot.totalSeconds / 60).round(),
+      actualMinutes: minutes,
+      startedAt: snapshot.startedAt,
+      endedAt: now,
+      status: StudySession.statusCancelled,
+    );
+    repo.save(session);
+    setState(() => _sessions.insert(0, session));
+    AiRefreshService.notifyDataChanged();
+  }
+
+  /// Timer chỉ đẩy giao diện; số giây còn lại do [FocusClock] tính từ mốc
+  /// thời gian (FE-3.2). Vì vậy tick bị trễ hay bị gộp cũng không sai số.
+  /// Kết thúc phiên sớm — ghi những gì đã học và mở bước đánh giá 1 chạm.
+  ///
+  /// Không ai học đúng bằng số phút cài sẵn: đặc tả 5.6 yêu cầu "Allow
+  /// completion without requiring a timer to reach zero". Chỉ ghi phiên khi đã
+  /// học ít nhất 1 phút — nếu không thì đây là một cú bấm nhầm, không phải một
+  /// phiên học.
+  void _finishSessionEarly() {
+    final now = widget.clock();
+    final elapsedMinutes = (_clock.elapsedAt(now) / 60).round();
+    if (!_clock.hasStarted || elapsedMinutes < 1) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Hãy bắt đầu phiên học trước rồi bấm Hoàn thành nhé.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+
+    _pomTimer?.cancel();
+    StudySessionRepository.instance.clearActive();
+    setState(() => _pomRunning = false);
+    // Ghi phiên + streak + mở sheet đánh giá — cùng đường ghi như khi đồng hồ
+    // chạy tự nhiên về 0, chỉ khác mốc thời gian bắt đầu.
+    _recordCompletedFocus();
+    StorageService.registerStudyActivity();
+    StorageService.addMascotBondExp(25);
+    widget.onStreakChanged?.call();
+    FeedbackService.medium();
+  }
+
+  /// UX mục 11 "No study history" — nút "Bắt đầu học" trong empty state của
+  /// thẻ phân tích. Chỉ bắt đầu vòng Focus khi đồng hồ đang đứng yên, để
+  /// không bao giờ vô tình dừng phiên đang chạy.
+  void _startFirstSession() {
+    if (_pomRunning || _isBreak) return;
+    _togglePomodoro();
+  }
+
+  void _startPomodoroTimer() {
+    _pomTimer?.cancel();
+    _pomTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        _pomTimer?.cancel();
+        return;
+      }
+      final remaining = _clock.remainingAt(widget.clock());
+      _pomSecondsNotifier.value = remaining;
+      if (remaining > 0) return;
+      _finishRound();
+    });
+  }
+
+  /// Kết thúc một vòng: nghỉ → vòng focus mới, focus → sang nghỉ và ghi phiên.
+  void _finishRound() {
+    if (!mounted) return;
+    _pomTimer?.cancel();
+    // Vòng vừa kết thúc nên không còn gì để khôi phục; ảnh chụp cũ sẽ khiến
+    // lần mở sau hỏi tiếp tục một phiên đã xong.
+    StudySessionRepository.instance.clearActive();
+    // Chụp lại đồng hồ vòng focus **trước** khi thay bằng đồng hồ nghỉ:
+    // `_recordCompletedFocus()` đọc `elapsedAt` của chính nó, và nếu đổi trước
+    // thì nó sẽ đo đồng hồ mới (0 giây đã học) → mọi phiên đều ghi 0 phút.
+    final finishedClock = _clock;
+    setState(() {
+      _pomRunning = false;
+      if (_isBreak) {
+        _isBreak = false;
+        _clock = FocusClock(totalSeconds: _focusMinutes * 60);
+        _pomSecondsNotifier.value = _focusMinutes * 60;
+      } else {
+        _pomRound++;
+        _isBreak = true;
+        _clock = FocusClock(totalSeconds: _breakMinutes * 60);
+        _pomSecondsNotifier.value = _breakMinutes * 60;
+        // Haptic hết giờ (mục 54: Timer end) — báo ngay cả khi
+        // người dùng đang nhìn chỗ khác.
+        FeedbackService.medium();
+        _recordCompletedFocus(clock: finishedClock);
+        // Kết thúc phiên tập trung → streak + EXP gắn kết linh vật.
+        StorageService.registerStudyActivity();
+        StorageService.addMascotBondExp(25);
+        widget.onStreakChanged?.call();
+      }
+    });
+  }
+
+  /// Ghi `StudySession` cho một vòng focus vừa hoàn thành (BE-3.1).
+  ///
+  /// [clock] là đồng hồ của vòng vừa kết thúc, truyền vào tường minh thay vì
+  /// đọc `_clock`: sau khi chuyển sang vòng nghỉ, `_clock` không còn là đồng hồ
+  /// của phiên đang ghi, và mọi phép đo sẽ ra 0.
+  void _recordCompletedFocus({FocusClock? clock}) {
+    final focusClock = clock ?? _clock;
+    final plannedMinutes = _focusMinutes;
+    final task = _selectedTask;
+    final subject = task?.subject ?? 'Pomodoro';
+    // Cố ý **không** ghi `StudyLog` ở đây nữa: vòng pomodoro đã có phiên học
+    // thật, ghi thêm dòng log là thời gian học bị đếm hai lần ở mọi tổng hợp.
+
+    final now = widget.clock();
+    // Phút thật đã học, đo từ mốc thời gian — không phải số phút trong cài đặt.
+    // Nếu để nguyên `_focusMinutes` thì một phiên bị tạm dừng nhiều lần vẫn ghi
+    // 25 phút, và mọi tổng thời gian học sau này đều thừa (BE-3.1).
+    final actualMinutes =
+        (focusClock.elapsedAt(now) / 60).round().clamp(0, plannedMinutes);
+    final session = StudySession(
+      id: _uuid.v4(),
+      completedAt: now,
       taskId: task?.id,
       subject: subject,
-      plannedMinutes: _focusMinutes,
-      actualMinutes: _focusMinutes,
+      plannedMinutes: plannedMinutes,
+      actualMinutes: actualMinutes,
+      // Mốc thật do người dùng bấm bắt đầu, không phải ước lượng (BE-3.1).
+      startedAt: focusClock.startedAt ?? now,
+      endedAt: now,
+      status: StudySession.statusCompleted,
     );
-    StorageService.setStudySessionJson(session.id, session.toJsonString());
-    final ids = StorageService.getStudySessionIds()..add(session.id);
-    StorageService.setStudySessionIds(ids);
+    // Ghi qua repository để màn chi tiết Task đọc lịch sử phiên học từ đúng
+    // một nguồn (FE-2.2).
+    StudySessionRepository.instance.save(session);
     AiRefreshService.notifyDataChanged();
     setState(() => _sessions.insert(0, session));
+    // Màn bên ngoài cần số phút mới ngay, không chờ người dùng điều hướng
+    // (BE-3.3).
+    widget.onSessionCompleted?.call();
 
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
@@ -325,6 +610,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   void _showAiPostFocusSheet(StudySession session) {
     var understandingLevel = 1; // 1: Hiểu tốt, 0: Cần củng cố
     bool showDetailed = false;
+    // Đánh giá 1 chạm (FE-3.3): 5 emoji → 5 mức. Chạm một lần là đủ để lưu,
+    // không bắt người dùng chờ điền thang chi tiết 5 dòng.
+    var quickRating = 0;
     var mood = 4;
     var focus = 4;
     var difficulty = 3;
@@ -388,6 +676,69 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                     ],
                   ),
                   const SizedBox(height: 14),
+                  const Text('Phiên học thế nào? Chạm 1 emoji là xong',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (final option in _quickRatings)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                                right: option == _quickRatings.last ? 0 : 6),
+                            child: GestureDetector(
+                              key: ValueKey('quick-rating-${option.value}'),
+                              onTap: () => setSheetState(() {
+                                quickRating = option.value;
+                                mood = option.mood;
+                                focus = option.focus;
+                                difficulty = option.difficulty;
+                                understanding = option.understanding;
+                                effectiveness = option.effectiveness;
+                                understandingLevel = option.understood ? 1 : 0;
+                              }),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: quickRating == option.value
+                                      ? AppColors.primary
+                                          .withValues(alpha: 0.15)
+                                      : AppColors.cardLight,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: quickRating == option.value
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(option.emoji,
+                                        style: const TextStyle(fontSize: 22)),
+                                    const SizedBox(height: 2),
+                                    Text(option.label,
+                                        style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: quickRating == option.value
+                                                ? FontWeight.w800
+                                                : FontWeight.w600,
+                                            color: quickRating == option.value
+                                                ? AppColors.primary
+                                                : AppColors.textMuted)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   const Text('Bạn nắm kiến thức phiên này thế nào?',
                       style: TextStyle(
                           fontSize: 13,
@@ -424,7 +775,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                                 const Text('👍',
                                     style: TextStyle(fontSize: 16)),
                                 const SizedBox(width: 6),
-                                Text('Hiểu tốt',
+                                Flexible(
+                                  child: Text(
+                                    'Hiểu tốt',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: understandingLevel == 1
@@ -432,7 +787,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                                             : FontWeight.w600,
                                         color: understandingLevel == 1
                                             ? AppColors.primary
-                                            : AppColors.textPrimary)),
+                                            : AppColors.textPrimary),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -467,7 +824,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                                 const Text('🤔',
                                     style: TextStyle(fontSize: 16)),
                                 const SizedBox(width: 6),
-                                Text('Cần củng cố',
+                                Flexible(
+                                  child: Text(
+                                    'Cần củng cố',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: understandingLevel == 0
@@ -475,7 +836,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                                             : FontWeight.w600,
                                         color: understandingLevel == 0
                                             ? AppColors.orange
-                                            : AppColors.textPrimary)),
+                                            : AppColors.textPrimary),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -589,8 +952,10 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       TextButton(
                         onPressed: () =>
@@ -633,24 +998,57 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        session
-                          ..mood = mood
-                          ..focus = focus
-                          ..difficulty = difficulty
-                          ..understanding = understanding
-                          ..effectiveness = effectiveness
-                          ..reflectionNote = noteController.text.trim().isEmpty
-                              ? null
-                              : noteController.text.trim();
-                        StorageService.setStudySessionJson(
-                            session.id, session.toJsonString());
-                        AiRefreshService.notifyDataChanged();
-                        Navigator.pop(sheetContext);
-                      },
-                      child: const Text('Lưu phản hồi & Hoàn tất'),
+                      key: const ValueKey('save-session-feedback'),
+                      onPressed: () => _saveSessionFeedback(
+                        sheetContext,
+                        session,
+                        _SessionFeedback(
+                          mood: mood,
+                          focus: focus,
+                          difficulty: difficulty,
+                          understanding: understanding,
+                          effectiveness: effectiveness,
+                          note: noteController.text,
+                        ),
+                      ),
+                      child: Text(quickRating > 0
+                          ? 'Lưu đánh giá & Hoàn tất'
+                          : 'Lưu phản hồi & Hoàn tất'),
                     ),
                   ),
+                  // Đường 1 chạm: xong việc thì đánh dấu nhiệm vụ hoàn thành
+                  // và về thẳng màn Hôm nay — đúng tinh thần "xong việc này,
+                  // sang việc tiếp theo" (FE-3.3).
+                  if (_selectedTask != null) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('complete-task-and-go-today'),
+                        onPressed: () => _completeTaskAndGoToday(
+                          sheetContext,
+                          session,
+                          _SessionFeedback(
+                            mood: mood,
+                            focus: focus,
+                            difficulty: difficulty,
+                            understanding: understanding,
+                            effectiveness: effectiveness,
+                            note: noteController.text,
+                          ),
+                        ),
+                        icon: const Icon(Icons.check_rounded, size: 18),
+                        label: Text(
+                          'Xong việc này — về Hôm nay',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -658,6 +1056,121 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
         ),
       ),
     ).whenComplete(noteController.dispose);
+  }
+
+  /// Một mức đánh giá 1 chạm (FE-3.3).
+  ///
+  /// Emoji là thứ người dùng thật sự bấm; các thang đánh giá chi tiết suy ra từ
+  /// đó theo một quy tắc cố định thay vì để người dùng điền 5 dòng — nếu
+  /// không có quy tắc, số phản hồi sẽ là dữ liệu bịa.
+  static const List<_QuickRating> _quickRatings = [
+    _QuickRating(
+      emoji: '😫',
+      label: 'Khó',
+      value: 1,
+      mood: 1,
+      focus: 2,
+      difficulty: 5,
+      understanding: 1,
+      effectiveness: 2,
+      understood: false,
+    ),
+    _QuickRating(
+      emoji: '😐',
+      label: 'Tạm',
+      value: 2,
+      mood: 2,
+      focus: 3,
+      difficulty: 4,
+      understanding: 2,
+      effectiveness: 2,
+      understood: false,
+    ),
+    _QuickRating(
+      emoji: '🙂',
+      label: 'Ổn',
+      value: 3,
+      mood: 3,
+      focus: 3,
+      difficulty: 3,
+      understanding: 3,
+      effectiveness: 3,
+      understood: true,
+    ),
+    _QuickRating(
+      emoji: '😄',
+      label: 'Tốt',
+      value: 4,
+      mood: 4,
+      focus: 4,
+      difficulty: 3,
+      understanding: 4,
+      effectiveness: 4,
+      understood: true,
+    ),
+    _QuickRating(
+      emoji: '🔥',
+      label: 'Chất',
+      value: 5,
+      mood: 5,
+      focus: 5,
+      difficulty: 2,
+      understanding: 5,
+      effectiveness: 5,
+      understood: true,
+    ),
+  ];
+
+  /// Lưu phản hồi của phiên vừa học xong.
+  ///
+  /// [mood]…[effectiveness] lấy từ đánh giá 1 chạm hoặc từ các thanh chi tiết
+  /// mà người dùng đã chỉnh; ghi chú rỗng thì không ghi (`null`) để phân biệt
+  /// "không đánh giá" với "đánh giá rỗng".
+  Future<void> _saveSessionFeedback(
+    BuildContext sheetContext,
+    StudySession session,
+    _SessionFeedback feedback,
+  ) async {
+    await StudySessionRepository.instance.updateFeedback(
+      session.id,
+      mood: feedback.mood,
+      focus: feedback.focus,
+      difficulty: feedback.difficulty,
+      understanding: feedback.understanding,
+      effectiveness: feedback.effectiveness,
+      reflectionNote: feedback.note.trim().isEmpty ? null : feedback.note.trim(),
+    );
+    AiRefreshService.notifyDataChanged();
+    if (sheetContext.mounted) Navigator.pop(sheetContext);
+  }
+
+  /// Đường 1 chạm của FE-3.3: lưu phản hồi → đánh dấu nhiệm vụ hoàn thành →
+  /// về màn Hôm nay.
+  ///
+  /// Việc đánh dấu hoàn thành đi qua [TaskRepository] (Single Write Path) để
+  /// state machine, streak và Home đều nhận đúng một lần ghi.
+  Future<void> _completeTaskAndGoToday(
+    BuildContext sheetContext,
+    StudySession session,
+    _SessionFeedback feedback,
+  ) async {
+    await _saveSessionFeedback(sheetContext, session, feedback);
+
+    final task = _selectedTask;
+    if (task != null) {
+      final result = await TaskRepository.instance.setTaskStatus(
+        task.id,
+        TaskStatus.completed,
+      );
+      if (mounted && !result.success && result.message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message!)),
+        );
+      }
+    }
+
+    widget.onSessionCompleted?.call();
+    if (mounted) setState(_loadTasks);
   }
 
   String _getAiSubjectTip(String subject) {
@@ -702,31 +1215,40 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _scheduleReviewTaskTomorrow(String subject) {
+  Future<void> _scheduleReviewTaskTomorrow(String subject) async {
     final sub = subject.isEmpty || subject == 'Pomodoro' ? 'Toán' : subject;
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final task = TodayTask(
       id: _uuid.v4(),
       title: 'Ôn củng cố: $sub',
-      subject: sub,
+      subject: AppSubjects.normalize(sub),
       priority: 'high',
       estimateMinutes: 25,
       scheduledAt: DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 19, 0),
     );
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
-    final ids = StorageService.getTodayTaskIds()..add(task.id);
-    StorageService.setTodayTaskIds(ids);
-    AiRefreshService.notifyDataChanged();
-    _loadTasks();
-    if (mounted) {
+    // Qua repository: có createdAt, chống trùng và phát tín hiệu revision
+    // để Home vẽ lại — giống hệt khi người dùng tự thêm.
+    final result = await TaskRepository.instance.createTaskIfMissing(task);
+    if (!mounted) return;
+    if (!result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('Đã thêm nhiệm vụ "Ôn củng cố: $sub" vào lịch ngày mai!'),
+          content: Text(result.isDuplicate
+              ? 'Ngày mai đã có nhiệm vụ "Ôn củng cố: $sub" rồi.'
+              : 'Không thêm được nhiệm vụ ôn củng cố.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return;
     }
+    AiRefreshService.notifyDataChanged();
+    _loadTasks();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đã thêm nhiệm vụ "Ôn củng cố: $sub" vào lịch ngày mai!'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _showQuickNoteDialog(String subject, {String? sessionId}) {
@@ -801,95 +1323,6 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
         ],
       ),
     );
-  }
-
-  void _showReflectionSheet(StudySession session) {
-    var mood = 3;
-    var focus = 3;
-    var difficulty = 3;
-    var understanding = 3;
-    var effectiveness = 3;
-    final noteController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 18, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Phiên học vừa rồi thế nào?',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  const Text('Chỉ mất vài giây — bạn có thể bỏ qua.'),
-                  const SizedBox(height: 16),
-                  _reflectionScale('Tâm trạng', mood,
-                      (value) => setSheetState(() => mood = value)),
-                  _reflectionScale('Tập trung', focus,
-                      (value) => setSheetState(() => focus = value)),
-                  _reflectionScale('Độ khó', difficulty,
-                      (value) => setSheetState(() => difficulty = value)),
-                  _reflectionScale('Mức độ hiểu', understanding,
-                      (value) => setSheetState(() => understanding = value)),
-                  _reflectionScale('Hiệu quả', effectiveness,
-                      (value) => setSheetState(() => effectiveness = value)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: noteController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                        hintText: 'Ghi chú thêm (không bắt buộc)'),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: const Text('Bỏ qua'),
-                        ),
-                      ),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            session
-                              ..mood = mood
-                              ..focus = focus
-                              ..difficulty = difficulty
-                              ..understanding = understanding
-                              ..effectiveness = effectiveness
-                              ..reflectionNote =
-                                  noteController.text.trim().isEmpty
-                                      ? null
-                                      : noteController.text.trim();
-                            StorageService.setStudySessionJson(
-                                session.id, session.toJsonString());
-                            AiRefreshService.notifyDataChanged();
-                            Navigator.pop(sheetContext);
-                          },
-                          child: const Text('Lưu phản hồi'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ).whenComplete(noteController.dispose);
   }
 
   Widget _reflectionScale(
@@ -988,7 +1421,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     _pomTimer?.cancel();
     _pomRunning = false;
     _isBreak = false;
+    _clock = FocusClock(totalSeconds: _focusMinutes * 60);
     _pomSecondsNotifier.value = _focusMinutes * 60;
+    StudySessionRepository.instance.clearActive();
     setState(() {});
   }
 
@@ -996,6 +1431,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pomTimer?.cancel();
+    // Rời màn khi vòng đã dừng = người dùng chủ động bỏ; giữ ảnh chụp lại sẽ
+    // mở lên lại lại hỏi "tiếp tục phiên?" cho một việc họ đã dừng.
+    if (!_pomRunning) {
+      StudySessionRepository.instance.clearActive();
+    } else {
+      _persistActiveSession();
+    }
     _pomSecondsNotifier.dispose();
     super.dispose();
   }
@@ -1330,6 +1772,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 28),
               _TactileCircleButton(
+                key: const ValueKey('pom-toggle'),
                 size: 76,
                 color: _pomRunning ? AppColors.red : AppColors.primary,
                 shadowColor:
@@ -1351,6 +1794,24 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             _pomRunning ? 'Đang trong phiên học!' : 'Bắt đầu để tính thời gian',
             style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
           ),
+          // Đặc tả 5.6 / QA "complete early": xong việc thì kết thúc được,
+          // không bắt ngồi đợi đồng hồ về 0. Nút chỉ có ở vòng focus — khi đang
+          // nghỉ thì không có gì để "hoàn thành".
+          if (!_isBreak) ...[
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              key: const ValueKey('finish-session-early'),
+              onPressed: _finishSessionEarly,
+              icon: const Icon(Icons.check_rounded, size: 18),
+              label: const Text('Hoàn thành'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1.6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1360,7 +1821,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     final sel = _focusMinutes == focus;
     return GestureDetector(
       onTap: () {
-        HapticFeedback.selectionClick();
+        FeedbackService.selection();
         _setPomodoroMode(focus, brk);
       },
       child: Container(
@@ -1413,7 +1874,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           const SizedBox(height: 16),
           ScoreChartWidget(scores: _scores, primaryExam: _primaryExam),
           const SizedBox(height: 16),
-          WeeklyChartWidget(logs: _logs),
+          WeeklyChartWidget(entries: _timeline, onStartStudy: _startFirstSession),
         ],
       ),
     );
@@ -1600,8 +2061,49 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             ),
           ] else if (_sessions.isEmpty) ...[
             const SizedBox(height: 12),
-            const Text('Hoàn thành một phiên Focus để bắt đầu xem dữ liệu.',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            // UX mục 11 "No study history": đủ 3 câu trả lời —
+            // thiếu gì / vì sao quan trọng / làm gì tiếp theo.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.bgPageSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Chưa có phiên học nào.',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 2),
+                  const Text(
+                      'Bắt đầu phiên đầu tiên hôm nay — sau đó bạn sẽ thấy '
+                      'giờ focus, số phiên và xu hướng tiến bộ của mình.',
+                      style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: AppColors.textMuted)),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 36,
+                    child: FilledButton.icon(
+                      key: const ValueKey('start-first-session'),
+                      onPressed: _startFirstSession,
+                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                      label: const Text('Bắt đầu học'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),
@@ -1633,7 +2135,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildLogTab() {
-    final totalHours = _logs.fold(0.0, (sum, l) => sum + l.hours);
+    final entries = _timeline;
+    final totalHours = totalHoursOf(entries);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -1649,7 +2152,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _statCard('${_logs.length}', 'Buổi học',
+                child: _statCard('${entries.length}', 'Buổi học',
                     AppColors.primary, Icons.check_circle),
               ),
             ],
@@ -1686,7 +2189,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(height: 18),
-          if (_logs.isEmpty)
+          if (entries.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(
@@ -1705,7 +2208,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           else
             Column(
               children: [
-                for (final log in _logs) _buildLogItem(log),
+                for (final entry in entries) _buildLogItem(entry),
               ],
             ),
         ],
@@ -1755,11 +2258,12 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildLogItem(StudyLog log) {
+  Widget _buildLogItem(StudyTimelineEntry entry) {
+    final note = _entryNote(entry);
     return Dismissible(
-      key: Key(log.id),
+      key: Key(entry.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => _deleteLog(log),
+      onDismissed: (_) => _deleteTimelineEntry(entry),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
@@ -1802,10 +2306,14 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  '',
-                  style: TextStyle(fontSize: 12),
+                  '${entry.hours.toStringAsFixed(1)}h',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
@@ -1814,13 +2322,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(log.subject,
+                  Text(entry.subject,
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary)),
-                  if (log.note != null && log.note!.isNotEmpty)
-                    Text(log.note!,
+                  if (note != null && note.isNotEmpty)
+                    Text(note,
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.textMuted),
                         maxLines: 1,
@@ -1828,7 +2336,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            Text('${log.date.day}/${log.date.month}',
+            Text('${entry.date.day}/${entry.date.month}',
                 style:
                     const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
@@ -2077,26 +2585,32 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
         ]),
       );
 
-  void _addRecoveryTask(ScoreRecoveryPlan plan) {
+  Future<void> _addRecoveryTask(ScoreRecoveryPlan plan) async {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final task = TodayTask(
       id: _uuid.v4(),
       title: plan.taskTitle,
-      subject: plan.subject,
+      subject: AppSubjects.normalize(plan.subject),
       priority: 'high',
       estimateMinutes: plan.minutesPerSession,
       scheduledAt: DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 19),
     );
-    StorageService.setTodayTaskJson(task.id, task.toJsonString());
-    StorageService.setTodayTaskIds(
-        [...StorageService.getTodayTaskIds(), task.id]);
-    AiRefreshService.notifyDataChanged();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Đã thêm phiên bù điểm vào lịch ngày mai.'),
+    final result = await TaskRepository.instance.createTaskIfMissing(task);
+    if (!mounted) return;
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.isDuplicate
+            ? 'Ngày mai đã có "${plan.taskTitle}" rồi.'
+            : 'Không thêm được phiên bù điểm.'),
         behavior: SnackBarBehavior.floating,
       ));
+      return;
     }
+    AiRefreshService.notifyDataChanged();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Đã thêm phiên bù điểm vào lịch ngày mai.'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   Widget _buildScoreItem(MockScore s) {
@@ -2473,7 +2987,65 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
 }
 
 /// Nút bấm hình tròn với độ lún vật lý xúc giác 3D (Duolingo tactile press)
+/// Năm mức đánh giá phiên học, chọn bằng 1 chạm (FE-3.3).
+class _QuickRating {
+  final String emoji;
+  final String label;
+  final int value;
+  final int mood;
+  final int focus;
+  final int difficulty;
+  final int understanding;
+  final int effectiveness;
+
+  /// Đã nắm được kiến thức hay còn cần củng cố — quyết định có gợi ý "Ôn lại
+  /// ngày mai" hay không.
+  final bool understood;
+
+  const _QuickRating({
+    required this.emoji,
+    required this.label,
+    required this.value,
+    required this.mood,
+    required this.focus,
+    required this.difficulty,
+    required this.understanding,
+    required this.effectiveness,
+    required this.understood,
+  });
+}
+
+/// Phản hồi gom lại từ các điều khiển trong sheet, để hàm lưu không phải giữ
+/// tham chiếu tới `StatefulBuilder`.
+class _SessionFeedback {
+  final int mood;
+  final int focus;
+  final int difficulty;
+  final int understanding;
+  final int effectiveness;
+  final String note;
+
+  const _SessionFeedback({
+    required this.mood,
+    required this.focus,
+    required this.difficulty,
+    required this.understanding,
+    required this.effectiveness,
+    required this.note,
+  });
+}
+
 class _TactileCircleButton extends StatelessWidget {
+  const _TactileCircleButton({
+    super.key,
+    required this.size,
+    required this.color,
+    required this.shadowColor,
+    required this.child,
+    required this.onTap,
+    this.border,
+  });
+
   final double size;
   final Color color;
   final Color shadowColor;
@@ -2481,20 +3053,11 @@ class _TactileCircleButton extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
 
-  const _TactileCircleButton({
-    required this.size,
-    required this.color,
-    required this.shadowColor,
-    this.border,
-    required this.child,
-    required this.onTap,
-  });
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        FeedbackService.light();
         onTap();
       },
       child: Container(
