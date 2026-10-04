@@ -10,6 +10,9 @@ import 'package:edupulse/features/home/presentation/widgets/daily_summary_card.d
 import 'package:edupulse/features/progress/presentation/screens/progress_screen.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
 import 'package:edupulse/features/tasks/domain/repositories/task_repository.dart';
+import 'package:edupulse/features/tasks/presentation/widgets/task_card.dart';
+import 'package:edupulse/features/tasks/presentation/widgets/reschedule_dialog.dart';
+import 'package:edupulse/shared/widgets/skeleton_card.dart';
 
 /// `UI phát triển.md` — Tiêu chí kiểm tra (Acceptance Criteria).
 ///
@@ -118,7 +121,8 @@ void main() {
   });
 
   group('3-second test — mục đích màn Hôm nay phải tự nói ra', () {
-    testWidgets('có lời chào tên + tổng kết ngày + khối nhiệm vụ ngay trên cùng',
+    testWidgets(
+        'có lời chào tên + tổng kết ngày + khối nhiệm vụ ngay trên cùng',
         (tester) async {
       await TaskRepository.instance.createTask(task('t1', 'Ôn tập Văn'));
       await pumpShell(tester);
@@ -146,7 +150,8 @@ void main() {
       expect(find.textContaining('AI lập kế hoạch'), findsOneWidget);
     });
 
-    testWidgets('Màn Tiến độ chưa có dữ liệu → có nút "Bắt đầu học ngay" (G4-B)',
+    testWidgets(
+        'Màn Tiến độ chưa có dữ liệu → có nút "Bắt đầu học ngay" (G4-B)',
         (tester) async {
       var started = 0;
       sizeTo(tester, const Size(390, 844));
@@ -161,8 +166,9 @@ void main() {
 
       expect(find.text('Chưa có dữ liệu học trong tuần này.'), findsOneWidget);
       final cta = find.byKey(const Key('progress-start-study'));
-      expect(cta, findsOneWidget, reason: 'giải thích mà không có nút bấm thì '
-          'người học vẫn phải tự mò');
+      expect(cta, findsOneWidget,
+          reason: 'giải thích mà không có nút bấm thì '
+              'người học vẫn phải tự mò');
 
       await tester.tap(cta);
       await tester.pump();
@@ -196,6 +202,206 @@ void main() {
       expect(find.text('Đã thêm vào hôm nay'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget,
           reason: 'phải đọc được phản hồi mà không cần nhìn màu');
+    });
+  });
+  _swipeGroup();
+  _swipeEndToEndGroup();
+}
+
+// ─── G3-B: vuốt ngang dời lịch + G3-C: khung xương thật sự hiện ──────────────
+void _swipeGroup() {
+  group('G3-B — vuốt ngang trên thẻ nhiệm vụ mở đổi lịch', () {
+    testWidgets('vuốt đủ ngưỡng → gọi onReschedule đúng 1 lần', (tester) async {
+      final n = DateTime.now();
+      final t = TodayTask(
+        id: 'sw1',
+        title: 'Ôn tập Toán',
+        subject: '📐 Toán',
+        estimateMinutes: 45,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      );
+      var calls = 0;
+      await TaskRepository.instance.createTask(t);
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: TaskCard(
+              task: t,
+              onToggle: (_) {},
+              onReschedule: (_) => calls++,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // Vượt ngưỡng 72px rồi thả tay.
+      await tester.drag(find.text('Ôn tập Toán'), const Offset(140, 0));
+      await tester.pumpAndSettle();
+
+      expect(calls, 1, reason: 'vuốt đủ ngưỡng phải mở hộp thoại đổi lịch');
+    });
+
+    testWidgets('vuốt dưới ngưỡng → KHÔNG kích hoạt (không phải vô tình)',
+        (tester) async {
+      final n = DateTime.now();
+      final t = TodayTask(
+        id: 'sw2',
+        title: 'Đọc Văn',
+        subject: '📚 Văn',
+        estimateMinutes: 30,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      );
+      var calls = 0;
+      await TaskRepository.instance.createTask(t);
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: TaskCard(
+              task: t,
+              onToggle: (_) {},
+              onReschedule: (_) => calls++,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.drag(find.text('Đọc Văn'), const Offset(30, 0));
+      await tester.pumpAndSettle();
+
+      expect(calls, 0,
+          reason: 'vuốt hơi tay trong danh sách dọc không được mở nhầm');
+    });
+
+    testWidgets('không có onReschedule → vuốt không làm gì (an toàn)',
+        (tester) async {
+      final n = DateTime.now();
+      final t = TodayTask(
+        id: 'sw3',
+        title: 'Luyện Hóa',
+        subject: '⚗️ Hóa',
+        estimateMinutes: 30,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      );
+      await TaskRepository.instance.createTask(t);
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body:
+              SingleChildScrollView(child: TaskCard(task: t, onToggle: (_) {})),
+        ),
+      ));
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.drag(find.text('Luyện Hóa'), const Offset(140, 0));
+      await tester.pumpAndSettle();
+
+      // Nền vuốt không được dựng khi không có nơi xử lý.
+      expect(find.text('Vuốt để dời lịch'), findsNothing);
+    });
+  });
+
+  group('G3-C — khung xương hiện đủ lâu để thấy', () {
+    testWidgets('ngay sau khi mount vẫn là khung xương, sau đó mới là nhiệm vụ',
+        (tester) async {
+      final n = DateTime.now();
+      await TaskRepository.instance.createTask(TodayTask(
+        id: 'sk1',
+        title: 'Bài tập Lý',
+        subject: '⚡ Lý',
+        estimateMinutes: 30,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      ));
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const MainShellScreen(),
+      ));
+      await tester.pump();
+
+      // Ngay sau khung hình đầu: khung xương, CHƯA phải nội dung thật.
+      expect(find.byType(SkeletonTaskList), findsOneWidget,
+          reason: 'phải thấy được trạng thái đang tải, không phải màn trắng');
+      expect(find.text('Bài tập Lý'), findsNothing);
+
+      // Sau khoảng dừng 300ms: nội dung thật thay khung xương.
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      expect(find.byType(SkeletonTaskList), findsNothing);
+      expect(find.text('Bài tập Lý'), findsOneWidget);
+    });
+
+    testWidgets('rời màn trước khi tải xong không để lại timer treo',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const MainShellScreen(),
+      ));
+      await tester.pump();
+      // Dừng ngay giữa khoảng dời 300ms rồi thay cây widget — timer phải được
+      // huỷ trong dispose, nếu không test sẽ báo “A Timer is still pending”.
+      await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+      await tester.pump(const Duration(milliseconds: 400));
+    });
+  });
+}
+
+/// Bổ sung ngoài `_swipeGroup`: chứng minh gesture chạy trên **đường thật**
+/// từ màn Hôm nay, không chỉ trên `TaskCard` dựng cô lập trong test trước.
+void _swipeEndToEndGroup() {
+  group('G3-B (e2e) — vuốt trên màn Hôm nay thật sự mở hộp thoại đổi lịch', () {
+    testWidgets('vuốt thẻ nhiệm vụ trên Home → mở RescheduleDialog',
+        (tester) async {
+      final n = DateTime.now();
+      await TaskRepository.instance.createTask(TodayTask(
+        id: 'e2e-swipe',
+        title: 'Đề thi thử số 3',
+        subject: '📐 Toán',
+        estimateMinutes: 45,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      ));
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const MainShellScreen(),
+      ));
+      await tester.pump(const Duration(milliseconds: 700));
+
+      final card = find.text('Đề thi thử số 3');
+      expect(card, findsOneWidget, reason: 'thẻ phải hiện trên màn Hôm nay');
+
+      await tester.drag(card, const Offset(140, 0));
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // Hộp thoại đổi lịch phải mở ra — chứng minh đường
+      // HomeScreen → TodayMissionCard → TaskCard → _rescheduleTask nối thật.
+      expect(find.byType(RescheduleDialog), findsOneWidget,
+          reason: 'vuốt phải đi tới hộp thoại đổi lịch, không phải im lặng');
     });
   });
 }

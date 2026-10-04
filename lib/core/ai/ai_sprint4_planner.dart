@@ -201,7 +201,9 @@ Chỉ trả về JSON, không thêm gì khác.
 
     try {
       final data = _parseJson(jsonStr);
-      if (data == null) return _emptyPlan('AI không tạo được kế hoạch. Hãy thử lại.');
+      if (data == null) {
+        return _emptyPlan('AI không tạo được kế hoạch. Hãy thử lại.');
+      }
 
       final summary = (data['summary'] as String?) ?? 'Kế hoạch ôn thi cá nhân';
       final warning = data['warning'] as String?;
@@ -211,7 +213,8 @@ Chỉ trả về JSON, không thêm gì khác.
       for (final t in rawTasks) {
         if (t is! Map<String, dynamic>) continue;
         final title = (t['title'] as String?) ?? '';
-        final subject = AppSubjects.normalize((t['subject'] as String?) ?? 'Tổng hợp');
+        final subject =
+            AppSubjects.normalize((t['subject'] as String?) ?? 'Tổng hợp');
         final minutes = (t['estimateMinutes'] as num?)?.toInt() ?? 30;
         final priority = (t['priority'] as String?) ?? 'medium';
         final dateStr = t['date'] as String?;
@@ -229,9 +232,8 @@ Chỉ trả về JSON, không thêm gì khác.
           day = dayRaw < 1 ? 1 : dayRaw;
           scheduledAt = base.add(Duration(days: day - 1));
         } else {
-          scheduledAt = dateStr != null
-              ? (DateTime.tryParse(dateStr) ?? base)
-              : base;
+          scheduledAt =
+              dateStr != null ? (DateTime.tryParse(dateStr) ?? base) : base;
           final maxDate = base.add(const Duration(days: 30));
           if (scheduledAt.isBefore(base)) scheduledAt = base;
           if (scheduledAt.isAfter(maxDate)) scheduledAt = maxDate;
@@ -380,7 +382,8 @@ Chỉ trả về JSON, không thêm gì khác.
         final dateStr = scheduled != null
             ? '${scheduled.day}/${scheduled.month}'
             : 'hôm nay';
-        lines.add('- [${task.subject}] ${task.title} ($dateStr, ${task.estimateMinutes}ph)');
+        lines.add(
+            '- [${task.subject}] ${task.title} ($dateStr, ${task.estimateMinutes}ph)');
       } catch (_) {
         continue;
       }
@@ -500,8 +503,10 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
           : 'Tất cả nhiệm vụ đã có sẵn trong kế hoạch.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-          backgroundColor: result.created > 0 ? AppColors.primary : AppColors.textMuted,
+          content:
+              Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+          backgroundColor:
+              result.created > 0 ? AppColors.primary : AppColors.textMuted,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
         ),
@@ -623,7 +628,8 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const CircularProgressIndicator(color: AppColors.purple),
+                          const CircularProgressIndicator(
+                              color: AppColors.purple),
                           const SizedBox(height: 16),
                           Text(
                             'Đang thêm $_applyProgress/${_selectedTasks.length} nhiệm vụ...',
@@ -736,7 +742,9 @@ class _TaskPreviewCard extends StatelessWidget {
             color: selected ? AppColors.surface : AppColors.bgPageSoft,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? AppColors.purple.withValues(alpha: 0.4) : AppColors.border,
+              color: selected
+                  ? AppColors.purple.withValues(alpha: 0.4)
+                  : AppColors.border,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -775,7 +783,8 @@ class _TaskPreviewCard extends StatelessWidget {
                           color: selected
                               ? AppColors.textPrimary
                               : AppColors.textMuted,
-                          decoration: selected ? null : TextDecoration.lineThrough,
+                          decoration:
+                              selected ? null : TextDecoration.lineThrough,
                         )),
                     const SizedBox(height: 4),
                     Wrap(
@@ -795,7 +804,8 @@ class _TaskPreviewCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(task.reason!,
                           style: const TextStyle(
-                              fontSize: 11, color: AppColors.textMuted,
+                              fontSize: 11,
+                              color: AppColors.textMuted,
                               fontStyle: FontStyle.italic)),
                     ],
                   ],
@@ -824,7 +834,8 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(label,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w700, color: color)),
     );
   }
 }

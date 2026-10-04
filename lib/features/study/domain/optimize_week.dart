@@ -58,7 +58,8 @@ List<WeekPlanProposal> proposeWeekPlan(
   for (final s in sessions) {
     final rating = s.effectiveness ?? s.focus;
     if (rating == null) continue;
-    final bucket = s.completedAt.hour < 12 ? 0 : (s.completedAt.hour < 18 ? 1 : 2);
+    final bucket =
+        s.completedAt.hour < 12 ? 0 : (s.completedAt.hour < 18 ? 1 : 2);
     (hourBuckets[bucket] ??= []).add(rating);
   }
   String bestBucketLabel = 'buổi tối';
@@ -134,7 +135,10 @@ List<WeekPlanProposal> proposeWeekPlan(
 
     dayLoad[chosen] += task.estimateMinutes;
     final start = DateTime(
-      today.year, today.month, today.day + chosen, effectiveStartHour,
+      today.year,
+      today.month,
+      today.day + chosen,
+      effectiveStartHour,
     );
 
     // ── Lý do ngắn gọn, trung thực về nguồn tín hiệu ─────────────────
@@ -214,8 +218,7 @@ ScheduleChangeCheck checkReschedule(
     return const ScheduleChangeCheck(exceedsDeadline: false);
   }
   final newDate = DateTime(newDay.year, newDay.month, newDay.day);
-  final deadlineDate =
-      DateTime(deadline.year, deadline.month, deadline.day);
+  final deadlineDate = DateTime(deadline.year, deadline.month, deadline.day);
   if (!newDate.isAfter(deadlineDate)) {
     return const ScheduleChangeCheck(exceedsDeadline: false);
   }

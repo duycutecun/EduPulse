@@ -70,8 +70,7 @@ class ChatBubble extends StatelessWidget {
                     if (onContinueSelfStudy != null)
                       TextButton.icon(
                         onPressed: onContinueSelfStudy,
-                        icon:
-                            const Icon(Icons.school_outlined, size: 16),
+                        icon: const Icon(Icons.school_outlined, size: 16),
                         label: const Text('Tiếp tục tự học',
                             style: TextStyle(fontSize: 12.5)),
                       ),
@@ -103,8 +102,7 @@ class ChatBubble extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   'AI đang soạn...',
-                  style: TextStyle(
-                      fontSize: 13, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                 ),
               ],
             ),
@@ -148,8 +146,8 @@ class ChatBubble extends StatelessWidget {
                     fit: BoxFit.cover,
                     height: 150,
                     // Ảnh chụp có thể 12MP — decode theo kích thước hiển thị.
-                    cacheWidth: (MediaQuery.sizeOf(context).width * 1.5)
-                        .round(),
+                    cacheWidth:
+                        (MediaQuery.sizeOf(context).width * 1.5).round(),
                   ),
                 ),
                 if (msg.text.isNotEmpty) const SizedBox(height: 8),
@@ -181,8 +179,7 @@ class ChatBubble extends StatelessWidget {
                   msg.imageBytes!,
                   fit: BoxFit.cover,
                   height: 150,
-                  cacheWidth: (MediaQuery.sizeOf(context).width * 1.5)
-                      .round(),
+                  cacheWidth: (MediaQuery.sizeOf(context).width * 1.5).round(),
                 ),
               ),
               if (msg.text.isNotEmpty) const SizedBox(height: 8),
@@ -204,8 +201,8 @@ class ChatBubble extends StatelessWidget {
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: AppColors.blueSoft.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(10),
@@ -413,8 +410,7 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
             visualDensity: VisualDensity.compact,
             iconSize: 15,
             onPressed: widget.onRegenerate,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColors.textMuted),
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textMuted),
           ),
         IconButton(
           tooltip: 'Báo câu trả lời có vấn đề',
@@ -463,17 +459,20 @@ class _AiActionRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: (action.color ?? AppColors.primary).withValues(alpha: 0.10),
+                color:
+                    (action.color ?? AppColors.primary).withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: (action.color ?? AppColors.primary).withValues(alpha: 0.35),
+                  color: (action.color ?? AppColors.primary)
+                      .withValues(alpha: 0.35),
                   width: 1,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(action.icon, size: 13, color: action.color ?? AppColors.primary),
+                  Icon(action.icon,
+                      size: 13, color: action.color ?? AppColors.primary),
                   const SizedBox(width: 5),
                   Text(
                     action.label,

@@ -78,8 +78,8 @@ class WeeklyReport {
   }
 
   static Future<void> saveChoices(Map<String, bool> choices) async {
-    await StorageService.prefs.setString(
-        '${_prefsKey}_choices', jsonEncode(choices));
+    await StorageService.prefs
+        .setString('${_prefsKey}_choices', jsonEncode(choices));
   }
 
   /// Dựng báo cáo tuần này. [enabled] quyết định mục nào được đưa vào —
@@ -93,7 +93,8 @@ class WeeklyReport {
 
     // --- Phiên focus trong tuần ---
     final weekSessions = StudyRhythm.sessions()
-        .where((s) => !s.completedAt.isBefore(start) && !s.completedAt.isAfter(end))
+        .where((s) =>
+            !s.completedAt.isBefore(start) && !s.completedAt.isAfter(end))
         .toList();
     final minutes = weekSessions.fold(0, (sum, s) => sum + s.actualMinutes);
     final days = weekSessions.map((s) => s.completedAt.day).toSet().length;
@@ -219,6 +220,5 @@ class WeeklyReportData {
     return buf.toString();
   }
 
-  static String _d(DateTime d) =>
-      '${d.day}/${d.month}';
+  static String _d(DateTime d) => '${d.day}/${d.month}';
 }

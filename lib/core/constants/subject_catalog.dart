@@ -33,22 +33,46 @@ class AppSubject {
 
 /// Danh mục môn học chuẩn — nguồn duy nhất cho form chọn môn.
 abstract class AppSubjects {
-  static const AppSubject toan =
-      AppSubject(name: '📐 Toán', plainName: 'Toán', icon: Icons.functions, color: AppColors.blue);
+  static const AppSubject toan = AppSubject(
+      name: '📐 Toán',
+      plainName: 'Toán',
+      icon: Icons.functions,
+      color: AppColors.blue);
   static const AppSubject ly = AppSubject(
-      name: '⚡ Lý', plainName: 'Lý', icon: Icons.bolt, color: Color(0xFF6A1B9A));
+      name: '⚡ Lý',
+      plainName: 'Lý',
+      icon: Icons.bolt,
+      color: Color(0xFF6A1B9A));
   static const AppSubject hoa = AppSubject(
-      name: '🧪 Hóa', plainName: 'Hóa', icon: Icons.science, color: Color(0xFFC2185B));
+      name: '🧪 Hóa',
+      plainName: 'Hóa',
+      icon: Icons.science,
+      color: Color(0xFFC2185B));
   static const AppSubject van = AppSubject(
-      name: '📖 Văn', plainName: 'Văn', icon: Icons.menu_book, color: Color(0xFFE65100));
+      name: '📖 Văn',
+      plainName: 'Văn',
+      icon: Icons.menu_book,
+      color: Color(0xFFE65100));
   static const AppSubject anh = AppSubject(
-      name: '🇬🇧 Anh', plainName: 'Anh', icon: Icons.translate, color: Color(0xFF2E7D32));
+      name: '🇬🇧 Anh',
+      plainName: 'Anh',
+      icon: Icons.translate,
+      color: Color(0xFF2E7D32));
   static const AppSubject sinh = AppSubject(
-      name: '🧬 Sinh', plainName: 'Sinh', icon: Icons.biotech, color: Color(0xFF00897B));
+      name: '🧬 Sinh',
+      plainName: 'Sinh',
+      icon: Icons.biotech,
+      color: Color(0xFF00897B));
   static const AppSubject su = AppSubject(
-      name: '🏛️ Sử', plainName: 'Sử', icon: Icons.account_balance, color: Color(0xFF8D6E63));
+      name: '🏛️ Sử',
+      plainName: 'Sử',
+      icon: Icons.account_balance,
+      color: Color(0xFF8D6E63));
   static const AppSubject dia = AppSubject(
-      name: '🗺️ Địa', plainName: 'Địa', icon: Icons.public, color: Color(0xFF00ACC1));
+      name: '🗺️ Địa',
+      plainName: 'Địa',
+      icon: Icons.public,
+      color: Color(0xFF00ACC1));
   static const AppSubject gdcd = AppSubject(
       name: '⚖️ GDCD',
       plainName: 'GDCD',
@@ -59,8 +83,11 @@ abstract class AppSubjects {
       plainName: 'Tin',
       icon: Icons.computer,
       color: Color(0xFF3949AB));
-  static const AppSubject khac =
-      AppSubject(name: '💡 Khác', plainName: 'Khác', icon: Icons.lightbulb_outline, color: AppColors.primary);
+  static const AppSubject khac = AppSubject(
+      name: '💡 Khác',
+      plainName: 'Khác',
+      icon: Icons.lightbulb_outline,
+      color: AppColors.primary);
 
   /// Thứ tự hiển thị trong form chọn môn.
   static const List<AppSubject> all = [
@@ -161,7 +188,7 @@ abstract class AppSubjects {
     return buffer.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-/// Bảng đồ bí danh → tên chuẩn (khoá đã bỏ dấu, lowercase, giữ khoảng trắng).
+  /// Bảng đồ bí danh → tên chuẩn (khoá đã bỏ dấu, lowercase, giữ khoảng trắng).
   static final Map<String, String> _aliases = {
     'toan': toan.name,
     'math': toan.name,
@@ -198,7 +225,7 @@ abstract class AppSubjects {
     'other': khac.name,
   };
 
-/// Khoá tra cứu: mỗi bí danh được đăng ký thêm bản **không khoảng trắng** để
+  /// Khoá tra cứu: mỗi bí danh được đăng ký thêm bản **không khoảng trắng** để
   /// "vậtlý", "vatly", "vật lí"… đều ra một kết quả.
   static final Map<String, String> _aliasLookup = {
     for (final entry in _aliases.entries) ...{
@@ -207,7 +234,7 @@ abstract class AppSubjects {
     },
   };
 
-/// Chuẩn hoá một chuỗi subject bất kỳ về tên chuẩn có emoji.
+  /// Chuẩn hoá một chuỗi subject bất kỳ về tên chuẩn có emoji.
   ///
   /// Không nhận ra → trả nguyên đầu vào đã trim, **không tự bịa môn học**
   /// (nguyên tắc §10 "No fabricated data").
@@ -215,7 +242,8 @@ abstract class AppSubjects {
     if (value == null || value.trim().isEmpty) return khac.name;
     final raw = value.trim();
     final folded = foldDiacritics(raw);
-    final aliased = _aliasLookup[folded] ?? _aliasLookup[folded.replaceAll(' ', '')];
+    final aliased =
+        _aliasLookup[folded] ?? _aliasLookup[folded.replaceAll(' ', '')];
     if (aliased != null) return aliased;
 
     // Đã đúng chuẩn rồi (có emoji khớp danh mục).
@@ -236,7 +264,8 @@ abstract class AppSubjects {
   }
 
   /// Màu nhận diện theo môn; môn lạ → màu chủ đạo.
-  static Color colorOf(String? value) => find(value)?.color ?? AppColors.primary;
+  static Color colorOf(String? value) =>
+      find(value)?.color ?? AppColors.primary;
 
   /// Icon theo môn; môn lạ → icon chung.
   static IconData iconOf(String? value) =>

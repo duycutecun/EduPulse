@@ -75,14 +75,12 @@ class StudySessionRepository {
   /// thêm một chỗ nữa để sai.
   int minutesOn(DateTime day) {
     final target = DateTime(day.year, day.month, day.day);
-    return getAll()
-        .where((session) {
-          final at = session.completedAt;
-          return at.year == target.year &&
-              at.month == target.month &&
-              at.day == target.day;
-        })
-        .fold<int>(0, (sum, session) => sum + session.actualMinutes);
+    return getAll().where((session) {
+      final at = session.completedAt;
+      return at.year == target.year &&
+          at.month == target.month &&
+          at.day == target.day;
+    }).fold<int>(0, (sum, session) => sum + session.actualMinutes);
   }
 
   /// Tổng phút học của một môn, tuỳ chọn giới hạn theo ngày (BE-3.1).
@@ -96,11 +94,10 @@ class StudySessionRepository {
     return getAll()
         .where((session) => _sameSubject(session.subject, target))
         .where((session) {
-          if (day == null) return true;
-          final at = session.completedAt;
-          return at.year == day.year && at.month == day.month && at.day == day.day;
-        })
-        .fold<int>(0, (sum, session) => sum + session.actualMinutes);
+      if (day == null) return true;
+      final at = session.completedAt;
+      return at.year == day.year && at.month == day.month && at.day == day.day;
+    }).fold<int>(0, (sum, session) => sum + session.actualMinutes);
   }
 
   static bool _sameSubject(String a, String b) {

@@ -80,6 +80,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   late final ValueNotifier<int> _pomSecondsNotifier =
       ValueNotifier<int>(_focusMinutes * 60);
   bool _pomRunning = false;
+
   /// Đang chờ bắt đầu vòng mới vì câu hỏi khôi phục chưa được trả lời xong.
   bool _pendingAutoStart = false;
   bool _isBreak = false;
@@ -172,7 +173,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     final planned = _focusMinutes;
     // Lấy từ đồng hồ chứ không tự trừ: đây là lúc app đang bị vùy, tức là lúc
     // `Timer.periodic` đã bị hệ điều hành giữ lại và số đếm không đáng tin.
-    final studied = (_clock.elapsedAt(widget.clock()) / 60).round().clamp(0, planned);
+    final studied =
+        (_clock.elapsedAt(widget.clock()) / 60).round().clamp(0, planned);
     StorageService.setString(
       'app_leaving_events',
       _appendLeavingEvent(planned, studied),
@@ -228,7 +230,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
 
   /// Tên task theo ID, để dòng nhật ký từ phiên học hiện đúng nơi đã học.
   Map<String, String> get _taskTitles => {
-        for (final task in TaskRepository.instance.getAllTasks()) task.id: task.title,
+        for (final task in TaskRepository.instance.getAllTasks())
+          task.id: task.title,
       };
 
   void _loadScores() {
@@ -724,9 +727,10 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                                     Text(option.label,
                                         style: TextStyle(
                                             fontSize: 9.5,
-                                            fontWeight: quickRating == option.value
-                                                ? FontWeight.w800
-                                                : FontWeight.w600,
+                                            fontWeight:
+                                                quickRating == option.value
+                                                    ? FontWeight.w800
+                                                    : FontWeight.w600,
                                             color: quickRating == option.value
                                                 ? AppColors.primary
                                                 : AppColors.textMuted)),
@@ -1138,7 +1142,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
       difficulty: feedback.difficulty,
       understanding: feedback.understanding,
       effectiveness: feedback.effectiveness,
-      reflectionNote: feedback.note.trim().isEmpty ? null : feedback.note.trim(),
+      reflectionNote:
+          feedback.note.trim().isEmpty ? null : feedback.note.trim(),
     );
     AiRefreshService.notifyDataChanged();
     if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -1874,7 +1879,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           const SizedBox(height: 16),
           ScoreChartWidget(scores: _scores, primaryExam: _primaryExam),
           const SizedBox(height: 16),
-          WeeklyChartWidget(entries: _timeline, onStartStudy: _startFirstSession),
+          WeeklyChartWidget(
+              entries: _timeline, onStartStudy: _startFirstSession),
         ],
       ),
     );

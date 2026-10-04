@@ -97,7 +97,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      _showMessage('Không đặt lại được mật khẩu. Kiểm tra mạng và thử lại.', false);
+      _showMessage(
+          'Không đặt lại được mật khẩu. Kiểm tra mạng và thử lại.', false);
     }
   }
 
@@ -140,8 +141,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           child: Center(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: Container(
@@ -240,7 +240,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             ],
                           ),
                           child: _loading
-                              ? const CupertinoActivityIndicator(color: Colors.white)
+                              ? const CupertinoActivityIndicator(
+                                  color: Colors.white)
                               : const Text(
                                   'Đặt lại mật khẩu',
                                   style: TextStyle(
@@ -255,7 +256,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       const Text(
                         'Sau khi đặt xong, bạn sẽ được đăng nhập ngay vào tích lũy EduPulse.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 11.5, height: 1.4, color: _kMuted),
+                        style: TextStyle(
+                            fontSize: 11.5, height: 1.4, color: _kMuted),
                       ),
                     ],
                   ),
@@ -293,7 +295,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             suffixIcon: GestureDetector(
               onTap: onToggle,
               child: Icon(
-                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                obscure
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 size: 19,
                 color: _kMuted,
               ),

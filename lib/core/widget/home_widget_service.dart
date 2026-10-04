@@ -43,8 +43,7 @@ class HomeWidgetService {
         if (raw == null) continue;
         try {
           final e = ExamModel.fromJsonString(raw);
-          if (e.id == primaryId ||
-              (examName == null && !e.isExamDayOver)) {
+          if (e.id == primaryId || (examName == null && !e.isExamDayOver)) {
             examName = e.name;
             final d = e.dateTime.difference(DateTime.now()).inDays;
             daysLeft = d < 0 ? 0 : d;
@@ -81,8 +80,7 @@ class HomeWidgetService {
       } catch (_) {}
       await _write(prefs, 'ready_score', ready);
 
-      await _write(
-          prefs, 'updated_iso', DateTime.now().toIso8601String());
+      await _write(prefs, 'updated_iso', DateTime.now().toIso8601String());
     } catch (_) {
       // Widget là "nice to have" — không bao giờ làm app văng lỗi.
     }

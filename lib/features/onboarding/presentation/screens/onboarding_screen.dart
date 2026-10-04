@@ -1,3 +1,4 @@
+import 'package:edupulse/features/exams/domain/exam_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/main_shell.dart';
@@ -88,9 +89,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       emoji: _preset?.emoji ?? '🎯',
       targetScore: _targetScore,
     );
-    StorageService.setExamJson(exam.id, exam.toJsonString());
-    StorageService.setExamIds([exam.id]);
-    StorageService.setPrimaryExamId(exam.id);
+    // Đi qua [ExamRepository] chứ không ghi thẳng StorageService: đây là
+    // **đường ghi duy nhất** của kỳ thi. Ghi tay ở đây từng làm kỳ thi không
+    // bắn `revision` nên màn khác không vẽ lại, và không được đẩy lên cloud.
+    ExamRepository.instance.save(exam);
+    ExamRepository.instance.setPrimary(exam.id);
 
     final name = _nameCtrl.text.trim();
     if (name.isNotEmpty) StorageService.setUserName(name);

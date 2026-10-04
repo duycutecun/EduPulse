@@ -1,4 +1,3 @@
-
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../features/study/domain/repositories/study_session_repository.dart';
@@ -11,7 +10,8 @@ import '../utils/storage_service.dart';
 /// tiến độ nhiệm vụ, độ bền chuỗi học và thời gian đến ngày thi.
 class ReadinessResult {
   final int score; // 0..100
-  final String band; // nhãn vùng: 'Rất tốt' / 'Khá' / 'Trung bình' / 'Cần nỗ lực'
+  final String
+      band; // nhãn vùng: 'Rất tốt' / 'Khá' / 'Trung bình' / 'Cần nỗ lực'
   final List<ReadinessFactor> factors;
   final List<String> levers; // 3 đòn bẩy tăng điểm nhanh nhất
   final List<String> warnings; // rủi ro cụ thể (môn tụt, chuỗi đứt...)
@@ -86,9 +86,8 @@ class ReadinessScore {
     final gap = (target - current).clamp(0.0, 10.0);
     final daysLeft = primary.daysLeft;
     // Điểm đã đạt trên mục tiêu → thành phần full điểm.
-    final scoreGap = daysLeft <= 0
-        ? (gap <= 0 ? 1.0 : 0.0)
-        : (1 - gap / 10).clamp(0.0, 1.0);
+    final scoreGap =
+        daysLeft <= 0 ? (gap <= 0 ? 1.0 : 0.0) : (1 - gap / 10).clamp(0.0, 1.0);
     final fGap = ReadinessFactor(
       label: 'Khoảng cách điểm',
       value: scoreGap,
@@ -132,7 +131,8 @@ class ReadinessScore {
       taskValue = 0.5; // không có kế hoạch → trung tính, không phạt gắt
       taskDetail = 'Chưa có nhiệm vụ nào được lên kế hoạch';
     } else {
-      final done = tasks.where((x) => x.isDone || x.status == 'completed').length;
+      final done =
+          tasks.where((x) => x.isDone || x.status == 'completed').length;
       final skipped = tasks.where((x) => x.status == 'skipped').length;
       taskValue = ((done + 0.3 * skipped) / tasks.length).clamp(0.0, 1.0);
       taskDetail = '$done/${tasks.length} nhiệm vụ đã xong'
@@ -165,8 +165,7 @@ class ReadinessScore {
       timeValue = 1.0;
       timeDetail = 'Đã qua ngày thi';
     } else {
-      final neededDays =
-          (gap / pointsPerDay).ceil().clamp(minReviewDays, 60);
+      final neededDays = (gap / pointsPerDay).ceil().clamp(minReviewDays, 60);
       timeValue = (daysLeft / neededDays).clamp(0.0, 1.0);
       timeDetail = gap <= 0
           ? '$daysLeft ngày — chỉ cần giữ đà'
@@ -194,7 +193,8 @@ class ReadinessScore {
       warnings.add('7 ngày qua không có phiên focus nào — nhịp học đang đứt.');
     }
     if (streak == 0 && record >= 3) {
-      warnings.add('Chuỗi học $record ngày đã đứt — khởi động lại nhẹ nhàng nhé.');
+      warnings
+          .add('Chuỗi học $record ngày đã đứt — khởi động lại nhẹ nhàng nhé.');
     }
     if (weakest != null && weakest.$2 < 6.0) {
       warnings.add(
@@ -220,10 +220,12 @@ class ReadinessScore {
           'Giải tỏa ${tasks.where((x) => !x.isDone && x.status != "skipped").length} nhiệm vụ còn treo — mỗi task xong là +10 XP và tiến độ thật.');
     }
     if (streak < 3) {
-      levers.add('Giữ chuỗi ≥3 ngày trước — thói quen là nền của mọi đòn bẩy khác.');
+      levers.add(
+          'Giữ chuỗi ≥3 ngày trước — thói quen là nền của mọi đòn bẩy khác.');
     }
     if (levers.isEmpty) {
-      levers.add('Duy trì nhịp hiện tại và tăng dần độ khó đề luyện — bạn đang trên quỹ đạo.');
+      levers.add(
+          'Duy trì nhịp hiện tại và tăng dần độ khó đề luyện — bạn đang trên quỹ đạo.');
     }
 
     final finalScore = (weighted * 100).round().clamp(0, 100);
@@ -323,7 +325,8 @@ class ReadinessScore {
     }
     if (bySubject.isEmpty) return null;
     final averages = bySubject.entries
-        .map((e) => MapEntry(e.key, e.value.reduce((a, b) => a + b) / e.value.length))
+        .map((e) =>
+            MapEntry(e.key, e.value.reduce((a, b) => a + b) / e.value.length))
         .toList()
       ..sort((a, b) => a.value.compareTo(b.value));
     return (averages.first.key, averages.first.value);

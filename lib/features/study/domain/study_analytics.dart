@@ -8,8 +8,8 @@ import 'models/study_models.dart';
 /// - **Hypothesis ≠ fact** (mục 36): các gợi ý dùng ngôn ngữ "thử", "có vẻ",
 ///   không kết luận nguyên nhân tuyệt đối.
 
-DateTime _startOfWeek(DateTime now) =>
-    DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+DateTime _startOfWeek(DateTime now) => DateTime(now.year, now.month, now.day)
+    .subtract(Duration(days: now.weekday - 1));
 
 // ---------------------------------------------------------------------------
 // 12.2 So sánh tuần này vs tuần trước
@@ -59,10 +59,11 @@ WeeklyComparison compareWeeks(List<StudySession> sessions, DateTime now) {
       .fold(0, (sum, s) => sum + s.actualMinutes);
 
   return WeeklyComparison(
-    thisWeekMinutes: minutesWhere(
-        (d) => !d.isBefore(startThis) && d.isBefore(startThis.add(const Duration(days: 7)))),
-    lastWeekMinutes: minutesWhere(
-        (d) => !d.isBefore(startLast) && d.isBefore(startThis)),
+    thisWeekMinutes: minutesWhere((d) =>
+        !d.isBefore(startThis) &&
+        d.isBefore(startThis.add(const Duration(days: 7)))),
+    lastWeekMinutes:
+        minutesWhere((d) => !d.isBefore(startLast) && d.isBefore(startThis)),
   );
 }
 
@@ -93,8 +94,7 @@ class EfficiencyReport {
 
 const int _minSample = 3;
 
-EfficiencyReport? efficiency(
-    List<StudySession> sessions, DateTime now) {
+EfficiencyReport? efficiency(List<StudySession> sessions, DateTime now) {
   final startThis = _startOfWeek(now);
   final startLast = startThis.subtract(const Duration(days: 7));
 
@@ -155,8 +155,7 @@ EfficiencyReport? efficiency(
 /// Nếu các phiên ≥50 phút có focus thấp hơn hẳn phiên ngắn → đề xuất phiên
 /// ngắn hơn (đúng ví dụ mục 12.4). Cần ≥3 phiên mỗi nhóm; không đủ → null.
 String? focusPatternTip(List<StudySession> sessions) {
-  final rated =
-      sessions.where((s) => s.focus != null).toList();
+  final rated = sessions.where((s) => s.focus != null).toList();
   Iterable<StudySession> group(bool Function(StudySession) predicate) =>
       rated.where(predicate);
   double avgFocus(Iterable<StudySession> group_) {

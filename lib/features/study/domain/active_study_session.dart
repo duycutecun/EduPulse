@@ -145,8 +145,7 @@ class ActiveStudySession {
         totalSeconds: json['totalSeconds'] ?? 0,
         remainingAtAnchor: json['remainingAtAnchor'] ?? 0,
         anchorAt: DateTime.tryParse(json['anchorAt'] ?? ''),
-        startedAt:
-            DateTime.tryParse(json['startedAt'] ?? '') ?? DateTime.now(),
+        startedAt: DateTime.tryParse(json['startedAt'] ?? '') ?? DateTime.now(),
         round: json['round'] ?? 1,
         isBreak: json['isBreak'] ?? false,
       );

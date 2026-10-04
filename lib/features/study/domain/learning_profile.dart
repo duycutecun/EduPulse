@@ -45,8 +45,8 @@ String? inferBestStudyTime(List<StudySession> sessions) {
   final buckets = <String, List<int>>{};
   for (final s in sessions) {
     if (s.focus == null) continue;
-    final bucket = _timeBucket(
-        s.completedAt.hour + s.completedAt.minute / 60.0);
+    final bucket =
+        _timeBucket(s.completedAt.hour + s.completedAt.minute / 60.0);
     (buckets[bucket] ??= []).add(s.focus!);
   }
 
@@ -153,9 +153,8 @@ Map<String, SubjectProfile> inferSubjectProfiles({
     final list = diffs[subject] ?? const [];
     result[subject] = SubjectProfile(
       subject: subject,
-      avgDifficulty: list.length < 3
-          ? null
-          : list.fold(0, (a, b) => a + b) / list.length,
+      avgDifficulty:
+          list.length < 3 ? null : list.fold(0, (a, b) => a + b) / list.length,
       skippedCount: skipped[subject] ?? 0,
       completedCount: completed[subject] ?? 0,
     );
@@ -252,8 +251,7 @@ List<LearningTrait> buildLearningProfile({
     traits.add(LearningTrait(
       label: 'Môn đang khó với bạn',
       value: hardSubjects.map((p) => p.subject).join(', '),
-      evidence:
-          'Difficulty trung bình > 3.5/5 từ ít nhất 3 phiên phản hồi.',
+      evidence: 'Difficulty trung bình > 3.5/5 từ ít nhất 3 phiên phản hồi.',
       confidence: Confidence.medium,
     ));
   }

@@ -73,7 +73,8 @@ class AiCoachScreenState extends State<AiCoachScreen> {
     _autoReadImage = StorageService.getAiAutoReadImage();
     _loadChatHistory();
 
-    if (widget.initialPrompt != null && widget.initialPrompt!.trim().isNotEmpty) {
+    if (widget.initialPrompt != null &&
+        widget.initialPrompt!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         sendPrompt(widget.initialPrompt!);
       });
@@ -434,9 +435,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
               Text(
                 report.summary.replaceAll('**', ''),
                 style: const TextStyle(
-                    fontSize: 13.5,
-                    height: 1.5,
-                    color: AppColors.textPrimary),
+                    fontSize: 13.5, height: 1.5, color: AppColors.textPrimary),
               ),
               if (report.suggestions.isNotEmpty) ...[
                 const SizedBox(height: 14),
@@ -500,9 +499,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
 
     if (proposals.isEmpty) {
       // AI-17: nói thật khi không đủ dữ liệu, không bịa đề xuất.
-      final open = tasks
-          .where((t) => !t.isDone && t.status != 'skipped')
-          .length;
+      final open =
+          tasks.where((t) => !t.isDone && t.status != 'skipped').length;
       _pushAiMessage(
         open == 0
             ? 'Chưa có nhiệm vụ nào đang mở nên chưa có gì để điều chỉnh. '
@@ -537,8 +535,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
       builder: (_) => PopScope(
         canPop: false,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           content: Row(
             children: [
               const SizedBox(
@@ -701,7 +699,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                                 MaterialPageRoute(
                                   builder: (_) => QuizPlayScreen(
                                     questions: questions,
-                                    subject: _inferSubjectFromNote(name ?? 'quiz'),
+                                    subject:
+                                        _inferSubjectFromNote(name ?? 'quiz'),
                                     topic: 'Quiz từ ảnh: $name',
                                   ),
                                 ),
@@ -976,7 +975,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
 
     final weakest = AiCopilotService.weakestSubject();
     if (weakest != null) {
-      prompts.add('Môn ${weakest.$1} (${weakest.$2.toStringAsFixed(1)} điểm) cần cải thiện gì?');
+      prompts.add(
+          'Môn ${weakest.$1} (${weakest.$2.toStringAsFixed(1)} điểm) cần cải thiện gì?');
     }
 
     prompts.add('Kiểm tra lần này sai ở đâu?');
@@ -1099,7 +1099,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                     : () => _retryFailed(_messages[i - (_isIntroOnly ? 1 : 0)]),
                 onContinueSelfStudy: _isIntroOnly
                     ? null
-                    : () => _closeErrorAndGoToday(_messages[i - (_isIntroOnly ? 1 : 0)]),
+                    : () => _closeErrorAndGoToday(
+                        _messages[i - (_isIntroOnly ? 1 : 0)]),
               );
             },
           ),
@@ -1144,13 +1145,36 @@ class _AiQuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <(IconData, String, Color, VoidCallback)>[
-      (Icons.lightbulb_outline_rounded, 'Tôi nên học gì?', AppColors.greenDark,
-          onRecommend),
-      (Icons.menu_book_rounded, 'Giải thích bài này', AppColors.blueDark, onExplain),
-      (Icons.calendar_month_rounded, 'Lập kế hoạch', AppColors.purpleDark, onPlan),
-      (Icons.insights_rounded, 'Phân tích điểm yếu', AppColors.orangeDark,
-          onWeakness),
-      (Icons.balance_rounded, 'Điều chỉnh lịch', AppColors.blueDark, onReschedule),
+      (
+        Icons.lightbulb_outline_rounded,
+        'Tôi nên học gì?',
+        AppColors.greenDark,
+        onRecommend
+      ),
+      (
+        Icons.menu_book_rounded,
+        'Giải thích bài này',
+        AppColors.blueDark,
+        onExplain
+      ),
+      (
+        Icons.calendar_month_rounded,
+        'Lập kế hoạch',
+        AppColors.purpleDark,
+        onPlan
+      ),
+      (
+        Icons.insights_rounded,
+        'Phân tích điểm yếu',
+        AppColors.orangeDark,
+        onWeakness
+      ),
+      (
+        Icons.balance_rounded,
+        'Điều chỉnh lịch',
+        AppColors.blueDark,
+        onReschedule
+      ),
     ];
 
     return LayoutBuilder(

@@ -210,8 +210,8 @@ class AiCopilotService {
     double? weakestScore;
     if (scoreBySubject.isNotEmpty) {
       final averages = scoreBySubject.entries
-          .map((e) => MapEntry(
-              e.key, e.value.reduce((a, b) => a + b) / e.value.length))
+          .map((e) =>
+              MapEntry(e.key, e.value.reduce((a, b) => a + b) / e.value.length))
           .toList()
         ..sort((a, b) => a.value.compareTo(b.value));
       weakestSub = averages.first.key;
@@ -237,9 +237,8 @@ class AiCopilotService {
               scheduled.day == now.day);
     }).toList();
 
-    final todoTasks = todayTasks
-        .where((t) => !t.isDone && t.status != 'skipped')
-        .toList();
+    final todoTasks =
+        todayTasks.where((t) => !t.isDone && t.status != 'skipped').toList();
     final highPriorityTodo =
         todoTasks.where((t) => t.priority == 'high').toList();
 
@@ -697,10 +696,8 @@ class AiCopilotService {
         final subject = (action.payload['subject'] ?? 'Toán').toString();
         final topic =
             (action.payload['topic'] ?? 'Trắc nghiệm tổng hợp').toString();
-        final quizOnTasks =
-            action.payload['onTasksChanged'] as VoidCallback?;
-        final quizOnStreak =
-            action.payload['onStreakChanged'] as VoidCallback?;
+        final quizOnTasks = action.payload['onTasksChanged'] as VoidCallback?;
+        final quizOnStreak = action.payload['onStreakChanged'] as VoidCallback?;
 
         if (!PwaService.isOnline) {
           if (context.mounted) {
@@ -777,14 +774,14 @@ class AiCopilotService {
           if (context.mounted) {
             Navigator.of(context)
                 .push(MaterialPageRoute(
-                  builder: (_) => QuizPlayScreen(
-                    questions: questions,
-                    subject: subject,
-                    topic: topic,
-                    onTasksChanged: quizOnTasks,
-                    onStreakChanged: quizOnStreak,
-                  ),
-                ))
+              builder: (_) => QuizPlayScreen(
+                questions: questions,
+                subject: subject,
+                topic: topic,
+                onTasksChanged: quizOnTasks,
+                onStreakChanged: quizOnStreak,
+              ),
+            ))
                 .then((_) {
               // Vừa quay lại từ quiz: dữ liệu điểm/streak đã đổi — báo UI
               // liên quan (Home) đọc lại để AI lần sau tư vấn theo kết quả
@@ -839,7 +836,7 @@ class AiCopilotService {
     AiCopilotAction action, {
     VoidCallback? onTasksChanged,
   }) async {
-final title = (action.payload['title'] ?? action.label).toString();
+    final title = (action.payload['title'] ?? action.label).toString();
     final subjectRaw = action.payload['subject']?.toString();
     final messenger = ScaffoldMessenger.of(context);
 
@@ -877,7 +874,9 @@ final title = (action.payload['title'] ?? action.label).toString();
           message: result.failed
               ? (result.error ?? 'Không lưu được thay đổi')
               : 'Đã cập nhật "${match.title}"',
-          icon: result.failed ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+          icon: result.failed
+              ? Icons.error_outline_rounded
+              : Icons.check_circle_rounded,
           color: result.failed ? AppColors.red : AppColors.primary,
         );
 
@@ -903,7 +902,9 @@ final title = (action.payload['title'] ?? action.label).toString();
           message: result.failed
               ? (result.error ?? 'Không dời lịch được')
               : 'Đã dời "${match.title}" sang ${when.day}/${when.month}',
-          icon: result.failed ? Icons.error_outline_rounded : Icons.event_available_rounded,
+          icon: result.failed
+              ? Icons.error_outline_rounded
+              : Icons.event_available_rounded,
           color: result.failed ? AppColors.red : AppColors.primary,
         );
 

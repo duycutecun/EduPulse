@@ -105,8 +105,8 @@ List<MoveProposal> proposeDayBalance({
 
     proposals.add(MoveProposal(
       task: task,
-      proposedStart: DateTime(
-          today.year, today.month, today.day + day, kDefaultStartHour),
+      proposedStart:
+          DateTime(today.year, today.month, today.day + day, kDefaultStartHour),
       reason: 'Hôm nay đang nặng hơn quỹ $budgetMinutes phút '
           '• dời bớt để mỗi ngày một lượng vừa sức',
     ));

@@ -17,24 +17,23 @@ class StudyLog {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'date': date.toIso8601String(),
-    'subject': subject,
-    'hours': hours,
-    'note': note,
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'subject': subject,
+        'hours': hours,
+        'note': note,
+      };
 
   factory StudyLog.fromJson(Map<String, dynamic> j) => StudyLog(
-    id: j['id'],
-    date: DateTime.parse(j['date']),
-    subject: j['subject'] ?? '',
-    hours: (j['hours'] as num).toDouble(),
-    note: j['note'],
-  );
+        id: j['id'],
+        date: DateTime.parse(j['date']),
+        subject: j['subject'] ?? '',
+        hours: (j['hours'] as num).toDouble(),
+        note: j['note'],
+      );
 
   String toJsonString() => jsonEncode(toJson());
-  factory StudyLog.fromJsonString(String s) =>
-      StudyLog.fromJson(jsonDecode(s));
+  factory StudyLog.fromJsonString(String s) => StudyLog.fromJson(jsonDecode(s));
 }
 
 /// A local-first study note. Notes intentionally stay independent from a task
@@ -155,54 +154,55 @@ class TodayTask {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'isDone': isDone,
-    'subject': subject,
-    'topic': topic,
-    'priority': priority,
-    'estimateMinutes': estimateMinutes,
-    'deadline': deadline?.toIso8601String(),
-    'scheduledAt': scheduledAt?.toIso8601String(),
-    'note': note,
-    'goalId': goalId,
-    'subtasks': subtasks,
-    'recurrence': recurrence,
-    'status': status,
-    'skipReason': skipReason,
-    'rescheduleCount': rescheduleCount,
-    'createdAt': createdAt?.toIso8601String(),
-    'updatedAt': updatedAt?.toIso8601String(),
-  };
+        'id': id,
+        'title': title,
+        'isDone': isDone,
+        'subject': subject,
+        'topic': topic,
+        'priority': priority,
+        'estimateMinutes': estimateMinutes,
+        'deadline': deadline?.toIso8601String(),
+        'scheduledAt': scheduledAt?.toIso8601String(),
+        'note': note,
+        'goalId': goalId,
+        'subtasks': subtasks,
+        'recurrence': recurrence,
+        'status': status,
+        'skipReason': skipReason,
+        'rescheduleCount': rescheduleCount,
+        'createdAt': createdAt?.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+      };
 
   factory TodayTask.fromJson(Map<String, dynamic> j) => TodayTask(
-    id: j['id'],
-    title: j['title'],
-    isDone: j['isDone'] ?? false,
-    subject: j['subject'] ?? 'Toán',
-    topic: j['topic'],
-    priority: j['priority'] ?? 'medium',
-    estimateMinutes: j['estimateMinutes'] ?? 45,
-    deadline: j['deadline'] == null ? null : DateTime.tryParse(j['deadline']),
-    scheduledAt: j['scheduledAt'] == null
-        ? null
-        : DateTime.tryParse(j['scheduledAt']),
-    note: j['note'],
-    goalId: j['goalId'],
-    subtasks: (j['subtasks'] as List? ?? const [])
-        .map((item) => item.toString())
-        .toList(),
-    recurrence: j['recurrence'],
-    status: j['status'] ?? ((j['isDone'] ?? false) ? 'completed' : 'todo'),
-    skipReason: j['skipReason'],
-    rescheduleCount: j['rescheduleCount'] ?? 0,
-    createdAt: j['createdAt'] == null
-        ? null
-        : DateTime.tryParse(j['createdAt'].toString()),
-    updatedAt: j['updatedAt'] == null
-        ? null
-        : DateTime.tryParse(j['updatedAt'].toString()),
-  );
+        id: j['id'],
+        title: j['title'],
+        isDone: j['isDone'] ?? false,
+        subject: j['subject'] ?? 'Toán',
+        topic: j['topic'],
+        priority: j['priority'] ?? 'medium',
+        estimateMinutes: j['estimateMinutes'] ?? 45,
+        deadline:
+            j['deadline'] == null ? null : DateTime.tryParse(j['deadline']),
+        scheduledAt: j['scheduledAt'] == null
+            ? null
+            : DateTime.tryParse(j['scheduledAt']),
+        note: j['note'],
+        goalId: j['goalId'],
+        subtasks: (j['subtasks'] as List? ?? const [])
+            .map((item) => item.toString())
+            .toList(),
+        recurrence: j['recurrence'],
+        status: j['status'] ?? ((j['isDone'] ?? false) ? 'completed' : 'todo'),
+        skipReason: j['skipReason'],
+        rescheduleCount: j['rescheduleCount'] ?? 0,
+        createdAt: j['createdAt'] == null
+            ? null
+            : DateTime.tryParse(j['createdAt'].toString()),
+        updatedAt: j['updatedAt'] == null
+            ? null
+            : DateTime.tryParse(j['updatedAt'].toString()),
+      );
 
   String toJsonString() => jsonEncode(toJson());
   factory TodayTask.fromJsonString(String s) =>
@@ -307,8 +307,7 @@ class StudySession {
   });
 
   /// Phiên có chạy trọn vẹn không.
-  bool get isCompleted =>
-      (status ?? statusCompleted) == statusCompleted;
+  bool get isCompleted => (status ?? statusCompleted) == statusCompleted;
 
   /// Điểm phản hồi tổng hợp 1–5, **tính ra** từ các thang đánh giá chi tiết.
   ///
@@ -356,7 +355,8 @@ class StudySession {
 
   factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
         id: json['id'] ?? '',
-        completedAt: DateTime.tryParse(json['completedAt'] ?? '') ?? DateTime.now(),
+        completedAt:
+            DateTime.tryParse(json['completedAt'] ?? '') ?? DateTime.now(),
         taskId: json['taskId'],
         subject: json['subject'] ?? '',
         plannedMinutes: json['plannedMinutes'] ?? 0,
@@ -419,28 +419,28 @@ class ChatMessage {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'text': text,
-    'isUser': isUser,
-    'timestamp': timestamp.toIso8601String(),
-    'imageName': imageName,
-    // Lỗi AI phải sống sót qua lịch sử: mở app lại vẫn thấy nút
-    // "Thử lại" với đúng câu hỏi gốc (UX 12 / AI-30).
-    'isError': isError,
-    'retryPrompt': retryPrompt,
-  };
+        'id': id,
+        'text': text,
+        'isUser': isUser,
+        'timestamp': timestamp.toIso8601String(),
+        'imageName': imageName,
+        // Lỗi AI phải sống sót qua lịch sử: mở app lại vẫn thấy nút
+        // "Thử lại" với đúng câu hỏi gốc (UX 12 / AI-30).
+        'isError': isError,
+        'retryPrompt': retryPrompt,
+      };
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
-    id: j['id'] ?? '',
-    text: j['text'] ?? '',
-    isUser: j['isUser'] ?? false,
-    timestamp: j['timestamp'] != null
-        ? DateTime.tryParse(j['timestamp']) ?? DateTime.now()
-        : DateTime.now(),
-    imageName: j['imageName'],
-    isError: j['isError'] ?? false,
-    retryPrompt: j['retryPrompt'],
-  );
+        id: j['id'] ?? '',
+        text: j['text'] ?? '',
+        isUser: j['isUser'] ?? false,
+        timestamp: j['timestamp'] != null
+            ? DateTime.tryParse(j['timestamp']) ?? DateTime.now()
+            : DateTime.now(),
+        imageName: j['imageName'],
+        isError: j['isError'] ?? false,
+        retryPrompt: j['retryPrompt'],
+      );
 }
 
 /// Một lần ghi điểm đề thi thử (theo môn, thang 10).

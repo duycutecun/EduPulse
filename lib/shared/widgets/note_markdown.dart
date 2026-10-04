@@ -92,8 +92,7 @@ List<Widget> _parseBlocks(String body) {
     }
 
     // Checklist - [ ] / - [x].
-    final checklist =
-        RegExp(r'^[-*]\s+\[( |x|X)\]\s+(.*)$').firstMatch(line);
+    final checklist = RegExp(r'^[-*]\s+\[( |x|X)\]\s+(.*)$').firstMatch(line);
     if (checklist != null) {
       flushParagraph();
       blocks.add(_checklistRow(
@@ -208,7 +207,9 @@ Widget _checklistRow(String text, {required bool done}) {
         Padding(
           padding: const EdgeInsets.only(top: 1, right: 8),
           child: Icon(
-            done ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+            done
+                ? Icons.check_box_rounded
+                : Icons.check_box_outline_blank_rounded,
             size: 19,
             color: done ? AppColors.primary : AppColors.textMuted,
           ),
@@ -270,7 +271,8 @@ Widget _codeBlock(String code) {
 // Inline parsing: **bold** *italic* ~~strike~~ `code` $latex$
 // ---------------------------------------------------------------------------
 
-Widget _inlineText(String text, {double? baseSize, bool? bold, bool strike = false}) {
+Widget _inlineText(String text,
+    {double? baseSize, bool? bold, bool strike = false}) {
   return Text.rich(
     _buildInlineSpan(
       text,
@@ -291,9 +293,8 @@ InlineSpan _buildInlineSpan(
     fontSize: baseSize ?? 14.5,
     height: 1.45,
     color: AppColors.textPrimary,
-    fontWeight: bold != null
-        ? (bold ? FontWeight.w800 : FontWeight.w400)
-        : null,
+    fontWeight:
+        bold != null ? (bold ? FontWeight.w800 : FontWeight.w400) : null,
     decoration: strike ? TextDecoration.lineThrough : null,
   );
 

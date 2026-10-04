@@ -148,7 +148,9 @@ class AIModel {
 /// Nhận diện logo/icon hiển thị cho từng model.
 IconData aiModelIcon(String slug) {
   if (slug.startsWith('openai')) return Icons.bolt_rounded;
-  if (slug.startsWith('google') || slug.startsWith('gemini')) return Icons.auto_awesome_rounded;
+  if (slug.startsWith('google') || slug.startsWith('gemini')) {
+    return Icons.auto_awesome_rounded;
+  }
   if (slug.startsWith('nvidia')) return Icons.memory_rounded;
   if (slug.startsWith('thinkingmachines')) return Icons.psychology_alt_rounded;
   if (slug.startsWith('dots-studio')) return Icons.grain_rounded;

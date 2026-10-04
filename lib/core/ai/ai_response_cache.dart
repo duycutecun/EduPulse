@@ -7,8 +7,7 @@ class _CacheEntry {
 
   _CacheEntry(this.response, this.cachedAt);
 
-  bool isExpired(Duration ttl) =>
-      DateTime.now().difference(cachedAt) > ttl;
+  bool isExpired(Duration ttl) => DateTime.now().difference(cachedAt) > ttl;
 
   Map<String, dynamic> toJson() => {
         'response': response,

@@ -7,12 +7,11 @@ import '../../../../core/utils/app_date.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../domain/models/exam_model.dart';
+import '../../domain/exam_repository.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../widgets/subject_targets_editor.dart';
 
 class ExamsScreen extends StatefulWidget {
-  final List<ExamModel> exams;
-  final String? primaryExamId;
   final Function(ExamModel) onSetPrimary;
   final Function(ExamModel) onAddExam;
   final Function(ExamModel) onUpdateExam;
@@ -20,8 +19,6 @@ class ExamsScreen extends StatefulWidget {
 
   const ExamsScreen({
     super.key,
-    required this.exams,
-    required this.primaryExamId,
     required this.onSetPrimary,
     required this.onAddExam,
     required this.onUpdateExam,
@@ -36,15 +33,83 @@ class _ExamsScreenState extends State<ExamsScreen> {
   final _uuid = const Uuid();
   int _selectedFilter = 0;
 
+  /// Xoá kỳ thi nhưng **luôn có lối quay lại** (đối xứng với Task).
+  ///
+  /// Kỳ thi là dữ liệu lớn hơn một nhiệm vụ: xoá nó làm các nhiệm vụ đã gắn
+  /// `examId` mất ngữ cảnh. Người học bấm nhầm là chuyện thường, nên không
+  /// được để họ phải tự nhận lỗi rồi gõ tay tạo lại từ đầu.
+  Future<void> _deleteWithUndo(ExamModel exam) async {
+    widget.onDeleteExam(exam.id);
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      content: Text('Đã xoá "${exam.name}"'),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: AppColors.red,
+      action: SnackBarAction(
+        label: 'Hoàn tác',
+        textColor: Colors.white,
+        onPressed: () {
+          // Khôi phục đúng bản ghi đã xoá — không dựng lại từ cây.
+          widget.onUpdateExam(exam);
+          FeedbackService.medium();
+        },
+      ),
+    ));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Màn này từng nhận `exams` là một ảnh chụp danh sách lúc mở. Hệ quả:
+    // lưu xong một kỳ thi, repository đã có dữ liệu mới nhưng màn vẫn hiện
+    // danh sách cũ — người dùng phải đóng app mở lại mới thấy. Nay đọc SỐNG
+    // từ repository và tự vẽ lại mỗi khi `revision` tăng.
+    ExamRepository.instance.revision.addListener(_onExamsChanged);
+  }
+
+  @override
+  void dispose() {
+    ExamRepository.instance.revision.removeListener(_onExamsChanged);
+    super.dispose();
+  }
+
+  void _onExamsChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   static const _availableEmojis = [
-    '📚', '📝', '🎓', '🏆', '🎯', '📊', '🧮', '🔬',
-    '🧪', '📐', '📏', '✏️', '🖊️', '📖', '🎒', '🏫',
-    '⭐', '🔥', '💪', '🧠', '👨‍🎓', '👩‍🎓', '🥇', '🎖️',
+    '📚',
+    '📝',
+    '🎓',
+    '🏆',
+    '🎯',
+    '📊',
+    '🧮',
+    '🔬',
+    '🧪',
+    '📐',
+    '📏',
+    '✏️',
+    '🖊️',
+    '📖',
+    '🎒',
+    '🏫',
+    '⭐',
+    '🔥',
+    '💪',
+    '🧠',
+    '👨‍🎓',
+    '👩‍🎓',
+    '🥇',
+    '🎖️',
   ];
 
   @override
   Widget build(BuildContext context) {
-    final myExams = widget.exams;
+    final myExams = ExamRepository.instance.getAll();
     final filteredExams = _selectedFilter == 0
         ? myExams
         : myExams.where((e) => e.daysLeft < 90).toList();
@@ -65,12 +130,16 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     children: [
                       Text(
                         'Kỳ Thi Của Tôi',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary),
                       ),
                       SizedBox(height: 4),
                       Text(
                         'Chọn kỳ thi để ghim lên đồng hồ đếm ngược',
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -78,12 +147,16 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 GestureDetector(
                   onTap: () => _showAddCustomDialog(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: const [
-                        BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 3)),
+                        BoxShadow(
+                            color: AppColors.primaryDark,
+                            blurRadius: 0,
+                            offset: Offset(0, 3)),
                       ],
                     ),
                     child: const Row(
@@ -91,7 +164,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       children: [
                         Icon(Icons.add_rounded, color: Colors.white, size: 16),
                         SizedBox(width: 4),
-                        Text('Thêm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                        Text('Thêm',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13)),
                       ],
                     ),
                   ),
@@ -103,7 +180,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             const SizedBox(height: 14),
             Builder(builder: (context) {
               final primary = myExams.firstWhere(
-                (e) => e.id == widget.primaryExamId,
+                (e) => e.id == ExamRepository.instance.primaryExamId,
                 orElse: () => myExams.first,
               );
               final target = primary.targetScore ?? 8.0;
@@ -132,12 +209,17 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         const Icon(Icons.auto_awesome_rounded,
                             size: 16, color: AppColors.purple),
                         const SizedBox(width: 8),
-                        Text(
-                          'AI Chiến lược: ${primary.name}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                        // Tên kỳ thi có thể rất dài → phần này phải co được.
+                        Expanded(
+                          child: Text(
+                            'AI Chiến lược: ${primary.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
                         const Spacer(),
@@ -170,7 +252,12 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Row(
+                    // Hai nút hành động: trên màn hẹp phải xuống hàng thay vì
+                    // tràn ngang. `Wrap` tự xuống hàng, không cần tính trước độ
+                    // rộng — an toàn cả khi cỡ chữ hệ thống tăng.
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         InkWell(
                           onTap: () {
@@ -237,8 +324,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                               color: AppColors.cardWhite,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: AppColors.purple
-                                      .withValues(alpha: 0.4)),
+                                  color:
+                                      AppColors.purple.withValues(alpha: 0.4)),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
@@ -277,7 +364,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
             child: Row(
               children: [
                 _filterTab(0, 'Đã chọn (${myExams.length})'),
-                _filterTab(1, 'Sắp thi (${myExams.where((e) => e.daysLeft < 90).length})'),
+                _filterTab(1,
+                    'Sắp thi (${myExams.where((e) => e.daysLeft < 90).length})'),
               ],
             ),
           ),
@@ -328,15 +416,19 @@ class _ExamsScreenState extends State<ExamsScreen> {
   }
 
   Widget _buildExamCard(ExamModel exam) {
-    final isPrimary = exam.id == widget.primaryExamId;
+    final isPrimary = exam.id == ExamRepository.instance.primaryExamId;
     final days = exam.daysLeft;
-    final urgencyColor = days < 30 ? AppColors.red : days < 90 ? AppColors.orange : AppColors.primary;
+    final urgencyColor = days < 30
+        ? AppColors.red
+        : days < 90
+            ? AppColors.orange
+            : AppColors.primary;
 
     return Dismissible(
       key: Key(exam.id),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async => await _confirmDelete(exam.name),
-      onDismissed: (_) => widget.onDeleteExam(exam.id),
+      onDismissed: (_) => _deleteWithUndo(exam),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -366,7 +458,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   color: AppColors.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Center(child: Text(exam.emoji, style: const TextStyle(fontSize: 24))),
+                child: Center(
+                    child:
+                        Text(exam.emoji, style: const TextStyle(fontSize: 24))),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -378,19 +472,26 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         Expanded(
                           child: Text(
                             exam.name,
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary),
                           ),
                         ),
                         if (isPrimary)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
                               'ĐANG CHỌN',
-                              style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800),
                             ),
                           ),
                       ],
@@ -398,22 +499,35 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.textMuted),
+                        Icon(Icons.calendar_today_rounded,
+                            size: 13, color: AppColors.textMuted),
                         const SizedBox(width: 4),
-                        Text(
-                          AppDate.formatDate(exam.dateTime),
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        // Ngày là phần co được: tên kỳ thi và chip “Còn N ngày”
+                        // phải giữ nguyên độ dài. Không bọc Flexible ở đây thì một
+                        // ngày dài (hoặc cỡ chữ lớn) làm cả hàng tràn ra ngoài thẻ.
+                        Flexible(
+                          child: Text(
+                            AppDate.formatDate(exam.dateTime),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary),
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: urgencyColor,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             exam.isPast ? 'Đã qua' : 'Còn $days ngày',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white),
                           ),
                         ),
                       ],
@@ -461,7 +575,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border, width: 2),
           ),
-          title: const Text('Thêm kỳ thi mới', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: const Text('Thêm kỳ thi mới',
+              style: TextStyle(fontWeight: FontWeight.w800)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -477,23 +592,30 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          width: 2),
                     ),
-                    child: Center(child: Text(selectedEmoji, style: const TextStyle(fontSize: 32))),
+                    child: Center(
+                        child: Text(selectedEmoji,
+                            style: const TextStyle(fontSize: 32))),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('Nhấn để chọn biểu tượng', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                Text('Nhấn để chọn biểu tượng',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(hintText: 'Tên kỳ thi (VD: Thi thử Toán)'),
+                  decoration: const InputDecoration(
+                      hintText: 'Tên kỳ thi (VD: Thi thử Toán)'),
                   autofocus: true,
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: descCtrl,
-                  decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+                  decoration:
+                      const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -501,16 +623,20 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     Expanded(
                       child: TextField(
                         controller: currentScoreCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(hintText: 'Điểm hiện tại'),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration:
+                            const InputDecoration(hintText: 'Điểm hiện tại'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: targetScoreCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(hintText: 'Điểm mục tiêu'),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration:
+                            const InputDecoration(hintText: 'Điểm mục tiêu'),
                       ),
                     ),
                   ],
@@ -530,30 +656,46 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary),
+                            colorScheme: Theme.of(context)
+                                .colorScheme
+                                .copyWith(primary: AppColors.primary),
                           ),
                           child: child!,
                         );
                       },
                     );
-                    if (picked != null) setDialogState(() => selectedDate = picked);
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.border, width: 2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
+                        Icon(Icons.calendar_today_rounded,
+                            size: 18, color: AppColors.primary),
                         const SizedBox(width: 10),
-                        Text(
-                          'Ngày thi: ${AppDate.formatDate(selectedDate)}',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        // Expanded thay cho Spacer: chữ ngày co lại được khi
+                        // hẹp/cỡ chữ lớn, còn icon lịch luôn giữ sát mép phải.
+                        Expanded(
+                          child: Text(
+                            'Ngày thi: ${AppDate.formatDate(selectedDate)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary),
+                          ),
                         ),
-                        const Spacer(),
-                        Icon(Icons.edit_calendar_rounded, size: 18, color: AppColors.textMuted),
+                        const SizedBox(width: 8),
+                        Icon(Icons.edit_calendar_rounded,
+                            size: 18, color: AppColors.textMuted),
                       ],
                     ),
                   ),
@@ -576,16 +718,21 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     type: ExamType.custom,
                     description: descCtrl.text.isEmpty ? null : descCtrl.text,
                     emoji: selectedEmoji,
-                    currentScore: double.tryParse(currentScoreCtrl.text.trim().replaceAll(',', '.')),
-                    targetScore: double.tryParse(targetScoreCtrl.text.trim().replaceAll(',', '.')),
+                    currentScore: double.tryParse(
+                        currentScoreCtrl.text.trim().replaceAll(',', '.')),
+                    targetScore: double.tryParse(
+                        targetScoreCtrl.text.trim().replaceAll(',', '.')),
                     subjectTargets: subjectTargets,
-                    subjects:
-                        subjectTargets.keys.map(AppSubjects.displayName).toList(),
+                    subjects: subjectTargets.keys
+                        .map(AppSubjects.displayName)
+                        .toList(),
                   ));
                 }
                 Navigator.pop(ctx);
               },
-              child: const Text('Thêm', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+              child: const Text('Thêm',
+                  style: TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -596,10 +743,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
   void _showEditDialog(ExamModel exam) {
     final nameCtrl = TextEditingController(text: exam.name);
     final descCtrl = TextEditingController(text: exam.description ?? '');
-    final currentScoreCtrl = TextEditingController(
-        text: exam.currentScore?.toString() ?? '');
-    final targetScoreCtrl = TextEditingController(
-        text: exam.targetScore?.toString() ?? '');
+    final currentScoreCtrl =
+        TextEditingController(text: exam.currentScore?.toString() ?? '');
+    final targetScoreCtrl =
+        TextEditingController(text: exam.targetScore?.toString() ?? '');
     var subjectTargets = Map<String, double>.from(exam.subjectTargets);
     DateTime selectedDate = exam.dateTime;
     String selectedEmoji = exam.emoji;
@@ -612,7 +759,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border, width: 2),
           ),
-          title: const Text('Chỉnh sửa kỳ thi', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: const Text('Chỉnh sửa kỳ thi',
+              style: TextStyle(fontWeight: FontWeight.w800)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -628,13 +776,18 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          width: 2),
                     ),
-                    child: Center(child: Text(selectedEmoji, style: const TextStyle(fontSize: 32))),
+                    child: Center(
+                        child: Text(selectedEmoji,
+                            style: const TextStyle(fontSize: 32))),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('Nhấn để thay đổi biểu tượng', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                Text('Nhấn để thay đổi biểu tượng',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameCtrl,
@@ -643,7 +796,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: descCtrl,
-                  decoration: const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
+                  decoration:
+                      const InputDecoration(hintText: 'Mục tiêu / Ghi chú'),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -651,16 +805,20 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     Expanded(
                       child: TextField(
                         controller: currentScoreCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(hintText: 'Điểm hiện tại'),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration:
+                            const InputDecoration(hintText: 'Điểm hiện tại'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: targetScoreCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(hintText: 'Điểm mục tiêu'),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration:
+                            const InputDecoration(hintText: 'Điểm mục tiêu'),
                       ),
                     ),
                   ],
@@ -680,30 +838,46 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
-                            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary),
+                            colorScheme: Theme.of(context)
+                                .colorScheme
+                                .copyWith(primary: AppColors.primary),
                           ),
                           child: child!,
                         );
                       },
                     );
-                    if (picked != null) setDialogState(() => selectedDate = picked);
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.border, width: 2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
+                        Icon(Icons.calendar_today_rounded,
+                            size: 18, color: AppColors.primary),
                         const SizedBox(width: 10),
-                        Text(
-                          'Ngày thi: ${AppDate.formatDate(selectedDate)}',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        // Expanded thay cho Spacer: chữ ngày co lại được khi
+                        // hẹp/cỡ chữ lớn, còn icon lịch luôn giữ sát mép phải.
+                        Expanded(
+                          child: Text(
+                            'Ngày thi: ${AppDate.formatDate(selectedDate)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary),
+                          ),
                         ),
-                        const Spacer(),
-                        Icon(Icons.edit_calendar_rounded, size: 18, color: AppColors.textMuted),
+                        const SizedBox(width: 8),
+                        Icon(Icons.edit_calendar_rounded,
+                            size: 18, color: AppColors.textMuted),
                       ],
                     ),
                   ),
@@ -726,16 +900,21 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     type: exam.type,
                     description: descCtrl.text.isEmpty ? null : descCtrl.text,
                     emoji: selectedEmoji,
-                    currentScore: double.tryParse(currentScoreCtrl.text.trim().replaceAll(',', '.')),
-                    targetScore: double.tryParse(targetScoreCtrl.text.trim().replaceAll(',', '.')),
+                    currentScore: double.tryParse(
+                        currentScoreCtrl.text.trim().replaceAll(',', '.')),
+                    targetScore: double.tryParse(
+                        targetScoreCtrl.text.trim().replaceAll(',', '.')),
                     subjectTargets: subjectTargets,
-                    subjects:
-                        subjectTargets.keys.map(AppSubjects.displayName).toList(),
+                    subjects: subjectTargets.keys
+                        .map(AppSubjects.displayName)
+                        .toList(),
                   ));
                 }
                 Navigator.pop(ctx);
               },
-              child: const Text('Lưu', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+              child: const Text('Lưu',
+                  style: TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -757,7 +936,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 18, 20, 10),
-              child: Text('Chọn biểu tượng', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              child: Text('Chọn biểu tượng',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             ),
             SizedBox(
               height: 200,
@@ -782,7 +962,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         border: Border.all(color: AppColors.border, width: 1),
                       ),
                       child: Center(
-                        child: Text(_availableEmojis[i], style: const TextStyle(fontSize: 28)),
+                        child: Text(_availableEmojis[i],
+                            style: const TextStyle(fontSize: 28)),
                       ),
                     ),
                   );
@@ -805,16 +986,25 @@ class _ExamsScreenState extends State<ExamsScreen> {
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border, width: 2),
         ),
-        title: const Text('Xóa kỳ thi?', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Xóa kỳ thi?',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text('Xóa "$name" khỏi danh sách theo dõi?'),
         actions: [
           TextButton(
-            onPressed: () { result = false; Navigator.pop(ctx); },
+            onPressed: () {
+              result = false;
+              Navigator.pop(ctx);
+            },
             child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
-            onPressed: () { result = true; Navigator.pop(ctx); },
-            child: const Text('Xóa', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)),
+            onPressed: () {
+              result = true;
+              Navigator.pop(ctx);
+            },
+            child: const Text('Xóa',
+                style: TextStyle(
+                    color: AppColors.red, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

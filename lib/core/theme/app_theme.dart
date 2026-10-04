@@ -23,76 +23,75 @@ class AppTheme {
     final textMuted =
         highContrast ? const Color(0xFF4A5260) : AppColors.textMuted;
 
-    final textTheme = Typography.englishLike2021.
-        apply(fontFamily: 'Nunito').
-        copyWith(
-      headlineLarge: const TextStyle(
-        fontWeight: FontWeight.w800,
-        fontSize: 32,
-        height: 1.2,
-        color: AppColors.textPrimary,
-      ),
-      headlineMedium: const TextStyle(
-        fontWeight: FontWeight.w800,
-        fontSize: 24,
-        height: 1.25,
-        color: AppColors.textPrimary,
-      ),
-      headlineSmall: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 20,
-        height: 1.3,
-        color: AppColors.textPrimary,
-      ),
-      titleLarge: const TextStyle(
-        fontWeight: FontWeight.w800,
-        fontSize: 18,
-        height: 1.3,
-        color: AppColors.textPrimary,
-      ),
-      titleMedium: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 15,
-        height: 1.35,
-        color: AppColors.textPrimary,
-      ),
-      bodyLarge: const TextStyle(
-        fontWeight: FontWeight.w500,
-        fontSize: 15,
-        height: 1.4,
-        color: AppColors.textPrimary,
-      ),
-      bodyMedium: TextStyle(
-        fontWeight: FontWeight.w500,
-        fontSize: 14,
-        height: 1.4,
-        color: textSecondary,
-      ),
-      bodySmall: TextStyle(
-        fontWeight: FontWeight.w500,
-        fontSize: 12,
-        height: 1.4,
-        color: textSecondary,
-      ),
-      labelLarge: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 14,
-        height: 1.3,
-        color: AppColors.textPrimary,
-      ),
-      labelMedium: TextStyle(
-        fontWeight: FontWeight.w600,
-        fontSize: 12,
-        height: 1.35,
-        color: textSecondary,
-      ),
-      labelSmall: TextStyle(
-        fontWeight: FontWeight.w600,
-        fontSize: 10,
-        height: 1.35,
-        color: textMuted,
-      ),
-    );
+    final textTheme =
+        Typography.englishLike2021.apply(fontFamily: 'Nunito').copyWith(
+              headlineLarge: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 32,
+                height: 1.2,
+                color: AppColors.textPrimary,
+              ),
+              headlineMedium: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 24,
+                height: 1.25,
+                color: AppColors.textPrimary,
+              ),
+              headlineSmall: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+                height: 1.3,
+                color: AppColors.textPrimary,
+              ),
+              titleLarge: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                height: 1.3,
+                color: AppColors.textPrimary,
+              ),
+              titleMedium: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                height: 1.35,
+                color: AppColors.textPrimary,
+              ),
+              bodyLarge: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                height: 1.4,
+                color: AppColors.textPrimary,
+              ),
+              bodyMedium: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                height: 1.4,
+                color: textSecondary,
+              ),
+              bodySmall: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                height: 1.4,
+                color: textSecondary,
+              ),
+              labelLarge: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                height: 1.3,
+                color: AppColors.textPrimary,
+              ),
+              labelMedium: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                height: 1.35,
+                color: textSecondary,
+              ),
+              labelSmall: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+                height: 1.35,
+                color: textMuted,
+              ),
+            );
 
     return ThemeData(
       useMaterial3: true,
@@ -165,8 +164,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.cardLight,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         hintStyle: const TextStyle(color: AppColors.textMuted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

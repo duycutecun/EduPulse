@@ -122,9 +122,9 @@ class WebSearchService {
     for (final lang in ['vi', 'en']) {
       final url = 'https://$lang.wikipedia.org/api/rest_v1/page/summary/$slug';
       try {
-        final resp = await http
-            .get(Uri.parse(url), headers: {'Api-User-Agent': _userAgent})
-            .timeout(const Duration(seconds: 12));
+        final resp = await http.get(Uri.parse(url), headers: {
+          'Api-User-Agent': _userAgent
+        }).timeout(const Duration(seconds: 12));
         if (resp.statusCode != 200) continue;
 
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -139,7 +139,8 @@ class WebSearchService {
           pageUrl = '';
         }
         if (pageUrl.isEmpty) {
-          pageUrl = 'https://$lang.wikipedia.org/wiki/${Uri.encodeComponent(title)}';
+          pageUrl =
+              'https://$lang.wikipedia.org/wiki/${Uri.encodeComponent(title)}';
         }
         return WebLookup(title: title, extract: extract, pageUrl: pageUrl);
       } catch (_) {}

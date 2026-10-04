@@ -157,9 +157,8 @@ class TaskRepository {
   bool _scheduledInDay(TodayTask task, DateTime? day) {
     final at = task.scheduledAt ?? task.deadline;
     if (at == null) return day == null;
-    final target = day == null
-        ? DateTime.now()
-        : DateTime(day.year, day.month, day.day);
+    final target =
+        day == null ? DateTime.now() : DateTime(day.year, day.month, day.day);
     final a = DateTime(at.year, at.month, at.day);
     return a == target;
   }

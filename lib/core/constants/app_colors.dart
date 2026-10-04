@@ -90,10 +90,13 @@ class AppColors {
   // ─── Duolingo-specific accents ──────────────────────────────────────────
   /// Xanh lá nhạt cho progress done.
   static const Color progressDone = Color(0xFF58CC02);
+
   /// Xanh lá rất nhạt cho fill.
   static const Color progressBg = Color(0xFFE8F5E0);
+
   /// Xám đỏ cho任务 thất bại / overdue.
   static const Color dangerBg = Color(0xFFFFE4E1);
+
   /// Vàng streak.
   static const Color streakGold = Color(0xFFFFC800);
   static const Color streakBg = Color(0xFFFFF9E0);

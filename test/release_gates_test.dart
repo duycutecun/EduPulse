@@ -333,8 +333,6 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.lightTheme,
         home: ExamsPage(
-          exams: const [],
-          primaryExamId: null,
           onSetPrimary: (_) {},
           onAddExam: (_) {},
           onUpdateExam: (_) {},

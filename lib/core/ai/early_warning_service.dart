@@ -119,10 +119,7 @@ class EarlyWarningService {
       ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
 
     if (recent.length >= 3) {
-      final lowFocus = recent
-          .take(3)
-          .where((s) => (s.focus ?? 3) <= 2)
-          .length;
+      final lowFocus = recent.take(3).where((s) => (s.focus ?? 3) <= 2).length;
       if (lowFocus >= 2) {
         warnings.add(Warning(
           'burnout_risk',

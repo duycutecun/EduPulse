@@ -93,12 +93,16 @@ class DataTransfer {
       try {
         final note = StudyNote.fromJsonString(raw);
         count++;
-        buffer.writeln('## ${note.title.isEmpty ? 'Chưa có tiêu đề' : note.title}');
-        if (note.tags.isNotEmpty) buffer.writeln(note.tags.map((t) => '#$t').join(' '));
+        buffer.writeln(
+            '## ${note.title.isEmpty ? 'Chưa có tiêu đề' : note.title}');
+        if (note.tags.isNotEmpty) {
+          buffer.writeln(note.tags.map((t) => '#$t').join(' '));
+        }
         buffer.writeln();
         buffer.writeln(note.body);
         buffer.writeln();
-        buffer.writeln('_Cập nhật: ${note.updatedAt.toIso8601String().substring(0, 10)}_');
+        buffer.writeln(
+            '_Cập nhật: ${note.updatedAt.toIso8601String().substring(0, 10)}_');
         buffer.writeln('---');
         buffer.writeln();
       } catch (_) {
@@ -126,7 +130,11 @@ class DataTransfer {
     }
 
     if (data['app'] != 'EduPulse') {
-      return (imported: 0, skipped: 0, error: 'Tệp không phải bản xuất của EduPulse.');
+      return (
+        imported: 0,
+        skipped: 0,
+        error: 'Tệp không phải bản xuất của EduPulse.'
+      );
     }
 
     var imported = 0;
@@ -164,7 +172,8 @@ class DataTransfer {
       seen: newTaskIds,
     );
     if (newTaskIds.isNotEmpty) {
-      StorageService.setTodayTaskIds([...StorageService.getTodayTaskIds(), ...newTaskIds]);
+      StorageService.setTodayTaskIds(
+          [...StorageService.getTodayTaskIds(), ...newTaskIds]);
     }
 
     final noteIds = <String>{};
@@ -177,7 +186,8 @@ class DataTransfer {
       seen: noteIds,
     );
     if (noteIds.isNotEmpty) {
-      StorageService.setStudyNoteIds([...StorageService.getStudyNoteIds(), ...noteIds]);
+      StorageService.setStudyNoteIds(
+          [...StorageService.getStudyNoteIds(), ...noteIds]);
     }
 
     final sessionIds = <String>{};
@@ -190,7 +200,8 @@ class DataTransfer {
       seen: sessionIds,
     );
     if (sessionIds.isNotEmpty) {
-      StorageService.setStudySessionIds([...StorageService.getStudySessionIds(), ...sessionIds]);
+      StorageService.setStudySessionIds(
+          [...StorageService.getStudySessionIds(), ...sessionIds]);
     }
 
     final examIds = <String>{};
@@ -231,7 +242,8 @@ class DataTransfer {
   // Thống kê & xóa dữ liệu cục bộ (mục 19 — Delete local data)
   // ------------------------------------------------------------------
 
-  static ({int tasks, int notes, int sessions, int exams, int logs}) counts() => (
+  static ({int tasks, int notes, int sessions, int exams, int logs}) counts() =>
+      (
         tasks: StorageService.getTodayTaskIds().length,
         notes: StorageService.getStudyNoteIds().length,
         sessions: StorageService.getStudySessionIds().length,

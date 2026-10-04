@@ -18,8 +18,8 @@ class SyncStatusBar extends StatelessWidget {
       valueListenable: SyncStateService.state,
       builder: (context, sync, _) {
         // Ưu tiên tín hiệu mạng trực tiếp — listener service có thể lag.
-        final offline = !PwaService.isOnline ||
-            sync.status == SyncStatus.offline;
+        final offline =
+            !PwaService.isOnline || sync.status == SyncStatus.offline;
         return _SyncChip(sync: sync, offline: offline, compact: compact);
       },
     );

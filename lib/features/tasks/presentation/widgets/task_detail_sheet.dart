@@ -260,7 +260,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                       ? Icons.check_circle_rounded
                       : Icons.radio_button_unchecked_rounded,
                   size: 20,
-                  color: _currentTask.isDone ? AppColors.green : AppColors.textMuted,
+                  color: _currentTask.isDone
+                      ? AppColors.green
+                      : AppColors.textMuted,
                 ),
                 onPressed: () {
                   widget.onTaskUpdated(_currentTask);
@@ -302,7 +304,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             const SizedBox(height: AppTokens.space4),
             Text(
               'Chủ đề: ${_currentTask.topic}',
-              style: AppTokens.bodySubtle.copyWith(color: AppColors.textSecondary),
+              style:
+                  AppTokens.bodySubtle.copyWith(color: AppColors.textSecondary),
             ),
           ],
           const SizedBox(height: AppTokens.space16),
@@ -371,7 +374,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                     Text('Checklist bài học', style: AppTokens.heading3),
                     const SizedBox(height: AppTokens.space6),
                     ..._currentTask.subtasks.map((sub) => Padding(
-                          padding: const EdgeInsets.only(bottom: AppTokens.space6),
+                          padding:
+                              const EdgeInsets.only(bottom: AppTokens.space6),
                           child: Row(
                             children: [
                               const Icon(Icons.check_circle_outline_rounded,
@@ -407,7 +411,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                                 vertical: AppTokens.space10,
                               ),
                             ),
-                            icon: const Icon(Icons.call_split_rounded, size: 16),
+                            icon:
+                                const Icon(Icons.call_split_rounded, size: 16),
                             label: const Text('Chia nhỏ bài học',
                                 style: TextStyle(fontSize: 12)),
                             onPressed: () {
@@ -430,7 +435,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                                 vertical: AppTokens.space10,
                               ),
                             ),
-                            icon: const Icon(Icons.psychology_outlined, size: 16),
+                            icon:
+                                const Icon(Icons.psychology_outlined, size: 16),
                             label: const Text('Hỏi AI bài này',
                                 style: TextStyle(fontSize: 12)),
                             onPressed: () {
@@ -439,7 +445,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                             },
                           ),
                         ),
-                      if (widget.onAskAi != null && widget.onSplitWithAi != null)
+                      if (widget.onAskAi != null &&
+                          widget.onSplitWithAi != null)
                         const SizedBox(width: AppTokens.space8),
                       if (widget.onSplitWithAi != null)
                         Expanded(
@@ -451,8 +458,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                                 vertical: AppTokens.space10,
                               ),
                             ),
-                            icon:
-                                const Icon(Icons.auto_awesome_rounded, size: 16),
+                            icon: const Icon(Icons.auto_awesome_rounded,
+                                size: 16),
                             label: const Text('Gợi ý từ AI',
                                 style: TextStyle(fontSize: 12)),
                             onPressed: () {
@@ -488,7 +495,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               Expanded(
                 flex: 2,
                 child: PrimaryButton(
-                  label: _currentTask.isDone ? 'Học lại bài này' : 'Bắt đầu học ngay',
+                  label: _currentTask.isDone
+                      ? 'Học lại bài này'
+                      : 'Bắt đầu học ngay',
                   icon: Icons.play_arrow_rounded,
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -628,8 +637,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
   /// Khối "Lịch sử phiên học" (FE-2.2) — đọc `StudySession.taskId`.
   List<Widget> _buildSessionHistorySection() {
-    final totalMinutes = _sessions.fold<int>(
-        0, (sum, session) => sum + session.actualMinutes);
+    final totalMinutes =
+        _sessions.fold<int>(0, (sum, session) => sum + session.actualMinutes);
 
     return [
       Text('Lịch sử phiên học', style: AppTokens.heading3),
@@ -688,8 +697,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     final ratings = <String>[
       if (session.focus != null) 'Tập trung ${session.focus}/5',
       if (session.difficulty != null) 'Khó ${session.difficulty}/5',
-      if (session.effectiveness != null)
-        'Hiệu quả ${session.effectiveness}/5',
+      if (session.effectiveness != null) 'Hiệu quả ${session.effectiveness}/5',
     ];
 
     return Container(

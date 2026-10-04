@@ -39,7 +39,6 @@ class MainShellScreen extends StatefulWidget {
 class _MainShellScreenState extends State<MainShellScreen> {
   int _currentIndex = 0;
   List<ExamModel> _exams = [];
-  String? _primaryExamId;
   int _streak = 0;
 
   // Lazy tab: các tab chỉ được tạo khi user mở lần đầu tiên, sau đó giữ nguyên trong IndexedStack.
@@ -135,7 +134,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
     if (!mounted) return;
     // Mọi đọc/ghi kỳ thi đi qua [ExamRepository] — một nguồn sự thật duy nhất.
     _exams = ExamRepository.instance.getAll();
-    _primaryExamId = ExamRepository.instance.primaryExamId;
     _streak = StorageService.getStreak();
     setState(() {});
   }
@@ -187,8 +185,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => ExamsPage(
-          exams: _exams,
-          primaryExamId: _primaryExamId,
           onSetPrimary: _setPrimaryExam,
           onAddExam: _addExam,
           onUpdateExam: _updateExam,

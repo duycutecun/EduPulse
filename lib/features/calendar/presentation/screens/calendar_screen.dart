@@ -36,7 +36,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _load();
   }
 
-void _load() {
+  void _load() {
     _tasks = TaskRepository.instance.getAllTasks();
     _sessions = StudySessionRepository.instance.getAll();
   }
@@ -62,8 +62,8 @@ void _load() {
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   List<TodayTask> get _scheduledTasks => _tasks
-      .where((task) =>
-          _isSameDay(task.scheduledAt ?? task.deadline ?? DateTime(0), _selectedDay))
+      .where((task) => _isSameDay(
+          task.scheduledAt ?? task.deadline ?? DateTime(0), _selectedDay))
       .toList();
 
   List<StudySession> get _daySessions => _sessions
@@ -76,7 +76,9 @@ void _load() {
   void _openOptimizePreview() {
     final unscheduled = _tasks
         .where((task) =>
-            !task.isDone && task.status != 'skipped' && task.scheduledAt == null)
+            !task.isDone &&
+            task.status != 'skipped' &&
+            task.scheduledAt == null)
         .toList();
     if (unscheduled.isEmpty) {
       _showAiGenerateScheduleDialog();
@@ -247,8 +249,8 @@ void _load() {
                                       context: sheetContext,
                                       initialDate: p.proposedStart,
                                       firstDate: DateTime.now(),
-                                      lastDate:
-                                          DateTime.now().add(const Duration(days: 14)),
+                                      lastDate: DateTime.now()
+                                          .add(const Duration(days: 14)),
                                     );
                                     if (picked != null) {
                                       setSheetState(() {
@@ -308,8 +310,8 @@ void _load() {
                             setState(_load);
                             messenger.showSnackBar(
                               SnackBar(
-                                  content:
-                                      Text('Đã áp dụng $applied nhiệm vụ vào lịch.')),
+                                  content: Text(
+                                      'Đã áp dụng $applied nhiệm vụ vào lịch.')),
                             );
                           }
                         },
@@ -462,17 +464,26 @@ void _load() {
   }
 
   static String _weekdayShort(int weekday) => const [
-        'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN',
+        'T2',
+        'T3',
+        'T4',
+        'T5',
+        'T6',
+        'T7',
+        'CN',
       ][weekday - 1];
 
   @override
   Widget build(BuildContext context) {
-    final days = List.generate(7, (index) => _dateOnly(DateTime.now()).add(Duration(days: index - 3)));
-    final minutes = _daySessions.fold<int>(0, (total, session) => total + session.actualMinutes);
+    final days = List.generate(
+        7, (index) => _dateOnly(DateTime.now()).add(Duration(days: index - 3)));
+    final minutes = _daySessions.fold<int>(
+        0, (total, session) => total + session.actualMinutes);
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-        title: const Text('Lịch học', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Lịch học',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
             tooltip: 'Tìm kiếm',
@@ -493,7 +504,8 @@ void _load() {
       body: RefreshIndicator(
         onRefresh: () async => setState(_load),
         child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             SizedBox(
@@ -532,11 +544,24 @@ void _load() {
                             width: candidate.isNotEmpty ? 2 : 1,
                           ),
                         ),
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text(_weekday(day), style: TextStyle(fontSize: 11, color: selected ? Colors.white : AppColors.textMuted)),
-                          const SizedBox(height: 5),
-                          Text('${day.day}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: selected ? Colors.white : AppColors.textPrimary)),
-                        ]),
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(_weekday(day),
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: selected
+                                          ? Colors.white
+                                          : AppColors.textMuted)),
+                              const SizedBox(height: 5),
+                              Text('${day.day}',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: selected
+                                          ? Colors.white
+                                          : AppColors.textPrimary)),
+                            ]),
                       ),
                     ),
                   );
@@ -549,18 +574,26 @@ void _load() {
               child: Row(children: [
                 const Icon(Icons.insights_rounded, color: AppColors.blue),
                 const SizedBox(width: 10),
-                Expanded(child: Text('${_scheduledTasks.length} nhiệm vụ • $minutes phút Focus', style: const TextStyle(fontWeight: FontWeight.w800))),
-                TextButton(onPressed: _openOptimizePreview, child: const Text('Tối ưu tuần')),
+                Expanded(
+                    child: Text(
+                        '${_scheduledTasks.length} nhiệm vụ • $minutes phút Focus',
+                        style: const TextStyle(fontWeight: FontWeight.w800))),
+                TextButton(
+                    onPressed: _openOptimizePreview,
+                    child: const Text('Tối ưu tuần')),
               ]),
             ),
             const SizedBox(height: 18),
-            Text(_dayTitle(_selectedDay), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            Text(_dayTitle(_selectedDay),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             if (_scheduledTasks.isEmpty && _daySessions.isEmpty)
               _EmptyAgenda(onOptimize: _openOptimizePreview)
             else ...[
               ..._scheduledTasks.map((task) => _TaskAgendaRow(task: task)),
-              ..._daySessions.map((session) => _SessionAgendaRow(session: session)),
+              ..._daySessions
+                  .map((session) => _SessionAgendaRow(session: session)),
             ],
             // Exam + milestones của ngày đã chọn (mục 13).
             ..._examRowsForDay(_selectedDay),
@@ -570,8 +603,10 @@ void _load() {
     );
   }
 
-  String _weekday(DateTime date) => const ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][date.weekday - 1];
-  String _dayTitle(DateTime date) => '${_weekday(date)}, ${date.day}/${date.month}';
+  String _weekday(DateTime date) =>
+      const ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][date.weekday - 1];
+  String _dayTitle(DateTime date) =>
+      '${_weekday(date)}, ${date.day}/${date.month}';
 
   /// Desktop drag (mục 13 — Scheduling): xác nhận trước khi thay đổi;
   /// vượt deadline → Warning + AI alternative (đề xuất ngày khác hoặc
@@ -583,10 +618,11 @@ void _load() {
       showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Dời nhiệm vụ?', style: TextStyle(fontWeight: FontWeight.w800)),
-          content: Text(
-              'Chuyển "${task.title}" sang ${_dayTitle(newDay)}?'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Dời nhiệm vụ?',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+          content: Text('Chuyển "${task.title}" sang ${_dayTitle(newDay)}?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
@@ -597,7 +633,8 @@ void _load() {
                 Navigator.pop(dialogContext);
                 _applyReschedule(task, newDay);
               },
-              child: const Text('Dời lịch', style: TextStyle(fontWeight: FontWeight.w800)),
+              child: const Text('Dời lịch',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -639,7 +676,8 @@ void _load() {
               Navigator.pop(dialogContext);
               await _applyReschedule(task, newDay); // người dùng quyết định.
             },
-            child: const Text('Vẫn dời', style: TextStyle(fontWeight: FontWeight.w800)),
+            child: const Text('Vẫn dời',
+                style: TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -678,13 +716,15 @@ void _load() {
     final rows = <Widget>[];
     final examDate = _dateOnly(exam.dateTime);
     // Revision bắt đầu 7 ngày trước thi (đặc tả mục 39).
-    final revisionDate = _dateOnly(exam.dateTime).subtract(const Duration(days: 7));
+    final revisionDate =
+        _dateOnly(exam.dateTime).subtract(const Duration(days: 7));
     if (_isSameDay(examDate, day)) {
       rows.add(_ExamAgendaRow(
         icon: Icons.event_rounded,
         color: AppColors.red,
         title: '📅 ${exam.name} — NGÀY THI',
-        subtitle: 'Giờ thi: ${exam.dateTime.hour.toString().padLeft(2, '0')}:${exam.dateTime.minute.toString().padLeft(2, '0')}',
+        subtitle:
+            'Giờ thi: ${exam.dateTime.hour.toString().padLeft(2, '0')}:${exam.dateTime.minute.toString().padLeft(2, '0')}',
       ));
     }
     if (_isSameDay(revisionDate, day)) {
@@ -707,9 +747,11 @@ class _EmptyAgenda extends StatelessWidget {
   Widget build(BuildContext context) => GlassCard(
         padding: const EdgeInsets.all(22),
         child: Column(children: [
-          const Icon(Icons.event_available_rounded, size: 36, color: AppColors.textMuted),
+          const Icon(Icons.event_available_rounded,
+              size: 36, color: AppColors.textMuted),
           const SizedBox(height: 8),
-          const Text('Ngày này đang trống', style: TextStyle(fontWeight: FontWeight.w800)),
+          const Text('Ngày này đang trống',
+              style: TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           const Text('Để EduPulse đề xuất lịch, hoặc tự thêm nhiệm vụ mới.',
               textAlign: TextAlign.center),
@@ -726,7 +768,8 @@ class _EmptyAgenda extends StatelessWidget {
                   foregroundColor: AppColors.primaryDark,
                 ),
                 icon: const Icon(Icons.auto_awesome_rounded, size: 15),
-                label: const Text('Tối ưu tuần', style: TextStyle(fontSize: 12)),
+                label:
+                    const Text('Tối ưu tuần', style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
@@ -742,17 +785,31 @@ class _TaskAgendaRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         child: Row(children: [
-          Icon(task.isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: task.isDone ? AppColors.primary : AppColors.blue),
+          Icon(
+              task.isDone
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: task.isDone ? AppColors.primary : AppColors.blue),
           const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(task.title, style: TextStyle(fontWeight: FontWeight.w800, decoration: task.isDone ? TextDecoration.lineThrough : null)),
-            Text('${task.subject} • ${task.estimateMinutes} phút', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(task.title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        decoration:
+                            task.isDone ? TextDecoration.lineThrough : null)),
+                Text('${task.subject} • ${task.estimateMinutes} phút',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textMuted)),
+              ])),
           // Task-linked note (mục 14): chụp nhanh kiến thức sau khi học xong.
           IconButton(
             tooltip: 'Ghi chú cho nhiệm vụ này',
             visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.add_link_rounded, size: 18, color: AppColors.textMuted),
+            icon: const Icon(Icons.add_link_rounded,
+                size: 18, color: AppColors.textMuted),
             onPressed: () => NoteEditor.openLinked(
               context,
               task: task,
@@ -772,7 +829,10 @@ class _SessionAgendaRow extends StatelessWidget {
         child: Row(children: [
           const Icon(Icons.timer_outlined, color: AppColors.orange),
           const SizedBox(width: 10),
-          Expanded(child: Text('Focus ${session.subject} • ${session.actualMinutes} phút', style: const TextStyle(fontWeight: FontWeight.w700))),
+          Expanded(
+              child: Text(
+                  'Focus ${session.subject} • ${session.actualMinutes} phút',
+                  style: const TextStyle(fontWeight: FontWeight.w700))),
         ]),
       );
 }
@@ -800,10 +860,17 @@ class _ExamAgendaRow extends StatelessWidget {
           Icon(icon, color: color),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 13.5)),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                      fontSize: 13.5)),
               const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text(subtitle,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary)),
             ]),
           ),
         ]),

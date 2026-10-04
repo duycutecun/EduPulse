@@ -58,12 +58,9 @@ class FreeModelsCatalog {
     if (!force && _loadCache()) return;
     _loading = true;
     try {
-      final uri = _onWeb
-          ? Uri.base.resolve('/api/openrouter')
-          : Uri.parse(_endpoint);
-      final resp = await http
-          .get(uri)
-          .timeout(const Duration(seconds: 15));
+      final uri =
+          _onWeb ? Uri.base.resolve('/api/openrouter') : Uri.parse(_endpoint);
+      final resp = await http.get(uri).timeout(const Duration(seconds: 15));
       if (resp.statusCode != 200) return;
       final data = jsonDecode(resp.body)['data'] as List? ?? [];
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -74,13 +71,14 @@ class FreeModelsCatalog {
         // Auto (openrouter/free) luôn được thêm riêng ở trên — tránh trùng lặp.
         if (id == AIModel.defaultModel.slug) continue;
         final pricing = m['pricing'] as Map<String, dynamic>? ?? const {};
-        final isFree =
-            id.endsWith(':free') || (pricing['prompt'] == '0' && pricing['completion'] == '0');
+        final isFree = id.endsWith(':free') ||
+            (pricing['prompt'] == '0' && pricing['completion'] == '0');
         if (!isFree) continue;
         // Bỏ model không xuất text thuần (vd: sinh audio như Lyria).
         final modality = m['architecture']?['modality'] as String? ?? '';
         if (modality.isNotEmpty && !modality.contains('->text')) continue;
-        final modalityIn = m['architecture']?['input_modalities'] as List? ?? const [];
+        final modalityIn =
+            m['architecture']?['input_modalities'] as List? ?? const [];
         final name = (m['name'] as String? ?? id)
             .replaceAll(RegExp(r'\s*\(free\)\s*$', caseSensitive: false), '')
             .trim();

@@ -4,7 +4,13 @@
 /// date-symbol data của package `intl` — tránh lỗi "locale not found".
 class NowContext {
   static const List<String> _weekdays = [
-    'Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7',
+    'Chủ nhật',
+    'Thứ 2',
+    'Thứ 3',
+    'Thứ 4',
+    'Thứ 5',
+    'Thứ 6',
+    'Thứ 7',
   ];
 
   /// Trả về câu như: "Hôm nay là Thứ 4, ngày 29 tháng 8 năm 2026 (14:30)."

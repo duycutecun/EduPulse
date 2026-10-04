@@ -61,8 +61,10 @@ bool get isIos {
 bool get isIosSafari {
   try {
     final ua = _userAgent.toLowerCase();
-    final isAppleDevice = ua.contains('iphone') || ua.contains('ipad') || ua.contains('ipod');
-    final isThirdPartyBrowser = ua.contains('crios') || ua.contains('fxios') || ua.contains('edgios');
+    final isAppleDevice =
+        ua.contains('iphone') || ua.contains('ipad') || ua.contains('ipod');
+    final isThirdPartyBrowser =
+        ua.contains('crios') || ua.contains('fxios') || ua.contains('edgios');
     final isSafari = !isThirdPartyBrowser && ua.contains('safari');
     return isAppleDevice && isSafari;
   } catch (_) {

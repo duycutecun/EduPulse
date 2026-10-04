@@ -44,7 +44,8 @@ class StudyRhythm {
   ///
   /// Qua [StudySessionRepository] để mọi nơi đọc phiên học thấy cùng một
   /// cách xử lý phiên JSON hỏng.
-  static List<StudySession> sessions() => StudySessionRepository.instance.getAll();
+  static List<StudySession> sessions() =>
+      StudySessionRepository.instance.getAll();
 
   // ------------------------------------------------------------------
   // Giờ vàng
@@ -68,8 +69,8 @@ class StudyRhythm {
     final viable = byHour.entries.where((e) => e.value.length >= _minPerHour);
     if (viable.isEmpty) return null;
 
-    final best = viable.reduce((a, b) =>
-        _quality(a.value) >= _quality(b.value) ? a : b);
+    final best =
+        viable.reduce((a, b) => _quality(a.value) >= _quality(b.value) ? a : b);
     final end = (best.key + 2) % 24;
     final total = recent.length;
     return RhythmInsight(
@@ -108,9 +109,7 @@ class StudyRhythm {
         }
         if (last == null || s.completedAt.isAfter(last)) last = s.completedAt;
       }
-      final days = last == null
-          ? 99
-          : reference.difference(last).inDays;
+      final days = last == null ? 99 : reference.difference(last).inDays;
       if (days >= 5 && days > worstDays) {
         worst = subject;
         worstDays = days;
@@ -192,8 +191,7 @@ class StudyRhythm {
   /// môn bị bỏ quên lên trước — để học sinh làm phần nặng vào lúc còn sức,
   /// ghép với giờ vàng hiện ở bản tin. Không xoá/không đổi gì ngoài THỨ TỰ;
   /// task đã xong giữ nguyên vị trí. Học sinh vẫn chốt cuối cùng (1 nút).
-  static List<TodayTask> suggestOrder(List<TodayTask> tasks,
-      {DateTime? now}) {
+  static List<TodayTask> suggestOrder(List<TodayTask> tasks, {DateTime? now}) {
     final reference = now ?? DateTime.now();
     final pending =
         tasks.where((t) => !t.isDone && t.status != 'skipped').toList();
@@ -213,10 +211,10 @@ class StudyRhythm {
     // đã xong/bỏ qua để UI không nhảy lung tung.
     var pi = 0;
     final orderedPending = [
-      ...pending.where((t) => prioritySubjects
-          .contains(t.subject.trim().toLowerCase())),
-      ...pending.where((t) => !prioritySubjects
-          .contains(t.subject.trim().toLowerCase())),
+      ...pending.where(
+          (t) => prioritySubjects.contains(t.subject.trim().toLowerCase())),
+      ...pending.where(
+          (t) => !prioritySubjects.contains(t.subject.trim().toLowerCase())),
     ];
     return [
       for (final t in tasks)
@@ -258,9 +256,8 @@ class StudyRhythm {
   }
 
   static double _quality(List<StudySession> group) {
-    final scored = group
-        .where((s) => s.focus != null || s.effectiveness != null)
-        .toList();
+    final scored =
+        group.where((s) => s.focus != null || s.effectiveness != null).toList();
     if (scored.isEmpty) return 3;
     final ratings =
         scored.map((s) => ((s.focus ?? 3) + (s.effectiveness ?? 3)) / 2);

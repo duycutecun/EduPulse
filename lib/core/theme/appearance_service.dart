@@ -19,8 +19,7 @@ class AppearanceService {
   static const double _normal = 1.0;
   static const double _large = 1.15;
 
-  static final ValueNotifier<double> fontScale =
-      ValueNotifier<double>(_normal);
+  static final ValueNotifier<double> fontScale = ValueNotifier<double>(_normal);
 
   /// Gọi một lần sau `StorageService.init()` trước `runApp`.
   static void load() {

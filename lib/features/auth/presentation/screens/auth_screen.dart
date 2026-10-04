@@ -233,7 +233,8 @@ class _AuthScreenState extends State<AuthScreen> {
     // Email chưa từng đăng ký → chuyển sang đăng ký với email vừa nhập.
     if (result.code == 'EMAIL_NOT_FOUND') {
       _openRegisterWithEmail(email);
-      _showMessage('Email chưa đăng ký EduPulse — tạo tài khoản mới nhé!', false);
+      _showMessage(
+          'Email chưa đăng ký EduPulse — tạo tài khoản mới nhé!', false);
       return;
     }
 
@@ -291,8 +292,7 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Center(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: _buildModalCard(),
@@ -440,7 +440,10 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _tab({required String label, required bool active, required VoidCallback onTap}) {
+  Widget _tab(
+      {required String label,
+      required bool active,
+      required VoidCallback onTap}) {
     return Expanded(
       child: GestureDetector(
         onTap: _isLoading ? null : onTap,
@@ -911,7 +914,8 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _orDivider() {
     return Row(
       children: [
-        const Expanded(child: Divider(color: _kBorder, thickness: 1, height: 1)),
+        const Expanded(
+            child: Divider(color: _kBorder, thickness: 1, height: 1)),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -923,7 +927,8 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         ),
-        const Expanded(child: Divider(color: _kBorder, thickness: 1, height: 1)),
+        const Expanded(
+            child: Divider(color: _kBorder, thickness: 1, height: 1)),
       ],
     );
   }

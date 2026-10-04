@@ -76,8 +76,8 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Giá trị bạn đặt sẽ được ưu tiên thay vì suy luận của AI.',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -114,12 +114,14 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                     ),
                   ],
                 ),
-                if (StorageService.getString('profile_$key')?.isNotEmpty == true)
+                if (StorageService.getString('profile_$key')?.isNotEmpty ==
+                    true)
                   TextButton(
                     onPressed: () => Navigator.pop(sheetContext, ''),
                     style: TextButton.styleFrom(
                         foregroundColor: AppColors.textMuted),
-                    child: const Text('Xóa giá trị tự chỉnh — dùng suy luận AI'),
+                    child:
+                        const Text('Xóa giá trị tự chỉnh — dùng suy luận AI'),
                   ),
               ],
             ),
@@ -164,7 +166,8 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                     const Text(
                       'Học vài phiên Focus (kèm phản hồi) và lên kế hoạch nhiệm vụ — EduPulse sẽ dần hiểu nhịp học của bạn.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -248,14 +251,15 @@ class _TraitCard extends StatelessWidget {
               ),
               // Chip confidence: phân biệt fact vs inference (mục 10.7).
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: _confidenceColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  trait.isUserOverride ? 'Bạn tự chỉnh' : confidenceLabel(trait.confidence),
+                  trait.isUserOverride
+                      ? 'Bạn tự chỉnh'
+                      : confidenceLabel(trait.confidence),
                   style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w800,
@@ -279,9 +283,7 @@ class _TraitCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(trait.evidence,
               style: TextStyle(
-                  fontSize: 11.5,
-                  height: 1.35,
-                  color: AppColors.textMuted)),
+                  fontSize: 11.5, height: 1.35, color: AppColors.textMuted)),
         ],
       ),
     );

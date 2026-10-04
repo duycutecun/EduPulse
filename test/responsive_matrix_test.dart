@@ -49,7 +49,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(host());
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 600));
   }
 
   /// Bấm mục điều hướng qua icon — hoạt động cho cả bottom nav (có nhãn) lẫn

@@ -82,8 +82,7 @@ QuickAddParseResult? parseQuickAdd(String input, DateTime now) {
   var minute = 0;
   var hasTime = false;
 
-  final timeMatch =
-      RegExp(r'(\d{1,2})\s*[h:]\s*(\d{2})?').firstMatch(lower);
+  final timeMatch = RegExp(r'(\d{1,2})\s*[h:]\s*(\d{2})?').firstMatch(lower);
   if (timeMatch != null) {
     hour = int.parse(timeMatch.group(1)!);
     minute = timeMatch.group(2) != null ? int.parse(timeMatch.group(2)!) : 0;
@@ -161,11 +160,23 @@ QuickAddParseResult? parseQuickAdd(String input, DateTime now) {
   // ------------------------------------------------------------------
   var title = text
       .replaceAll(RegExp(r'\bmai\b|\bmốt\b|\bkia\b', caseSensitive: false), '')
-      .replaceAll(RegExp(r'chủ nhật|thứ hai|thứ ba|thứ tư|thứ năm|thứ sáu|thứ bảy|thứ [2-7]|\bcn\b', caseSensitive: false), '')
-      .replaceAll(RegExp(r'\d{1,2}\s*[h:]\s*(\d{2})?', caseSensitive: false), '')
-      .replaceAll(RegExp(r'(sáng|trưa|chiều|tối|đêm)', caseSensitive: false), '')
-      .replaceAll(RegExp(r'\d+(?:[.,]\d+)?\s*(phút|giờ|p\b|h\b|minute|hour)', caseSensitive: false), '')
-      .replaceAll(RegExp(r'\b(quan trọng|gấp|urgent|nhẹ|nếu kịp)\b', caseSensitive: false), '')
+      .replaceAll(
+          RegExp(
+              r'chủ nhật|thứ hai|thứ ba|thứ tư|thứ năm|thứ sáu|thứ bảy|thứ [2-7]|\bcn\b',
+              caseSensitive: false),
+          '')
+      .replaceAll(
+          RegExp(r'\d{1,2}\s*[h:]\s*(\d{2})?', caseSensitive: false), '')
+      .replaceAll(
+          RegExp(r'(sáng|trưa|chiều|tối|đêm)', caseSensitive: false), '')
+      .replaceAll(
+          RegExp(r'\d+(?:[.,]\d+)?\s*(phút|giờ|p\b|h\b|minute|hour)',
+              caseSensitive: false),
+          '')
+      .replaceAll(
+          RegExp(r'\b(quan trọng|gấp|urgent|nhẹ|nếu kịp)\b',
+              caseSensitive: false),
+          '')
       // Môn đã thể hiện qua chip subject — bỏ khỏi tiêu đề để tránh lặp.
       .replaceAll(RegExp(r'\b(học|ôn|luyện|làm)\b', caseSensitive: false), '')
       .trim();

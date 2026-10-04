@@ -150,6 +150,16 @@ class _HomeScreenState extends State<HomeScreen> {
   /// nhưng vẫn cần một khung hình: đọc + dựng cây widget đủ để thấy nháy
   /// trắng khi mở app lạnh trên máy yếu.
   bool _isLoadingTasks = true;
+
+  /// Khoảng dừng ngắn để khung xương kịp hiện (xem chú thích ở `initState`).
+  /// Không nhân tạo độ trễ vô tình: đây là đánh đổi có chủ đích giữa
+  /// “mở app tức thì” và “không nháy màn trắng”.
+  static const Duration _skeletonDelay = Duration(milliseconds: 300);
+
+  /// Giữ tham chiếu để HUỶ được khi rời màn. Dùng `Future.delayed` là timer
+  /// vẫn treo sau khi widget đã dispose — vừa rò rỉ vừa làm test báo “pending
+  /// timer”; `mounted` chỉ chặn được `setState`, không huỷ được chính timer.
+  Timer? _skeletonTimer;
   final _uuid = const Uuid();
 
   @override
@@ -168,9 +178,13 @@ class _HomeScreenState extends State<HomeScreen> {
     // không chờ người dùng điều hướng. Thẻ tổng kết đọc `TodayService` trong
     // `build`, nên chỉ cần vẽ lại là số phút mới hiện.
     StudySessionRepository.instance.revision.addListener(_onSessionsChanged);
-    // Khung xương chỉ tồn tại đúng MỘT khung hình rồi được thay bằng dữ liệu
-    // thật — đủ để không thấy màn trắng, không thêm độ trễ nhân tạo.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Khung xương giữ đúng một nhịp ngắn rồi mới thay bằng dữ liệu thật.
+    //
+    // Vì sao có độ trễ chứ không thay ngay ở khung hình đầu: một khung hình là
+    // nhanh đến mức người dùng không kịp THẤY — thấy màn trắng rồi thấy nội
+    // dung, tệ hơn là thấy một lần “đang tải” gọn gàng rồi nội dung hiện ra.
+    // 300ms đủ để shimmer kịp xuất hiện mà vẫn tạo cảm giác mở app tức thì.
+    _skeletonTimer = Timer(_skeletonDelay, () {
       if (!mounted) return;
       setState(() {
         _loadTasks();
@@ -727,6 +741,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _skeletonTimer?.cancel();
     _remainingNotifier.dispose();
     TaskRepository.instance.revision.removeListener(_onTasksChanged);
     StudySessionRepository.instance.revision.removeListener(_onSessionsChanged);

@@ -66,18 +66,16 @@ class AiFeedbackStore {
 
   /// Lưu feedback (ghi đè nếu đã có cho cùng message).
   static void put(AiFeedback feedback) {
-    StorageService.setString('ai_feedback_${feedback.messageId}',
-        feedback.toJsonString());
+    StorageService.setString(
+        'ai_feedback_${feedback.messageId}', feedback.toJsonString());
     final ids = _ids();
     if (!ids.contains(feedback.messageId)) {
-      StorageService.prefs.setStringList(_idsKey,
-          [...ids, feedback.messageId]);
+      StorageService.prefs.setStringList(_idsKey, [...ids, feedback.messageId]);
     }
   }
 
   static AiFeedback? get(String messageId) {
-    final json =
-        StorageService.getString('ai_feedback_$messageId');
+    final json = StorageService.getString('ai_feedback_$messageId');
     if (json == null) return null;
     try {
       return AiFeedback.fromJsonString(json);

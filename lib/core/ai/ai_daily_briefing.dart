@@ -54,14 +54,16 @@ class DailyBriefing {
   factory DailyBriefing.fromJson(Map<String, dynamic> j) => DailyBriefing(
         greeting: (j['greeting'] ?? '').toString(),
         focus: (j['focus'] as List? ?? const [])
-            .map((e) => BriefingItem.fromJson((e as Map).cast<String, dynamic>()))
+            .map((e) =>
+                BriefingItem.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),
         risks: (j['risks'] as List? ?? const [])
-            .map((e) => BriefingItem.fromJson((e as Map).cast<String, dynamic>()))
+            .map((e) =>
+                BriefingItem.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),
         source: (j['source'] ?? 'offline').toString(),
-        generatedAt:
-            DateTime.tryParse((j['generatedAt'] ?? '').toString()) ?? DateTime.now(),
+        generatedAt: DateTime.tryParse((j['generatedAt'] ?? '').toString()) ??
+            DateTime.now(),
       );
 }
 
@@ -97,7 +99,8 @@ class AiDailyBriefing {
       final raw = StorageService.getString(_cacheKey);
       if (raw != null && raw.isNotEmpty) {
         try {
-          return DailyBriefing.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+          return DailyBriefing.fromJson(
+              jsonDecode(raw) as Map<String, dynamic>);
         } catch (_) {}
       }
     }
@@ -308,9 +311,11 @@ $context''';
         : 'Bắt đầu với 1 phiên focus 25 phút hôm nay để khởi động nhịp học.';
     focus.add(BriefingItem(
         title: focusText,
-        detail: taskCount > 0 ? 'Có $taskCount nhiệm vụ trong kế hoạch.' : null));
+        detail:
+            taskCount > 0 ? 'Có $taskCount nhiệm vụ trong kế hoạch.' : null));
     return DailyBriefing(
-      greeting: '$greeting Hãy thêm kỳ thi mục tiêu và nhập điểm thi thử để AI tư vấn sâu hơn.',
+      greeting:
+          '$greeting Hãy thêm kỳ thi mục tiêu và nhập điểm thi thử để AI tư vấn sâu hơn.',
       focus: focus,
       risks: const [],
       source: 'offline',

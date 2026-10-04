@@ -137,8 +137,8 @@ class _ProposalRow extends StatelessWidget {
             ? AppColors.greenSoft.withValues(alpha: 0.4)
             : AppColors.bgPage,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: accepted ? AppColors.primary : AppColors.border),
+        border:
+            Border.all(color: accepted ? AppColors.primary : AppColors.border),
       ),
       child: Row(
         children: [

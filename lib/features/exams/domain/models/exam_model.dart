@@ -92,7 +92,8 @@ class ExamModel {
 
   /// true nếu đã qua thời điểm kết thúc của ngày thi (23:59:59 ngày thi).
   bool get isExamDayOver {
-    final endOfDay = DateTime(dateTime.year, dateTime.month, dateTime.day, 23, 59, 59);
+    final endOfDay =
+        DateTime(dateTime.year, dateTime.month, dateTime.day, 23, 59, 59);
     return DateTime.now().isAfter(endOfDay);
   }
 
@@ -169,33 +170,34 @@ class ExamModel {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'dateTime': dateTime.toIso8601String(),
-    'type': type.index,
-    'description': description,
-    'emoji': emoji,
-    'currentScore': currentScore,
-    'targetScore': targetScore,
-    'subjectTargets': subjectTargets,
-    'subjects': subjects,
-  };
+        'id': id,
+        'name': name,
+        'dateTime': dateTime.toIso8601String(),
+        'type': type.index,
+        'description': description,
+        'emoji': emoji,
+        'currentScore': currentScore,
+        'targetScore': targetScore,
+        'subjectTargets': subjectTargets,
+        'subjects': subjects,
+      };
 
   factory ExamModel.fromJson(Map<String, dynamic> j) => ExamModel(
-    id: j['id'],
-    name: j['name'],
-    dateTime: DateTime.parse(j['dateTime']),
-    type: ExamType.values[j['type'] ?? 1],
-    description: j['description'],
-    emoji: j['emoji'] ?? '🎯',
-    currentScore: (j['currentScore'] as num?)?.toDouble(),
-    targetScore: (j['targetScore'] as num?)?.toDouble(),
-    subjectTargets: ((j['subjectTargets'] as Map?) ?? {}).map(
-      (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
-    ),
-    subjects:
-        ((j['subjects'] as List?) ?? const []).map((e) => e.toString()).toList(),
-  );
+        id: j['id'],
+        name: j['name'],
+        dateTime: DateTime.parse(j['dateTime']),
+        type: ExamType.values[j['type'] ?? 1],
+        description: j['description'],
+        emoji: j['emoji'] ?? '🎯',
+        currentScore: (j['currentScore'] as num?)?.toDouble(),
+        targetScore: (j['targetScore'] as num?)?.toDouble(),
+        subjectTargets: ((j['subjectTargets'] as Map?) ?? {}).map(
+          (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
+        ),
+        subjects: ((j['subjects'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+      );
 
   String toJsonString() => jsonEncode(toJson());
   factory ExamModel.fromJsonString(String s) =>

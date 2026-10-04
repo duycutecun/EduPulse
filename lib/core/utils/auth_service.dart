@@ -89,7 +89,8 @@ class AuthService {
     required String name,
   }) async {
     if (!isConfigured) {
-      return AuthResult.error('Chưa cấu hình Firebase. Vào Cài đặt để thiết lập.');
+      return AuthResult.error(
+          'Chưa cấu hình Firebase. Vào Cài đặt để thiết lập.');
     }
     try {
       final res = await _auth!.createUserWithEmailAndPassword(
@@ -118,7 +119,8 @@ class AuthService {
     required String password,
   }) async {
     if (!isConfigured) {
-      return AuthResult.error('Chưa cấu hình Firebase. Vào Cài đặt để thiết lập.');
+      return AuthResult.error(
+          'Chưa cấu hình Firebase. Vào Cài đặt để thiết lập.');
     }
     try {
       final res = await _auth!.signInWithEmailAndPassword(
@@ -141,7 +143,8 @@ class AuthService {
   /// xác minh domain), trên native mở cửa sổ trình duyệt rồi quay về.
   static Future<AuthResult> signInWithGoogle() async {
     if (!isConfigured) {
-      return AuthResult.error('Chưa cấu hình Firebase. Vào Cài đặt để thiết lập.');
+      return AuthResult.error(
+          'Chưa cấu hình Firebase. Vào Cài đặt để thiết lập.');
     }
     try {
       User? user;
@@ -159,7 +162,8 @@ class AuthService {
         }
         return AuthResult.success('Đăng nhập Google thành công! 🎉');
       }
-      return AuthResult.error('Đăng nhập Google không thành công. Thử lại sau.');
+      return AuthResult.error(
+          'Đăng nhập Google không thành công. Thử lại sau.');
     } on FirebaseAuthException catch (e) {
       return AuthResult.error(_mapAuthError(e));
     } catch (_) {
@@ -216,7 +220,8 @@ class AuthService {
       }
       return AuthResult.error(_apiError(body));
     } catch (_) {
-      return AuthResult.error('Xác nhận mã thất bại. Kiểm tra mạng và thử lại.');
+      return AuthResult.error(
+          'Xác nhận mã thất bại. Kiểm tra mạng và thử lại.');
     }
   }
 
@@ -254,18 +259,20 @@ class AuthService {
     }
     try {
       final token = await user.getIdToken();
-      final body =
-          await _postApi('/api/verify_email', {'idToken': token, 'code': clean});
+      final body = await _postApi(
+          '/api/verify_email', {'idToken': token, 'code': clean});
       if (body['ok'] == true) {
         StorageService.setEmailVerified(true);
         try {
           await user.reload();
         } catch (_) {}
-        return AuthResult.success('Xác minh email thành công! Chào mừng bạn 🎉');
+        return AuthResult.success(
+            'Xác minh email thành công! Chào mừng bạn 🎉');
       }
       return AuthResult.error(_apiError(body));
     } catch (e) {
-      return AuthResult.error('Xác minh không thành công. Kiểm tra mạng và thử lại.');
+      return AuthResult.error(
+          'Xác minh không thành công. Kiểm tra mạng và thử lại.');
     }
   }
 

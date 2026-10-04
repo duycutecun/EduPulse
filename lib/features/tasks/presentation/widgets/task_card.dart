@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/app_motion.dart';
 import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_tokens.dart';
@@ -32,6 +33,18 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final card = _buildCard(context);
+    // Vuốt ngang chỉ bật khi nơi dùng thực sự xử lý dời lịch. Không tự bật ở
+    // mọi nơi — ở lịch tháng hay kế hoạch AI, vuốt ngang dễ đụng nhầm với
+    // cuộn ngang của chính danh sách đó.
+    if (onReschedule == null) return card;
+    return _SwipeToReschedule(
+      onReschedule: () => onReschedule!(task),
+      child: card,
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     final isSkipped = task.status == 'skipped';
     final isOverdue = task.deadline != null &&
         DateUtils.dateOnly(task.deadline!)
@@ -594,3 +607,152 @@ class _UrgencyBadge extends StatelessWidget {
 }
 
 enum _TaskOption { detail, edit, reschedule, skip, split, delete }
+
+/// Vuốt ngang trên thẻ nhiệm vụ để mở đổi lịch (G3-B).
+///
+/// **Vì sao thêm:** đổi lịch là việc người học làm rất nhiều (đầy bài, sự cố,
+/// muộn học) nhưng trước đây phải mở menu `Tùy chọn nhiệm vụ` rồi bấm
+/// `Dời lịch` — ba chạm cho một thao tác thường nhật. Vuốt rút xuống còn một.
+///
+/// **Có chủ đích KHÔNG tự dời:** vuốt chỉ mở lại hộp thoại đổi lịch sẵn có.
+/// Việc chọn ngày phải do người học quyết — cùng nguyên tắc "AI/ứng dụng
+/// đề nghị, không tự sửa kế hoạch" (UX 5.5).
+///
+/// Ngưỡng vuốt cố ý lớn hơn ngưỡng của [Dismissible]: thẻ nhiệm vụ nằm trong
+/// danh sách dọc, vuốt hơi tay rất dễ trượt. 72px = chủ ý, không phải vô tình.
+class _SwipeToReschedule extends StatefulWidget {
+  const _SwipeToReschedule({
+    required this.onReschedule,
+    required this.child,
+  });
+
+  final VoidCallback onReschedule;
+  final Widget child;
+
+  @override
+  State<_SwipeToReschedule> createState() => _SwipeToRescheduleState();
+}
+
+class _SwipeToRescheduleState extends State<_SwipeToReschedule>
+    with SingleTickerProviderStateMixin {
+  /// Vượt ngưỡng này mới tính là chủ ý vuốt để đổi lịch.
+  static const double _threshold = 72;
+
+  /// Giới hạn trượt để nền hậu cảnh không lộ ra quá nhiều.
+  static const double _maxDrag = 140;
+
+  late final AnimationController _settle = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+  );
+  Animation<double>? _reset;
+
+  double _dx = 0;
+  bool _armed = false;
+
+  @override
+  void dispose() {
+    _settle.dispose();
+    super.dispose();
+  }
+
+  /// Thả tay: đủ ngưỡng thì mở hộp thoại, sau đó thẻ luôn trở về vị trí cũ.
+  void _onEnd(DragEndDetails _) {
+    if (_armed && _dx.abs() >= _threshold) {
+      // G3-B: dời lịch là thao tác duyệt chọn → rung tick nhẹ, không rung như
+      // khi hoàn thành hay xoá (người dùng chưa mất dữ liệu).
+      FeedbackService.selection();
+      widget.onReschedule();
+    }
+    _animateBack();
+  }
+
+  void _animateBack() {
+    final begin = _dx;
+    _reset = Tween<double>(begin: begin, end: 0).animate(
+      CurvedAnimation(parent: _settle, curve: Curves.easeOutCubic),
+    )..addListener(() => setState(() => _dx = _reset!.value));
+    _armed = false;
+    _settle.forward(from: 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Giảm chuyển động: không trượt theo ngón tay, hiện luôn nền đầy đủ rồi
+    // gọi thẳng — người dùng vẫn làm được, chỉ không có phần trượt mượt.
+    final reduced = AppMotion.reduced(context);
+    final progress = reduced ? 1.0 : (_dx.abs() / _threshold).clamp(0.0, 1.0);
+
+    return Semantics(
+      // Vuốt không thay thế được thao tác bấm — nói rõ để trình đọc màn hình
+      // vẫn dẫn được người dùng tới chức năng đổi lịch.
+      hint: 'Vuốt ngang hoặc mở tùy chọn để đổi lịch',
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: reduced
+            ? null
+            : (d) => setState(() {
+                  _dx = (_dx + d.delta.dx).clamp(-_maxDrag, _maxDrag);
+                  final nowArmed = _dx.abs() >= _threshold;
+                  // Chỉ rung đúng một lần lúc mốc bị vượt, không rung liên tục.
+                  if (nowArmed && !_armed) FeedbackService.selection();
+                  _armed = nowArmed;
+                }),
+        onHorizontalDragEnd: reduced ? null : _onEnd,
+        onHorizontalDragCancel: reduced ? null : _animateBack,
+        child: Stack(
+          children: [
+            // Nền lộ ra khi vuốt — báo trước việc gì sẽ xảy ra.
+            Positioned.fill(
+              child: Opacity(
+                opacity: progress,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppTokens.space8),
+                  decoration: BoxDecoration(
+                    color: AppColors.orangeSoft,
+                    borderRadius: AppTokens.brLg,
+                    border: Border.all(color: AppColors.orangeDark),
+                  ),
+                  alignment:
+                      _dx >= 0 ? Alignment.centerLeft : Alignment.centerRight,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppTokens.space16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_dx < 0) const SizedBox(width: AppTokens.space8),
+                      const Icon(Icons.event_rounded,
+                          size: 20, color: AppColors.orangeDark),
+                      const SizedBox(width: AppTokens.space8),
+                      // Nhãn riêng cho thao tác VUỐT, không trùng “Dời lịch”
+                      // của menu — cả hai cùng xuất hiện khi người học đang mở
+                      // tùy chọn, trùng nhãn sẽ gây nhầm lẫn (và làm test
+                      // “bấm Dời lịch” không xác định được đích bấm).
+                      // Chỉ dựng khi nền đã lộ — trạng thái ẩn không được để
+                      // lại node vô hình trong cây widget.
+                      if (progress > 0)
+                        const Text(
+                          'Vuốt để dời lịch',
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.orangeDark,
+                          ),
+                        ),
+                      if (_dx >= 0) const SizedBox(width: AppTokens.space8),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Transform.translate(
+              offset: Offset(reduced ? 0 : _dx, 0),
+              child: widget.child,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

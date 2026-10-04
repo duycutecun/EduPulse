@@ -15,7 +15,8 @@ class NotificationService {
 
   /// Nền tảng có hỗ trợ local notification hay không (mobile native).
   static bool get isSupported =>
-      !kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
 
   static Future<void> init() async {
@@ -64,7 +65,8 @@ class NotificationService {
     if (!_initialized) return;
 
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduled =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (!scheduled.isAfter(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -124,14 +126,14 @@ class NotificationService {
   }
 
   /// Hủy một notification theo id.
-      static Future<void> cancelId(int id) async {
-        if (!isSupported || !_initialized) return;
-        await _plugin.cancel(id: id);
-      }
+  static Future<void> cancelId(int id) async {
+    if (!isSupported || !_initialized) return;
+    await _plugin.cancel(id: id);
+  }
 
-      /// Hủy lịch nhắc đã đặt (nếu có).
-      static Future<void> cancel() async {
-        if (!isSupported || !_initialized) return;
-        await _plugin.cancel(id: 1001);
-      }
+  /// Hủy lịch nhắc đã đặt (nếu có).
+  static Future<void> cancel() async {
+    if (!isSupported || !_initialized) return;
+    await _plugin.cancel(id: 1001);
+  }
 }

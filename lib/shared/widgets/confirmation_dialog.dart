@@ -97,13 +97,15 @@ class ConfirmationDialog extends StatelessWidget {
                 vertical: AppTokens.space8,
               ),
               decoration: BoxDecoration(
-                color: isDestructive ? AppColors.redLight : AppColors.primaryLight,
+                color:
+                    isDestructive ? AppColors.redLight : AppColors.primaryLight,
                 borderRadius: AppTokens.brMd,
               ),
               child: Text(
                 highlightedItem!,
                 style: AppTokens.heading3.copyWith(
-                  color: isDestructive ? AppColors.redDark : AppColors.primaryDark,
+                  color:
+                      isDestructive ? AppColors.redDark : AppColors.primaryDark,
                 ),
               ),
             ),

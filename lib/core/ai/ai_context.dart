@@ -1,4 +1,3 @@
-
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../features/study/domain/study_timeline.dart';
@@ -177,8 +176,9 @@ class AiStudyContext {
       add('  Đã chia nhỏ: ${task.subtasks.take(_maxListItems).join('; ')}');
     }
     // Phiên học gắn đúng bài này — AI biết học sinh đã bỏ ra bao nhiêu thời gian.
-    final related =
-        _allSessions().where((s) => s.taskId == task.id).toList(growable: false);
+    final related = _allSessions()
+        .where((s) => s.taskId == task.id)
+        .toList(growable: false);
     if (related.isNotEmpty) {
       final mins = related.fold<int>(0, (a, s) => a + s.actualMinutes);
       add('  Phiên học của bài này: ${related.length} phiên / ${_hours(mins)}');
@@ -529,11 +529,13 @@ class AiStudyContext {
   static void _logs(void Function(String) add, DateTime now) {
     // Gộp cả phiên học thật lẫn ghi chép nhập tay: chỉ đọc `StudyLog` thì AI
     // sẽ thấy gần như không có gì, vì pomodoro không còn ghi dòng log nữa.
-    final entries = buildStudyTimeline(logs: _readAll(
-      StorageService.getStudyLogIds(),
-      StorageService.getStudyLogJson,
-      StudyLog.fromJsonString,
-    ), sessions: _allSessions());
+    final entries = buildStudyTimeline(
+        logs: _readAll(
+          StorageService.getStudyLogIds(),
+          StorageService.getStudyLogJson,
+          StudyLog.fromJsonString,
+        ),
+        sessions: _allSessions());
     if (entries.isEmpty) return;
 
     var totalHours = 0.0;

@@ -41,8 +41,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
     _cards = widget.dueCards ?? FlashcardService.dueCards();
   }
 
-  Flashcard? get _current =>
-      _index < _cards.length ? _cards[_index] : null;
+  Flashcard? get _current => _index < _cards.length ? _cards[_index] : null;
 
   void _grade(ReviewGrade g) {
     final card = _current;
@@ -81,7 +80,17 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
     }
 
     final sourceCtrl = TextEditingController();
-    final subjects = ['Toán', 'Vật lý', 'Hóa học', 'Tiếng Anh', 'Ngữ văn', 'Sinh học', 'Lịch sử', 'Địa lý', 'Tổng hợp'];
+    final subjects = [
+      'Toán',
+      'Vật lý',
+      'Hóa học',
+      'Tiếng Anh',
+      'Ngữ văn',
+      'Sinh học',
+      'Lịch sử',
+      'Địa lý',
+      'Tổng hợp'
+    ];
     var subject = subjects.first;
     var fromNote = false;
 
@@ -137,7 +146,8 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                     items: subjects
                         .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                         .toList(),
-                    onChanged: (v) => setSheetState(() => subject = v ?? subject),
+                    onChanged: (v) =>
+                        setSheetState(() => subject = v ?? subject),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -224,8 +234,8 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), behavior: SnackBarBehavior.floating));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Lỗi: $e'), behavior: SnackBarBehavior.floating));
     }
   }
 
@@ -244,7 +254,8 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
         actions: [
           IconButton(
             tooltip: 'Sinh thẻ mới bằng AI',
-            icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.purple),
+            icon:
+                const Icon(Icons.auto_awesome_rounded, color: AppColors.purple),
             onPressed: _generateSheet,
           ),
         ],
@@ -436,7 +447,8 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
               'Quên: $_doneAgain · Khó: $_doneHard · Được: $_doneGood · Dễ: $_doneEasy\n'
               'Thẻ khó sẽ quay lại sớm hơn — lịch ôn đã được AI cập nhật.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+              style: TextStyle(
+                  fontSize: 13, color: AppColors.textSecondary, height: 1.5),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -488,7 +500,8 @@ class _NotePicker extends StatelessWidget {
     if (notes.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
-        child: Text('Chưa có ghi chú nào — hãy tạo ghi chú trước, hoặc dùng "Từ chủ đề".',
+        child: Text(
+            'Chưa có ghi chú nào — hãy tạo ghi chú trước, hoặc dùng "Từ chủ đề".',
             style: TextStyle(fontSize: 12.5)),
       );
     }
@@ -502,8 +515,10 @@ class _NotePicker extends StatelessWidget {
           leading: const Icon(Icons.sticky_note_2_rounded,
               color: AppColors.purple, size: 20),
           title: Text(notes[i].$1,
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
           subtitle: Text(notes[i].$3,
               style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           onTap: () => onPicked(notes[i].$1, notes[i].$2, notes[i].$3),

@@ -43,9 +43,8 @@ class SplitTaskDialog extends StatefulWidget {
 }
 
 class _SplitTaskDialogState extends State<SplitTaskDialog> {
-  late int _parts = (widget.task.estimateMinutes / widget.targetMinutes)
-      .ceil()
-      .clamp(2, 4);
+  late int _parts =
+      (widget.task.estimateMinutes / widget.targetMinutes).ceil().clamp(2, 4);
 
   /// Chia đều, phần dư dồn vào phần đầu — tổng phút không đổi.
   List<int> get _minutes => [
@@ -117,7 +116,8 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
                 for (final n in [2, 3, 4])
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.only(right: n == 4 ? 0 : AppTokens.space8),
+                      padding:
+                          EdgeInsets.only(right: n == 4 ? 0 : AppTokens.space8),
                       child: _PartChip(
                         label: '$n phần',
                         selected: _parts == n,
@@ -190,8 +190,8 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
                     child: Text(
                       'Nhiệm vụ cũ sẽ được thay bằng $_parts phần nhỏ. '
                       'Bạn có thể Hoàn tác ngay sau khi chia.',
-                      style: AppTokens.caption.copyWith(
-                          color: AppColors.textSecondary),
+                      style: AppTokens.caption
+                          .copyWith(color: AppColors.textSecondary),
                     ),
                   ),
                 ],

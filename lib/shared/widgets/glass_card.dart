@@ -39,18 +39,20 @@ class GlassCard extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: bColor, width: borderWidth),
-        boxShadow: shadows ?? [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: shadows ??
+            [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
       ),
       child: Material(type: MaterialType.transparency, child: child),
     );
 
     if (onTap == null) return card;
-    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: card);
+    return GestureDetector(
+        behavior: HitTestBehavior.opaque, onTap: onTap, child: card);
   }
 }

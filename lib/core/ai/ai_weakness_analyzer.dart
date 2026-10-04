@@ -46,8 +46,7 @@ class WeaknessReport {
   /// Không đủ dữ liệu — trả thông báo trung thực, không phán đoán.
   factory WeaknessReport.insufficient() => const WeaknessReport(
         hasEnoughData: false,
-        summary:
-            'Chưa đủ dữ liệu để phân tích (cần ít nhất 3 phiên học). '
+        summary: 'Chưa đủ dữ liệu để phân tích (cần ít nhất 3 phiên học). '
             'Hãy học thêm vài buổi rồi quay lại nhé!',
         suggestions: [],
       );
@@ -182,8 +181,8 @@ class WeaknessAnalyzer {
 
     // Chỉ báo "bị bỏ quên" nếu thật sự ít (< 30% trung bình)
     if (sorted.length < 2) return (null, null);
-    final avg =
-        minutesBySubject.values.reduce((a, b) => a + b) / minutesBySubject.length;
+    final avg = minutesBySubject.values.reduce((a, b) => a + b) /
+        minutesBySubject.length;
     if (sorted.first.value < avg * 0.5) {
       return (sorted.first.key, sorted.first.value);
     }
@@ -218,13 +217,11 @@ class WeaknessAnalyzer {
   }
 
   static int _countLowMoodSessions(List<StudySession> sessions) {
-    return sessions
-        .where((s) {
-          // mood là 1-5, ≤ 2 là thấp
-          final mood = s.mood;
-          return mood != null && mood <= 2;
-        })
-        .length;
+    return sessions.where((s) {
+      // mood là 1-5, ≤ 2 là thấp
+      final mood = s.mood;
+      return mood != null && mood <= 2;
+    }).length;
   }
 
   // ─── Tổng hợp nhận xét ───────────────────────────────────────────────────
@@ -247,12 +244,15 @@ class WeaknessAnalyzer {
       if (weakScore < 6.5) {
         parts.add(
             'Điểm thi thử môn **$weakSubject** đang ở mức thấp (TB ${weakScore.toStringAsFixed(1)}/10) — đây là khoảng trống cần ưu tiên lấp đầy.');
-        suggestions.add('Dành ít nhất 30ph mỗi ngày ôn lại nền tảng môn $weakSubject.');
-        suggestions.add('Làm lại các dạng bài hay gặp trong đề thi môn $weakSubject.');
+        suggestions.add(
+            'Dành ít nhất 30ph mỗi ngày ôn lại nền tảng môn $weakSubject.');
+        suggestions
+            .add('Làm lại các dạng bài hay gặp trong đề thi môn $weakSubject.');
       } else if (weakScore < 8.0) {
         parts.add(
             'Môn **$weakSubject** có thể cải thiện thêm (TB ${weakScore.toStringAsFixed(1)}/10).');
-        suggestions.add('Tập trung vào dạng bài khó để đẩy điểm $weakSubject lên 8+.');
+        suggestions
+            .add('Tập trung vào dạng bài khó để đẩy điểm $weakSubject lên 8+.');
       }
     }
 
@@ -266,7 +266,9 @@ class WeaknessAnalyzer {
     }
 
     // Hay dời lịch
-    if (rescheduledSub != null && rescheduledCnt != null && rescheduledCnt >= 3) {
+    if (rescheduledSub != null &&
+        rescheduledCnt != null &&
+        rescheduledCnt >= 3) {
       parts.add(
           'Task môn **$rescheduledSub** thường xuyên bị dời lịch ($rescheduledCnt lần) — có thể nhiệm vụ đang quá nặng.');
       suggestions.add(
@@ -285,8 +287,11 @@ class WeaknessAnalyzer {
     if (parts.isEmpty) {
       return (
         'Dữ liệu $sessionCount phiên học gần đây trông khá cân bằng — không có môn nào nổi bật cần lo ngại. '
-        'Hãy duy trì nhịp học đều đặn và tiếp tục làm đề thử để có thêm dữ liệu.',
-        ['Tiếp tục duy trì lịch học đều đặn.', 'Làm thêm đề thi thử để tracking điểm theo môn.'],
+            'Hãy duy trì nhịp học đều đặn và tiếp tục làm đề thử để có thêm dữ liệu.',
+        [
+          'Tiếp tục duy trì lịch học đều đặn.',
+          'Làm thêm đề thi thử để tracking điểm theo môn.'
+        ],
       );
     }
 

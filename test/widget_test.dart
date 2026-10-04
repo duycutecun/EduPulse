@@ -69,7 +69,7 @@ void main() {
         home: const MainShellScreen(),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 700));
 
     // 1. Tab Hôm nay — active mặc định
     expect(find.text('Chào Sĩ tử 2k9 👋'), findsOneWidget);
@@ -2010,7 +2010,7 @@ void main() {
         home: const MainShellScreen(),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 700));
     expect(tester.takeException(), isNull);
 
     // Home render gọn trong màn hẹp.

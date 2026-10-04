@@ -57,8 +57,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
     final isFrequent = widget.task.rescheduleCount >= 3;
     final deadline = widget.task.deadline;
     final isAfterDeadline = deadline != null &&
-        DateUtils.dateOnly(_selectedDate)
-            .isAfter(DateUtils.dateOnly(deadline));
+        DateUtils.dateOnly(_selectedDate).isAfter(DateUtils.dateOnly(deadline));
 
     return Container(
       padding: EdgeInsets.only(
@@ -144,7 +143,8 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  if (widget.onSplitWithAi != null || widget.onSplit != null) ...[
+                  if (widget.onSplitWithAi != null ||
+                      widget.onSplit != null) ...[
                     const SizedBox(height: AppTokens.space8),
                     Row(
                       children: [
@@ -258,7 +258,8 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                   Expanded(
                     child: Text(
                       'Ngày đã chọn: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                      style: AppTokens.body.copyWith(fontWeight: FontWeight.w600),
+                      style:
+                          AppTokens.body.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                   const Text('Đổi',
@@ -340,7 +341,8 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
   DateTime _getNextWeekend() {
     final now = DateTime.now();
     final daysUntilSaturday = (DateTime.saturday - now.weekday + 7) % 7;
-    return now.add(Duration(days: daysUntilSaturday == 0 ? 7 : daysUntilSaturday));
+    return now
+        .add(Duration(days: daysUntilSaturday == 0 ? 7 : daysUntilSaturday));
   }
 
   Future<void> _pickCustomDate() async {

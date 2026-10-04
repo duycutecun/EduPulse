@@ -74,7 +74,7 @@ void main() {
       theme: AppTheme.lightTheme,
       home: MainShellScreen(clock: clock),
     ));
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 600));
   }
 
   /// Đẩy đồng hồ giả đi [seconds] giây, mỗi giây một nhịp pump — đúng nhịp

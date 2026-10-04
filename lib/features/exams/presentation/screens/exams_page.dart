@@ -7,8 +7,6 @@ import 'exams_screen.dart';
 /// Full-screen page "Mục tiêu" — bọc [ExamsScreen] trong Scaffold có nút back.
 /// Tách khỏi bottom nav (tinh gòn 3 tab) nhưng giữ nguyên toàn bộ tính năng.
 class ExamsPage extends StatelessWidget {
-  final List<ExamModel> exams;
-  final String? primaryExamId;
   final ValueChanged<ExamModel> onSetPrimary;
   final ValueChanged<ExamModel> onAddExam;
   final ValueChanged<ExamModel> onUpdateExam;
@@ -16,8 +14,6 @@ class ExamsPage extends StatelessWidget {
 
   const ExamsPage({
     super.key,
-    required this.exams,
-    required this.primaryExamId,
     required this.onSetPrimary,
     required this.onAddExam,
     required this.onUpdateExam,
@@ -40,8 +36,6 @@ class ExamsPage extends StatelessWidget {
         ),
       ),
       body: ExamsScreen(
-        exams: exams,
-        primaryExamId: primaryExamId,
         onSetPrimary: onSetPrimary,
         onAddExam: onAddExam,
         onUpdateExam: onUpdateExam,

@@ -105,8 +105,8 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-        title:
-            const Text('Lộ trình AI', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Lộ trình AI',
+            style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -156,7 +156,6 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             Text('Quỹ thời gian mỗi ngày',
                 style: TextStyle(
                     fontSize: 13,
@@ -175,7 +174,6 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
               ],
             ),
             const SizedBox(height: 16),
-
             Text('Độ dài lộ trình',
                 style: TextStyle(
                     fontSize: 13,
@@ -192,7 +190,6 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
               ],
             ),
             const SizedBox(height: 18),
-
             GestureDetector(
               onTap: _generate,
               child: Container(
@@ -245,7 +242,6 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             if (plan != null && plan.tasks.isNotEmpty) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

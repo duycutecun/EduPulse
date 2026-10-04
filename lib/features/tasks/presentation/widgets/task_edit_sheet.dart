@@ -375,7 +375,9 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
               labelStyle: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.primaryDark
+                    : AppColors.textSecondary,
               ),
               selectedColor: AppColors.primaryLight,
               backgroundColor: AppColors.cardLight,
@@ -446,7 +448,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
           icon: Icons.event_available_rounded,
           label: 'Học vào ngày',
           value: _formatDate(_scheduledAt),
-          highlight: DateUtils.dateOnly(_scheduledAt) != DateUtils.dateOnly(DateTime.now()),
+          highlight: DateUtils.dateOnly(_scheduledAt) !=
+              DateUtils.dateOnly(DateTime.now()),
           onTap: _pickScheduledDate,
         ),
         const SizedBox(height: AppTokens.space8),
@@ -455,11 +458,13 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
           label: 'Hạn chót (không bắt buộc)',
           value: _deadline == null ? 'Không có' : _formatDate(_deadline!),
           highlight: false,
-          onClear: _deadline == null ? null : () => setState(() => _deadline = null),
+          onClear:
+              _deadline == null ? null : () => setState(() => _deadline = null),
           onTap: _pickDeadline,
         ),
         if (_deadline != null &&
-            DateUtils.dateOnly(_deadline!).isBefore(DateUtils.dateOnly(_scheduledAt)))
+            DateUtils.dateOnly(_deadline!)
+                .isBefore(DateUtils.dateOnly(_scheduledAt)))
           Padding(
             padding: const EdgeInsets.only(top: AppTokens.space8),
             child: Row(
@@ -470,7 +475,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
                 Expanded(
                   child: Text(
                     'Hạn chót sớm hơn ngày học — nhiệm vụ có thể không kịp.',
-                    style: AppTokens.caption.copyWith(color: AppColors.warningDark),
+                    style: AppTokens.caption
+                        .copyWith(color: AppColors.warningDark),
                   ),
                 ),
               ],
@@ -492,7 +498,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
       onTap: onTap,
       borderRadius: AppTokens.brMd,
       child: Container(
-        constraints: const BoxConstraints(minHeight: AppTokens.standardTouchTarget),
+        constraints:
+            const BoxConstraints(minHeight: AppTokens.standardTouchTarget),
         padding: const EdgeInsets.symmetric(
           horizontal: AppTokens.space12,
           vertical: AppTokens.space10,
@@ -505,7 +512,9 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: highlight ? AppColors.primary : AppColors.textMuted),
+            Icon(icon,
+                size: 18,
+                color: highlight ? AppColors.primary : AppColors.textMuted),
             const SizedBox(width: AppTokens.space10),
             Expanded(
               child: Column(
@@ -517,7 +526,9 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
                     value,
                     style: AppTokens.body.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: highlight ? AppColors.primaryDark : AppColors.textPrimary,
+                      color: highlight
+                          ? AppColors.primaryDark
+                          : AppColors.textPrimary,
                     ),
                   ),
                 ],
@@ -528,7 +539,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
                 onTap: onClear,
                 child: const Padding(
                   padding: EdgeInsets.all(AppTokens.space4),
-                  child: Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
+                  child: Icon(Icons.close_rounded,
+                      size: 16, color: AppColors.textMuted),
                 ),
               ),
           ],

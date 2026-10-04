@@ -54,7 +54,10 @@ class ChatInputBar extends StatelessWidget {
                 Expanded(
                   child: Text(
                     selectedImageName ?? 'Ảnh',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -68,7 +71,8 @@ class ChatInputBar extends StatelessWidget {
                       color: AppColors.red.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, size: 14, color: AppColors.red),
+                    child:
+                        const Icon(Icons.close, size: 14, color: AppColors.red),
                   ),
                 ),
               ],
@@ -82,7 +86,10 @@ class ChatInputBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.border, width: 2),
             boxShadow: [
-              BoxShadow(color: AppColors.borderStrong, blurRadius: 0, offset: const Offset(0, 3)),
+              BoxShadow(
+                  color: AppColors.borderStrong,
+                  blurRadius: 0,
+                  offset: const Offset(0, 3)),
             ],
           ),
           child: Row(
@@ -96,7 +103,8 @@ class ChatInputBar extends StatelessWidget {
                     color: AppColors.blue,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.photo_camera_rounded, size: 20, color: Colors.white),
+                  child: const Icon(Icons.photo_camera_rounded,
+                      size: 20, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 6),
@@ -109,7 +117,8 @@ class ChatInputBar extends StatelessWidget {
                     color: AppColors.purple,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.quiz_rounded, size: 20, color: Colors.white),
+                  child: const Icon(Icons.quiz_rounded,
+                      size: 20, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 8),
@@ -118,13 +127,20 @@ class ChatInputBar extends StatelessWidget {
                   controller: controller,
                   focusNode: focusNode,
                   enabled: !isLoading,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary),
                   decoration: InputDecoration(
-                    hintText: selectedImageBytes != null ? 'Ghi chú cho ảnh...' : 'Hỏi AI bài tập...',
-                    hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    hintText: selectedImageBytes != null
+                        ? 'Ghi chú cho ảnh...'
+                        : 'Hỏi AI bài tập...',
+                    hintStyle:
+                        TextStyle(color: AppColors.textMuted, fontSize: 13),
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                   ),
                   maxLines: 4,
                   minLines: 1,
@@ -148,7 +164,8 @@ class ChatInputBar extends StatelessWidget {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Icon(

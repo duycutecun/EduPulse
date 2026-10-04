@@ -100,7 +100,10 @@ class _AccountScreenState extends State<AccountScreen> {
   void _updateProfile(String name, String target) {
     StorageService.setUserName(name);
     StorageService.setUserTarget(target);
-    setState(() { _userName = name; _userTarget = target; });
+    setState(() {
+      _userName = name;
+      _userTarget = target;
+    });
     widget.onDataChanged();
     _syncProfileFireAndForget();
   }
@@ -114,7 +117,13 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _manualBackup() async {
-    if (!SupabaseService.isConfigured) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng'))); } return; }
+    if (!SupabaseService.isConfigured) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng')));
+      }
+      return;
+    }
     setState(() => _isSyncing = true);
     SyncStateService.markSyncing();
     final ok = await SupabaseService.syncAll();
@@ -134,7 +143,13 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _manualRestore() async {
-    if (!SupabaseService.isConfigured) { if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng'))); } return; }
+    if (!SupabaseService.isConfigured) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng')));
+      }
+      return;
+    }
     setState(() => _isRestoring = true);
     SyncStateService.markSyncing();
     final ok = await SupabaseService.restoreAll();
@@ -172,14 +187,30 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
-        title: const Text('Đăng xuất?', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: const Text('Dữ liệu cục bộ vẫn được giữ. Hãy sao lưu trước khi đăng xuất.'),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.border, width: 2)),
+        title: const Text('Đăng xuất?',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: const Text(
+            'Dữ liệu cục bộ vẫn được giữ. Hãy sao lưu trước khi đăng xuất.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
-            onPressed: () async { Navigator.pop(ctx); await SupabaseService.signOut(); if (mounted) { setState(() {}); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã đăng xuất'))); } },
-            child: const Text('Đăng xuất', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await SupabaseService.signOut();
+              if (mounted) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã đăng xuất')));
+              }
+            },
+            child: const Text('Đăng xuất',
+                style: TextStyle(
+                    color: AppColors.red, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -196,7 +227,10 @@ class _AccountScreenState extends State<AccountScreen> {
         children: [
           _buildSegmentSwitcher(),
           const SizedBox(height: 16),
-          if (_activeSegment == 0) _buildProfileAndSettings() else _buildLeaderboardView(),
+          if (_activeSegment == 0)
+            _buildProfileAndSettings()
+          else
+            _buildLeaderboardView(),
         ],
       ),
     );
@@ -234,7 +268,8 @@ class _AccountScreenState extends State<AccountScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: active ? Colors.white : AppColors.textMuted),
+              Icon(icon,
+                  size: 16, color: active ? Colors.white : AppColors.textMuted),
               const SizedBox(width: 6),
               // Flexible + ellipsis: nhãn dài không đẩy tràn nút segment khi
               // màn hẹp (320px).
@@ -242,7 +277,10 @@ class _AccountScreenState extends State<AccountScreen> {
                 child: Text(label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: active ? Colors.white : AppColors.textPrimary)),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: active ? Colors.white : AppColors.textPrimary)),
               ),
             ],
           ),
@@ -277,15 +315,22 @@ class _AccountScreenState extends State<AccountScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(user.email ?? 'EduPulse', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                          Text('Đã kết nối đám mây', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          Text(user.email ?? 'EduPulse',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary)),
+                          Text('Đã kết nối đám mây',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textMuted)),
                         ],
                       ),
                     ),
                     IconButton(
                       tooltip: 'Đăng xuất',
                       onPressed: _handleSignOut,
-                      icon: const Icon(Icons.logout, color: AppColors.red, size: 22),
+                      icon: const Icon(Icons.logout,
+                          color: AppColors.red, size: 22),
                     ),
                   ],
                 ),
@@ -300,12 +345,22 @@ class _AccountScreenState extends State<AccountScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.primary,
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [BoxShadow(color: AppColors.primaryDark, blurRadius: 0, offset: Offset(0, 3))],
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: AppColors.primaryDark,
+                                  blurRadius: 0,
+                                  offset: Offset(0, 3))
+                            ],
                           ),
                           child: Center(
                             child: _isSyncing
-                                ? const CupertinoActivityIndicator(color: Colors.white)
-                                : const Text('Sao lưu ngay', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                                ? const CupertinoActivityIndicator(
+                                    color: Colors.white)
+                                : const Text('Sao lưu ngay',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800)),
                           ),
                         ),
                       ),
@@ -319,12 +374,17 @@ class _AccountScreenState extends State<AccountScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.cardWhite,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.border, width: 2),
+                            border:
+                                Border.all(color: AppColors.border, width: 2),
                           ),
                           child: Center(
                             child: _isRestoring
                                 ? const CupertinoActivityIndicator()
-                                : Text('Khôi phục', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                                : Text('Khôi phục',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary)),
                           ),
                         ),
                       ),
@@ -355,13 +415,20 @@ class _AccountScreenState extends State<AccountScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tạo tài khoản & Sao lưu', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                        Text('Tạo tài khoản & Sao lưu',
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary)),
                         SizedBox(height: 2),
-                        Text('Đăng nhập để đồng bộ trên nhiều thiết bị', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        Text('Đăng nhập để đồng bộ trên nhiều thiết bị',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.textMuted)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppColors.primary, size: 18),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.primary, size: 18),
                 ],
               ),
             ),
@@ -411,29 +478,43 @@ class _AccountScreenState extends State<AccountScreen> {
                     ),
                   ],
                 ),
-                child: const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
+                child: const Center(
+                    child: Text('🎓', style: TextStyle(fontSize: 28))),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_userName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    Text(_userName,
+                        style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary)),
                     const SizedBox(height: 2),
                     Text(
-                      _userTarget.isNotEmpty ? 'Mục tiêu: $_userTarget' : 'Chưa đặt mục tiêu',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      _userTarget.isNotEmpty
+                          ? 'Mục tiêu: $_userTarget'
+                          : 'Chưa đặt mục tiêu',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: AppColors.primary, width: 1),
                       ),
-                      child: const Text('⚡ Sĩ tử 2026', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                      child: const Text('⚡ Sĩ tử 2026',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary)),
                     ),
                   ],
                 ),
@@ -447,7 +528,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.border, width: 1),
                   ),
-                  child: const Icon(Icons.edit_rounded, color: AppColors.blue, size: 18),
+                  child: const Icon(Icons.edit_rounded,
+                      color: AppColors.blue, size: 18),
                 ),
               ),
             ],
@@ -478,28 +560,45 @@ class _AccountScreenState extends State<AccountScreen> {
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('AI đọc nhiệm vụ và phiên học'),
-            subtitle: const Text('Dùng để trả lời theo ngữ cảnh', style: TextStyle(fontSize: 11)),
+            subtitle: const Text('Dùng để trả lời theo ngữ cảnh',
+                style: TextStyle(fontSize: 11)),
             value: _aiMayRead,
-            onChanged: (value) => setState(() { _aiMayRead = value; StorageService.setBool('ai_permission_read', value); }),
+            onChanged: (value) => setState(() {
+              _aiMayRead = value;
+              StorageService.setBool('ai_permission_read', value);
+            }),
           ),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('AI phân tích tiến độ'),
-            subtitle: const Text('Tạo insight và đề xuất, không tự sửa kế hoạch', style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+                'Tạo insight và đề xuất, không tự sửa kế hoạch',
+                style: TextStyle(fontSize: 11)),
             value: _aiMayAnalyze,
-            onChanged: _aiMayRead ? (value) => setState(() { _aiMayAnalyze = value; StorageService.setBool('ai_permission_analyze', value); }) : null,
+            onChanged: _aiMayRead
+                ? (value) => setState(() {
+                      _aiMayAnalyze = value;
+                      StorageService.setBool('ai_permission_analyze', value);
+                    })
+                : null,
           ),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('Hiện linh vật'),
             value: _mascotEnabled,
-            onChanged: (value) => setState(() { _mascotEnabled = value; StorageService.setBool('mascot_enabled', value); }),
+            onChanged: (value) => setState(() {
+              _mascotEnabled = value;
+              StorageService.setBool('mascot_enabled', value);
+            }),
           ),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('Giảm chuyển động'),
             value: _reduceMotion,
-            onChanged: (value) => setState(() { _reduceMotion = value; StorageService.setBool('reduce_motion', value); }),
+            onChanged: (value) => setState(() {
+              _reduceMotion = value;
+              StorageService.setBool('reduce_motion', value);
+            }),
           ),
           // Đặc tả 5.14 — hai mục cài đặt này phải tắt được thật, nên mọi rung /
           // âm thanh đều đi qua FeedbackService thay vì gọi thẳng platform.
@@ -509,15 +608,18 @@ class _AccountScreenState extends State<AccountScreen> {
             subtitle: const Text('Rung nhẹ khi bấm nút, tick nhiệm vụ, hết giờ',
                 style: TextStyle(fontSize: 11)),
             value: FeedbackService.hapticsEnabled,
-            onChanged: (value) => setState(() => FeedbackService.setHaptics(value)),
+            onChanged: (value) =>
+                setState(() => FeedbackService.setHaptics(value)),
           ),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('Âm thanh'),
-            subtitle: const Text('Âm báo hoàn thành phiên và tương tác linh vật',
+            subtitle: const Text(
+                'Âm báo hoàn thành phiên và tương tác linh vật',
                 style: TextStyle(fontSize: 11)),
             value: FeedbackService.soundEnabled,
-            onChanged: (value) => setState(() => FeedbackService.setSound(value)),
+            onChanged: (value) =>
+                setState(() => FeedbackService.setSound(value)),
           ),
           const Divider(),
           ListTile(
@@ -532,12 +634,14 @@ class _AccountScreenState extends State<AccountScreen> {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.ios_share_rounded, color: AppColors.blue),
             title: const Text('Xuất / nhập dữ liệu'),
-            subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú', style: TextStyle(fontSize: 11)),
+            subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú',
+                style: TextStyle(fontSize: 11)),
             onTap: _openDataSheet,
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.delete_sweep_outlined, color: AppColors.red),
+            leading:
+                const Icon(Icons.delete_sweep_outlined, color: AppColors.red),
             title: const Text('Xóa lịch sử trò chuyện AI'),
             onTap: _clearAiHistory,
           ),
@@ -684,47 +788,62 @@ class _AccountScreenState extends State<AccountScreen> {
               const SizedBox(height: 4),
               Text(
                 '${c.tasks} nhiệm vụ • ${c.notes} ghi chú • ${c.sessions} phiên focus • ${c.exams} kỳ thi • ${c.logs} nhật ký',
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style:
+                    const TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
               const SizedBox(height: 14),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.data_object_rounded, color: AppColors.blue),
+                leading: const Icon(Icons.data_object_rounded,
+                    color: AppColors.blue),
                 title: const Text('Xuất JSON (đầy đủ — dùng để nhập lại)'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  Clipboard.setData(ClipboardData(text: DataTransfer.exportJson()));
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(const SnackBar(
-                      content: Text('Đã sao chép JSON đầy đủ vào clipboard.')));
+                  Clipboard.setData(
+                      ClipboardData(text: DataTransfer.exportJson()));
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                      const SnackBar(
+                          content:
+                              Text('Đã sao chép JSON đầy đủ vào clipboard.')));
                 },
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.table_chart_rounded, color: AppColors.primary),
+                leading: const Icon(Icons.table_chart_rounded,
+                    color: AppColors.primary),
                 title: const Text('Xuất nhật ký học (CSV)'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  Clipboard.setData(ClipboardData(text: DataTransfer.exportStudyLogCsv()));
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(const SnackBar(
-                      content: Text('Đã sao chép CSV nhật ký vào clipboard.')));
+                  Clipboard.setData(
+                      ClipboardData(text: DataTransfer.exportStudyLogCsv()));
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                      const SnackBar(
+                          content:
+                              Text('Đã sao chép CSV nhật ký vào clipboard.')));
                 },
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.description_rounded, color: AppColors.orange),
+                leading: const Icon(Icons.description_rounded,
+                    color: AppColors.orange),
                 title: const Text('Xuất ghi chú (Markdown)'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  Clipboard.setData(ClipboardData(text: DataTransfer.exportNotesMarkdown()));
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(const SnackBar(
-                      content: Text('Đã sao chép Markdown ghi chú vào clipboard.')));
+                  Clipboard.setData(
+                      ClipboardData(text: DataTransfer.exportNotesMarkdown()));
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              'Đã sao chép Markdown ghi chú vào clipboard.')));
                 },
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.download_rounded, color: AppColors.purple),
+                leading:
+                    const Icon(Icons.download_rounded, color: AppColors.purple),
                 title: const Text('Nhập từ JSON'),
-                subtitle: const Text('Chỉ thêm bản ghi mới, không ghi đè dữ liệu hiện có.',
+                subtitle: const Text(
+                    'Chỉ thêm bản ghi mới, không ghi đè dữ liệu hiện có.',
                     style: TextStyle(fontSize: 11)),
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -748,10 +867,12 @@ class _AccountScreenState extends State<AccountScreen> {
               const Divider(),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.delete_forever_rounded, color: AppColors.red),
+                leading: const Icon(Icons.delete_forever_rounded,
+                    color: AppColors.red),
                 title: const Text('Xóa dữ liệu học cục bộ',
                     style: TextStyle(color: AppColors.red)),
-                subtitle: const Text('Nhiệm vụ, ghi chú, phiên, kỳ thi, nhật ký. Cài đặt và lịch sử AI giữ nguyên.',
+                subtitle: const Text(
+                    'Nhiệm vụ, ghi chú, phiên, kỳ thi, nhật ký. Cài đặt và lịch sử AI giữ nguyên.',
                     style: TextStyle(fontSize: 11)),
                 onTap: () => _confirmDeleteStudyData(sheetContext),
               ),
@@ -772,7 +893,8 @@ class _AccountScreenState extends State<AccountScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Hành động này không thể hoàn tác. Xuất JSON trước nếu muốn giữ lại.'),
+            const Text(
+                'Hành động này không thể hoàn tác. Xuất JSON trước nếu muốn giữ lại.'),
             const SizedBox(height: 10),
             TextField(
               controller: controller,
@@ -801,27 +923,41 @@ class _AccountScreenState extends State<AccountScreen> {
     if (!sheetContext.mounted) return;
     Navigator.pop(sheetContext);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Đã xóa dữ liệu học cục bộ.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã xóa dữ liệu học cục bộ.')));
   }
 
   /// Xóa AI memory (mục 19 — Delete): lịch sử chat + feedback + nháp
   /// note — toàn bộ thứ AI dùng để cá nhân hóa. Có backup trong phiên
   /// để Undo ngay (undo window).
   Future<void> _clearAiHistory() async {
-    final accepted = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Xóa bộ nhớ AI?'),
-      content: const Text('Lịch sử trò chuyện, phản hồi 👍/👎 và bản nháp ghi chú '
-          'trên thiết bị này sẽ bị xóa. AI sẽ quay về trạng thái như mới cài.'),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w800)))],
-    ));
+    final accepted = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              title: const Text('Xóa bộ nhớ AI?'),
+              content: const Text(
+                  'Lịch sử trò chuyện, phản hồi 👍/👎 và bản nháp ghi chú '
+                  'trên thiết bị này sẽ bị xóa. AI sẽ quay về trạng thái như mới cài.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Hủy')),
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Xóa',
+                        style: TextStyle(
+                            color: AppColors.red, fontWeight: FontWeight.w800)))
+              ],
+            ));
     if (accepted != true) return;
 
     // Backup để Undo trong phiên (undo window — mục 19).
     final chatBackup = StorageService.getAiChatHistory();
-    final feedbackIds = StorageService.prefs.getStringList('ai_feedback_ids') ?? [];
+    final feedbackIds =
+        StorageService.prefs.getStringList('ai_feedback_ids') ?? [];
     final feedbackBackup = <String, String?>{
-      for (final id in feedbackIds) 'ai_feedback_$id': StorageService.getString('ai_feedback_$id'),
+      for (final id in feedbackIds)
+        'ai_feedback_$id': StorageService.getString('ai_feedback_$id'),
       'ai_feedback_ids': feedbackIds.isNotEmpty ? feedbackIds.join(',') : null,
     };
     final draftBackup = StorageService.getString('note_draft_v1');
@@ -854,7 +990,8 @@ class _AccountScreenState extends State<AccountScreen> {
             });
             final ids = feedbackBackup['ai_feedback_ids'];
             if (ids != null) {
-              StorageService.prefs.setStringList('ai_feedback_ids', ids.split(','));
+              StorageService.prefs
+                  .setStringList('ai_feedback_ids', ids.split(','));
             }
             if (draftBackup != null) {
               StorageService.setString('note_draft_v1', draftBackup);
@@ -954,8 +1091,8 @@ class _AccountScreenState extends State<AccountScreen> {
           Row(children: [
             const Expanded(
               child: Text('Tương phản cao',
-                  style: TextStyle(
-                      fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  style:
+                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
             ),
             ValueListenableBuilder<bool>(
               valueListenable: AppearanceService.highContrast,
@@ -996,17 +1133,15 @@ class _AccountScreenState extends State<AccountScreen> {
                             ? 20
                             : 17,
                     fontWeight: FontWeight.w800,
-                    color: selected
-                        ? AppColors.blueDark
-                        : AppColors.textPrimary)),
+                    color:
+                        selected ? AppColors.blueDark : AppColors.textPrimary)),
             const SizedBox(height: 2),
             Text(label,
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: selected
-                        ? AppColors.blueDark
-                        : AppColors.textMuted)),
+                    color:
+                        selected ? AppColors.blueDark : AppColors.textMuted)),
           ],
         ),
       ),
@@ -1039,7 +1174,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary)),
                 SizedBox(height: 2),
-                Text('Tự tạo báo cáo tuần gửi ba mẹ — con chọn gì, gia đình thấy nấy',
+                Text(
+                    'Tự tạo báo cáo tuần gửi ba mẹ — con chọn gì, gia đình thấy nấy',
                     style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -1082,8 +1218,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 const SizedBox(height: 2),
                 Text(
                   'Nhịp học EduPulse đã hiểu về bạn — và bạn có thể chỉnh lại.',
-                  style: TextStyle(
-                      fontSize: 11.5, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -1113,7 +1249,8 @@ class _AccountScreenState extends State<AccountScreen> {
             Expanded(
               child: Text(
                 'Nhắc học hằng ngày chỉ khả dụng trên ứng dụng Android/iOS.',
-                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                style:
+                    TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
               ),
             ),
           ],
@@ -1215,7 +1352,8 @@ class _AccountScreenState extends State<AccountScreen> {
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               title: const Text('Tóm tắt cuối ngày (Digest)',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  style:
+                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
               subtitle: const Text(
                   'Một thông báo duy nhất lúc 20:30: nhiệm vụ còn lại, phút focus và đếm ngược kỳ thi.',
                   style: TextStyle(fontSize: 11)),
@@ -1230,7 +1368,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     primaryExam: null,
                   );
                 } else {
-                  await NotificationService.cancelId(NotificationService.digestId);
+                  await NotificationService.cancelId(
+                      NotificationService.digestId);
                 }
               },
             ),
@@ -1286,7 +1425,8 @@ class _AccountScreenState extends State<AccountScreen> {
     StorageService.setInt('reminder_hour', picked.hour);
     StorageService.setInt('reminder_minute', picked.minute);
     if (_reminderEnabled) {
-      NotificationService.scheduleDaily(hour: picked.hour, minute: picked.minute);
+      NotificationService.scheduleDaily(
+          hour: picked.hour, minute: picked.minute);
     }
   }
 
@@ -1296,21 +1436,37 @@ class _AccountScreenState extends State<AccountScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.border, width: 2)),
-        title: const Text('Chỉnh sửa hồ sơ', style: TextStyle(fontWeight: FontWeight.w800)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.border, width: 2)),
+        title: const Text('Chỉnh sửa hồ sơ',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(hintText: 'Họ tên')),
+            TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(hintText: 'Họ tên')),
             const SizedBox(height: 10),
-            TextField(controller: targetCtrl, decoration: const InputDecoration(hintText: 'Mục tiêu trường')),
+            TextField(
+                controller: targetCtrl,
+                decoration: const InputDecoration(hintText: 'Mục tiêu trường')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),           child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
-            onPressed: () { if (nameCtrl.text.trim().isNotEmpty) _updateProfile(nameCtrl.text.trim(), targetCtrl.text.trim()); Navigator.pop(ctx); },
-            child: const Text('Lưu', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+            onPressed: () {
+              if (nameCtrl.text.trim().isNotEmpty) {
+                _updateProfile(nameCtrl.text.trim(), targetCtrl.text.trim());
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Lưu',
+                style: TextStyle(
+                    color: AppColors.primary, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

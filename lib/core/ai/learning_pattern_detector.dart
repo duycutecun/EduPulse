@@ -33,24 +33,31 @@ class LearningPatternDetector {
     for (final session in recent) {
       byHour.putIfAbsent(session.completedAt.hour, () => []).add(session);
     }
-    final viableHours = byHour.entries.where((entry) => entry.value.length >= 2);
+    final viableHours =
+        byHour.entries.where((entry) => entry.value.length >= 2);
     if (viableHours.isNotEmpty) {
-      final best = viableHours.reduce((a, b) => _quality(a.value) >= _quality(b.value) ? a : b);
+      final best = viableHours
+          .reduce((a, b) => _quality(a.value) >= _quality(b.value) ? a : b);
       final end = (best.key + 2) % 24;
       patterns.add(LearningPattern(
-        summary: 'Bạn thường học hiệu quả hơn vào ${_hour(best.key)}–${_hour(end)}.',
+        summary:
+            'Bạn thường học hiệu quả hơn vào ${_hour(best.key)}–${_hour(end)}.',
         suggestion: 'Ưu tiên xếp phiên khó vào khung giờ này.',
       ));
     }
 
     final rated = recent.where((s) => s.focus != null).toList();
     if (rated.length >= 3) {
-      final averageFocus = rated.map((s) => s.focus!).reduce((a, b) => a + b) / rated.length;
-      final averagePlan = rated.map((s) => s.plannedMinutes).reduce((a, b) => a + b) / rated.length;
+      final averageFocus =
+          rated.map((s) => s.focus!).reduce((a, b) => a + b) / rated.length;
+      final averagePlan =
+          rated.map((s) => s.plannedMinutes).reduce((a, b) => a + b) /
+              rated.length;
       if (averageFocus <= 2.5 && averagePlan >= 40) {
         patterns.add(const LearningPattern(
           summary: 'Các phiên dài gần đây có mức tập trung tự đánh giá thấp.',
-          suggestion: 'Thử Pomodoro 25 phút, nghỉ ngắn rồi mới bắt đầu lượt tiếp theo.',
+          suggestion:
+              'Thử Pomodoro 25 phút, nghỉ ngắn rồi mới bắt đầu lượt tiếp theo.',
         ));
       }
     }
@@ -58,9 +65,12 @@ class LearningPatternDetector {
   }
 
   static double _quality(List<StudySession> sessions) {
-    final scored = sessions.where((s) => s.focus != null || s.effectiveness != null).toList();
+    final scored = sessions
+        .where((s) => s.focus != null || s.effectiveness != null)
+        .toList();
     if (scored.isEmpty) return sessions.length.toDouble();
-    final ratings = scored.map((s) => ((s.focus ?? 3) + (s.effectiveness ?? 3)) / 2);
+    final ratings =
+        scored.map((s) => ((s.focus ?? 3) + (s.effectiveness ?? 3)) / 2);
     return ratings.reduce((a, b) => a + b) / scored.length;
   }
 

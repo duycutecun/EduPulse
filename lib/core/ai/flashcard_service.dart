@@ -54,9 +54,10 @@ class Flashcard {
         repetitions: (j['repetitions'] as num?)?.toInt() ?? 0,
         easeFactor: (j['easeFactor'] as num?)?.toDouble() ?? 2.0,
         intervalDays: (j['intervalDays'] as num?)?.toInt() ?? 0,
-        dueAt: DateTime.tryParse((j['dueAt'] ?? '').toString()) ?? DateTime.now(),
-        createdAt:
-            DateTime.tryParse((j['createdAt'] ?? '').toString()) ?? DateTime.now(),
+        dueAt:
+            DateTime.tryParse((j['dueAt'] ?? '').toString()) ?? DateTime.now(),
+        createdAt: DateTime.tryParse((j['createdAt'] ?? '').toString()) ??
+            DateTime.now(),
       );
 
   String toJsonString() => jsonEncode(toJson());
@@ -125,8 +126,8 @@ class FlashcardService {
 
   static void remove(String id) {
     StorageService.prefs.remove('flashcard_$id');
-    StorageService.prefs.setStringList(
-        _idsKey, ids.where((x) => x != id).toList());
+    StorageService.prefs
+        .setStringList(_idsKey, ids.where((x) => x != id).toList());
   }
 
   /// Các thẻ đến hạn hôm nay (quá hạn đưa lên trước).
@@ -152,7 +153,8 @@ class FlashcardService {
         break;
       case ReviewGrade.hard:
         card.easeFactor = (card.easeFactor - 0.05).clamp(1.3, 2.8);
-        card.intervalDays = card.repetitions == 0 ? 1 : (card.intervalDays * 1.2).ceil();
+        card.intervalDays =
+            card.repetitions == 0 ? 1 : (card.intervalDays * 1.2).ceil();
         card.repetitions += 1;
         break;
       case ReviewGrade.good:
@@ -187,9 +189,7 @@ class FlashcardService {
   }) async {
     final isTopic = noteTitle == null;
     final prompt = '''
-Bạn là giáo viên luyện thi. Hãy tạo $count thẻ flashcard ${
-      isTopic ? 'cho chủ đề "$source" môn $subject' : 'từ nội dung ghi chú "$noteTitle" môn $subject'
-    } để học sinh ôn theo phương pháp ngắt quãng (spaced repetition).
+Bạn là giáo viên luyện thi. Hãy tạo $count thẻ flashcard ${isTopic ? 'cho chủ đề "$source" môn $subject' : 'từ nội dung ghi chú "$noteTitle" môn $subject'} để học sinh ôn theo phương pháp ngắt quãng (spaced repetition).
 
 Yêu cầu:
 - Trả về ĐÚNG định dạng JSON, KHÔNG kèm markdown, KHÔNG kèm text khác.

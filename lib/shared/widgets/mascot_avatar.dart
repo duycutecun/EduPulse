@@ -98,32 +98,40 @@ class _MascotAvatarState extends State<MascotAvatar> {
 
     // 2. Phản hồi theo thời gian trong ngày
     if (hour >= 5 && hour < 8) {
-      contextualPool.add('Chào buổi sáng sớm! Khởi động ngày mới thật tỉnh táo nhé! 🌅');
+      contextualPool
+          .add('Chào buổi sáng sớm! Khởi động ngày mới thật tỉnh táo nhé! 🌅');
     } else if (hour >= 22 || hour < 5) {
-      contextualPool.add('Khuya rồi, nhớ ngủ đủ giấc để ngày mai minh mẫn nhé! 💤');
+      contextualPool
+          .add('Khuya rồi, nhớ ngủ đủ giấc để ngày mai minh mẫn nhé! 💤');
     }
 
     // 3. Phản hồi theo kỳ thi & ngày đếm ngược
     if (widget.daysLeft != null && widget.daysLeft! > 0) {
       if (widget.daysLeft! <= 30) {
-        contextualPool.add('Chỉ còn ${widget.daysLeft} ngày! Giai đoạn nước rút then chốt, cố lên! ⚡');
+        contextualPool.add(
+            'Chỉ còn ${widget.daysLeft} ngày! Giai đoạn nước rút then chốt, cố lên! ⚡');
       } else if (widget.daysLeft! <= 100) {
-        contextualPool.add('Còn ${widget.daysLeft} ngày nữa, từng ngày kiên trì sẽ tạo nên kỳ tích! 🎯');
+        contextualPool.add(
+            'Còn ${widget.daysLeft} ngày nữa, từng ngày kiên trì sẽ tạo nên kỳ tích! 🎯');
       } else {
-        contextualPool.add('Còn ${widget.daysLeft} ngày để chuẩn bị, đi từng bước thật chắc nhé! 🚀');
+        contextualPool.add(
+            'Còn ${widget.daysLeft} ngày để chuẩn bị, đi từng bước thật chắc nhé! 🚀');
       }
     }
 
     // 4. Phản hồi theo Streak
     if (widget.streak != null && widget.streak! >= 3) {
-      contextualPool.add('Chuỗi ${widget.streak} ngày liên tiếp cực kỳ đáng nể! 🔥');
+      contextualPool
+          .add('Chuỗi ${widget.streak} ngày liên tiếp cực kỳ đáng nể! 🔥');
     }
 
     // 5. Phản hồi theo nhiệm vụ trong ngày
     if (widget.isAllTasksCompleted == true) {
-      contextualPool.add('Toàn bộ nhiệm vụ hôm nay đã xong, tự thưởng cho mình một chút nhé! 🌟');
+      contextualPool.add(
+          'Toàn bộ nhiệm vụ hôm nay đã xong, tự thưởng cho mình một chút nhé! 🌟');
     } else if (widget.remainingTasks != null && widget.remainingTasks! > 0) {
-      contextualPool.add('Còn ${widget.remainingTasks} nhiệm vụ hôm nay, cùng giải quyết nốt nào! 💪');
+      contextualPool.add(
+          'Còn ${widget.remainingTasks} nhiệm vụ hôm nay, cùng giải quyết nốt nào! 💪');
     }
 
     // 6. Những câu truyền cảm hứng kinh điển
@@ -135,7 +143,8 @@ class _MascotAvatarState extends State<MascotAvatar> {
       'Bạn đang tiến gần hơn tới mục tiêu rồi đấy! 🚀',
     ]);
 
-    final quote = contextualPool[DateTime.now().millisecond % contextualPool.length];
+    final quote =
+        contextualPool[DateTime.now().millisecond % contextualPool.length];
     return quote;
   }
 

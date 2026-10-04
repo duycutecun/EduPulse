@@ -41,7 +41,9 @@ class AdaptivePolicy {
     final lastDate = DateTime.tryParse(last);
     if (lastDate == null) return 0;
     final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final gap = yesterday.difference(DateTime(lastDate.year, lastDate.month, lastDate.day)).inDays;
+    final gap = yesterday
+        .difference(DateTime(lastDate.year, lastDate.month, lastDate.day))
+        .inDays;
     return gap > 0 ? gap : 0;
   }
 
@@ -171,7 +173,10 @@ class AdaptivePolicy {
         '${primaryExam.name} còn ${primaryExam.dateTime.difference(now).inDays} ngày',
     ];
 
-    return (title: title, body: parts.isEmpty ? 'Nghỉ ngơi tốt nhé!' : parts.join(' • '));
+    return (
+      title: title,
+      body: parts.isEmpty ? 'Nghỉ ngơi tốt nhé!' : parts.join(' • ')
+    );
   }
 
   // ------------------------------------------------------------------
@@ -203,9 +208,9 @@ class AdaptivePolicy {
       );
     } else {
       // Nhắc thưa hơn: một-shot vào lần kế tiếp đúng giờ ưa thích.
-      var when = DateTime(now.year, now.month, now.day, reminderHour, reminderMinute);
-      while (!when.isAfter(now) ||
-          when.difference(now).inDays < interval - 1) {
+      var when =
+          DateTime(now.year, now.month, now.day, reminderHour, reminderMinute);
+      while (!when.isAfter(now) || when.difference(now).inDays < interval - 1) {
         when = when.add(const Duration(days: 1));
       }
       await NotificationService.scheduleAt(
@@ -241,7 +246,8 @@ class AdaptivePolicy {
 
     final due = FlashcardService.dueCards();
     if (due.isEmpty) {
-      await NotificationService.cancelId(NotificationService.flashcardReminderId);
+      await NotificationService.cancelId(
+          NotificationService.flashcardReminderId);
       return;
     }
 

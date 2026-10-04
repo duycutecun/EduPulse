@@ -8,7 +8,8 @@ class CorrelationResult {
   final double correlation;
   final String insight;
 
-  CorrelationResult(this.subjectA, this.subjectB, this.correlation, this.insight);
+  CorrelationResult(
+      this.subjectA, this.subjectB, this.correlation, this.insight);
 }
 
 class CrossSubjectAnalyzer {
@@ -79,7 +80,8 @@ class CrossSubjectAnalyzer {
     return numerator / denominator;
   }
 
-  static Map<int, double> _groupByDay(List<StudySession> sessions, DateTime now) {
+  static Map<int, double> _groupByDay(
+      List<StudySession> sessions, DateTime now) {
     final map = <int, double>{};
     for (final s in sessions) {
       final day = now.difference(s.completedAt).inDays;

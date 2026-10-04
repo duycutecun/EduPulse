@@ -118,7 +118,8 @@ class DataMigration {
 
   /// Encode snapshot thành JSON string (backup bền qua schema đổi kiểu).
   static String encodeBackup(Map<String, Object> backup) => jsonEncode(
-        backup.map((k, v) => MapEntry(k, {'t': v.runtimeType.toString(), 'v': v.toString()})),
+        backup.map((k, v) =>
+            MapEntry(k, {'t': v.runtimeType.toString(), 'v': v.toString()})),
       );
 
   /// Các bước migration v0 → v2 hiện tại. Thêm bước mới khi tăng
@@ -204,7 +205,8 @@ class DataMigration {
     }
 
     if (orphans.isEmpty) return true;
-    StorageService.setTodayTaskIds([...StorageService.getTodayTaskIds(), ...orphans]);
+    StorageService.setTodayTaskIds(
+        [...StorageService.getTodayTaskIds(), ...orphans]);
     return true;
   }
 
@@ -334,7 +336,6 @@ class DataMigration {
   static String _normalizeSubject(String value) =>
       AppSubjects.normalize(value).toLowerCase();
 
-
   static MigrationReport run(List<MigrationStep> steps) {
     final from = storedVersion();
 
@@ -371,8 +372,7 @@ class DataMigration {
 
     // 4. Thành công — đánh dấu version, snapshot cũ không cần nữa.
     StorageService.setInt(_versionKey, currentSchemaVersion);
-    return MigrationReport(ran: true, success: true, stepsRun: ran)
-      .._notify();
+    return MigrationReport(ran: true, success: true, stepsRun: ran).._notify();
   }
 }
 

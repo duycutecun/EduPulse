@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../features/exams/domain/models/exam_model.dart';
+import '../../features/exams/domain/exam_repository.dart';
 import '../../features/study/domain/models/study_models.dart';
 import 'auth_service.dart';
 import 'storage_service.dart';
@@ -38,8 +40,7 @@ class SupabaseService {
   static Future<bool> init({String? customUrl, String? customKey}) async {
     try {
       final url = (customUrl ?? StorageService.getSupabaseUrl()).trim();
-      final anonKey =
-          (customKey ?? StorageService.getSupabaseAnonKey()).trim();
+      final anonKey = (customKey ?? StorageService.getSupabaseAnonKey()).trim();
 
       if (url.isEmpty || anonKey.isEmpty) return false;
 
@@ -101,12 +102,15 @@ class SupabaseService {
     } catch (_) {
       // Bảng xếp hạng là tính năng phụ — lỗi không ảnh hưởng sync chính.
     }
-  }
-
-  static Future<bool> syncExams(List<ExamModel> exams, String? primaryId) async {
-    if (!isConfigured || exams.isEmpty) return true;
-    try {
-      final payload = exams.map((e) => {
+  }  /// Dựng một dòng bảng `exams` từ [ExamModel].
+  ///
+  /// Tách riêng khỏi [syncExams] để **kiểm thử được**: đây là nơi từng âm
+  /// thầm bỏ sót `current_score` / `target_score` / `subject_targets`, làm
+  /// người dùng mất mục tiêu điểm mỗi lần bấm đồng bộ. Mọi trường của
+  /// ExamModel phải xuất hiện ở đây — thêm trường mới mà quên thêm vào hàm
+  /// này là mất dữ liệu lần nữa.
+  @visibleForTesting
+  static Map<String, dynamic> examRow(ExamModel e, String? primaryId) => {
         'id': '${_userId}_${e.id}',
         'user_id': _userId,
         'name': e.name,
@@ -115,7 +119,18 @@ class SupabaseService {
         'type': e.type.name,
         'description': e.description,
         'is_primary': e.id == primaryId,
-      }).toList();
+        'current_score': e.currentScore,
+        'target_score': e.targetScore,
+        // Map không gửi thẳng lên Supabase được → đóng thành chuỗi JSON.
+        // Khoá là tên môn ĐÃ CHUẨN HOÁ, nên khi kéo về vẫn khớp.
+        'subject_targets': jsonEncode(e.subjectTargets),
+        'subjects': e.subjects,
+      };
+
+  static Future<bool> syncExams(List<ExamModel> exams, String? primaryId) async {
+    if (!isConfigured || exams.isEmpty) return true;
+    try {
+      final payload = exams.map((e) => examRow(e, primaryId)).toList();
       await _client!.from('exams').upsert(payload, onConflict: 'id');
       return true;
     } catch (_) {
@@ -126,15 +141,17 @@ class SupabaseService {
   static Future<bool> syncTasks(List<TodayTask> tasks) async {
     if (!isConfigured || tasks.isEmpty) return true;
     try {
-      final payload = tasks.map((t) => {
-        'id': '${_userId}_${t.id}',
-        'user_id': _userId,
-        'title': t.title,
-        'subject': t.subject,
-        'priority': t.priority,
-        'estimate_minutes': t.estimateMinutes,
-        'is_done': t.isDone,
-      }).toList();
+      final payload = tasks
+          .map((t) => {
+                'id': '${_userId}_${t.id}',
+                'user_id': _userId,
+                'title': t.title,
+                'subject': t.subject,
+                'priority': t.priority,
+                'estimate_minutes': t.estimateMinutes,
+                'is_done': t.isDone,
+              })
+          .toList();
       await _client!.from('today_tasks').upsert(payload, onConflict: 'id');
       return true;
     } catch (_) {
@@ -145,14 +162,16 @@ class SupabaseService {
   static Future<bool> syncStudyLogs(List<StudyLog> logs) async {
     if (!isConfigured || logs.isEmpty) return true;
     try {
-      final payload = logs.map((l) => {
-        'id': '${_userId}_${l.id}',
-        'user_id': _userId,
-        'subject': l.subject,
-        'hours': l.hours,
-        'note': l.note,
-        'logged_at': l.date.toIso8601String(),
-      }).toList();
+      final payload = logs
+          .map((l) => {
+                'id': '${_userId}_${l.id}',
+                'user_id': _userId,
+                'subject': l.subject,
+                'hours': l.hours,
+                'note': l.note,
+                'logged_at': l.date.toIso8601String(),
+              })
+          .toList();
       await _client!.from('study_logs').upsert(payload, onConflict: 'id');
       return true;
     } catch (_) {
@@ -204,11 +223,14 @@ class SupabaseService {
 
   static Future<bool> _syncExamsLocal() async {
     final examIds = StorageService.getExamIds();
-    final exams = examIds.map((id) {
-      final json = StorageService.getExamJson(id);
-      if (json == null) return null;
-      return ExamModel.fromJsonString(json);
-    }).whereType<ExamModel>().toList();
+    final exams = examIds
+        .map((id) {
+          final json = StorageService.getExamJson(id);
+          if (json == null) return null;
+          return ExamModel.fromJsonString(json);
+        })
+        .whereType<ExamModel>()
+        .toList();
     final primaryId = StorageService.getPrimaryExamId();
     if (exams.isEmpty) return true;
     return syncExams(exams, primaryId);
@@ -216,22 +238,28 @@ class SupabaseService {
 
   static Future<bool> _syncTasksLocal() async {
     final taskIds = StorageService.getTodayTaskIds();
-    final tasks = taskIds.map((id) {
-      final json = StorageService.getTodayTaskJson(id);
-      if (json == null) return null;
-      return TodayTask.fromJsonString(json);
-    }).whereType<TodayTask>().toList();
+    final tasks = taskIds
+        .map((id) {
+          final json = StorageService.getTodayTaskJson(id);
+          if (json == null) return null;
+          return TodayTask.fromJsonString(json);
+        })
+        .whereType<TodayTask>()
+        .toList();
     if (tasks.isEmpty) return true;
     return syncTasks(tasks);
   }
 
   static Future<bool> _syncStudyLogsLocal() async {
     final logIds = StorageService.getStudyLogIds();
-    final logs = logIds.map((id) {
-      final json = StorageService.getStudyLogJson(id);
-      if (json == null) return null;
-      return StudyLog.fromJsonString(json);
-    }).whereType<StudyLog>().toList();
+    final logs = logIds
+        .map((id) {
+          final json = StorageService.getStudyLogJson(id);
+          if (json == null) return null;
+          return StudyLog.fromJsonString(json);
+        })
+        .whereType<StudyLog>()
+        .toList();
     if (logs.isEmpty) return true;
     return syncStudyLogs(logs);
   }
@@ -265,11 +293,65 @@ class SupabaseService {
         }
       }
 
-      // 2. Restore Tasks
-      final tasksRes = await _client!
-          .from('today_tasks')
-          .select()
-          .eq('user_id', _userId);
+      // 2. Restore Exams — trước đây CHỈ có chiều đẩy: kỳ thi lưu trên máy
+      // này không bao giờ hiện trên máy khác, dù đã bấm đồng bộ đầy đủ.
+      final examsRes =
+          await _client!.from('exams').select().eq('user_id', _userId);
+
+      if (examsRes.isNotEmpty) {
+        final List<String> examIds = [];
+        String? primaryFromCloud;
+        for (final row in examsRes) {
+          final rawId = row['id'] as String;
+          final id = rawId.startsWith('${_userId}_')
+              ? rawId.replaceFirst('${_userId}_', '')
+              : rawId;
+          final targets = <String, double>{};
+          final rawTargets = row['subject_targets'];
+          if (rawTargets is String && rawTargets.isNotEmpty) {
+            try {
+              final decoded = jsonDecode(rawTargets);
+              if (decoded is Map) {
+                decoded.forEach((k, v) {
+                  if (v is num) targets['$k'] = v.toDouble();
+                });
+              }
+            } catch (_) {
+              // JSON hỏng → bỏ trống, KHÔNG làm hỏng cả danh sách kỳ thi.
+            }
+          }
+          final subjects = row['subjects'];
+          final exam = ExamModel(
+            id: id,
+            name: row['name'] ?? '',
+            dateTime:
+                DateTime.tryParse(row['date_time'] ?? '') ?? DateTime.now(),
+            emoji: row['emoji'] ?? '🎯',
+            description: row['description'],
+            currentScore: (row['current_score'] as num?)?.toDouble(),
+            targetScore: (row['target_score'] as num?)?.toDouble(),
+            subjectTargets: targets,
+            subjects:
+                subjects is List ? subjects.map((e) => '$e').toList() : null,
+          );
+          StorageService.setExamJson(exam.id, exam.toJsonString());
+          examIds.add(exam.id);
+          if (row['is_primary'] == true) primaryFromCloud ??= exam.id;
+        }
+        StorageService.setExamIds(examIds);
+        // Chỉ dùng khi máy này CHƯA ghim — không ghi đè lựa chọn cục bộ.
+        if (StorageService.getPrimaryExamId() == null &&
+            primaryFromCloud != null) {
+          StorageService.setPrimaryExamId(primaryFromCloud);
+        }
+        // Bắn tín hiệu cho UI vẽ lại (đã ghi thẳng qua StorageService nên
+        // repository không tự biết). Không đẩy ngược lên cloud.
+        ExamRepository.instance.notifyExternalChange();
+      }
+
+      // 3. Restore Tasks
+      final tasksRes =
+          await _client!.from('today_tasks').select().eq('user_id', _userId);
 
       if (tasksRes.isNotEmpty) {
         final List<String> taskIds = [];
@@ -293,10 +375,8 @@ class SupabaseService {
       }
 
       // 3. Restore Study Logs
-      final logsRes = await _client!
-          .from('study_logs')
-          .select()
-          .eq('user_id', _userId);
+      final logsRes =
+          await _client!.from('study_logs').select().eq('user_id', _userId);
 
       if (logsRes.isNotEmpty) {
         final List<String> logIds = [];

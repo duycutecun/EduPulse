@@ -47,8 +47,8 @@ class PredictiveEngine {
         .where((s) => t.difference(s.completedAt).inDays <= 14)
         .toList();
 
-    final recentMinutes = recentSessions.fold<int>(
-      0, (a, s) => a + s.actualMinutes);
+    final recentMinutes =
+        recentSessions.fold<int>(0, (a, s) => a + s.actualMinutes);
     final dailyAvg = recentMinutes / 14.0;
 
     final scores = _readMockScores();
@@ -57,18 +57,21 @@ class PredictiveEngine {
       bySubject.putIfAbsent(s.subject, () => []).add(s.score);
     }
     final subjectAverages = bySubject.entries
-        .map((e) => MapEntry(e.key, e.value.reduce((a, b) => a + b) / e.value.length))
+        .map((e) =>
+            MapEntry(e.key, e.value.reduce((a, b) => a + b) / e.value.length))
         .toList()
       ..sort((a, b) => a.value.compareTo(b.value));
 
     final currentAvg = subjectAverages.isEmpty
         ? 5.0
-        : subjectAverages.map((e) => e.value).reduce((a, b) => a + b) / subjectAverages.length;
+        : subjectAverages.map((e) => e.value).reduce((a, b) => a + b) /
+            subjectAverages.length;
 
     final paceFactor = (dailyAvg / 60.0).clamp(0.5, 1.5);
     final daysFactor = (daysLeft / 30.0).clamp(0.3, 1.0);
-    final predicted = (currentAvg * 0.6 + (currentAvg * paceFactor * daysFactor) * 0.4)
-        .clamp(0.0, 10.0);
+    final predicted =
+        (currentAvg * 0.6 + (currentAvg * paceFactor * daysFactor) * 0.4)
+            .clamp(0.0, 10.0);
 
     final gap = target - predicted;
     final assessment = gap <= 0
@@ -82,8 +85,10 @@ class PredictiveEngine {
       final extraMinutes = (gap * 30).round();
       recommendations.add('Tăng $extraMinutes phút/ngày để đạt mục tiêu');
     }
-    if (subjectAverages.isNotEmpty && subjectAverages.first.value < target - 1.0) {
-      recommendations.add('Ưu tiên ôn ${subjectAverages.first.key} (TB ${subjectAverages.first.value.toStringAsFixed(1)})');
+    if (subjectAverages.isNotEmpty &&
+        subjectAverages.first.value < target - 1.0) {
+      recommendations.add(
+          'Ưu tiên ôn ${subjectAverages.first.key} (TB ${subjectAverages.first.value.toStringAsFixed(1)})');
     }
     if (dailyAvg < 45) {
       recommendations.add('Duy trì tối thiểu 45 phút/ngày');

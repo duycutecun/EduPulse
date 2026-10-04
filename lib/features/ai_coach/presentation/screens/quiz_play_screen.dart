@@ -138,7 +138,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
 
   List<QuizQuestion> get _wrongQuestions => [
         for (var i = 0; i < widget.questions.length; i++)
-          if (i < _answers.length && _answers[i] != widget.questions[i].correctIndex)
+          if (i < _answers.length &&
+              _answers[i] != widget.questions[i].correctIndex)
             widget.questions[i],
       ];
 
@@ -147,8 +148,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   void _saveMistakeNote() {
     final wrong = _wrongQuestions;
     final buffer = StringBuffer();
-    buffer.writeln('Bài quiz AI môn ${widget.subject} — chủ đề: ${widget.topic}');
-    buffer.writeln('Kết quả: $_correctCount/${widget.questions.length} câu đúng.');
+    buffer
+        .writeln('Bài quiz AI môn ${widget.subject} — chủ đề: ${widget.topic}');
+    buffer.writeln(
+        'Kết quả: $_correctCount/${widget.questions.length} câu đúng.');
     buffer.writeln();
     for (var i = 0; i < wrong.length; i++) {
       final q = wrong[i];
@@ -230,7 +233,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             if (wrong.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.purpleSoft,
                   borderRadius: BorderRadius.circular(10),
@@ -431,7 +435,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         buffer.writeln('${i + 1}. ${q.question}');
         buffer.writeln(
             '   Đáp án đúng: ${String.fromCharCode(65 + q.correctIndex)}. ${q.options[q.correctIndex]}');
-        if (q.explanation.isNotEmpty) buffer.writeln('   Giải thích: ${q.explanation}');
+        if (q.explanation.isNotEmpty) {
+          buffer.writeln('   Giải thích: ${q.explanation}');
+        }
       }
       buffer.write(
           'Hãy phân tích lỗi sai thuộc dạng nào (kiến thức thiếu, hiểu sai đề, hay bẫy trắc nghiệm), và chỉ ra cách khắc phục cụ thể từng câu.');
@@ -495,8 +501,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                             const SizedBox(height: 12),
                             Text('AI đang phân tích...',
                                 style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.textMuted)),
+                                    fontSize: 13, color: AppColors.textMuted)),
                           ],
                         ),
                       );
@@ -509,8 +514,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                     }
                     return SingleChildScrollView(
                       child: Text(snap.data ?? '',
-                          style: const TextStyle(
-                              fontSize: 13.5, height: 1.5)),
+                          style: const TextStyle(fontSize: 13.5, height: 1.5)),
                     );
                   },
                 ),
@@ -670,9 +674,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                     ? 'Đáp án: ${String.fromCharCode(65 + _q.correctIndex)}'
                     : '💡 ${_q.explanation}',
                 style: TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.textPrimary,
-                    height: 1.4),
+                    fontSize: 12.5, color: AppColors.textPrimary, height: 1.4),
               ),
             ),
             const SizedBox(height: 12),

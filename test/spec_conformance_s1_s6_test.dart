@@ -103,7 +103,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('finish-session-early')));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       expect(repo.getAll(), hasLength(1),
           reason: 'xong việc thì phiên phải được ghi, không mất thời gian đã học');
@@ -150,7 +150,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(homeHarness());
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       await rescheduleViaUi(tester);
 
@@ -177,7 +177,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(homeHarness());
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       await rescheduleViaUi(tester);
 
@@ -200,11 +200,11 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(homeHarness());
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       await rescheduleViaUi(tester);
       await tester.tap(find.text('Giữ nguyên'));
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       expect(repo.getTaskById('keep-1')!.estimateMinutes, 60);
     });
@@ -223,7 +223,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(homeHarness());
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       await rescheduleViaUi(tester);
       await tester.tap(find.text('Giảm thời lượng'));
@@ -391,10 +391,10 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(homeHarness());
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
 
       await tester.tap(find.text('+ Thêm nhiệm vụ'));
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 700));
       await tester.enterText(find.byType(TextField).first, 'Ôn đạo hàm');
       await tester.tap(find.text('30 phút'));
       await tester.pump();

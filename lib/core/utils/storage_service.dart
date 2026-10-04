@@ -14,20 +14,16 @@ class StorageService {
   }
 
   // Onboarding
-  static bool isOnboardingDone() =>
-      _prefs?.getBool('onboarding_done') ?? false;
-  static void setOnboardingDone() =>
-      _prefs?.setBool('onboarding_done', true);
+  static bool isOnboardingDone() => _prefs?.getBool('onboarding_done') ?? false;
+  static void setOnboardingDone() => _prefs?.setBool('onboarding_done', true);
 
   // Exam operations
-  static List<String> getExamIds() =>
-      _prefs?.getStringList('exam_ids') ?? [];
+  static List<String> getExamIds() => _prefs?.getStringList('exam_ids') ?? [];
 
   static void setExamIds(List<String> ids) =>
       _prefs?.setStringList('exam_ids', ids);
 
-  static String? getExamJson(String id) =>
-      _prefs?.getString('exam_$id');
+  static String? getExamJson(String id) => _prefs?.getString('exam_$id');
 
   static void setExamJson(String id, String json) =>
       _prefs?.setString('exam_$id', json);
@@ -38,8 +34,7 @@ class StorageService {
     setExamIds(ids);
   }
 
-  static String? getPrimaryExamId() =>
-      _prefs?.getString('primary_exam_id');
+  static String? getPrimaryExamId() => _prefs?.getString('primary_exam_id');
 
   static void setPrimaryExamId(String id) =>
       _prefs?.setString('primary_exam_id', id);
@@ -158,8 +153,6 @@ class StorageService {
     return (xp, xpForLevel(level));
   }
 
-
-
   // Study Logs
   static List<String> getStudyLogIds() =>
       _prefs?.getStringList('study_log_ids') ?? [];
@@ -230,17 +223,14 @@ class StorageService {
       _prefs?.getString('user_name') ?? 'Sĩ tử EduPulse';
   static void setUserName(String v) => _prefs?.setString('user_name', v);
 
-  static String getUserTarget() =>
-      _prefs?.getString('user_target') ?? '';
+  static String getUserTarget() => _prefs?.getString('user_target') ?? '';
   static void setUserTarget(String v) => _prefs?.setString('user_target', v);
 
   // Trạng thái xác minh email (dùng cho tài khoản đăng ký bằng email/password).
   // Firebase email verification mặc định là link — app dùng mã 8 chữ số tự phát
   // qua serverless API, nên đánh dấu ở local + user_profiles thay vì Firebase.
-  static bool getEmailVerified() =>
-      _prefs?.getBool('email_verified') ?? false;
-  static void setEmailVerified(bool v) =>
-      _prefs?.setBool('email_verified', v);
+  static bool getEmailVerified() => _prefs?.getBool('email_verified') ?? false;
+  static void setEmailVerified(bool v) => _prefs?.setBool('email_verified', v);
 
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
   static void setAiModel(String v) => _prefs?.setString('ai_model', v);
@@ -272,8 +262,7 @@ class StorageService {
       _prefs?.getStringList('today_task_ids') ?? [];
   static void setTodayTaskIds(List<String> ids) =>
       _prefs?.setStringList('today_task_ids', ids);
-  static String? getTodayTaskJson(String id) =>
-      _prefs?.getString('task_$id');
+  static String? getTodayTaskJson(String id) => _prefs?.getString('task_$id');
   static void setTodayTaskJson(String id, String json) =>
       _prefs?.setString('task_$id', json);
   static void removeTodayTask(String id) {
@@ -304,8 +293,8 @@ class StorageService {
     final stored = _prefs?.getString('supabase_url');
     return (stored == null || stored.isEmpty) ? AppConfig.supabaseUrl : stored;
   }
-  static void setSupabaseUrl(String v) =>
-      _prefs?.setString('supabase_url', v);
+
+  static void setSupabaseUrl(String v) => _prefs?.setString('supabase_url', v);
 
   static String getSupabaseAnonKey() {
     final stored = _prefs?.getString('supabase_anon_key');
@@ -313,6 +302,7 @@ class StorageService {
         ? AppConfig.supabaseAnonKey
         : stored;
   }
+
   static void setSupabaseAnonKey(String v) =>
       _prefs?.setString('supabase_anon_key', v);
 
@@ -344,11 +334,9 @@ class StorageService {
   static void setLastFortuneText(String text) =>
       _prefs?.setString('mascot_last_fortune_text', text);
 
-  static int getMascotBondExp() =>
-      _prefs?.getInt('mascot_bond_exp') ?? 120;
+  static int getMascotBondExp() => _prefs?.getInt('mascot_bond_exp') ?? 120;
 
-  static void setMascotBondExp(int v) =>
-      _prefs?.setInt('mascot_bond_exp', v);
+  static void setMascotBondExp(int v) => _prefs?.setInt('mascot_bond_exp', v);
 
   static void addMascotBondExp(int delta) {
     final cur = getMascotBondExp();

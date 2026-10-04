@@ -32,7 +32,8 @@ class LatexWidget extends StatelessWidget {
         onErrorFallback: (error) {
           return Text(
             '\$$latex\$',
-            style: TextStyle(fontSize: 14, color: textColor, fontStyle: FontStyle.italic),
+            style: TextStyle(
+                fontSize: 14, color: textColor, fontStyle: FontStyle.italic),
           );
         },
       ),

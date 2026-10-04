@@ -23,7 +23,8 @@ class OpenRouterService {
       '4. Nêu các lưu ý / bẫy trắc nghiệm thường gặp. '
       'Đôi khi câu hỏi sẽ kèm một khối "THAM KHẢO TỪ WEB" từ Wikipedia. '
       'Hãy cân nhắc thông tin đó nếu liên quan và hữu ích để trả lời chính xác, phong phú hơn; '
-      'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '      'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh. '
+      'nếu không liên quan thì bỏ qua và trả lời theo kiến thức vốn có. '
+      'Trả lời chuẩn sư phạm, thân thiện, khích lệ tinh thần học sinh. '
       'Trả lời bằng tiếng Việt.\n\n'
       'QUAN TRỌNG — KHI BẠN KHUYÊN HỌC SINH LÀM GÕ ĐÓ CỤ THỂ (luyện quiz, '
       'bắt đầu phiên focus, lưu công thức vào ghi chú, thêm nhiệm vụ...), '
@@ -155,7 +156,8 @@ class OpenRouterService {
         'stream': true,
       });
 
-      final response = await request.send().timeout(const Duration(seconds: 45));
+      final response =
+          await request.send().timeout(const Duration(seconds: 45));
 
       if (response.statusCode != 200) {
         yield '❌ Lỗi ${response.statusCode}: Không thể kết nối AI.';

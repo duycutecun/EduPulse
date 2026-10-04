@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/ai/ai_refresh_service.dart';
+import '../../../core/pwa/pwa_service.dart';
+import '../../../core/sync/sync_state.dart';
 import '../../../core/utils/storage_service.dart';
+import '../../../core/utils/supabase_service.dart';
 import 'models/exam_model.dart';
 
 /// BE-5.2 — Quản lý dữ liệu Kỳ thi.
@@ -16,8 +21,42 @@ class ExamRepository {
 
   static final ExamRepository instance = ExamRepository._();
 
-  /// Tín hiệu \"dữ liệu kỳ thi vừa đổi\" — UI listen để refresh.
+  /// Tín hiệu "dữ liệu kỳ thi vừa đổi" — UI listen để refresh.
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  /// Debounce cho đẩy lên cloud (xem [_scheduleCloudSync]).
+  Timer? _syncDebounce;
+
+  /// Mọi thay đổi đều đi qua đây: bắn `revision` cho UI, kích AI, rồi hẹn
+  /// đẩy lên cloud. Trước đây kỳ thi chỉ lên cloud khi bấm nút đồng bộ tay
+  /// trong Tài khoản — lưu xong nó nằm im trên máy, mất nếu gỡ app.
+  /// Báo “dữ liệu kỳ thi đổi từ BÊN NGOÀI” (ví dụ khôi phục từ cloud).
+  ///
+  /// Cố ý KHÔNG đẩy cloud lại: vừa kéo về thì đẩy lên sẽ là một vòng
+  /// đẩy–kéo vô nghĩa. Chỉ bắn tín hiệu cho UI vẽ lại.
+  void notifyExternalChange() => revision.value++;
+
+  void _afterMutation() {
+    revision.value++;
+    AiRefreshService.notifyDataChanged();
+    _scheduleCloudSync();
+  }
+
+  /// Debounce 2s như Task: thao tác liên tiếp chỉ gọi cloud một lần.
+  /// Offline thì bỏ qua — local đã ghi an toàn, `SyncStateService` lo phần định kỳ.
+  void _scheduleCloudSync() {
+    if (!SupabaseService.isConfigured || !PwaService.isOnline) return;
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(seconds: 2), () async {
+      try {
+        final ok = await SupabaseService.syncExams(
+            getAll(), StorageService.getPrimaryExamId());
+        if (ok) SyncStateService.markSynced();
+      } catch (e) {
+        debugPrint('[ExamRepository] Cloud sync failed (offline-first): $e');
+      }
+    });
+  }
 
   // ── Read ────────────────────────────────────────────────────────────────────
 
@@ -79,7 +118,9 @@ class ExamRepository {
   /// Kỳ thi chưa kết thúc ngày thi, sớm nhất trước.
   List<ExamModel> upcoming({DateTime? now}) {
     final at = now ?? DateTime.now();
-    final list = getAll().where((e) => !e.isExamDayOver && e.dateTime.isAfter(at)).toList()
+    final list = getAll()
+        .where((e) => !e.isExamDayOver && e.dateTime.isAfter(at))
+        .toList()
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     return list;
   }
@@ -95,7 +136,7 @@ class ExamRepository {
       StorageService.setExamIds(ids);
     }
     AiRefreshService.notifyDataChanged();
-    _bump();
+    _afterMutation();
   }
 
   /// Chỉ định kỳ thi chính. Id không tồn tại → từ chối (không ghim vào hư vô).
@@ -103,7 +144,7 @@ class ExamRepository {
     if (getById(examId) == null) return false;
     StorageService.setPrimaryExamId(examId);
     AiRefreshService.notifyDataChanged();
-    _bump();
+    _afterMutation();
     return true;
   }
 
@@ -126,7 +167,14 @@ class ExamRepository {
 
   /// Xoá kỳ thi. Nếu là kỳ thi chính thì tự chuyển sang kỳ thi sắp tới gần nhất
   /// (hoặc xoá hẳn ghim nếu không còn kỳ thi nào).
-  void delete(String id) {
+  /// Xoá kỳ thi và **trả về bản ghi đã xoá** để hoàn tác (đối xứng với
+  /// `TaskRepository.deleteTask` trả `DeletedTaskRef`).
+  ///
+  /// Xoá kỳ thi là mất vĩnh viễn dù các nhiệm vụ đã gắn `examId` — nên nơi
+  /// gọi PHẢI cho người dùng hoàn tác được, hoặc hỏi xác nhận.
+  ExamModel? delete(String id) {
+    final removed = getById(id);
+    StorageService.removeExam(id);
     StorageService.removeExam(id);
     if (StorageService.getPrimaryExamId() == id) {
       final remaining = getAll();
@@ -140,7 +188,8 @@ class ExamRepository {
       }
     }
     AiRefreshService.notifyDataChanged();
-    _bump();
+    _afterMutation();
+    return removed;
   }
 
   /// Xoá hết kỳ thi (dùng khi reset dữ liệu).
@@ -149,10 +198,8 @@ class ExamRepository {
       StorageService.removeExam(id);
     }
     StorageService.removeString(primaryExamKey);
-    _bump();
+    _afterMutation();
   }
-
-  void _bump() => revision.value++;
 
   static const String primaryExamKey = 'primary_exam_id';
 }

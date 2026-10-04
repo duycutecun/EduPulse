@@ -126,8 +126,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
     // Goals / Exams.
     for (final exam in _exams) {
-      final haystack = '${exam.name} ${exam.description ?? ''} ${exam.type.name}'
-          .toLowerCase();
+      final haystack =
+          '${exam.name} ${exam.description ?? ''} ${exam.type.name}'
+              .toLowerCase();
       if (haystack.contains(q)) {
         hits.add(_SearchHit(
           icon: Icons.flag_rounded,
@@ -158,8 +159,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     // Study sessions.
     for (final s in _sessions) {
-      final haystack =
-          '${s.subject} ${s.reflectionNote ?? ''}'.toLowerCase();
+      final haystack = '${s.subject} ${s.reflectionNote ?? ''}'.toLowerCase();
       if (haystack.contains(q)) {
         hits.add(_SearchHit(
           icon: Icons.timer_outlined,
@@ -173,16 +173,13 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     // AI conversations — tìm trong toàn bộ lịch sử chat đã lưu.
-    if (_aiConversation != null &&
-        _aiConversation!.toLowerCase().contains(q)) {
+    if (_aiConversation != null && _aiConversation!.toLowerCase().contains(q)) {
       // Trích đoạn quanh vị trí khớp để người dùng thấy ngữ cảnh.
       final idx = _aiConversation!.toLowerCase().indexOf(q);
       final start = (idx - 40).clamp(0, _aiConversation!.length);
       final end = (idx + q.length + 60).clamp(0, _aiConversation!.length);
-      final snippet = _aiConversation!
-          .substring(start, end)
-          .replaceAll('\n', ' ')
-          .trim();
+      final snippet =
+          _aiConversation!.substring(start, end).replaceAll('\n', ' ').trim();
       hits.add(_SearchHit(
         icon: Icons.auto_awesome_rounded,
         color: AppColors.purple,
@@ -209,8 +206,8 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: AppBar(
-          title:
-              const Text('Tìm kiếm', style: TextStyle(fontWeight: FontWeight.w800))),
+          title: const Text('Tìm kiếm',
+              style: TextStyle(fontWeight: FontWeight.w800))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
@@ -219,7 +216,8 @@ class _SearchScreenState extends State<SearchScreen> {
             autofocus: true,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search_rounded),
-              hintText: 'Tìm nhiệm vụ, mục tiêu, ghi chú, phiên học, hội thoại AI…',
+              hintText:
+                  'Tìm nhiệm vụ, mục tiêu, ghi chú, phiên học, hội thoại AI…',
               suffixIcon: query.isEmpty
                   ? null
                   : IconButton(
@@ -232,7 +230,8 @@ class _SearchScreenState extends State<SearchScreen> {
           Expanded(
             child: query.isEmpty
                 ? const Center(
-                    child: Text('Nhập từ khóa để tìm trong dữ liệu trên thiết bị.'))
+                    child: Text(
+                        'Nhập từ khóa để tìm trong dữ liệu trên thiết bị.'))
                 : hits.isEmpty
                     ? _NoResults(query: query)
                     : ListView(

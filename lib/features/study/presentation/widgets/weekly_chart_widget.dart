@@ -75,7 +75,8 @@ class WeeklyChartWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Icon(Icons.trending_up, size: 16, color: AppColors.primary),
+                      Icon(Icons.trending_up,
+                          size: 16, color: AppColors.primary),
                       SizedBox(width: 6),
                       Text('Trung bình',
                           style: TextStyle(
@@ -109,8 +110,8 @@ class WeeklyChartWidget extends StatelessWidget {
                           color: AppColors.textPrimary)),
                   if (totalWeeklyHours >= 20)
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10)),
@@ -189,8 +190,8 @@ class WeeklyChartWidget extends StatelessWidget {
                       color: AppColors.textPrimary)),
               const SizedBox(height: 16),
               ...subjectMap.entries.map((entry) {
-                final percent = (entry.value / totalWeeklyHours)
-                    .clamp(0.0, 1.0);
+                final percent =
+                    (entry.value / totalWeeklyHours).clamp(0.0, 1.0);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Column(
@@ -261,7 +262,8 @@ class WeeklyChartWidget extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Bắt đầu một phiên Pomodoro để thống kê giờ học thực tế của bạn.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 if (onStartStudy != null) ...[
                   const SizedBox(height: 10),

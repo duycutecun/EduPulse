@@ -46,10 +46,9 @@ class ScoreChartWidget extends StatelessWidget {
       }
     });
 
-    final mainScores =
-        (mainSubject == null ? null : bySubject[mainSubject])
-                ?.toList() ??
-            <MockScore>[]
+    final mainScores = (mainSubject == null ? null : bySubject[mainSubject])
+            ?.toList() ??
+        <MockScore>[]
       ..sort((a, b) => a.date.compareTo(b.date));
 
     if (mainScores.length < 2) {
@@ -110,7 +109,8 @@ class ScoreChartWidget extends StatelessWidget {
   Widget _trendChip(ScoreTrend trend) {
     final isUp = trend.trend == 'up';
     final isDown = trend.trend == 'down';
-    final color = isUp ? AppColors.green : (isDown ? AppColors.orange : AppColors.blue);
+    final color =
+        isUp ? AppColors.green : (isDown ? AppColors.orange : AppColors.blue);
     final icon = isUp
         ? Icons.trending_up_rounded
         : (isDown ? Icons.trending_down_rounded : Icons.trending_flat_rounded);
@@ -199,14 +199,13 @@ class ScoreChartWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.insights_rounded, size: 16, color: AppColors.primary),
+          const Icon(Icons.insights_rounded,
+              size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(insight,
                 style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
-                    color: AppColors.textPrimary)),
+                    fontSize: 12.5, height: 1.4, color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -277,8 +276,8 @@ class ScoreChartWidget extends StatelessWidget {
                   subject == null
                       ? 'Ghi 2 điểm thi thử cùng môn để EduPulse vẽ tiến bộ của bạn.'
                       : 'Môn "$subject" mới có 1 điểm — thi thử thêm 1 lần nữa để thấy xu hướng.',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -316,8 +315,8 @@ class ScoreChartWidget extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Ghi điểm sau mỗi lần thi thử để EduPulse theo dõi tiến bộ và đề xuất điều chỉnh.',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -363,9 +362,8 @@ class _ScoreLinePainter extends CustomPainter {
     final chartH = size.height - padTop - padBottom;
 
     Offset pointAt(int i, double score) {
-      final x = scores.length == 1
-          ? chartW / 2
-          : i * chartW / (scores.length - 1);
+      final x =
+          scores.length == 1 ? chartW / 2 : i * chartW / (scores.length - 1);
       final y = padTop + chartH * (1 - (score - lo) / (hi - lo));
       return Offset(x, y);
     }

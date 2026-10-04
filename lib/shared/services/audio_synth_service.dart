@@ -1,5 +1,6 @@
 import '../../core/utils/feedback_service.dart';
-import 'audio_synth_stub.dart' if (dart.library.js_interop) 'audio_synth_web.dart';
+import 'audio_synth_stub.dart'
+    if (dart.library.js_interop) 'audio_synth_web.dart';
 
 /// Dịch vụ phát âm thanh tương tác Duolingo-style micro-synth (0KB asset, 0 billing).
 ///

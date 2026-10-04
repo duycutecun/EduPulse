@@ -8,11 +8,13 @@ class GeneratedTask {
   final int minutes;
   final String priority;
 
-  GeneratedTask(this.title, this.subject, this.topic, this.minutes, this.priority);
+  GeneratedTask(
+      this.title, this.subject, this.topic, this.minutes, this.priority);
 }
 
 class SmartTaskGenerator {
-  static List<GeneratedTask> generateFromExam(String examType, {DateTime? now}) {
+  static List<GeneratedTask> generateFromExam(String examType,
+      {DateTime? now}) {
     final exams = _readExams();
     if (exams.isEmpty) return [];
 
@@ -36,7 +38,11 @@ class SmartTaskGenerator {
       final weight = _getSubjectWeight(subject, examType);
 
       for (final topic in topics) {
-        final priority = weight >= 0.8 ? 'high' : weight >= 0.5 ? 'medium' : 'low';
+        final priority = weight >= 0.8
+            ? 'high'
+            : weight >= 0.5
+                ? 'medium'
+                : 'low';
         final minutes = weight >= 0.8 ? 45 : 30;
         tasks.add(GeneratedTask(
           topic,
@@ -48,7 +54,8 @@ class SmartTaskGenerator {
       }
     }
 
-    tasks.sort((a, b) => _priorityRank(b.priority).compareTo(_priorityRank(a.priority)));
+    tasks.sort((a, b) =>
+        _priorityRank(b.priority).compareTo(_priorityRank(a.priority)));
     return tasks;
   }
 

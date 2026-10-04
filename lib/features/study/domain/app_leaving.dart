@@ -79,16 +79,13 @@ AppLeavingInsight analyzeAppLeaving(List<AppLeavingEvent> recentEvents) {
   // 1. Phiên dài hay bị bỏ dở → gợi ý phiên ngắn hơn (cụ thể nhất).
   // 2. Rời app nhiều gần đây → break suggestion.
   // 3. Còn lại → gentle reminder về việc quay lại.
-  final longAbandoned = abandoned
-      .where((e) => e.plannedMinutes >= 50)
-      .toList();
+  final longAbandoned = abandoned.where((e) => e.plannedMinutes >= 50).toList();
 
   if (longAbandoned.length >= 2) {
     // Gợi ý phiên ngắn ~ 2/3 phút đã học trung bình trước khi rời.
-    final avgStudied = abandoned
-            .map((e) => e.studiedMinutes)
-            .fold(0, (a, b) => a + b) /
-        abandoned.length;
+    final avgStudied =
+        abandoned.map((e) => e.studiedMinutes).fold(0, (a, b) => a + b) /
+            abandoned.length;
     final suggested = (avgStudied * 2 / 3 / 5).round() * 5; // làm tròn 5'.
     final safeSuggested = suggested.clamp(15, 25);
     return AppLeavingInsight(
