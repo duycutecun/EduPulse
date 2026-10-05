@@ -11,6 +11,16 @@
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 module.exports = async function handler(req, res) {
+  // Health check: mở thẳng /api/gemini trên trình duyệt để biết máy chủ đã có
+  // key chưa. Chỉ trả boolean — KHÔNG bao giờ trả giá trị key.
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      ok: true,
+      configured: Boolean(process.env.GEMINI_API_KEY),
+      model: 'gemini-3.7-flash',
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
