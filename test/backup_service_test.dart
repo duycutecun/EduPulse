@@ -24,6 +24,14 @@ void main() {
     await StorageService.init();
   });
 
+  /// Xoá sạch máy như khi cài app mới — phải `init()` lại vì `StorageService`
+  /// giữ instance `SharedPreferences` đã nạp, chỉ gọi `setMockInitialValues`
+  /// thì dữ liệu cũ vẫn còn nguyên và test thành vô nghĩa.
+  Future<void> wipeDevice() async {
+    SharedPreferences.setMockInitialValues({});
+    await StorageService.init();
+  }
+
   Map<String, dynamic> seedEverything() {
     // Dữ liệu học tập.
     StorageService.setUserName('Minh');
@@ -199,6 +207,27 @@ void main() {
       expect(StorageService.getStudyNoteIds(), ['n1']);
     });
 
+    test('xoá đúng bản ghi đã xoá ở máy khác, nhưng KHÔNG đụng ảnh đính kèm',
+        () {
+      // Ảnh không nằm trong snapshot mà nằm ở bảng riêng và được dọn riêng, nên
+      // áp bản cloud tuyệt đối không được xoá ảnh — nếu không thì chỉ một lần
+      // tải ảnh thất bại là mất ảnh vĩnh viễn.
+      StorageService.setTodayTaskIds(['t1']);
+      StorageService.setTodayTaskJson('t1', '{"id":"t1"}');
+      StorageService.setTaskAttachmentIds('t1', ['a1']);
+      StorageService.setTaskAttachmentJson(
+        't1',
+        'a1',
+        jsonEncode({'id': 'a1', 'name': 'de.png', 'base64': 'AAAA'}),
+      );
+      final cloud = BackupSnapshot.capture();
+
+      BackupSnapshot.apply(cloud);
+
+      expect(StorageService.getTaskAttachmentJson('t1', 'a1'), isNotNull);
+      expect(StorageService.getTaskAttachmentIds('t1'), ['a1']);
+    });
+
     test('giữ lại khoá riêng thiết bị khi áp bản cloud', () {
       StorageService.setSupabaseUrl('https://may-b.supabase.co');
       seedEverything();
@@ -266,13 +295,19 @@ void main() {
   });
 
   group('Liên kết bản gốc ↔ bản sao lưu giữa hai máy', () {
-    test('mọi thứ máy A làm đều xuất hiện nguyên vẹn ở máy B', () {
+    test('mọi thứ máy A làm đều xuất hiện nguyên vẹn ở máy B', () async {
       // Máy A: làm việc, rồi chụp snapshot đẩy lên cloud.
       seedEverything();
       final pushedByA = BackupSnapshot.capture();
 
-      // Máy B: cài mới, chưa có gì, rồi nhận snapshot của A.
-      SharedPreferences.setMockInitialValues({});
+      // Máy B: CÀI MỚI thật sự — dọn sạch prefs rồi nạp lại. Nếu chỉ gọi
+      // setMockInitialValues mà không init lại thì StorageService vẫn giữ
+      // instance cũ và test này chỉ chứng minh "dữ liệu vẫn còn" — tức vô
+      // nghĩa, đúng thứ đáng lẽ phải bắt được.
+      await wipeDevice();
+      expect(StorageService.getUserName(), isNot('Minh'));
+      expect(StorageService.getTodayTaskIds(), isEmpty);
+
       BackupSnapshot.apply(pushedByA);
 
       // So từng loại dữ liệu — đây chính là yêu cầu "mọi thiết bị thấy cùng
@@ -300,30 +335,33 @@ void main() {
       expect(StorageService.getInt('reminder_hour'), 20);
     });
 
-    test('máy B làm thêm rồi đẩy ngược: máy A nhận lại đủ dữ liệu mới', () {
+    test('máy B làm thêm rồi đẩy ngược: máy A nhận lại đủ dữ liệu mới',
+        () async {
       seedEverything();
       final fromA = BackupSnapshot.capture();
 
-      SharedPreferences.setMockInitialValues({});
+      // Máy B cài mới, nhận bản của A, rồi làm thêm việc.
+      await wipeDevice();
       BackupSnapshot.apply(fromA);
-
-      // Máy B làm thêm việc.
       StorageService.setTodayTaskIds(['t1', 't2']);
       StorageService.setTodayTaskJson(
           't2', '{"id":"t2","title":"Làm trên máy B"}');
       StorageService.setXp(2000);
       final pushedByB = BackupSnapshot.capture();
 
-      // Máy A kéo bản mới nhất về.
-      SharedPreferences.setMockInitialValues({});
+      // Máy A kéo bản mới nhất về — nếu chỉ áp `fromA` thì máy A sẽ không có
+      // `t2`, nên phải áp đúng bản B vừa đẩy.
+      await wipeDevice();
       BackupSnapshot.apply(fromA);
+      expect(StorageService.getTodayTaskJson('t2'), isNull);
       BackupSnapshot.apply(pushedByB);
 
       expect(StorageService.getTodayTaskJson('t2'), contains('máy B'));
       expect(StorageService.getXp(), 2000);
+      expect(StorageService.getUserName(), 'Minh');
     });
 
-    test('vòng đẩy–kéo lặp lại không làm trôi dữ liệu', () {
+    test('vòng đẩy–kéo lặp lại không làm trôi dữ liệu', () async {
       seedEverything();
       var snap = BackupSnapshot.capture();
       for (var i = 0; i < 3; i++) {
@@ -334,6 +372,24 @@ void main() {
       expect(StorageService.getTodayTaskIds(), ['t1']);
       expect(StorageService.getXp(), 1420);
       expect(StorageService.getStudyNoteIds(), ['n1']);
+    });
+  });
+
+  group('Snapshot rỗng không được xoá sạch máy đã có dữ liệu', () {
+    test('phân biệt snapshot rỗng với snapshot có dữ liệu', () {
+      // Tình huống rất dễ xảy ra: máy A vừa tạo tài khoản, chưa làm gì nên đẩy
+      // snapshot rỗng. Mở app trên máy B đã có dữ liệu và nếu cứ "ưu tiên
+      // bản sao lưu" một cách máy móc thì B sẽ nhận về rỗng và mất sạch.
+      expect(BackupService.hasRealData(BackupSnapshot.capture()), isFalse);
+      expect(BackupService.hasRealData(seedEverything()), isTrue);
+    });
+
+    test('snapshot của máy khác có dữ liệu thì máy rỗng phải nhận về', () async {
+      final fromA = seedEverything();
+      await wipeDevice();
+      // Máy mới cài, chưa làm gì → không có dữ liệu để mất, nên nhận bản của A.
+      expect(BackupService.hasRealData(BackupSnapshot.capture()), isFalse);
+      expect(BackupService.hasRealData(fromA), isTrue);
     });
   });
 

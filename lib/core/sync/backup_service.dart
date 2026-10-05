@@ -204,7 +204,19 @@ class BackupService {
       final meta = await _get(const {'meta': '1'});
       if (meta['ok'] != true) return;
       if (meta['exists'] == true) {
-        await _pullAndApply();
+        // Bản trên cloud TRỐNG thì không có gì để "ưu tiên": đẩy dữ liệu máy
+        // này lên làm bản gốc chung. Nếu không, tình huống rất dễ xảy ra và rất
+        // đau: máy A vừa tạo tài khoản (chưa làm gì) đẩy snapshot rỗng; mở app
+        // trên máy B đã có dữ liệu → nhận snapshot rỗng về và **xoá sạch** dữ
+        // liệu B.
+        final remote = await _get(const {});
+        if (remote['ok'] == true &&
+            hasRealData(remote['payload']) &&
+            !hasRealData(BackupSnapshot.capture())) {
+          _adopt(remote);
+          return;
+        }
+        await _push();
         return;
       }
       await _push();
@@ -236,6 +248,20 @@ class BackupService {
 
   static String get _fingerprint =>
       BackupService.fingerprint(BackupSnapshot.capture());
+
+  /// Snapshot có dữ liệu thật không (không tính khoá phiên bản)?
+  ///
+  /// Dùng để quyết định lúc hai bên lệch nhau: một bản sao lưu rỗng không đáng
+  /// để ghi đè dữ liệu thật trên máy.
+  @visibleForTesting
+  static bool hasRealData(Object? payload) {
+    if (payload is! Map) return false;
+    for (final key in payload.keys) {
+      if ('$key' == BackupSnapshot.schemaKey) continue;
+      return true;
+    }
+    return false;
+  }
 
   /// Kéo bản sao lưu mới nhất về và ghi đè máy — đúng yêu cầu "mở app luôn
   /// thấy bản sao lưu gần nhất trên mọi thiết bị".
@@ -668,6 +694,11 @@ class BackupSnapshot {
     for (final key in prefs.getKeys().toList()) {
       if (BackupService.deviceLocalKeys.contains(key)) continue;
       if (key.startsWith(BackupService.attachmentIndexPrefix)) continue;
+      // KHÔNG xoá dữ liệu ảnh ở đây: ảnh không nằm trong snapshot mà nằm ở bảng
+      // riêng, việc dọn ảnh là của `_reconcileBlobs` (nó tải về trước rồi mới
+      // xoá cái thừa). Xoá ở đây nghĩa là xoá ảnh trước khi kịp tải lại — mất
+      // ảnh chỉ vì một lần tải thất bại.
+      if (key.startsWith(BackupService.attachmentPrefix)) continue;
       if (payload.containsKey(key)) continue;
       prefs.remove(key);
     }
