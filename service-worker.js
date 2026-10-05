@@ -1,8 +1,14 @@
 'use strict';
 
-// Bump tên cache mỗi lần deploy: main.dart.js không có hash nên cần đổi
-// tên để buộc xóa bản cũ đã cache (nếu không, PWA đã cài sẽ giữ mãi JS cũ).
-const CACHE_NAME = 'edupulse-shell-v8';
+// Đổi tên cache để dọn bản shell đang lưu trên máy người dùng (activate sẽ
+// xoá các cache tên khác).
+//
+// LƯU Ý: từ nay KHÔNG còn phải bump tên mỗi lần deploy. Trước đây
+// `main.dart.js` bị cache-first như các asset khác, nên PWA đã cài giữ mãi
+// bản cũ và mọi deploy mới không bao giờ tới được người dùng — buộc phải nhớ
+// bump số ở đây, quên là lỗi im lặng. Nay các script không có hash được ưu
+// tiên mạng (xem fetch handler); chỉ `/assets/` có hash mới cache-first.
+const CACHE_NAME = 'edupulse-shell-v9';
 const OFFLINE_CACHE_NAME = 'edupulse-offline-v1';
 
 // Core app shell precached on install.
@@ -237,7 +243,37 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed immutable runtime assets (JS/WASM/fonts/images): stale-while-revalidate.
+  // Script KHÔNG có hash (điểm vào của app): luôn ưu tiên mạng.
+  //
+  // `main.dart.js` đổi nội dung sau mỗi lần build nhưng **tên file không đổi**,
+  // nên cache-first ở đây là cách chắc chắn khiến người dùng không bao giờ
+  // nhận được bản deploy mới. Vẫn cache lại để mở app khi offline, và vẫn
+  // fallback về cache khi mạng lỗi — mất mạng thì app phải mở được.
+  const isEntryPoint = /^\/(main\.dart\.js|flutter\.js|flutter_bootstrap\.js)$/;
+  if (isEntryPoint.test(url.pathname)) {
+    event.respondWith(
+      (async () => {
+        try {
+          const response = await fetch(request);
+          if (response && response.ok) {
+            const clean = await cleanResponse(response);
+            const copy = clean.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            return clean;
+          }
+          return cleanResponse(response);
+        } catch (_) {
+          const cached = await caches.match(request);
+          if (cached) return cleanResponse(cached);
+          throw new Error('offline');
+        }
+      })()
+    );
+    return;
+  }
+
+  // Hashed immutable runtime assets (JS/WASM/fonts/images): cache-first.
+  // Được phép vì `/assets/` có hash trong tên — nội dung đổi là tên đổi.
   const isStatic =
     url.pathname.startsWith('/assets/') ||
     url.pathname.startsWith('/canvaskit') ||
