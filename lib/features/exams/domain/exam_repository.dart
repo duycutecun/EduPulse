@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/ai/ai_refresh_service.dart';
 import '../../../core/pwa/pwa_service.dart';
+import '../../../core/sync/backup_service.dart';
 import '../../../core/sync/sync_state.dart';
 import '../../../core/utils/storage_service.dart';
 import '../../../core/utils/supabase_service.dart';
@@ -64,6 +65,10 @@ class ExamRepository {
   /// đẩy–kéo vô nghĩa. Chỉ bắn tín hiệu cho UI vẽ lại.
   void notifyExternalChange() => revision.value++;
 
+  /// Mọi thay đổi kỳ thi đều báo để bản sao lưu toàn diện đẩy lên cloud
+  /// trong ~2 giây (ngoài luồng per-table ở trên).
+  void _notifyBackup() => BackupService.notifyLocalChange();
+
   /// Đẩy lên cloud NGAY, bỏ qua debounce.
   ///
   /// Cần cho hai lúc mà debounce không đủ:
@@ -108,6 +113,7 @@ class ExamRepository {
     revision.value++;
     AiRefreshService.notifyDataChanged();
     _scheduleCloudSync();
+    _notifyBackup();
   }
 
   /// Debounce 2s như Task: thao tác liên tiếp chỉ gọi cloud một lần.

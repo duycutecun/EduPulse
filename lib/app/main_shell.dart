@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/migration/data_migration.dart';
 import '../core/pwa/pwa_service.dart';
+import '../core/sync/backup_service.dart';
 import '../core/sync/sync_state.dart';
 import '../core/constants/app_colors.dart';
 import '../core/utils/storage_service.dart';
@@ -123,6 +124,9 @@ class _MainShellScreenState extends State<MainShellScreen>
       // Qua SyncStateService để banner/chip phản ánh Syncing → Synced.
       SyncStateService.syncInBackground();
     }
+    // Vừa có mạng lại: đẩy ngay thay đổi gẹn lúc offline, không bắt người
+    // dùng chờ tới chu kỳ 20 giây.
+    if (PwaService.isOnline) BackupService.notifyLocalChange();
   }
 
   @override
@@ -140,13 +144,21 @@ class _MainShellScreenState extends State<MainShellScreen>
   /// lúc app bị treo, nên không làm bước này thì sửa xong tắt app là mất.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.paused &&
-        state != AppLifecycleState.hidden &&
-        state != AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive) {
+      ExamRepository.instance.flushNow();
+      TaskRepository.instance.flushNow();
+      // Sao lưu toàn diện cũng phải đẩy ngay: timer poll/debounce không sống
+      // sót qua lúc app bị treo.
+      BackupService.flush();
       return;
     }
-    ExamRepository.instance.flushNow();
-    TaskRepository.instance.flushNow();
+    // Quay lại từ nền: hỏi cloud ngay xem máy khác có ghi gì mới không thay vì
+    // chờ tới chu kỳ 20 giây.
+    if (state == AppLifecycleState.resumed) {
+      BackupService.notifyLocalChange();
+    }
   }
 
   void _loadInitialData() {

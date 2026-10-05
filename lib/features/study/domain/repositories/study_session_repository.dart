@@ -1,4 +1,5 @@
 import 'package:edupulse/core/constants/subject_catalog.dart';
+import 'package:edupulse/core/sync/backup_service.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/features/study/domain/active_study_session.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
@@ -28,7 +29,16 @@ class StudySessionRepository {
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
   /// Tăng [revision] sau mỗi lần ghi/xoá phiên.
-  void _bumpRevision() => revision.value++;
+  void _bumpRevision() {
+    revision.value++;
+    // Bản sao lưu toàn diện: ghi xong thì có trên cloud trong ~2 giây.
+    BackupService.notifyLocalChange();
+  }
+
+  /// Dữ liệu vừa bị thay từ BÊN NGOÀI (khôi phục từ bản sao lưu cloud) —
+  /// chỉ bắn tín hiệu cho UI vẽ lại, **không** đẩy ngược lên cloud (vừa kéo
+  /// về thì đẩy lên là vòng đẩy–kéo vô nghĩa).
+  void notifyExternalChange() => revision.value++;
 
   /// Mọi phiên, mới nhất trước. Phiên JSON hỏng bị bỏ qua **và log lại** —
   /// không có lý do âm thầm làm mất dữ liệu.

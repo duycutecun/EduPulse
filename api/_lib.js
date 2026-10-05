@@ -97,12 +97,15 @@ function newCode() {
 
 const CODE_TTL_MS = 15 * 60 * 1000; // mã hiệu lực 15 phút
 
-function readJson(req) {
+function readJson(req, maxBytes) {
+  // `maxBytes` cho phép endpoint nào đó nhận payload lớn hơn (sao lưu toàn bộ
+  // dữ liệu kèm ảnh đính kèm). Mặc định giữ 1MB như trước.
+  const limit = maxBytes || 1e6;
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', (c) => {
       body += c;
-      if (body.length > 1e6) reject(new Error('Payload quá lớn.'));
+      if (body.length > limit) reject(new Error('Payload quá lớn.'));
     });
     req.on('end', () => {
       if (!body) return resolve({});

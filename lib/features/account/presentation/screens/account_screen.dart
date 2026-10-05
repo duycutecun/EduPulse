@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import '../../../../core/utils/data_transfer.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/sync/backup_service.dart';
 import '../../../../core/sync/sync_state.dart';
 import '../../../../shared/widgets/sync_status_bar.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
@@ -174,6 +175,97 @@ class _AccountScreenState extends State<AccountScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Đã khôi phục!' : 'Khôi phục thất bại!'),
         backgroundColor: ok ? AppColors.blue : AppColors.red,
+      ));
+    }
+  }
+
+  /// Dòng thông tin bản sao lưu tự động: lần lưu gần nhất, trạng thái, và
+  /// nút quay lại dữ liệu trước lần khôi phục vừa rồi.
+  ///
+  /// Nghe [SyncStateService.state] nên tự cập nhật mỗi khi có vòng đồng bộ,
+  /// không cần bấm tải lại màn hình.
+  Widget _autoBackupRow() {
+    return ValueListenableBuilder<SyncState>(
+      valueListenable: SyncStateService.state,
+      builder: (context, sync, _) {
+        final last = BackupService.syncedAtMs;
+        final when = last <= 0
+            ? 'chưa có bản sao lưu'
+            : 'lần lưu gần nhất: ${_clockLabel(last)}';
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.autorenew_rounded,
+                      size: 15, color: AppColors.textMuted),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Tự động sao lưu mọi thiết bị — $when',
+                      style: const TextStyle(
+                          fontSize: 11.5, color: AppColors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              if (BackupSnapshot.canUndoLastRestore) ...[
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  onPressed: _undoLastRestore,
+                  icon: const Icon(Icons.undo_rounded, size: 16),
+                  label: const Text('Quay lại dữ liệu trước khi khôi phục'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textMuted,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                        fontSize: 11.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _clockLabel(int epochMs) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'vừa xong';
+    if (diff.inHours < 1) return '${diff.inMinutes} phút trước';
+    if (diff.inDays < 1) return '${diff.inHours} giờ trước';
+    return '${dt.day}/${dt.month}';
+  }
+
+  /// Quay lại dữ liệu cục bộ trước lần khôi phục từ bản sao lưu vừa rồi.
+  ///
+  /// Chính sách "luôn ưu tiên bản sao lưu gần nhất" rất tiện nhưng cũng là
+  /// nguồn rủi ro duy nhất: nếu vừa cài app lên máy mới mà máy đó có việc riêng
+  /// chưa kịp lên cloud, thay đổi đó sẽ bị bản cloud lấn át. Nút này là lối
+  /// quay lại.
+  Future<void> _undoLastRestore() async {
+    final ok = BackupSnapshot.undoLastRestore();
+    if (!ok) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không còn bản cục bộ trước đó.')),
+        );
+      }
+      return;
+    }
+    _loadData();
+    widget.onDataChanged();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Đã quay lại dữ liệu trước khi khôi phục.'),
+        backgroundColor: AppColors.blue,
       ));
     }
   }
@@ -473,6 +565,10 @@ class _AccountScreenState extends State<AccountScreen> {
                     ),
                   ],
                 ),
+                // Trạng thái bản sao lưu tự động: app luôn tự sao lưu, hai nút
+                // trên chỉ để thao tác khi cần (bấm tay khi đang offline, hoặc
+                // muốn ép khôi phục từ bảng per-table cũ).
+                _autoBackupRow(),
               ],
             ),
           ),

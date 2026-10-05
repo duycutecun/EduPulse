@@ -6,6 +6,7 @@ import 'core/migration/data_migration.dart';
 import 'core/notifications/adaptive_policy.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/pwa/pwa_service.dart';
+import 'core/sync/backup_service.dart';
 import 'core/sync/sync_state.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/appearance_service.dart';
@@ -52,6 +53,12 @@ void main() async {
     }
     // Sync nền định kỳ 15 phút khi còn online.
     SyncStateService.startAutoSync();
+    // Sao lưu toàn diện + đồng bộ gần như thời gian thực giữa mọi thiết bị.
+    // Chạy sau `AuthService.init()` vì danh tính liên kết dữ liệu giữa các máy
+    // chính là Firebase UID — chưa đăng nhập thì mỗi máy một tài khoản riêng.
+    // Lần chạy đầu sẽ kéo bản sao lưu gần nhất về nếu cloud đã có (đúng yêu
+    // cầu "mở app luôn thấy bản mới nhất"), rồi bắt đầu hỏi/lưu định kỳ.
+    BackupService.start();
 
     // Ghi nhận người dùng đã mở app (phục vụ tần suất nhắc thích ứng) và
     // đặt lại lịch nhắc/digest theo hành vi gần nhất (đặc tả mục 16).

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
+import '../../../../core/sync/backup_service.dart';
 import '../../../../core/sync/sync_state.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
@@ -700,7 +701,14 @@ class TaskRepository {
     revision.value++;
     AiRefreshService.notifyDataChanged();
     _scheduleCloudSync();
+    // Bản sao lưu toàn diện (gồm cả ảnh đính kèm) — đẩy riêng vì luồng
+    // per-table ở trên không phủ hết dữ liệu.
+    BackupService.notifyLocalChange();
   }
+
+  /// Dữ liệu vừa bị thay từ BÊN NGOÀI (khôi phục từ bản sao lưu cloud) —
+  /// chỉ bắn tín hiệu cho UI vẽ lại, **không** đẩy ngược lên cloud.
+  void notifyExternalChange() => revision.value++;
 
   /// Debounce 2s để thao tác liên tiếp (tick nhiều task) chỉ gọi cloud 1 lần.
   /// Offline thì bỏ qua — local đã an toàn, sync định kỳ của SyncStateService lo.

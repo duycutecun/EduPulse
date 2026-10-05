@@ -787,6 +787,11 @@ void main() {
       'lib/core/migration/data_migration.dart',
       'lib/core/utils/data_transfer.dart',
       'lib/core/utils/supabase_service.dart',
+      // Sao lưu toàn diện phải ghi được MỌI khoá theo tên, không thể liệt kê
+      // từng loại dữ liệu — nếu không thì tính năng mới thêm vào lại rơi vào
+      // tình trạng "có trên máy, không có trên cloud". Phần tệp đính kèm vẫn
+      // đi qua TaskRepository để giữ đúng luật id/chống trùng/Undo.
+      'lib/core/sync/backup_service.dart',
       'lib/features/tasks/domain/repositories/task_repository.dart',
       'lib/features/study/domain/repositories/study_session_repository.dart',
     };
