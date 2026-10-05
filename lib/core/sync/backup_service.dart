@@ -213,7 +213,7 @@ class BackupService {
         if (remote['ok'] == true &&
             hasRealData(remote['payload']) &&
             !hasRealData(BackupSnapshot.capture())) {
-          _adopt(remote);
+          await _adopt(remote);
           return;
         }
         await _push();
@@ -294,7 +294,7 @@ class BackupService {
 
     // Server báo bản trên cloud mới hơn → nhận bản đó về thay vì ghi đè.
     if (body['applied'] == false) {
-      _adopt(body);
+      await _adopt(body);
       return;
     }
 
@@ -309,6 +309,10 @@ class BackupService {
   }
 
   /// Nhận một trạng thái từ server: ghi đè máy, cập nhật mốc + chỉ mục ảnh.
+  ///
+  /// Luôn gọi kèm `await` để lỗi tải ảnh rơi vào `catch` của [syncNow] và
+  /// thành thông điệp "chưa sao lưu được" thay vì unhandled exception làm sập
+  /// vòng đồng bộ im lặng.
   static Future<void> _adopt(Map<String, dynamic> body) async {
     final payload = body['payload'];
     if (payload is Map) {
