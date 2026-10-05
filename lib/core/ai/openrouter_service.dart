@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/config.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../core/utils/now_context.dart';
+import 'proxy_error.dart';
 
 /// Service gọi model qua OpenRouter (chuẩn OpenAI-compatible).
 ///
@@ -160,7 +161,22 @@ class OpenRouterService {
           await request.send().timeout(const Duration(seconds: 45));
 
       if (response.statusCode != 200) {
-        yield '❌ Lỗi ${response.statusCode}: Không thể kết nối AI.';
+        // Đọc body để phân biệt "server thiếu key" với "nghẽn thật" — nếu không
+        // người dùng chỉ thấy mã lỗi trống nghĩa.
+        final body = await response.stream.bytesToString();
+        final detail = ProxyError.detail(body);
+        if (response.statusCode >= 500 && response.statusCode <= 504) {
+          yield ProxyError.serverBusy(
+            status: response.statusCode,
+            detail: detail,
+          );
+        } else if (response.statusCode == 401 || response.statusCode == 403) {
+          yield '❌ Lỗi xác thực: OpenRouter API Key không hợp lệ. Vui lòng liên hệ chủ app.';
+        } else {
+          yield detail == null
+              ? '❌ Lỗi ${response.statusCode}: Không thể kết nối AI.'
+              : '❌ Lỗi ${response.statusCode}: $detail';
+        }
         return;
       }
 
@@ -259,7 +275,11 @@ class OpenRouterService {
               resp.statusCode == 502 ||
               resp.statusCode == 503 ||
               resp.statusCode == 504)) {
-        return '❌ Máy chủ AI đang nghẽn tạm thời (HTTP ${resp.statusCode}). Chờ vài giây rồi thử lại.';
+        // Proxy nói rõ thiếu key hay thật sự nghẽn — đừng bắt người dùng đoán.
+        return ProxyError.serverBusy(
+          status: resp.statusCode,
+          detail: ProxyError.detail(resp.body),
+        );
       } else {
         return '❌ Lỗi ${resp.statusCode}: Không thể kết nối đến AI Coach. Kiểm tra mạng và thử lại.';
       }

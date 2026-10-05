@@ -12,6 +12,7 @@ import 'package:edupulse/core/theme/app_theme.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/core/utils/supabase_service.dart';
 import 'package:edupulse/features/exams/presentation/screens/exams_page.dart';
+import 'package:edupulse/features/home/presentation/widgets/daily_summary_card.dart';
 import 'package:edupulse/features/notes/presentation/screens/notes_screen.dart';
 import 'package:edupulse/features/progress/domain/progress_engine.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
@@ -90,7 +91,9 @@ void main() {
 
       // Màn Hôm nay là nơi người dùng bắt đầu: phải thấy ngay việc cần làm.
       expect(find.text('Nhiệm vụ hôm nay'), findsOneWidget);
-      expect(find.text('Tiến độ hôm nay'), findsOneWidget);
+      // Thẻ tổng kết ngày (kèm đếm ngược ngày thi khi đã chọn kỳ thi) phải
+      // nằm trên màn Hôm nay.
+      expect(find.byType(DailySummaryCard), findsOneWidget);
 
       // Tab Tiến độ đọc được phiên học đã ghi.
       await tapNav(tester, Icons.trending_up_rounded);

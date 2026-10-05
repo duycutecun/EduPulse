@@ -769,6 +769,9 @@ class _HomeScreenState extends State<HomeScreen> {
             summary: TodayService.getDailySummary(),
             primaryExam: widget.primaryExam,
             onExamTap: widget.onExamTap,
+            // Đồng hồ đếm ngược tự chạy mỗi giây qua notifier, không rebuild
+            // cả cây widget Home.
+            remainingListenable: _remainingNotifier,
           ),
           const SizedBox(height: 14),
           // **Nhiệm vụ hôm nay lên ngay** — nguyên tắc "Mở app là biết mình

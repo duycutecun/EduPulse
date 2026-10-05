@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../features/study/domain/models/study_models.dart';
 import 'now_context.dart';
 import '../ai/openrouter_service.dart';
+import '../ai/proxy_error.dart';
 
 class GeminiService {
   static const String _baseUrl =
@@ -193,7 +194,11 @@ class GeminiService {
               resp.statusCode == 502 ||
               resp.statusCode == 503 ||
               resp.statusCode == 504)) {
-        return '❌ Máy chủ AI đang nghẽn tạm thời (HTTP ${resp.statusCode}). Chờ vài giây rồi thử lại.';
+        // Proxy nói rõ thiếu key hay thật sự nghẽn — đừng bắt người dùng đoán.
+        return ProxyError.serverBusy(
+          status: resp.statusCode,
+          detail: ProxyError.detail(resp.body),
+        );
       } else {
         return '❌ Lỗi ${resp.statusCode}: Không thể kết nối đến AI Coach. Kiểm tra mạng và thử lại.';
       }
