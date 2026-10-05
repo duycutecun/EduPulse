@@ -111,50 +111,21 @@ create policy "leaderboard_own_write" on public.leaderboard
   using (user_id = auth.uid()::text)
   with check (user_id = auth.uid()::text);
 
--- ── user_snapshots ───────────────────────────────────────────────
--- Sao lưu TOÀN BỘ dữ liệu app theo snapshot, phục vụ tính năng
+-- ── Bảng sao lưu toàn diện ──────────────────────────────────────
+-- Sao lưu TOÀN BỘ dữ liệu app (mọi khoá SharedPreferences), phục vụ yêu cầu
 -- "mở app luôn thấy bản sao lưu gần nhất trên mọi thiết bị".
 --
--- Mỗi tài khoản đúng 1 dòng; payload là JSON đóng gói mọi khoá SharedPreferences
--- (trừ khoá riêng của thiết bị). `updated_at` do SERVER đóng dấu — app không
--- bao giờ ghi cột này — nên thứ tự thắng luôn đúng kể cả khi đồng hồ máy lệch.
-create table if not exists public.user_snapshots (
-  user_id    text primary key,
-  device_id  text,
-  payload    jsonb not null default '{}'::jsonb,
-  revision   bigint not null default 0,
-  updated_at timestamptz not null default now()
-);
-
--- Bảng này chỉ được chạm vào bởi service_role (api/backup.js) sau khi xác thực
--- Firebase ID token, nên RLS vẫn bật nhưng không policy nào cho client: chặn
--- mọi truy cập trực tiếp bằng anon key.
-alter table public.user_snapshots enable row level security;
-
--- ── user_blobs ───────────────────────────────────────────────────
--- Ảnh/tệp đính kèm của nhiệm vụ (base64). Tách riêng khỏi snapshot để snapshot
--- luôn nhẹ, và chỉ gửi khi `checksum` đổi.
-create table if not exists public.user_blobs (
-  id            text primary key,   -- "<uid>__<taskId>__<attachmentId>"
-  user_id       text not null,
-  task_id       text,
-  attachment_id text,
-  name          text,
-  size_bytes    int default 0,
-  checksum      text,
-  data          text,
-  updated_at    timestamptz not null default now()
-);
-
-create index if not exists user_blobs_user_idx
-  on public.user_blobs (user_id);
-
-alter table public.user_blobs enable row level security;
-
--- ── helper: xoá user khi cần ────────────────────────────────────
+-- KHÔNG tạo ở đây: script nằm trong `supabase/backup_tables.sql` — cùng nội
+-- dung, tách riêng để dán một lần và để không có hai bản SQL trôi nhau.
 -- delete from public.exams where user_id = '...';
 -- delete from public.today_tasks where user_id = '...';
 -- delete from public.study_logs where user_id = '...';
 -- delete from public.user_profiles where user_id = '...';
--- delete from public.user_snapshots where user_id = '...';
--- delete from public.user_blobs where user_id = '...';
+
+-- ═══════════════════════════════════════════════════════════════════
+-- PHẦN SAO LƯU TOÀN DIỆN NẰM Ở FILE KHÁC:
+--   → supabase/backup_tables.sql
+-- Chạy file đó (Supabase Console → SQL Editor → Run) rồi đặt env
+-- SUPABASE_SERVICE_ROLE_KEY trên Vercel. Không có hai bước này thì tính
+-- năng sao lưu chưa hoạt động, dù luồng sync cũ vẫn chạy.
+-- ═══════════════════════════════════════════════════════════════════
