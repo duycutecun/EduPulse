@@ -111,12 +111,7 @@ create policy "leaderboard_own_write" on public.leaderboard
   using (user_id = auth.uid()::text)
   with check (user_id = auth.uid()::text);
 
--- ── Bảng sao lưu toàn diện ──────────────────────────────────────
--- Sao lưu TOÀN BỘ dữ liệu app (mọi khoá SharedPreferences), phục vụ yêu cầu
--- "mở app luôn thấy bản sao lưu gần nhất trên mọi thiết bị".
---
--- KHÔNG tạo ở đây: script nằm trong `supabase/backup_tables.sql` — cùng nội
--- dung, tách riêng để dán một lần và để không có hai bản SQL trôi nhau.
+-- ── helper: xoá user khi cần ────────────────────────────────────
 -- delete from public.exams where user_id = '...';
 -- delete from public.today_tasks where user_id = '...';
 -- delete from public.study_logs where user_id = '...';
@@ -125,7 +120,14 @@ create policy "leaderboard_own_write" on public.leaderboard
 -- ═══════════════════════════════════════════════════════════════════
 -- PHẦN SAO LƯU TOÀN DIỆN NẰM Ở FILE KHÁC:
 --   → supabase/backup_tables.sql
+--
+-- Sao lưu TOÀN BỘ dữ liệu app (mọi khoá SharedPreferences) để mở app ở máy
+-- nào cũng thấy bản sao lưu gần nhất. Tách riêng vì đây là phần duy nhất
+-- phải chạy SAU, và phần duy nhất app cần để sao lưu hoạt động — bảng còn lại
+-- trong file này có RLS so với `auth.uid()` của Supabase Auth mà app không
+-- dùng, nên chúng vẫn không đồng bộ được dù đã cấu hình.
+--
 -- Chạy file đó (Supabase Console → SQL Editor → Run) rồi đặt env
 -- SUPABASE_SERVICE_ROLE_KEY trên Vercel. Không có hai bước này thì tính
--- năng sao lưu chưa hoạt động, dù luồng sync cũ vẫn chạy.
+-- năng sao lưu chưa hoạt động.
 -- ═══════════════════════════════════════════════════════════════════
