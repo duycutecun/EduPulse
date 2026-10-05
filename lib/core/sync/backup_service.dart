@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:realtime_client/realtime_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/exams/domain/exam_repository.dart';
@@ -12,6 +13,7 @@ import '../../features/tasks/domain/repositories/task_repository.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/auth_service.dart';
 import '../utils/storage_service.dart';
+import '../utils/supabase_service.dart';
 import 'sync_state.dart';
 
 /// Sao lưu TỰ ĐỘNG toàn bộ dữ liệu, đồng bộ gần như thời gian thực giữa mọi
@@ -78,6 +80,7 @@ class BackupService {
 
   static Timer? _pollTimer;
   static Timer? _pushDebounceTimer;
+  static RealtimeChannel? _liveChannel;
   static StreamSubscription<Object?>? _authSubscription;
   static bool _running = false;
   static bool _started = false;
@@ -91,6 +94,94 @@ class BackupService {
   /// vòng.
   static Map<String, dynamic> _blobIndexCache = {};
   static bool _blobIndexLoaded = false;
+
+  // ─── Realtime (đẩy tin nhắn, không kéo dữ liệu) ────────────────────────────
+
+  /// Kênh Realtime của tài khoản này, do server sinh từ hash(uid + key) nên
+  /// không đoán được. Server chỉ trả cho chính người đã xác thực Firebase.
+  static String? _topic;
+
+  /// `revision` mới nhất mà máy này đã biết. Dùng để bỏ qua tín hiệu cũ
+  /// hoặc trùng — nếu không, một loạt thay đổi liên tiếp sẽ kéo cùng một
+  /// bản nhiều lần.
+  static int _knownRevision = 0;
+
+  static bool _live = false;
+
+  /// Đang nghe Realtime? (Chỉ để hiển thị/log — đồng bộ vẫn chạy nếu không.)
+  static bool get isLive => _live;
+
+  /// Có cần kéo bản mới khi nhận tín hiệu `incomingRevision` không?
+  ///
+  /// Bỏ qua khi revision không mới hơn thứ đã biết: tránh mỗi thao tác ghi
+  /// đều kéo một lần khi có nhiều máy cùng ghi, và bỏ qua tín hiệu đến muộn.
+  @visibleForTesting
+  static bool shouldPullOnSignal(int incomingRevision) =>
+      incomingRevision > _knownRevision;
+
+  /// Bắt đầu nghe tín hiệu từ máy khác.
+  ///
+  /// **Có thể thất bại mà không sao** — đây chỉ là đường tắt cho độ trễ, còn
+  /// chu kỳ [pollInterval] vẫn chạy và là nguồn đúng cho tính nhất quán. Hỏng
+  /// Realtime chỉ là chậm thêm tối đa 20 giây, không mất dữ liệu.
+  static void _startLive() {
+    final topic = _topic;
+    final client = SupabaseService.client;
+    if (topic == null || topic.isEmpty || client == null) return;
+    if (_live) return;
+    try {
+      _liveChannel = client.realtime
+          .channel(topic)
+          .onBroadcast(
+            event: 'snapshot',
+            callback: (payload) {
+              final rev = (payload['payload']?['revision'] ??
+                      payload['revision'] ??
+                      0)
+                  as int;
+              if (rev <= 0) {
+                // Tín hiệu không mang số — vẫn kéo cho chắc, thay vì bỏ qua
+                // và chờ tới chu kỳ poll.
+                unawaited(syncNow());
+                return;
+              }
+              if (!shouldPullOnSignal(rev)) return;
+              unawaited(syncNow());
+            },
+          )
+          .subscribe((status, error) {
+            if (status == RealtimeSubscribeStatus.subscribed) {
+              _live = true;
+            } else if (status == RealtimeSubscribeStatus.closed ||
+                status == RealtimeSubscribeStatus.timedOut) {
+              // Đường tắt hỏng — vẫn đồng bộ bình thường bằng poll. Realtime
+              // client tự kết nối lại nếu socket chết, nên không tự thêm
+              // hẹn giờ thử lại: sẽ tự dính vào vòng lặp vô tận khi mạng tắt.
+              _live = false;
+              debugPrint('[BackupService] Realtime ngắt ($status) — dùng poll.');
+            }
+            if (error != null) {
+              debugPrint('[BackupService] Realtime lỗi: $error');
+            }
+          });
+    } catch (e) {
+      // Không cấu hình / client chưa sẵn sàng: bỏ qua, poll lo phần còn lại.
+      _live = false;
+      debugPrint('[BackupService] Không bật được Realtime: $e');
+    }
+  }
+
+  static void _stopLive() {
+    final channel = _liveChannel;
+    _liveChannel = null;
+    _live = false;
+    if (channel == null) return;
+    try {
+      SupabaseService.client?.removeChannel(channel);
+    } catch (_) {
+      // Dọn dẹp là việc tốt-nhất; giữ kênh cũ thì cũng không hại.
+    }
+  }
 
   /// Đang chạy thật: đã khởi động + đã đăng nhập (chưa cần mạng).
   static bool get isActive => _started && AuthService.isLoggedIn;
@@ -135,6 +226,7 @@ class BackupService {
 
   static void stop() {
     stopTimers();
+    _stopLive();
     _authSubscription?.cancel();
     _authSubscription = null;
     _started = false;
@@ -203,6 +295,7 @@ class BackupService {
     if (localAt == 0) {
       final meta = await _get(const {'meta': '1'});
       if (meta['ok'] != true) return;
+      _learnTopic(meta);
       if (meta['exists'] == true) {
         // Bản trên cloud TRỐNG thì không có gì để "ưu tiên": đẩy dữ liệu máy
         // này lên làm bản gốc chung. Nếu không, tình huống rất dễ xảy ra và rất
@@ -225,6 +318,7 @@ class BackupService {
 
     final meta = await _get(const {'meta': '1'});
     if (meta['ok'] != true) return;
+    _learnTopic(meta);
     final remoteAt = (meta['updatedAt'] as num?)?.toInt() ?? 0;
 
     if (remoteAt > localAt) {
@@ -305,6 +399,7 @@ class BackupService {
         : pending.map(_blobKeyOf).toList();
     _rememberSent(sentKeys, pending);
     _forgetRemoved(removed);
+    _learnTopic(body);
     _markSynced((body['updatedAt'] as num?)?.toInt() ?? 0);
   }
 
@@ -320,6 +415,7 @@ class BackupService {
     }
     final serverAt = (body['updatedAt'] as num?)?.toInt() ?? 0;
     if (serverAt > 0) StorageService.setInt(_syncedAtKey, serverAt);
+    _learnTopic(body);
     StorageService.setString(_fingerprintKey, _fingerprint);
     SyncStateService.markSynced();
     await _reconcileBlobs(_asIndex(body['blobs']));
@@ -329,6 +425,26 @@ class BackupService {
     if (serverAt > 0) StorageService.setInt(_syncedAtKey, serverAt);
     StorageService.setString(_fingerprintKey, _fingerprint);
     SyncStateService.markSynced();
+  }
+
+  /// Ghi nhớ kênh Realtime và revision mà máy này đã biết.
+  ///
+  /// Gọi ở MỌI phản hồi có `topic` (cả khi payload rỗng) — vì lần đầu tiên
+  /// nhận được topic có thể chỉ là một response rỗng.
+  static void _learnTopic(Map<String, dynamic> body) {
+    final topic = body['topic'];
+    if (topic is String && topic.isNotEmpty) {
+      if (topic != _topic) {
+        // Đổi tài khoản → đổi kênh. Kênh cũ phải bỏ, nếu không máy này còn
+        // nghe kênh của tài khoản trước và sẽ kéo nhầm dữ liệu.
+        _stopLive();
+        _topic = topic;
+        unawaited(syncNow());
+      }
+      if (!_live) _startLive();
+    }
+    final rev = (body['revision'] as num?)?.toInt();
+    if (rev != null && rev > _knownRevision) _knownRevision = rev;
   }
 
   // ─── Ảnh đính kèm ─────────────────────────────────────────────────────────

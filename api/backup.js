@@ -40,6 +40,8 @@ const {
   fail,
 } = require('./_lib');
 
+const crypto = require('crypto');
+
 const SNAPSHOT_TABLE = 'user_snapshots';
 const BLOB_TABLE = 'user_blobs';
 
@@ -67,6 +69,61 @@ function parseBlobKey(key) {
 function toMillis(value) {
   const t = Date.parse(value || '');
   return Number.isNaN(t) ? 0 : t;
+}
+
+// ── Realtime: báo cho máy khác biết có bản mới ─────────────────────────────
+//
+// Mục tiêu: thêm nhiệm vụ trên máy tính thì máy điện thoại nhảy ngay, không
+// phải chờ hết chu kỳ poll.
+//
+// VÌ SAO ĐI QUA REST BROADCAST MÀ KHÔNG DÙNG `postgres_changes`:
+//   `postgres_changes` lọc theo RLS của Supabase và cần một Supabase session.
+//   App đăng nhập bằng FIREBASE nên không có session đó, `user_snapshots` lại
+//   bật RLO không policy — tức là `postgres_changes` sẽ âm thầm không gửi gì,
+//   y hệt lỗi đã làm hỏng luồng sync cũ.
+//
+//   REST broadcast thì khác: nó đi thẳng ra máy chủ Realtime bằng HTTP, không
+//   qua RLS, không cần WebSocket phía server (serverless không giữ được socket).
+//   Nội dung gửi đi CHỈ là con số `revision` — client nhận xong tự gọi
+//   `GET /api/backup` kéo payload thật. Nhờ vậy dữ liệu không bao giờ đi qua
+//   kênh broadcast (vốn không mã hoá).
+//
+// KÊNH CÓ CẦN GIẤU KHÔNG:
+//   Topic đặt bằng hash(uid + service_role_key) → người ngoài không đoán được
+//   (phải biết uid VÀ key), và topic chỉ được trả cho chính người đó sau khi
+//   xác thực Firebase. Client dùng kênh public vì không có Supabase session;
+//   nhưng kênh public + topic không đoán được = an toàn tương đương private.
+
+function topicFor(uid) {
+  return crypto
+    .createHash('sha256')
+    .update(uid + (process.env.SUPABASE_SERVICE_ROLE_KEY || ''))
+    .digest('hex')
+    .slice(0, 32);
+}
+
+/**
+ * Bắn một tin nhắn broadcast. LUÔN trả về, không bao giờ ném lỗi ra ngoài:
+ * bỏ được thì ghi bản sao lưu vẫn thành công, máy khác chỉ chậm thêm vài giây
+ * tới chu kỳ poll — hỏng cả thao tác lưu chỉ vì thông báo là sai lầm.
+ */
+async function broadcast(topic, event, payload) {
+  const base = String(process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!base || !key) return false;
+  try {
+    const resp = await fetch(
+      `${base}/realtime/v1/api/broadcast/${topic}/events/${event}`,
+      {
+        method: 'POST',
+        headers: { apikey: key, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
+    return resp.ok;
+  } catch (_) {
+    return false;
+  }
 }
 
 /** Chỉ mục ảnh đính kèm: [{ key, name, sizeBytes, checksum, updatedAt }]. */
@@ -187,6 +244,7 @@ async function handleGet(supabase, uid, req, res) {
   if (error) return fail(res, 500, 'Không đọc được bản sao lưu.');
 
   const updatedAt = row ? toMillis(row.updated_at) : 0;
+  const topic = topicFor(uid);
 
   // Chỉ hỏi mốc mới nhất — nhẹ hơn nhiều so với tải cả snapshot.
   if (req.query && req.query.meta === '1') {
@@ -195,6 +253,7 @@ async function handleGet(supabase, uid, req, res) {
       exists: !!row,
       updatedAt,
       revision: row ? Number(row.revision) || 0 : 0,
+      topic,
     });
   }
 
@@ -203,6 +262,7 @@ async function handleGet(supabase, uid, req, res) {
     exists: !!row,
     updatedAt,
     revision: row ? Number(row.revision) || 0 : 0,
+    topic,
     payload: row ? row.payload || {} : {},
     blobs: await blobIndex(supabase, uid),
   });
@@ -231,6 +291,7 @@ async function handlePost(supabase, uid, body, res) {
       reason: 'cloud_moi_hon',
       updatedAt: currentUpdatedAt,
       revision: Number(current.revision) || 0,
+      topic: topicFor(uid),
       payload: current.payload || {},
       blobs: await blobIndex(supabase, uid),
     });
@@ -259,6 +320,14 @@ async function handlePost(supabase, uid, body, res) {
       .from(SNAPSHOT_TABLE)
       .upsert(record, { onConflict: 'user_id' });
     if (error) return fail(res, 500, 'Không lưu được bản sao lưu.');
+
+    // Báo các máy khác ngay: thêm nhiệm vụ trên máy tính thì điện thoại kéo
+    // bản mới trong ~1 giây thay vì chờ hết chu kỳ poll.
+    //
+    // Chỉ bắn khi nội dung THẬT SỰ đổi: `unchanged` là trường hợp poll định
+    // kỳ mà không có gì mới, bắn lúc đó là nhiễu vô ích (và mỗi lần bắn đều tốn
+    // 1 lượt trong hạn mức 100 tin/giây của Realtime).
+    await broadcast(topicFor(uid), 'snapshot', { revision });
   }
 
   // Ảnh đính kèm: chỉ gửi phần client thấy là mới/đổi.
@@ -309,6 +378,7 @@ async function handlePost(supabase, uid, body, res) {
     changed: !unchanged,
     updatedAt,
     revision,
+    topic: topicFor(uid),
     acceptedBlobs: accepted,
     removedBlobs: removeIds.length,
     remainingBlobs: Math.max(

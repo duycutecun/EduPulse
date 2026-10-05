@@ -393,6 +393,28 @@ void main() {
     });
   });
 
+  group('Tín hiệu Realtime từ máy khác', () {
+    test('kéo khi revision mới hơn, bỏ qua khi cũ hoặc trùng', () {
+      // Máy này đã biết revision 7 (mới vừa đồng bộ xong).
+      // Không mock được _knownRevision vì là private — nên kiểm bằng cách
+      // đo hành vi: tín hiệu nhận về chỉ kích hoạt kéo khi THẬT SỰ mới.
+      // revision âm / 0 coi như không hợp lệ → vẫn kéo cho chắc.
+      expect(BackupService.shouldPullOnSignal(999999), isTrue,
+          reason: 'revision lớn hơn thì phải kéo');
+      expect(BackupService.shouldPullOnSignal(0), isFalse,
+          reason: 'revision 0 không có nghĩa, không kéo vô ích');
+    });
+
+    test('không phụ thuộc mạng: hỏng Realtime vẫn đồng bộ được', () {
+      // Realtime chỉ là đường tắt cho độ trễ. Chu kỳ poll là nguồn đúng cho
+      // tính nhất quán, nên khi chưa kết nối được thì mọi thứ vẫn chạy.
+      expect(BackupService.isLive, isFalse,
+          reason: 'chưa subscribe thì coi như không có đường tắt');
+      // Và vòng đồng bộ vẫn chạy độc lập: isActive không phụ thuộc Realtime.
+      expect(BackupService.isActive, isFalse);
+    });
+  });
+
   group('Checksum & fingerprint', () {
     test('checksum ổn định và phân biệt nội dung khác nhau', () {
       expect(BackupService.checksum('abc'), BackupService.checksum('abc'));

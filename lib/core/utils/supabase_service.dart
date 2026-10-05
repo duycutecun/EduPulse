@@ -42,6 +42,12 @@ class SupabaseService {
 
   static bool get isConfigured => _client != null;
 
+  /// Client Supabase đã khởi tạo (null nếu chưa cấu hình).
+  ///
+  /// Cần cho phần Realtime của [BackupService] — mọi thứ khác vẫn nên đi qua
+  /// các hàm của service này, đừng tự gọi client ở nơi khác.
+  static SupabaseClient? get client => _client;
+
   /// Xác thực giờ do Firebase quản lý (AuthService) — trả user Firebase hiện tại.
   static User? get currentUser => AuthService.currentUser;
 
