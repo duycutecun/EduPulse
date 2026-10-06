@@ -100,3 +100,31 @@ flutter build web --release
 ```
 
 Deploy Vercel đã cấu hình sẵn qua [`vercel.json`](vercel.json) và [`build.sh`](build.sh) (build tự động nhận keys từ biến môi trường).
+
+## 📱 Build IPA cho iPhone (GitHub Actions)
+
+Workflow [`.github/workflows/ios-ipa.yml`](.github/workflows/ios-ipa.yml) dựng `.ipa` **không ký** trên macOS runner; Sideloadly ký bằng Apple ID của bạn (không cần Mac).
+
+Vercel cấp key cho bản web qua biến môi trường, còn runner iOS **không có sẵn** các biến đó — thiếu là bản cài mở ra không kết nối được database, không dùng được AI. Thêm chúng một lần tại
+**Settings → Secrets and variables → Actions → New repository secret** (cùng tên với `build.sh`):
+
+| Secret | Bắt buộc | Dùng cho |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | ☁️ Nên có | Database, đồng bộ, bảng xếp hạng |
+| `OPENROUTER_API_KEY` / `GEMINI_API_KEY` | 🤖 Nên có | AI Coach |
+| `FIREBASE_*` (6 biến) | 🔐 Nên có | Đăng nhập / sao lưu theo tài khoản |
+
+Bước *Configure Flutter iOS project* in ra **đã nạp bao nhiêu/11 cấu hình** và liệt kê tên secret còn thiếu (chỉ tên, không bao giờ in giá trị).
+
+**Không có secret cũng vẫn dùng được:** mở app → tab **Tôi** → thẻ **Cloud & AI** → dán `Supabase URL`, `Supabase anon key`, `OpenRouter API key` ngay trên máy (lưu cục bộ, mở lại app để áp cấu hình cloud).
+
+### App khác web ở điểm nào
+
+Thẻ **Trải nghiệm riêng trên app** (tab Tôi) đọc trực tiếp ma trận trong [`lib/core/platform/platform_capabilities.dart`](lib/core/platform/platform_capabilities.dart):
+
+| Tính năng | App iOS/Android | Web / PWA |
+|---|---|---|
+| Bảng chia sẻ hệ thống | ✅ Zalo, Messenger, SMS… | Web Share API, fallback clipboard |
+| Nhắc học / digest / nhắc flashcard | ✅ chạy offline, kể cả khi app đóng | ❌ |
+| Widget màn hình chính | ✅ Android (iOS: đang bổ sung) | ❌ |
+| Rung & âm thanh phản hồi | ✅ | ❌ |

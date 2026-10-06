@@ -45,9 +45,11 @@ void main() {
 
       final saved = repo.getTaskById('t-new');
       expect(saved, isNotNull);
+      // `saved!` ở dòng đầu cũng đưa `saved` về non-nullable cho hai dòng sau
+      // (Dart 3 promotion), nên các dòng sau không cần `!` nữa.
       expect(saved!.title, 'Ôn Toán');
-      expect(saved!.createdAt, isNotNull);
-      expect(saved!.updatedAt, isNotNull);
+      expect(saved.createdAt, isNotNull);
+      expect(saved.updatedAt, isNotNull);
     });
 
     test('máy B áp snapshot máy A thì thấy task vừa thêm + bắn revision', () async {

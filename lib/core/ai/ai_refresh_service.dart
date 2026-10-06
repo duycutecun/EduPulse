@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../config.dart';
+import 'ai_config.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/storage_service.dart';
 import 'ai_daily_briefing.dart';
@@ -92,6 +92,6 @@ class AiRefreshService {
   /// nên vòng lặp chạy thuần local.
   static bool get _canCallAi {
     if (StorageService.getBool('ai_permission_analyze') == false) return false;
-    return PwaService.isWeb || AppConfig.openRouterApiKey.isNotEmpty;
+    return PwaService.isWeb || AiConfig.openRouterApiKey.isNotEmpty;
   }
 }

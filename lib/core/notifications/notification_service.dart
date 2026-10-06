@@ -46,6 +46,98 @@ class NotificationService {
     }
   }
 
+  /// Xin quyền gửi thông báo ở thời điểm **người dùng thật sự muốn** (bật
+  /// switch Nhắc học / Digest / Gửi thử), không xin lúc cài đặt.
+  ///
+  /// Trên iOS quyền thông báo **một khi bị từ chối là không hỏi lại**: xin
+  /// sớm lúc mở app rồi bị từ chối nghĩa là nhắc học vĩnh viễn không hoạt
+  /// động. Vì vậy [init] cố tình để `requestAlertPermission: false` và chỉ
+  /// hỏi đúng lúc người dùng bật tính năng.
+  ///
+  /// Trả về `true` khi quyền đã được cấp, `false` khi máy chặn rõ ràng,
+  /// và `null` khi nền tảng không cần quyền runtime (Android < 13) — caller
+  /// phải coi `null` là **được phép**, nếu không sẽ tắt mất nhắc học trên máy
+  /// Android cũ.
+  static Future<bool?> requestPermission() async {
+    if (!isSupported) return false;
+    await init();
+    if (!_initialized) return null;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final ios = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        return await ios?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            ) ??
+            false;
+      }
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final android = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        // Android < 13: không có quyền runtime → plugin trả null.
+        return await android?.requestNotificationsPermission();
+      }
+    } catch (_) {
+      // Nền tảng không bind plugin (test) → không xác định được quyền.
+    }
+    return null;
+  }
+
+  /// Quyền thông báo hiện tại (iOS/Android 13+). `null` = không kiểm tra được.
+  static Future<bool?> permissionGranted() async {
+    if (!isSupported || !_initialized) return null;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final ios = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        final status = await ios?.checkPermissions();
+        return status?.isEnabled;
+      }
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final android = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        return await android?.areNotificationsEnabled();
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Hiển thị ngay một thông báo — dùng cho nút "Gửi thử" ở tab Tôi, để
+  /// người dùng biết chắc tiếng Việt + icon hiện đúng trên máy mình thay vì
+  /// phải chờ tới giờ nhắc thật.
+  static Future<bool> showNow({
+    required String title,
+    required String body,
+    int id = 1099,
+  }) async {
+    if (!isSupported) return false;
+    await init();
+    if (!_initialized) return false;
+    try {
+      const details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          'daily_study_reminder',
+          'Nhắc học hằng ngày',
+          channelDescription: 'Nhắc nhở duy trì thói quen học mỗi ngày',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      );
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Id lịch nhắc học hằng ngày.
   static const int reminderId = 1001;
 

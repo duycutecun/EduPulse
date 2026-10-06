@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
-import '../../core/config.dart';
+import 'ai_config.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../core/utils/now_context.dart';
 import 'proxy_error.dart';
@@ -122,7 +122,7 @@ class OpenRouterService {
     String? studyContext,
   }) async* {
     final onWeb = _onWeb;
-    if (!onWeb && AppConfig.openRouterApiKey.isEmpty) {
+    if (!onWeb && AiConfig.openRouterApiKey.isEmpty) {
       yield '❌ Chưa cấu hình OpenRouter API Key.';
       return;
     }
@@ -142,7 +142,7 @@ class OpenRouterService {
           ? {'Content-Type': 'application/json'}
           : {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${AppConfig.openRouterApiKey}',
+              'Authorization': 'Bearer ${AiConfig.openRouterApiKey}',
               'HTTP-Referer': 'https://edu-pulse-five.vercel.app',
               'X-Title': 'EduPulse',
             };
@@ -219,7 +219,7 @@ class OpenRouterService {
     // Trên desktop/mobile (không CORS) cần key build-time; trên web key do
     // proxy `/api/openrouter` giữ phía server.
     final onWeb = _onWeb;
-    if (!onWeb && AppConfig.openRouterApiKey.isEmpty) {
+    if (!onWeb && AiConfig.openRouterApiKey.isEmpty) {
       return '❌ Chưa cấu hình OpenRouter API Key (thiếu biến môi trường OPENROUTER_API_KEY khi build).';
     }
 
@@ -238,7 +238,7 @@ class OpenRouterService {
           ? {'Content-Type': 'application/json'}
           : {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${AppConfig.openRouterApiKey}',
+              'Authorization': 'Bearer ${AiConfig.openRouterApiKey}',
               'HTTP-Referer': 'https://edu-pulse-five.vercel.app',
               'X-Title': 'EduPulse',
             };

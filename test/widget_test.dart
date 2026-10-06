@@ -9,7 +9,6 @@ import 'package:edupulse/app/main_shell.dart';
 import 'package:edupulse/core/theme/app_theme.dart';
 import 'package:edupulse/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:edupulse/features/study/domain/study_analytics.dart';
-import 'package:edupulse/features/tasks/domain/repositories/task_repository.dart';
 import 'package:edupulse/shared/widgets/note_markdown.dart';
 import 'package:edupulse/core/notifications/adaptive_policy.dart';
 import 'package:edupulse/features/study/domain/learning_profile.dart';

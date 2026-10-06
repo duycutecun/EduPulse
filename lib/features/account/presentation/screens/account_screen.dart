@@ -21,7 +21,9 @@ import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
+import '../widgets/cloud_ai_card.dart';
 import '../widgets/family_report_sheet.dart';
+import '../widgets/native_experience_card.dart';
 import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -622,6 +624,14 @@ class _AccountScreenState extends State<AccountScreen> {
         _buildAppearanceCard(),
         const SizedBox(height: 18),
         _buildReminderCard(),
+        const SizedBox(height: 18),
+        // Khác biệt app vs web (widget/noti/chia sẻ) — đặt ngay dưới phần
+        // nhắc học vì đó là tính năng native dễ thấy nhất.
+        const NativeExperienceCard(),
+        const SizedBox(height: 18),
+        // Bản cài (.ipa/.apk) có thể không có sẵn cấu hình cloud/AI như bản
+        // web — cho người dùng dán khoá tại chỗ để dùng được ngay.
+        const CloudAiCard(),
         const SizedBox(height: 18),
         _buildPreferencesCard(),
         const SizedBox(height: 18),
@@ -1540,6 +1550,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 setState(() => _digestEnabled = v);
                 StorageService.setBool('notif_digest_enabled', v);
                 if (v) {
+                  // Digest cũng là thông báo thật → phải có quyền trên iOS.
+                  if (!await _ensureNotificationPermission()) return;
                   await AdaptivePolicy.scheduleDigest(
                     tasks: _digestTasks(),
                     sessions: const [],
@@ -1570,16 +1582,35 @@ class _AccountScreenState extends State<AccountScreen> {
       .whereType<TodayTask>()
       .toList();
 
-  void _setReminderEnabled(bool v) {
+  /// Xin quyền thông báo **đúng lúc người dùng bật tính năng**.
+  ///
+  /// iOS chỉ hỏi một lần duy nhất trong đời app: nếu hỏi sớm lúc mở app mà
+  /// người dùng bấm "Không cho phép" thì nhắc học coi như chết vĩnh viễn.
+  /// Trả về `false` chỉ khi máy chặn rõ ràng (`null` = Android cũ không cần
+  /// quyền runtime → vẫn cho đặt lịch).
+  Future<bool> _ensureNotificationPermission() async {
+    final granted = await NotificationService.requestPermission();
+    if (granted == false && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Máy đang chặn thông báo. Mở Cài đặt hệ thống → EduPulse → Thông báo để bật nhé.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+    return granted != false;
+  }
+
+  Future<void> _setReminderEnabled(bool v) async {
     setState(() => _reminderEnabled = v);
     StorageService.setBool('reminder_enabled', v);
     if (v) {
-      NotificationService.scheduleDaily(
+      if (!await _ensureNotificationPermission()) return;
+      await NotificationService.scheduleDaily(
         hour: _reminderHour,
         minute: _reminderMinute,
       );
     } else {
-      NotificationService.cancel();
+      await NotificationService.cancel();
     }
   }
 
@@ -1603,7 +1634,7 @@ class _AccountScreenState extends State<AccountScreen> {
     StorageService.setInt('reminder_hour', picked.hour);
     StorageService.setInt('reminder_minute', picked.minute);
     if (_reminderEnabled) {
-      NotificationService.scheduleDaily(
+      await NotificationService.scheduleDaily(
           hour: picked.hour, minute: picked.minute);
     }
   }

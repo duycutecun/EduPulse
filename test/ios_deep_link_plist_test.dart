@@ -10,8 +10,9 @@ void main() {
 
     final root = XmlDocument.parse(file.readAsStringSync());
 
-    final urlTypes = root.findAllElements('key')
-        .where((el) => el.text == 'CFBundleURLTypes')
+    final urlTypes = root
+        .findAllElements('key')
+        .where((el) => el.innerText == 'CFBundleURLTypes')
         .map((keyEl) => keyEl.nextElementSibling)
         .whereType<XmlElement>()
         .toList();
@@ -19,9 +20,10 @@ void main() {
         reason: 'CFBundleURLTypes not found in Info.plist');
 
     final urlType = urlTypes.first;
-    final urlSchemes = urlType?.findAllElements('string')
-        .where((el) => el.text == 'edupulse')
-        .toList() ?? [];
+    final urlSchemes = urlType
+        .findAllElements('string')
+        .where((el) => el.innerText == 'edupulse')
+        .toList();
     expect(urlSchemes.isNotEmpty, isTrue,
         reason: 'edupulse scheme not found in CFBundleURLSchemes');
   });

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import '../../features/study/domain/models/study_models.dart';
-import '../config.dart';
+import 'ai_config.dart';
 import '../utils/gemini_service.dart';
 import '../utils/web_search_service.dart';
 import 'ai_models.dart';
@@ -10,7 +10,7 @@ import 'openrouter_service.dart';
 /// Định tuyến request chat của AI Coach đến service phù hợp theo model.
 ///
 /// - Các model có slug bắt đầu bằng `gemini/` gọi trực tiếp Gemini API bằng
-///   key chủ app cấu hình trong `AppConfig.geminiApiKey`.
+///   key chủ app cấu hình trong `AiConfig.geminiApiKey`.
 /// - Mọi model khác chạy qua OpenRouter (một key duy nhất của app + failover).
 ///
 /// Trên web, cả hai đều đi qua proxy serverless cùng origin (`/api/openrouter`,
@@ -64,7 +64,7 @@ class AiRouter {
     if (searchWeb && !hasImage) {
       try {
         final lookup = await WebSearchService.lookup(userMessage,
-            tavilyApiKey: AppConfig.tavilyApiKey);
+            tavilyApiKey: AiConfig.tavilyApiKey);
         webContext = lookup?.toPromptBlock();
         lastWebSource = lookup;
       } catch (_) {
@@ -150,7 +150,7 @@ class AiRouter {
     if (searchWeb && !hasImage) {
       try {
         final lookup = await WebSearchService.lookup(userMessage,
-            tavilyApiKey: AppConfig.tavilyApiKey);
+            tavilyApiKey: AiConfig.tavilyApiKey);
         webContext = lookup?.toPromptBlock();
         // Ghi nguồn để UI hiển thị source card (ưu tiên nguồn
         // authoritative — Wikipedia/Tavily được service chọn sẵn).
@@ -301,7 +301,7 @@ class AiRouter {
   }) async* {
     if (m.slug.startsWith('gemini/')) {
       final response = await GeminiService.chat(
-        apiKey: AppConfig.geminiApiKey,
+        apiKey: AiConfig.geminiApiKey,
         history: history,
         userMessage: userMessage,
         imageBytes: imageBytes,
@@ -334,7 +334,7 @@ class AiRouter {
   }) {
     if (m.slug.startsWith('gemini/')) {
       return GeminiService.chat(
-        apiKey: AppConfig.geminiApiKey,
+        apiKey: AiConfig.geminiApiKey,
         history: history,
         userMessage: userMessage,
         imageBytes: imageBytes,

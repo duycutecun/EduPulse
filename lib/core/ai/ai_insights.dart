@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show ValueNotifier, kIsWeb;
 
-import '../config.dart';
+import 'ai_config.dart';
 import '../utils/storage_service.dart';
 import 'ai_context.dart';
 import 'ai_models.dart';
@@ -132,7 +132,7 @@ class AiInsights {
     // Chỉ gọi khi có kênh gọi thật (web đi proxy, native cần API key).
     // Không đủ điều kiện → giữ gợi ý quy tắc/cũ, tránh gọi mù và tránh
     // để lại timer treo trong môi trường test.
-    if (!(kIsWeb || AppConfig.openRouterApiKey.isNotEmpty)) return null;
+    if (!(kIsWeb || AiConfig.openRouterApiKey.isNotEmpty)) return null;
 
     final context = AiStudyContext.build();
     if (context.isEmpty) return null;

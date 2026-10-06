@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:edupulse/features/tasks/domain/models/task_state.dart';
 import 'package:edupulse/features/tasks/domain/repositories/task_repository.dart';
 import 'package:edupulse/features/tasks/presentation/widgets/task_detail_sheet.dart';
 import 'app_navigator_key.dart';
-import '../features/home/presentation/screens/home_screen.dart';
 
 /// Route deep-link: `task/<id>` → mở chi tiết task.
 ///

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../core/platform/platform_capabilities.dart';
+import '../../../../core/share/share_service.dart';
+import '../../../../core/share/share_text.dart';
 import '../../../../core/utils/feedback_service.dart';
+import '../../../../core/utils/storage_service.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/subject_catalog.dart';
@@ -91,6 +95,43 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  /// Chia sẻ tóm tắt tiến độ tuần.
+  ///
+  /// Một API duy nhất cho cả hai nền tảng: trên app là bảng chia sẻ hệ thống
+  /// (Zalo, Messenger, SMS…), trên web là Web Share API hoặc sao chép
+  /// clipboard — nên thông báo trả về cho người dùng cũng nói đúng việc vừa
+  /// xảy ra thay vì luôn hứa "đã chia sẻ".
+  Future<void> _shareProgress() async {
+    final snapshot = _snapshot;
+    if (snapshot == null) return;
+
+    final exam = ExamRepository.instance.primaryExam;
+    final text = ShareText.progressSummary(
+      weekHours: snapshot.week.totalHours,
+      completionRatePercent: (snapshot.week.completionRate * 100).round(),
+      streakDays: StorageService.getStreak(),
+      examName: exam?.name,
+      daysToExam: exam?.daysLeftAt(widget.clock()),
+    );
+
+    FeedbackService.selection();
+    final shared = await ShareService.shareText(
+      text,
+      subject: 'Tiến độ học tập — EduPulse',
+    );
+    if (!mounted) return;
+
+    final message = !shared
+        ? 'Không chia sẻ được lúc này — thử lại sau nhé.'
+        : PlatformCapabilities.supports(NativeFeature.systemShare)
+            ? 'Chọn ứng dụng để gửi tiến độ nhé!'
+            : 'Đã sao chép tiến độ — dán vào nơi bạn muốn chia sẻ.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
@@ -134,23 +175,63 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            // Tiêu đề cố định 1 dòng: có thêm nút Chia sẻ ở bên phải, nếu để
+            // tiêu đề tự xuống dòng thì hàng tiêu đề cao gấp đôi và đẩy CTA
+            // "Bắt đầu học ngay" ra khỏi màn hình thấp (390x844).
             children: const [
               Text('Tiến độ học tập',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               SizedBox(height: 2),
               Text('Nhìn nhanh tuần này bạn đang tiến bộ thế nào',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style:
                       TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             ],
           ),
         ),
         if (widget.onOpenExams != null)
-          IconButton(
+          _headerIcon(
             tooltip: 'Quản lý kỳ thi',
-            onPressed: widget.onOpenExams,
-            icon: const Icon(Icons.flag_outlined),
+            icon: Icons.flag_outlined,
+            onPressed: widget.onOpenExams!,
           ),
+        _headerIcon(
+          key: const Key('progress-share'),
+          tooltip: 'Chia sẻ tiến độ',
+          icon: Icons.ios_share_rounded,
+          onPressed: _shareProgress,
+        ),
       ],
+    );
+  }
+
+  /// Nút icon trong hàng tiêu đề — cố tình **nhỏ hơn** kích thước chuẩn 48px
+  /// của Material (36px, padding 0). Nút chuẩn cao hơn cả khối tiêu đề hai
+  /// dòng, nên thêm một nút là đẩy toàn bộ nội dung bên dưới xuống ~12px và
+  /// đẩy CTA "Bắt đầu học ngay" ra khỏi màn 844px — đúng lỗi mà
+  /// `ui_acceptance_test` bắt được.
+  Widget _headerIcon({
+    Key? key,
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        key: key,
+        tooltip: tooltip,
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        iconSize: 20,
+        visualDensity: VisualDensity.compact,
+        constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+        icon: Icon(icon),
+      ),
     );
   }
 

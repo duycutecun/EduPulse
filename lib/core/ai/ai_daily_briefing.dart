@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show ValueNotifier, kIsWeb;
 
-import '../config.dart';
+import 'ai_config.dart';
 import '../utils/storage_service.dart';
 import 'ai_context.dart';
 import 'ai_models.dart';
@@ -135,7 +135,7 @@ class AiDailyBriefing {
   /// tránh gọi mù (fail) và tránh để lại timer treo trong môi trường test.
   static bool get _canCallAi {
     if (StorageService.getBool('ai_permission_analyze') == false) return false;
-    return kIsWeb || AppConfig.openRouterApiKey.isNotEmpty;
+    return kIsWeb || AiConfig.openRouterApiKey.isNotEmpty;
   }
 
   // --- AI briefing -----------------------------------------------------
