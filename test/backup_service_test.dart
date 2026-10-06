@@ -172,10 +172,15 @@ void main() {
   group('BackupSnapshot.apply — bản mới nhất thắng', () {
     test('ghi đè dữ liệu máy bằng bản cloud', () {
       seedEverything();
+      // Thành lập bản phụ liệu (previousSnapshot) để capture sau này phát
+      // hiện khoá bị xoá qua danh sách _deleted_keys.
+      StorageService.setString(
+          BackupSnapshot.previousSnapshotKey, jsonEncode(BackupSnapshot.capture()));
+      // Xoá task_t1 khỏi storage thật sự để capture phát hiện việc xoá.
+      StorageService.removeTodayTask('t1');
       final cloud = BackupSnapshot.capture()
         ..['user_name'] = 'Minh trên máy tính'
-        ..['user_xp'] = 9999
-        ..remove('task_t1');
+        ..['user_xp'] = 9999;
 
       BackupSnapshot.apply(cloud);
 
@@ -189,6 +194,11 @@ void main() {
       seedEverything();
       StorageService.setStudyNoteIds(['n1', 'n2']);
       StorageService.setStudyNoteJson('n2', '{"id":"n2","title":"Cục bộ"}');
+
+      // Thành lập bản phụ liệu (previousSnapshot) để capture sau này phát
+      // hiện khoá bị xoá qua danh sách _deleted_keys.
+      StorageService.setString(
+          BackupSnapshot.previousSnapshotKey, jsonEncode(BackupSnapshot.capture()));
 
       // Máy B xoá ghi chú n2 rồi đồng bộ lên cloud → đây là bản cloud.
       StorageService.removeStudyNote('n2');

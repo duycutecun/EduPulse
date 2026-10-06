@@ -343,7 +343,8 @@ class BackupService {
   static String get _fingerprint =>
       BackupService.fingerprint(BackupSnapshot.capture());
 
-  /// Snapshot có dữ liệu thật không (không tính khoá phiên bản)?
+  /// Snapshot có dữ liệu thật không (không tính khoá phiên bản và khoá
+  /// metadata nội như `_deleted_keys`)?
   ///
   /// Dùng để quyết định lúc hai bên lệch nhau: một bản sao lưu rỗng không đáng
   /// để ghi đè dữ liệu thật trên máy.
@@ -352,6 +353,7 @@ class BackupService {
     if (payload is! Map) return false;
     for (final key in payload.keys) {
       if ('$key' == BackupSnapshot.schemaKey) continue;
+      if ('$key' == '_deleted_keys') continue;
       return true;
     }
     return false;
@@ -789,6 +791,23 @@ class BackupSnapshot {
       if (value == null) continue;
       out[key] = value;
     }
+
+    /// Phát hiện xoá: khoá có trong snapshot cũ nhưng không có trong bản hiện
+    /// tại → đã bị xoá, cần đẩy xuống máy khác để khớp trạng thái.
+    final deletedKeys = <String>[];
+    final previous = previousSnapshot;
+    if (previous != null) {
+      try {
+        final prevMap = jsonDecode(previous) as Map<String, dynamic>;
+        for (final key in prevMap.keys) {
+          if (key == schemaKey || key == '_deleted_keys') continue;
+          if (!out.containsKey(key)) deletedKeys.add(key);
+        }
+      } catch (_) {
+        // Bản cũ hỏng → không phát hiện xoá, an toàn.
+      }
+    }
+    out['_deleted_keys'] = deletedKeys;
     return out;
   }
 
@@ -808,20 +827,24 @@ class BackupSnapshot {
       if (BackupService.deviceLocalKeys.contains(key)) return;
       if (key.startsWith(BackupService.attachmentPrefix)) return;
       if (key.startsWith(BackupService.attachmentIndexPrefix)) return;
+      if (key == '_deleted_keys') return; // metadata, xử lý bên dưới
       _write(prefs, key, value);
     });
 
-    for (final key in prefs.getKeys().toList()) {
-      if (BackupService.deviceLocalKeys.contains(key)) continue;
-      if (key.startsWith(BackupService.attachmentIndexPrefix)) continue;
-      // KHÔNG xoá dữ liệu ảnh ở đây: ảnh không nằm trong snapshot mà nằm ở bảng
-      // riêng, việc dọn ảnh là của `_reconcileBlobs` (nó tải về trước rồi mới
-      // xoá cái thừa). Xoá ở đây nghĩa là xoá ảnh trước khi kịp tải lại — mất
-      // ảnh chỉ vì một lần tải thất bại.
-      if (key.startsWith(BackupService.attachmentPrefix)) continue;
-      if (payload.containsKey(key)) continue;
-      prefs.remove(key);
+    /// Xử lý xoá từ snapshot máy khác — duy nhất để biết khoá nào thực sự đã
+    /// bị xoá (không phải chỉ không có ở máy đó).
+    final deletedKeys = payload['_deleted_keys'];
+    if (deletedKeys is List) {
+      for (final key in deletedKeys) {
+        if (key is! String) continue;
+        if (BackupService.deviceLocalKeys.contains(key)) continue;
+        if (key.startsWith(BackupService.attachmentPrefix)) continue;
+        if (key.startsWith(BackupService.attachmentIndexPrefix)) continue;
+        prefs.remove(key);
+      }
     }
+    // Coi khoá cục bộ không có trong payload là giữ lại (merge) — tránh mất
+    // dữ liệu khi máy khác chưa biết về khoá đó.
 
     _afterApply();
   }
