@@ -54,10 +54,8 @@ jobs:
         run: flutter pub get
 
       - name: Build iOS IPA
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          flutter build ipa --no-codesign --export-options-path ./ios/ExportOptions.plist
+          flutter build ipa --no-codesign
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
