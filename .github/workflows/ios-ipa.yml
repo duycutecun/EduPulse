@@ -53,9 +53,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build iOS IPA
+      - name: Build iOS app (unsigned, for Sideloadly)
         run: |
-          flutter build ipa --no-codesign
+          flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA (Payload + zip)
+        run: |
+          mkdir -p build/ios/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -qry EduPulse-unsigned.ipa Payload
+          rm -rf Payload
+          ls -la
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
