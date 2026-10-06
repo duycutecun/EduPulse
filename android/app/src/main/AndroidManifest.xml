@@ -29,6 +29,14 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link: mở app thẳng vào task cụ thể -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="edupulse" />
+                <data android:host="task" />
+            </intent-filter>
         </activity>
         <!-- flutter_local_notifications: nhận sự kiện khởi động lại thiết bị để
              lên lại lịch notification đã lên. -->

@@ -1,4 +1,5 @@
 import 'package:edupulse/features/tasks/domain/repositories/task_repository.dart';
+import 'deep_link_handler.dart';
 import 'dart:async';
 import '../../../../core/utils/feedback_service.dart';
 import 'package:flutter/material.dart';
@@ -29,9 +30,13 @@ class MainShellScreen extends StatefulWidget {
   /// sidebar). Mặc định là đồng hồ thật; test E2E truyền đồng hồ giả.
   final DateTime Function() clock;
 
+  /// ID task từ deep-link (nếu có). Nếu null, không làm gì thêm.
+  final String? deepLinkTaskId;
+
   const MainShellScreen({
     super.key,
     this.clock = DateTime.now,
+    this.deepLinkTaskId,
   });
 
   @override
@@ -167,6 +172,19 @@ class _MainShellScreenState extends State<MainShellScreen>
     _exams = ExamRepository.instance.getAll();
     _streak = StorageService.getStreak();
     setState(() {});
+
+    // Xử lý deep-link task (nếu có).
+    if (widget.deepLinkTaskId != null && mounted) {
+      _handleDeepLinkTask(widget.deepLinkTaskId!);
+    }
+  }
+
+  void _handleDeepLinkTask(String taskId) {
+    // Gọi handler để mở chi tiết task.
+    DeepLinkHandler.openTaskDetail(
+      context,
+      taskId: taskId,
+    );
   }
 
   void _setPrimaryExam(ExamModel exam) {

@@ -18,6 +18,8 @@ import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/study/domain/models/study_models.dart';
 import 'app/main_shell.dart';
+import 'app/deep_link_handler.dart';
+import 'app/app_navigator_key.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,6 +108,7 @@ class EduPulseApp extends StatelessWidget {
       builder: (context, highContrast, _) => MaterialApp(
         title: 'EduPulse',
         debugShowCheckedModeBanner: false,
+        navigatorKey: appNavigatorKey,
         theme: AppTheme.lightWithContrast(highContrast),
         builder: (context, child) {
           // Font size adaptive toàn app (đặc tả mục 20): nhân với system
@@ -143,6 +146,7 @@ class EduPulseApp extends StatelessWidget {
   /// Màn hình khởi đầu:
   /// - Nếu URL có `oobCode` + `mode=resetPassword` (bấm link reset từ email)
   ///   → mở màn đặt mật khẩu mới.
+  /// - Nếu URL là deep link task/<id> → xử lý mở chi tiết task.
   /// - Ngược lại: onboarding (lần đầu) hoặc MainShell.
   Widget _buildHome() {
     final params = Uri.base.queryParameters;
@@ -154,6 +158,16 @@ class EduPulseApp extends StatelessWidget {
         email: params['email'] ?? '',
       );
     }
+
+    // Deep link task:
+    final path = Uri.base.path;
+    if (path.startsWith('/task/')) {
+      final taskId = path.substring('/task/'.length);
+      // Khởi động MainShell trước, sau đó mở chi tiết task.
+      // Chúng tôi cần truyền taskId vào MainShell để xử lý khi app ready.
+      return MainShellScreen(taskId: taskId);
+    }
+
     return StorageService.isOnboardingDone()
         ? const MainShellScreen()
         : const OnboardingScreen();
