@@ -53,14 +53,28 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build iOS app (unsigned, for Sideloadly)
+      - name: Configure Flutter iOS project (no codesign)
         run: |
-          flutter build ios --release --no-codesign
+          flutter precache --ios
+          flutter build ios --config-only --release --no-codesign
+
+      - name: Build unsigned Runner.app with xcodebuild
+        run: |
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
 
       - name: Package unsigned IPA (Payload + zip)
         run: |
           mkdir -p build/ios/ipa/Payload
-          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cp -R build/ios/Build/Products/Release-iphoneos/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
           zip -qry EduPulse-unsigned.ipa Payload
           rm -rf Payload
