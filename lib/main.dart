@@ -18,7 +18,6 @@ import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/study/domain/models/study_models.dart';
 import 'app/main_shell.dart';
-import 'app/deep_link_handler.dart';
 import 'app/app_navigator_key.dart';
 
 void main() async {
@@ -146,7 +145,7 @@ class EduPulseApp extends StatelessWidget {
   /// Màn hình khởi đầu:
   /// - Nếu URL có `oobCode` + `mode=resetPassword` (bấm link reset từ email)
   ///   → mở màn đặt mật khẩu mới.
-  /// - Nếu URL là deep link task/<id> → xử lý mở chi tiết task.
+  /// - Nếu URL là deep link `task/<id>` → xử lý mở chi tiết task.
   /// - Ngược lại: onboarding (lần đầu) hoặc MainShell.
   Widget _buildHome() {
     final params = Uri.base.queryParameters;
@@ -165,7 +164,7 @@ class EduPulseApp extends StatelessWidget {
       final taskId = path.substring('/task/'.length);
       // Khởi động MainShell trước, sau đó mở chi tiết task.
       // Chúng tôi cần truyền taskId vào MainShell để xử lý khi app ready.
-      return MainShellScreen(taskId: taskId);
+      return MainShellScreen(deepLinkTaskId: taskId);
     }
 
     return StorageService.isOnboardingDone()
