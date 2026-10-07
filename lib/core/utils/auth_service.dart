@@ -56,10 +56,19 @@ class AuthService {
           AppConfig.firebaseProjectId.isEmpty) {
         return false;
       }
+      // Firebase iOS/Android yêu cầu app ID riêng theo nền tảng
+      // (`1:<projectNo>:ios:<hash>` / `1:<projectNo>:android:<hash>`). Nếu app ID
+      // không khớp platform đang chạy (vd truyền nhầm ID web `:web:` sang iOS),
+      // Firebase native iOS ném NSException "invalid GOOGLE_APP_ID" — crash ngay
+      // khi mở app. Guard ở đây bỏ qua init lặng lẽ thay vì để crash.
+      final appId = _platformFirebaseAppId();
+      if (!_isFirebaseAppIdValidForPlatform(appId)) {
+        return false;
+      }
       await Firebase.initializeApp(
         options: FirebaseOptions(
           apiKey: AppConfig.firebaseApiKey,
-          appId: AppConfig.firebaseAppId,
+          appId: appId,
           messagingSenderId: AppConfig.firebaseMessagingSenderId,
           projectId: AppConfig.firebaseProjectId,
           storageBucket: AppConfig.firebaseStorageBucket.isEmpty
@@ -306,6 +315,35 @@ class AuthService {
   }
 
   // ─── HELPERS ──────────────────────────────────────────────────────────────
+
+  /// App ID Firebase cho platform hiện tại. Ưu tiên ID riêng của nền tảng
+  /// (`FIREBASE_IOS_APP_ID`) nếu được cung cấp lúc build; fallback về
+  /// `FIREBASE_APP_ID` (web) chung.
+  static String _platformFirebaseAppId() {
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.iOS &&
+        AppConfig.firebaseIosAppId.isNotEmpty) {
+      return AppConfig.firebaseIosAppId;
+    }
+    return AppConfig.firebaseAppId;
+  }
+
+  /// Kiểm tra segment platform trong app ID có khớp platform đang chạy không.
+  /// Gọi Firebase.initializeApp với app ID sai platform là crash native thật sự
+  /// (NSException trên iOS), không thể bắt bằng try/catch Dart.
+  static bool _isFirebaseAppIdValidForPlatform(String appId) {
+    final parts = appId.split(':');
+    final platform = parts.length >= 3 ? parts[2] : '';
+    if (kIsWeb) return platform == 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return platform == 'ios';
+      case TargetPlatform.android:
+        return platform == 'android';
+      default:
+        return platform == 'web' || platform == 'ios' || platform == 'android';
+    }
+  }
 
   static String _mapAuthError(FirebaseAuthException e) {
     switch (e.code) {

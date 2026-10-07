@@ -78,4 +78,16 @@ class AppConfig {
     'FIREBASE_APP_ID',
     defaultValue: '',
   );
+
+  // Firebase Auth iOS — app ID dành riêng cho nền tảng iOS (định dạng
+  // `1:<projectNo>:ios:<hex>`), tạo bằng cách thêm app iOS trong Firebase
+  // console với bundle id `com.edu.edupulse`. Truyền lúc build iOS qua
+  // `--dart-define=FIREBASE_IOS_APP_ID=...` (xem .github/workflows/ios-ipa.yml).
+  // Nếu trống, app dùng `FIREBASE_APP_ID` (web `:web:`) và AuthService sẽ BỎ
+  // QUA đăng nhập Firebase trên iOS (không crash) vì app ID web không hợp lệ
+  // cho iOS.
+  static const String firebaseIosAppId = String.fromEnvironment(
+    'FIREBASE_IOS_APP_ID',
+    defaultValue: '',
+  );
 }
