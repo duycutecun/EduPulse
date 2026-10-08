@@ -120,7 +120,8 @@ void main() {
     expect(find.text('Phân bổ theo môn'), findsOneWidget);
   });
 
-  testWidgets('Bảng vàng trong Tài khoản và Storage TodayTask',
+  testWidgets(
+      'Tài khoản: Tóm tắt hồ sơ + Storage TodayTask round-trip',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -134,15 +135,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Vào Account tab
+    // Vào Account tab — không còn segment Bảng vàng, hiện thẳng hồ sơ.
     await tester.tap(navIcon(Icons.person_outline));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sĩ tử 2k9'), findsOneWidget);
-
-    // Chuyển sang segment Bảng vàng (Supabase chưa cấu hình → empty state)
-    await tester.tap(find.text('Bảng vàng'));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Bảng vàng đang chờ!'), findsOneWidget);
+    expect(find.text('Bảng vàng'), findsNothing);
+    expect(find.text('Hồ sơ & Gia đình'), findsOneWidget);
 
     // Storage round-trip TodayTask
     final task = TodayTask(

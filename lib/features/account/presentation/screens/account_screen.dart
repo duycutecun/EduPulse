@@ -5,25 +5,17 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import '../../../../core/utils/data_transfer.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/sync/backup_service.dart';
-import '../../../../core/sync/sync_state.dart';
-import '../../../../shared/widgets/sync_status_bar.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/notifications/notification_service.dart';
-import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/theme/appearance_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/utils/supabase_service.dart';
-import '../../../exams/domain/exam_repository.dart';
 import '../../../../shared/widgets/glass_card.dart';
-import '../../../../shared/widgets/leaderboard_view.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
-import '../widgets/cloud_ai_card.dart';
 import '../widgets/family_report_sheet.dart';
-import '../widgets/native_experience_card.dart';
 import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 
@@ -40,12 +32,8 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  int _activeSegment = 0;
   late String _userName;
   late String _userTarget;
-  bool _isSyncing = false;
-  bool _isRestoring = false;
-  late List<CommunityUser> _users;
 
   // Nhắc học hằng ngày
   bool _reminderEnabled = false;
@@ -61,21 +49,6 @@ class _AccountScreenState extends State<AccountScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _initLeaderboard();
-    // Supabase được khởi tạo sau frame đầu — khi xong sẽ tự nạp lại Bảng vàng.
-    SupabaseService.readyNotifier.addListener(_onSupabaseReady);
-  }
-
-  @override
-  void dispose() {
-    SupabaseService.readyNotifier.removeListener(_onSupabaseReady);
-    super.dispose();
-  }
-
-  void _onSupabaseReady() {
-    if (mounted && SupabaseService.isConfigured) {
-      _initLeaderboard();
-    }
   }
 
   void _loadData() {
@@ -91,16 +64,6 @@ class _AccountScreenState extends State<AccountScreen> {
     _reduceMotion = StorageService.getBool('reduce_motion') ?? false;
   }
 
-  void _initLeaderboard() async {
-    _users = [];
-    if (SupabaseService.isConfigured) {
-      final cloudUsers = await SupabaseService.fetchLeaderboard();
-      if (cloudUsers != null && cloudUsers.isNotEmpty && mounted) {
-        setState(() => _users = cloudUsers);
-      }
-    }
-  }
-
   void _updateProfile(String name, String target) {
     StorageService.setUserName(name);
     StorageService.setUserTarget(target);
@@ -109,241 +72,7 @@ class _AccountScreenState extends State<AccountScreen> {
       _userTarget = target;
     });
     widget.onDataChanged();
-    _syncProfileFireAndForget();
   }
-
-  Future<void> _syncProfileFireAndForget() async {
-    try {
-      await SupabaseService.syncProfile();
-    } catch (_) {
-      // Đồng bộ hồ sơ là background — lỗi không chặn thao tác của người dùng.
-    }
-  }
-
-  Future<void> _manualBackup() async {
-    if (!SupabaseService.isConfigured) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng')));
-      }
-      return;
-    }
-    setState(() => _isSyncing = true);
-    SyncStateService.markSyncing();
-    final ok = await SupabaseService.syncAll();
-    setState(() => _isSyncing = false);
-    // Cập nhật chip sync ở mọi nơi (sidebar, footer) theo kết quả thật.
-    if (ok) {
-      SyncStateService.markSynced();
-    } else {
-      SyncStateService.markError();
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Đã sao lưu!' : 'Sao lưu thất bại!'),
-        backgroundColor: ok ? AppColors.primary : AppColors.red,
-      ));
-    }
-  }
-
-  Future<void> _manualRestore() async {
-    if (!SupabaseService.isConfigured) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Cloud chưa sẵn sàng')));
-      }
-      return;
-    }
-    setState(() => _isRestoring = true);
-    SyncStateService.markSyncing();
-    final ok = await SupabaseService.restoreAll();
-    setState(() => _isRestoring = false);
-    if (ok) {
-      SyncStateService.markSynced();
-      _loadData();
-      widget.onDataChanged();
-    } else {
-      SyncStateService.markError();
-    }
-
-    // Có kỳ thi trùng phiên bản → HỎI, không tự lấy bản cloud đè lên bản máy.
-    // Bản máy đã được giữ nguyên trong lúc khôi phục.
-    if (mounted && SupabaseService.examConflicts.isNotEmpty) {
-      await _askExamConflictResolution();
-      return;
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Đã khôi phục!' : 'Khôi phục thất bại!'),
-        backgroundColor: ok ? AppColors.blue : AppColors.red,
-      ));
-    }
-  }
-
-  /// Dòng thông tin bản sao lưu tự động: lần lưu gần nhất, trạng thái, và
-  /// nút quay lại dữ liệu trước lần khôi phục vừa rồi.
-  ///
-  /// Nghe [SyncStateService.state] nên tự cập nhật mỗi khi có vòng đồng bộ,
-  /// không cần bấm tải lại màn hình.
-  Widget _autoBackupRow() {
-    return ValueListenableBuilder<SyncState>(
-      valueListenable: SyncStateService.state,
-      builder: (context, sync, _) {
-        final last = BackupService.syncedAtMs;
-        final when = last <= 0
-            ? 'chưa có bản sao lưu'
-            : 'lần lưu gần nhất: ${_clockLabel(last)}';
-        return Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.autorenew_rounded,
-                      size: 15, color: AppColors.textMuted),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Tự động sao lưu mọi thiết bị — $when',
-                      style: const TextStyle(
-                          fontSize: 11.5, color: AppColors.textMuted),
-                    ),
-                  ),
-                ],
-              ),
-              if (BackupSnapshot.canUndoLastRestore) ...[
-                const SizedBox(height: 6),
-                TextButton.icon(
-                  onPressed: _undoLastRestore,
-                  icon: const Icon(Icons.undo_rounded, size: 16),
-                  label: const Text('Quay lại dữ liệu trước khi khôi phục'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textMuted,
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    textStyle: const TextStyle(
-                        fontSize: 11.5, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _clockLabel(int epochMs) {
-    final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'vừa xong';
-    if (diff.inHours < 1) return '${diff.inMinutes} phút trước';
-    if (diff.inDays < 1) return '${diff.inHours} giờ trước';
-    return '${dt.day}/${dt.month}';
-  }
-
-  /// Quay lại dữ liệu cục bộ trước lần khôi phục từ bản sao lưu vừa rồi.
-  ///
-  /// Chính sách "luôn ưu tiên bản sao lưu gần nhất" rất tiện nhưng cũng là
-  /// nguồn rủi ro duy nhất: nếu vừa cài app lên máy mới mà máy đó có việc riêng
-  /// chưa kịp lên cloud, thay đổi đó sẽ bị bản cloud lấn át. Nút này là lối
-  /// quay lại.
-  Future<void> _undoLastRestore() async {
-    final ok = BackupSnapshot.undoLastRestore();
-    if (!ok) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không còn bản cục bộ trước đó.')),
-        );
-      }
-      return;
-    }
-    _loadData();
-    widget.onDataChanged();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Đã quay lại dữ liệu trước khi khôi phục.'),
-        backgroundColor: AppColors.blue,
-      ));
-    }
-  }
-
-  /// Hỏi người dùng chọn bản nào cho các kỳ thi bị trùng phiên bản.
-  ///
-  /// Gom **tất cả** mục vào MỘT hộp thoại: mười kỳ thi xung đột mà hỏi mười
-  /// lần thì người dùng sẽ bấm bừa và thành mất cả hai bản. Mặc định giữ bản
-  /// máy — luôn an toàn, không bao giờ mất dữ liệu người dùng vừa gõ.
-  Future<void> _askExamConflictResolution() async {
-    final conflicts = List<ExamConflict>.from(SupabaseService.examConflicts);
-    SupabaseService.examConflicts.clear();
-
-    final takeCloud = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Có kỳ thi khác nhau trên máy và cloud'),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${conflicts.length} kỳ thi bị khác phiên bản. Bạn đang giữ '
-                  'bản trên máy — chọn “Dùng bản cloud” để lấy bản trên cloud '
-                  'thay cho chúng.',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-                for (final c in conflicts)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(c.local.name,
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w700)),
-                    subtitle: Text(
-                      'Máy sửa ${_fmt(c.local.updatedAt)} · '
-                      'Cloud sửa ${_fmt(c.cloud.updatedAt)}',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Giữ bản trên máy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Dùng bản cloud'),
-          ),
-        ],
-      ),
-    );
-
-    if (takeCloud != true) return;
-    for (final c in conflicts) {
-      ExamRepository.instance.save(c.cloud);
-    }
-    if (!mounted) return;
-    _loadData();
-    widget.onDataChanged();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã lấy bản kỳ thi từ cloud')),
-    );
-  }
-
-  String _fmt(DateTime? at) => at == null
-      ? 'không rõ'
-      : '${at.day}/${at.month} ${at.hour}h${at.minute.toString().padLeft(2, '0')}';
 
   void _openAuthScreen() {
     Navigator.of(context).push(CupertinoPageRoute(
@@ -351,7 +80,6 @@ class _AccountScreenState extends State<AccountScreen> {
         onAuthSuccess: () async {
           Navigator.pop(ctx);
           _loadData();
-          await _manualBackup();
           if (mounted) setState(() {});
         },
         onSkip: () => Navigator.pop(ctx),
@@ -401,66 +129,8 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSegmentSwitcher(),
-          const SizedBox(height: 16),
-          if (_activeSegment == 0)
-            _buildProfileAndSettings()
-          else
-            _buildLeaderboardView(),
+          _buildProfileAndSettings(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSegmentSwitcher() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.bgPage,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 2),
-      ),
-      child: Row(
-        children: [
-          _segmentBtn(0, Icons.person_rounded, 'Hồ sơ'),
-          _segmentBtn(1, Icons.workspace_premium_rounded, 'Bảng vàng'),
-        ],
-      ),
-    );
-  }
-
-  Widget _segmentBtn(int index, IconData icon, String label) {
-    final active = _activeSegment == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _activeSegment = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 16, color: active ? Colors.white : AppColors.textMuted),
-              const SizedBox(width: 6),
-              // Flexible + ellipsis: nhãn dài không đẩy tràn nút segment khi
-              // màn hẹp (320px).
-              Flexible(
-                child: Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: active ? Colors.white : AppColors.textPrimary)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -475,102 +145,37 @@ class _AccountScreenState extends State<AccountScreen> {
         if (isLoggedIn && user != null) ...[
           GlassCard(
             padding: const EdgeInsets.all(18),
-            child: Column(
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    const AppIcon(
-                      Icons.cloud_done_rounded,
-                      tileSize: 44,
-                      iconSize: 24,
-                      color: AppColors.primary,
-                      bg: AppColors.greenSoft,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(user.email ?? 'EduPulse',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary)),
-                          Text('Đã kết nối đám mây',
-                              style: TextStyle(
-                                  fontSize: 11, color: AppColors.textMuted)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Đăng xuất',
-                      onPressed: _handleSignOut,
-                      icon: const Icon(Icons.logout,
-                          color: AppColors.red, size: 22),
-                    ),
-                  ],
+                const AppIcon(
+                  Icons.cloud_done_rounded,
+                  tileSize: 44,
+                  iconSize: 24,
+                  color: AppColors.primary,
+                  bg: AppColors.greenSoft,
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _isSyncing ? null : _manualBackup,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [
-                              BoxShadow(
-                                  color: AppColors.primaryDark,
-                                  blurRadius: 0,
-                                  offset: Offset(0, 3))
-                            ],
-                          ),
-                          child: Center(
-                            child: _isSyncing
-                                ? const CupertinoActivityIndicator(
-                                    color: Colors.white)
-                                : const Text('Sao lưu ngay',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800)),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _isRestoring ? null : _manualRestore,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.cardWhite,
-                            borderRadius: BorderRadius.circular(12),
-                            border:
-                                Border.all(color: AppColors.border, width: 2),
-                          ),
-                          child: Center(
-                            child: _isRestoring
-                                ? const CupertinoActivityIndicator()
-                                : Text('Khôi phục',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user.email ?? 'EduPulse',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary)),
+                      Text('Đã đăng nhập · dữ liệu lưu trên máy',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.textMuted)),
+                    ],
+                  ),
                 ),
-                // Trạng thái bản sao lưu tự động: app luôn tự sao lưu, hai nút
-                // trên chỉ để thao tác khi cần (bấm tay khi đang offline, hoặc
-                // muốn ép khôi phục từ bảng per-table cũ).
-                _autoBackupRow(),
+                IconButton(
+                  tooltip: 'Đăng xuất',
+                  onPressed: _handleSignOut,
+                  icon: const Icon(Icons.logout,
+                      color: AppColors.red, size: 22),
+                ),
               ],
             ),
           ),
@@ -595,13 +200,13 @@ class _AccountScreenState extends State<AccountScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tạo tài khoản & Sao lưu',
+                        Text('Tạo tài khoản',
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.textPrimary)),
                         SizedBox(height: 2),
-                        Text('Đăng nhập để đồng bộ trên nhiều thiết bị',
+                        Text('Quản lý hồ sơ và cài đặt trên thiết bị này',
                             style: TextStyle(
                                 fontSize: 12, color: AppColors.textMuted)),
                       ],
@@ -615,27 +220,42 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ],
         const SizedBox(height: 18),
+        Text('Hồ sơ & Gia đình',
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary)),
+        const SizedBox(height: 10),
+        _buildProfileSummary(),
+        const SizedBox(height: 10),
         _buildLearningProfileEntry(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         _buildFamilyReportEntry(),
         const SizedBox(height: 18),
-        _buildSyncStateCard(),
-        const SizedBox(height: 18),
+        Text('Hiển thị & Nhắc học',
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary)),
+        const SizedBox(height: 10),
         _buildAppearanceCard(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         _buildReminderCard(),
         const SizedBox(height: 18),
-        // Khác biệt app vs web (widget/noti/chia sẻ) — đặt ngay dưới phần
-        // nhắc học vì đó là tính năng native dễ thấy nhất.
-        const NativeExperienceCard(),
-        const SizedBox(height: 18),
-        // Bản cài (.ipa/.apk) có thể không có sẵn cấu hình cloud/AI như bản
-        // web — cho người dùng dán khoá tại chỗ để dùng được ngay.
-        const CloudAiCard(),
-        const SizedBox(height: 18),
+        Text('Cá nhân hóa & Dữ liệu',
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary)),
+        const SizedBox(height: 10),
         _buildPreferencesCard(),
-        const SizedBox(height: 18),
-        Container(
+      ],
+    );
+  }
+
+  /// Thẻ tóm tắt hồ sơ (tên, mục tiêu, linh vật) — khối lớn đầu nhóm Hồ sơ.
+  Widget _buildProfileSummary() {
+    return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -722,15 +342,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLeaderboardView() {
-    return LeaderboardView(
-      users: _users,
-    );
+        );
   }
 
   Widget _buildPreferencesCard() {
@@ -1187,44 +799,6 @@ class _AccountScreenState extends State<AccountScreen> {
           },
         ),
       ));
-  }
-
-  /// Thẻ trạng thái đồng bộ (đặc tả mục 19 — Sync states): hiển thị
-  /// Online/Syncing/Synced/Offline nhẹ nhàng, nút đồng bộ ngay.
-  Widget _buildSyncStateCard() {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const Expanded(child: SyncStatusBar()),
-          const SizedBox(width: 10),
-          TextButton.icon(
-            onPressed: (!PwaService.isOnline || !SupabaseService.isConfigured)
-                ? null
-                : () async {
-                    setState(() => _isSyncing = true);
-                    SyncStateService.markSyncing();
-                    final ok = await SupabaseService.syncAll();
-                    if (mounted) setState(() => _isSyncing = false);
-                    if (ok) {
-                      SyncStateService.markSynced();
-                    } else {
-                      SyncStateService.markError();
-                    }
-                  },
-            icon: _isSyncing
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CupertinoActivityIndicator(),
-                  )
-                : const Icon(Icons.sync_rounded, size: 16),
-            label: const Text('Đồng bộ ngay',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Thẻ Hiển thị (đặc tả mục 20): font size adaptive S/M/L toàn app.
