@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:realtime_client/realtime_client.dart';
 
 import '../ai/weekly_report.dart';
+import '../config.dart';
 import '../utils/auth_service.dart';
 import '../utils/supabase_service.dart';
 import 'family_models.dart';
@@ -35,8 +36,9 @@ class FamilyActionException implements Exception {
 class FamilyService {
   FamilyService._();
 
-  /// Bản deploy cùng origin (web/PWA) hoặc host đang phục vụ app.
-  static Uri _endpoint() => Uri.base.resolve('/api/family');
+  /// Bản deploy cùng origin (web) hoặc host production (native). Trên iOS/Android
+  /// `Uri.base` là URI file:// của app, resolve ra `file:///api/family` — mạng vỡ.
+  static Uri _endpoint() => AppConfig.apiBase().resolve('/api/family');
 
   static bool get isLoggedIn => AuthService.isLoggedIn;
 

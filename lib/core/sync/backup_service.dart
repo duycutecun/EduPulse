@@ -10,6 +10,7 @@ import '../../features/exams/domain/exam_repository.dart';
 import '../../features/study/domain/repositories/study_session_repository.dart';
 import '../../features/tasks/domain/models/task_attachment.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
+import '../config.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/auth_service.dart';
 import '../utils/storage_service.dart';
@@ -704,7 +705,7 @@ class BackupService {
     try {
       final resp = await http
           .get(
-            Uri.base.resolve('/api/backup').replace(queryParameters: query),
+            AppConfig.apiBase().resolve('/api/backup').replace(queryParameters: query),
             headers: {'Authorization': 'Bearer $token'},
           )
           .timeout(const Duration(seconds: 20));
@@ -721,7 +722,7 @@ class BackupService {
     try {
       final resp = await http
           .post(
-            Uri.base.resolve('/api/backup'),
+            AppConfig.apiBase().resolve('/api/backup'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

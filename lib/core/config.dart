@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Ứng dụng config mặc định cho EduPulse.
 ///
 /// Các giá trị ở đây được dùng làm mặc định khi người dùng chưa nhập thông
@@ -90,4 +92,17 @@ class AppConfig {
     'FIREBASE_IOS_APP_ID',
     defaultValue: '',
   );
+
+  // Máy chủ API serverless (`.js` hàm Vercel: `/api/family`, `/api/backup`, ...).
+  // - Web: đi cùng origin trang đang mở (bỏ qua CORS) nên dùng `Uri.base`.
+  // - App mobile KHÔNG có "origin" đi cùng: `Uri.base` là URI file:// của app
+  //   (resolve('/api/...') → `file:///api/...` → mạng vỡ). Phải cố định về bản
+  //   deploy production; ghi đè được bằng `--dart-define=API_BASE_URL=...`.
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://edu-pulse-five-gamma.vercel.app',
+  );
+
+  /// Gốc để `resolve('/api/...')` — đúng on web, đúng on native.
+  static Uri apiBase() => kIsWeb ? Uri.base : Uri.parse(apiBaseUrl);
 }
