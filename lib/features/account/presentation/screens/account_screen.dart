@@ -45,6 +45,10 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _mascotEnabled = true;
   bool _reduceMotion = false;
 
+  /// Nhóm cài đặt nào đang mở (accordion tab "Tôi"). Mặc định rỗng = tất cả
+  /// thu gọn; người dùng bấm tiêu đề mới xổ phần chi tiết bên trong.
+  final Set<String> _expandedSections = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -219,37 +223,146 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
         ],
-        const SizedBox(height: 18),
-        Text('Hồ sơ & Gia đình',
-            style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary)),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
+        // Danh tính luôn hiện — không nằm trong nhóm gập, để mở tab "Tôi" là
+        // thấy ngay mình là ai và mục tiêu gì.
         _buildProfileSummary(),
-        const SizedBox(height: 10),
-        _buildLearningProfileEntry(),
-        const SizedBox(height: 10),
-        _buildFamilyReportEntry(),
-        const SizedBox(height: 18),
-        Text('Hiển thị & Nhắc học',
-            style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary)),
-        const SizedBox(height: 10),
-        _buildAppearanceCard(),
-        const SizedBox(height: 10),
-        _buildReminderCard(),
-        const SizedBox(height: 18),
-        Text('Cá nhân hóa & Dữ liệu',
-            style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary)),
-        const SizedBox(height: 10),
-        _buildPreferencesCard(),
+        const SizedBox(height: 16),
+        // Ba nhóm cài đặt dạng accordion: mặc định thu gọn, bấm tiêu đề mới
+        // xổ chi tiết (tab "Tôi" chia từng phần, không đổ hết ra một trang
+        // dài).
+        _collapsible(
+          id: 'profile',
+          icon: Icons.school_rounded,
+          color: AppColors.purple,
+          bg: AppColors.purpleSoft,
+          title: 'Hồ sơ & Gia đình',
+          subtitle: 'Hồ sơ học tập, báo cáo gửi ba mẹ',
+          children: [
+            _buildLearningProfileEntry(),
+            const SizedBox(height: 10),
+            _buildFamilyReportEntry(),
+            const SizedBox(height: 10),
+            _buildParentModeEntry(),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _collapsible(
+          id: 'display',
+          icon: Icons.visibility_rounded,
+          color: AppColors.blue,
+          bg: AppColors.blueSoft,
+          title: 'Hiển thị & Nhắc học',
+          subtitle: 'Cỡ chữ, tương phản, nhắc học hằng ngày',
+          children: [
+            _buildAppearanceCard(),
+            const SizedBox(height: 10),
+            _buildReminderCard(),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _collapsible(
+          id: 'personal',
+          icon: Icons.shield_rounded,
+          color: AppColors.primary,
+          bg: AppColors.greenSoft,
+          title: 'Cá nhân hóa & Dữ liệu',
+          subtitle: 'Quyền AI, rung/âm thanh, xuất nhập dữ liệu',
+          children: [_buildPreferencesCard()],
+        ),
       ],
+    );
+  }
+
+  /// Một nhóm cài đặt dạng accordion: mặc định thu gọn, bấm tiêu đề mới xổ nội
+  /// dung bên trong.
+  ///
+  /// Khi thu gọn, phần nội dung **không được dựng** (khác `AnimatedCrossFade`)
+  /// để màn Tôi gọn thật sự và không tốn build cho phần chưa mở; `AnimatedSize`
+  /// lo phần mở/đóng mượt.
+  Widget _collapsible({
+    required String id,
+    required IconData icon,
+    required Color color,
+    required Color bg,
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    final expanded = _expandedSections.contains(id);
+    return GlassCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            key: Key('account-section-$id'),
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              FeedbackService.selection();
+              setState(() {
+                if (expanded) {
+                  _expandedSections.remove(id);
+                } else {
+                  _expandedSections.add(id);
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  AppIcon(
+                    icon,
+                    tileSize: 36,
+                    iconSize: 18,
+                    color: color,
+                    bg: bg,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title,
+                            style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary)),
+                        const SizedBox(height: 2),
+                        Text(subtitle,
+                            style: const TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.expand_more_rounded,
+                        color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: expanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: children,
+                    ),
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ],
+      ),
     );
   }
 
@@ -910,8 +1023,8 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  /// "Cửa sổ tin cậy" — học sinh chủ động chia sẻ tiến độ với gia đình
-  /// (Giai đoạn 3, bước 1). Không tài khoản phụ huynh, không ép chia sẻ.
+  /// "Cửa sổ tin cậy" — học sinh chủ động chia sẻ tiến độ với gia đình:
+  /// liên kết tài khoản ba mẹ bằng mã mời, gửi báo cáo tuần, tạo ảnh thành tựu.
   Widget _buildFamilyReportEntry() {
     return GlassCard(
       onTap: () => FamilyReportSheet.show(context),
@@ -937,7 +1050,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         color: AppColors.textPrimary)),
                 SizedBox(height: 2),
                 Text(
-                    'Tự tạo báo cáo tuần gửi ba mẹ — con chọn gì, gia đình thấy nấy',
+                    'Liên kết tài khoản ba mẹ, gửi báo cáo tuần và ảnh thành tựu — con chọn gì, gia đình thấy nấy',
                     style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -949,6 +1062,66 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
       ),
     );
+  }
+
+  /// Lối vào CHẾ ĐỘ PHỤ HUYNH — lựa chọn loại tài khoản thứ hai khi đăng nhập.
+  ///
+  /// Đã đăng nhập thì đổi vai ngay (không bắt đăng nhập lại); chưa đăng nhập
+  /// thì mở màn đăng nhập với vai "Phụ huynh" chọn sẵn.
+  Widget _buildParentModeEntry() {
+    return GlassCard(
+      onTap: _openParentMode,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const AppIcon(
+            Icons.supervisor_account_rounded,
+            tileSize: 36,
+            iconSize: 18,
+            color: AppColors.purple,
+            bg: AppColors.purpleSoft,
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Tài khoản phụ huynh',
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                SizedBox(height: 2),
+                Text(
+                    'Ba mẹ đăng nhập bằng mã mời của con để xem tiến độ học tập',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.35)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+        ],
+      ),
+    );
+  }
+
+  void _openParentMode() {
+    if (SupabaseService.isLoggedIn) {
+      StorageService.setAccountRole(StorageService.roleParent);
+      return;
+    }
+    Navigator.of(context).push(CupertinoPageRoute(
+      builder: (ctx) => AuthScreen(
+        initialRole: StorageService.roleParent,
+        onAuthSuccess: () {
+          Navigator.pop(ctx);
+          StorageService.setAccountRole(StorageService.roleParent);
+        },
+        onSkip: () => Navigator.pop(ctx),
+      ),
+    ));
   }
 
   /// Entry mở Hồ sơ học tập (đặc tả mục 17) — suy luận + cho phép sửa.

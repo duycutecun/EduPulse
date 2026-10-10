@@ -43,6 +43,23 @@
 ### ✨ Mẫu nhiệm vụ theo kỳ thi (Giai đoạn 1)
 - Nút **✨** cạnh nút "+" trong Nhiệm vụ hôm nay: thêm nhanh nhiệm vụ mẫu theo kỳ thi mục tiêu đang ghim (nguồn: `preset_exams.dart`)
 
+### 💚 Cửa sổ tin cậy (tài khoản phụ huynh — Giai đoạn 3)
+
+Học sinh và ba mẹ có **hai loại tài khoản riêng**, chọn ngay khi đăng nhập (tab Tôi → Đăng nhập, hoặc tab Tôi → *Tài khoản phụ huynh*).
+
+- **Học sinh** (mặc định): tab Tôi → *Cửa sổ tin cậy* → tạo **mã mời 8 chữ số** (hiệu lực 2 ngày, tạo mã mới là mã cũ hết hiệu lực), chọn từng mục muốn chia sẻ, rồi gửi báo cáo tuần cho ba mẹ. Ngắt liên kết bất cứ lúc nào.
+- **Phụ huynh**: đăng nhập rồi vào *Cửa sổ tin cậy* → nhập mã mời của con → xem tiến độ học tập con **đã chủ động gửi** (tuần, thời gian tập trung, chỉ số sẵn sàng, điểm thi thử, đếm ngược kỳ thi). Không có bảng đọc dữ liệu thô.
+- **Cập nhật trực tiếp**: con bật công tắc *Cập nhật trực tiếp cho ba mẹ* (mặc định tắt) → app tự đẩy bản mới nhất mỗi khi số liệu đổi, ba mẹ mở app là thấy tiến độ cập nhật liên tục, không phải chờ con bấm gửi. Màn ba mẹ nhận **tín hiệu Realtime** (Supabase broadcast, chỉ mang mốc thời gian) và kéo ngay; nhịp hỏi định kỳ 30 giây là lưới an toàn khi tín hiệu không tới. Tắt công tắc là bản trực tiếp bị xoá hẳn.
+- **Thông báo khi con cập nhật**: ba mẹ bật công tắc ở màn *Cửa sổ tin cậy* → app báo ngay khi con chia sẻ bản mới (thông báo **cục bộ**, không cần server đẩy, không kèm số liệu học tập). Chỉ nổ khi app ba mẹ còn đang chạy; muốn báo cả khi app đã bị tắt hẳn thì cần FCM (đòi service account — hiện bị org policy chặn).
+- **Ảnh thành tựu tuần**: thẻ dọc 9:16 (1080×1920 khi xuất) mang nhận diện EduPulse — linh vật + tên app + mô tả "trợ lý sĩ tử" + link tải ở chân ảnh, kèm số liệu thật của tuần — chia sẻ qua share sheet hệ thống (`ShareService.shareImage`).
+
+**Cài đặt một lần** (dùng lại đúng hạ tầng sao lưu — Firebase ID token + `SUPABASE_SERVICE_ROLE_KEY`):
+
+1. Supabase Console → SQL Editor → chạy [`supabase/family.sql`](supabase/family.sql).
+2. Đảm bảo env phía server có `FIREBASE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (đã cần sẵn cho `/api/backup`).
+
+Route liên quan: `POST /api/family.js` với `action` = `invite` / `my_family` / `redeem` / `unlink` / `share_report` / `share_live` / `child_reports` (`child_reports` nhận thêm `since` để chỉ lấy phần mới và luôn trả kèm bản trực tiếp).
+
 ## 🧩 Năng lực nền tảng (ngang dọc)
 
 - **Offline-first**: toàn bộ dữ liệu lưu cục bộ (SharedPreferences qua `StorageService`), tự động sync Supabase khi có lại mạng (banner offline/kết nối lại)

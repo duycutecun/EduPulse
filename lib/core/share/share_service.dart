@@ -35,6 +35,46 @@ class ShareService {
     }
   }
 
+  /// Chia sẻ một ẢNH (PNG bytes) ra ngoài app.
+  ///
+  /// Dùng cho "ảnh thành tựu tuần": người dùng gửi ảnh thật qua Zalo/Messenger/
+  /// Facebook chứ không phải dán chữ. Ảnh được truyền dưới dạng bytes —
+  /// `share_plus` tự ghi ra thư mục tạm trên Android/iOS, còn web dùng blob,
+  /// nên KHÔNG cần `path_provider` và không phải tự quản lý tệp tạm.
+  ///
+  /// [fileNameOverrides] là cách duy nhất giữ đúng tên tệp khi tạo `XFile`
+  /// từ bytes (`name` của cross_file bị bỏ qua trên mọi nền tảng trừ web).
+  static Future<bool> shareImage(
+    Uint8List bytes, {
+    String fileName = 'edupulse-thanh-tuu.png',
+    String? text,
+    String? subject,
+    Rect? sharePositionOrigin,
+  }) async {
+    if (bytes.isEmpty) return false;
+    try {
+      final file = XFile.fromData(
+        bytes,
+        mimeType: 'image/png',
+        name: fileName,
+      );
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          files: [file],
+          fileNameOverrides: [fileName],
+          text: text,
+          subject: subject,
+          title: subject,
+          sharePositionOrigin: sharePositionOrigin,
+        ),
+      );
+      return result.status == ShareResultStatus.success ||
+          result.status == ShareResultStatus.unavailable;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<bool> _copyToClipboard(String text) async {
     try {
       await Clipboard.setData(ClipboardData(text: text));

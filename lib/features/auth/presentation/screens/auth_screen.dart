@@ -27,10 +27,16 @@ class AuthScreen extends StatefulWidget {
   final VoidCallback onAuthSuccess;
   final VoidCallback onSkip;
 
+  /// Vai trò chọn sẵn: `'student'` hoặc `'parent'` (xem
+  /// [StorageService.roleParent]). Màn phụ huynh mở thẳng vào tài khoản phụ
+  /// huynh để ba mẹ không phải tự đoán mình nên chọn gì.
+  final String? initialRole;
+
   const AuthScreen({
     super.key,
     required this.onAuthSuccess,
     required this.onSkip,
+    this.initialRole,
   });
 
   @override
@@ -39,6 +45,11 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   _AuthView _view = _AuthView.login;
+
+  /// Vai trò đang chọn trong modal. Chỉ được GHI vào StorageService khi đăng
+  /// nhập/đăng ký thành công — chọn nhầm rồi bỏ đi thì app không bị đổi vai.
+  late String _role;
+
   bool _isLoading = false;
   bool _obscurePw = true;
   bool _obscureConfirm = true;
@@ -63,6 +74,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    _role = widget.initialRole ?? StorageService.getAccountRole();
     final saved = StorageService.getString(_rememberKey);
     if (saved != null && saved.isNotEmpty) {
       _rememberMe = true;
@@ -106,6 +118,16 @@ class _AuthScreenState extends State<AuthScreen> {
     if (mounted) setState(() => _view = v);
   }
 
+  /// Kết thúc thành công: chốt vai trò rồi báo cho người gọi.
+  ///
+  /// Ghi vai trò ở ĐÂY (chứ không phải lúc bấm chọn) để hành vi đúng với cả
+  /// hai chiều: học sinh mở thử màn đăng nhập phụ huynh rồi thoát vẫn là học
+  /// sinh; ba mẹ đăng nhập tài khoản phụ huynh là vào thẳng màn theo dõi con.
+  Future<void> _finishSuccess() async {
+    StorageService.setAccountRole(_role);
+    widget.onAuthSuccess();
+  }
+
   /// Mở màn quên mật khẩu, luôn bắt đầu từ bước nhập email.
   void _openForgot() {
     if (mounted) {
@@ -133,7 +155,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (AuthService.isLoggedIn) {
       _showMessage('Đăng nhập Google thành công! 🎉', true);
       await Future.delayed(const Duration(milliseconds: 600));
-      widget.onAuthSuccess();
+      await _finishSuccess();
       return;
     }
     _showMessage(result.message, result.success);
@@ -154,7 +176,7 @@ class _AuthScreenState extends State<AuthScreen> {
     StorageService.setString(_rememberKey, _rememberMe ? email : '');
     if (result.success) {
       await Future.delayed(const Duration(milliseconds: 800));
-      widget.onAuthSuccess();
+      await _finishSuccess();
     }
   }
 
@@ -184,7 +206,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (result.success) {
       if (AuthService.isEmailVerified) {
         await Future.delayed(const Duration(milliseconds: 800));
-        widget.onAuthSuccess();
+        await _finishSuccess();
       } else {
         _switchView(_AuthView.verify);
         _verifyEmailCtrl.text = email;
@@ -259,7 +281,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _showMessage(result.message, result.success);
     if (result.success) {
       await Future.delayed(const Duration(milliseconds: 800));
-      widget.onAuthSuccess();
+      await _finishSuccess();
     }
   }
 
@@ -326,7 +348,25 @@ class _AuthScreenState extends State<AuthScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildModalHeader(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          // Chọn vai trò ngay đầu modal: "2 lựa chọn đăng nhập — 1 là học sinh,
+          // 2 là phụ huynh". Chỉ hiện ở bước đăng nhập/đăng ký vì các bước
+          // xác minh/quên mật khẩu không liên quan tới vai trò.
+          if (_view == _AuthView.login || _view == _AuthView.register) ...[
+            _buildRoleSelector(),
+            const SizedBox(height: 8),
+            Text(
+              _role == StorageService.roleParent
+                  ? 'Tài khoản phụ huynh: 2 lựa chọn đăng nhập — 1 là học sinh, 2 là phụ huynh. '
+                      'Đăng nhập xong, bạn vào thẳng màn theo dõi tiến độ con đã chia sẻ trong Cửa sổ tin cậy.'
+                  : 'Tài khoản học sinh: 2 lựa chọn đăng nhập — 1 là học sinh, 2 là phụ huynh. '
+                      'Đăng nhập xong, bạn vào app học tập để đếm ngược kỳ thi và chia sẻ thành tựu.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11.5, color: _kMuted, height: 1.35),
+            ),
+            const SizedBox(height: 14),
+          ] else
+            const SizedBox(height: 4),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
             switchInCurve: Curves.easeOut,
@@ -367,6 +407,85 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Bộ chọn vai trò "Học sinh / Phụ huynh" — cùng ngôn ngữ hình với tab
+  /// Đăng nhập/Đăng ký nhưng là hai lựa chọn loại tài khoản.
+  Widget _buildRoleSelector() {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _kTrack,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          // Hai lựa chọn đăng nhập giữa app — 1 là học sinh, 2 là phụ huynh.
+          _roleTab(
+            key: const Key('auth-role-student'),
+            label: 'Học sinh',
+            icon: Icons.school_rounded,
+            role: StorageService.roleStudent,
+          ),
+          _roleTab(
+            key: const Key('auth-role-parent'),
+            label: 'Phụ huynh',
+            icon: Icons.family_restroom_rounded,
+            role: StorageService.roleParent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _roleTab({
+    Key? key,
+    required String label,
+    required IconData icon,
+    required String role,
+  }) {
+    final active = _role == role;
+    return Expanded(
+      child: GestureDetector(
+        key: key,
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _role = role),
+        child: Container(
+          decoration: BoxDecoration(
+            color: active ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  size: 16,
+                  color: active ? _kAccent : _kMuted),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: active ? _kText : _kMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -503,21 +622,31 @@ class _AuthScreenState extends State<AuthScreen> {
               _obscurePw, () => setState(() => _obscurePw = !_obscurePw)),
         ),
         const SizedBox(height: 12),
+        // Hai nhãn này từng làm tràn hàng khi cỡ chữ lớn (app có sẵn cài đặt
+        // S/M/L): "Ghi nhớ đăng nhập" dài ra là đẩy "Quên mật khẩu?" ra ngoài
+        // màn hình hẹp. Cho nhãn trái co giãn + cắt ellipsis thay vì tràn.
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            GestureDetector(
-              onTap: () => setState(() => _rememberMe = !_rememberMe),
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                children: [
-                  _checkbox(_rememberMe),
-                  const SizedBox(width: 8),
-                  const Text('Ghi nhớ đăng nhập',
-                      style: TextStyle(fontSize: 13, color: _kMuted)),
-                ],
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  children: [
+                    _checkbox(_rememberMe),
+                    const SizedBox(width: 8),
+                    const Flexible(
+                      child: Text('Ghi nhớ đăng nhập',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: _kMuted)),
+                    ),
+                  ],
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: _openForgot,
               behavior: HitTestBehavior.opaque,

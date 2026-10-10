@@ -121,37 +121,72 @@ void main() {
   });
 
   group('Gemini payload', () {
-    test('ngữ cảnh nằm trong contents, trước câu hỏi', () {
+    // Gemini 3.x (3.7 Flash) chỉ nhận persona/ngữ cảnh qua systemInstruction và
+    // bắt buộc `contents` luân phiên user/model — nhét thẳng vào contents như
+    // trước làm mọi request bị 400 ("Gemini không chạy").
+    test('ngữ cảnh nằm trong systemInstruction, không chiếm lượt user', () {
+      final system =
+          GeminiService.buildSystemInstruction(studyContext: context());
+      expect(system, contains('NGỮ CẢNH HỌC TẬP'));
+      expect(system, contains('THPTQG 2027'));
+      expect(system, contains('Cân bằng hóa học'));
+
       final contents = GeminiService.buildContents(
         history: const [],
         userMessage: 'Nên học gì hôm nay?',
-        studyContext: context(),
       );
-
-      final allText = contents
-          .expand((c) => (c['parts'] as List))
-          .map((p) => p['text'] as String)
-          .join('\n');
-      expect(allText, contains('NGỮ CẢNH HỌC TẬP'));
-      expect(allText, contains('THPTQG 2027'));
-      expect(allText, contains('Cân bằng hóa học'));
 
       // Câu hỏi của học sinh phải là lượt cuối.
       final lastTurn = contents.last['parts'] as List;
       expect(lastTurn.last['text'], contains('Nên học gì hôm nay?'));
+
+      // Ngữ cảnh không bị nhét vào contents.
+      final allText = contents
+          .expand((c) => (c['parts'] as List))
+          .map((p) => p['text'] as String)
+          .join('\n');
+      expect(allText, isNot(contains('NGỮ CẢNH HỌC TẬP')));
+    });
+
+    test('contents luân phiên user/model và luôn kết thúc bằng user', () {
+      final history = [
+        ChatMessage(id: 'h1', text: 'Chào bạn', isUser: true, timestamp: now),
+        ChatMessage(id: 'h2', text: 'Chào em', isUser: false, timestamp: now),
+        // Học sinh gửi hai lượt liền nhau — phải được gộp, không để user→user.
+        ChatMessage(id: 'h3', text: 'Cho tôi đề', isUser: true, timestamp: now),
+        ChatMessage(id: 'h4', text: 'Đề đây', isUser: true, timestamp: now),
+      ];
+      final contents = GeminiService.buildContents(
+        history: history,
+        userMessage: 'Tiếp đi',
+      );
+
+      expect(contents.last['role'], 'user');
+      for (var i = 1; i < contents.length; i++) {
+        expect(contents[i]['role'], isNot(contents[i - 1]['role']),
+            reason: 'Gemini 3.x bắt buộc luân phiên user/model');
+      }
+    });
+
+    test('không có prefilled model turn khi lịch sử trống', () {
+      final contents = GeminiService.buildContents(
+        history: const [],
+        userMessage: 'Chào',
+      );
+      expect(contents, hasLength(1));
+      expect(contents.single['role'], 'user');
+      expect(contents.single['parts'], isNotEmpty);
     });
 
     test('tắt quyền đọc dữ liệu → không có ngữ cảnh', () {
       StorageService.setBool('ai_permission_read', false);
+      final system =
+          GeminiService.buildSystemInstruction(studyContext: context());
       final contents = GeminiService.buildContents(
         history: const [],
         userMessage: 'Chào',
-        studyContext: context(),
       );
-      final allText = contents
-          .expand((c) => (c['parts'] as List))
-          .map((p) => p['text'] as String)
-          .join();
+      final allText = '$system\n${jsonEncode(contents)}';
       expect(allText, isNot(contains('NGỮ CẢNH HỌC TẬP')));
       expect(allText, isNot(contains('Cân bằng hóa học')));
       expect(allText, isNot(contains('THPTQG 2027')));

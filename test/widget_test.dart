@@ -2042,6 +2042,10 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
+    // Các nhóm cài đặt mặc định thu gọn — mở "Hiển thị & Nhắc học" mới thấy cỡ chữ.
+    expect(find.text('Cỡ chữ'), findsNothing);
+    await tester.tap(find.byKey(const Key('account-section-display')));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Cỡ chữ'), findsOneWidget);
 
     // Chọn L — fontScale tăng ngay.

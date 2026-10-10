@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 
@@ -6,6 +7,9 @@ class StorageService {
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    // Vai trò đọc từ đĩa phải nạp vào notifier trước khi UI dựng lần đầu, nếu
+    // không app sẽ chớp màn hình học sinh trước khi nhảy sang màn phụ huynh.
+    roleNotifier.value = getAccountRole();
   }
 
   static SharedPreferences get prefs {
@@ -241,6 +245,31 @@ class StorageService {
 
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
   static void setAiModel(String v) => _prefs?.setString('ai_model', v);
+
+  // Vai trò tài khoản ("Cửa sổ tin cậy"): 'student' (mặc định) hoặc 'parent'.
+  // Quyết định màn hình mở đầu sau khi đăng nhập: học sinh vào app học tập,
+  // phụ huynh vào thẳng bảng theo dõi của con.
+  static const String roleStudent = 'student';
+  static const String roleParent = 'parent';
+
+  /// Vai trò đang dùng, có thể đổi NGAY trong phiên làm việc.
+  ///
+  /// Cần notifier chứ không chỉ đọc lại `prefs`: khi học sinh đăng nhập bằng
+  /// tài khoản phụ huynh (hoặc thoát chế độ phụ huynh), màn hình gốc của app
+  /// phải đổi ngay — không bắt người dùng đóng/mở lại app. Mặc định 'student'
+  /// để chưa đọc được prefs (test, lần chạy đầu) cũng không hỏng gì.
+  static final ValueNotifier<String> roleNotifier =
+      ValueNotifier<String>(roleStudent);
+
+  static String getAccountRole() =>
+      _prefs?.getString('account_role') ?? roleStudent;
+
+  static void setAccountRole(String v) {
+    _prefs?.setString('account_role', v);
+    if (roleNotifier.value != v) roleNotifier.value = v;
+  }
+
+  static bool get isParentAccount => getAccountRole() == roleParent;
 
   // Chế độ tự động đọc ảnh: khi gắn ảnh, AI tự phân tích mà không cần gõ prompt.
   static bool getAiAutoReadImage() =>

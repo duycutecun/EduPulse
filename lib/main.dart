@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/ai/free_models_catalog.dart';
 import 'core/ai/ai_insights.dart';
+import 'core/family/live_progress_service.dart';
 import 'core/ai/ai_refresh_service.dart';
 import 'core/migration/data_migration.dart';
 import 'core/notifications/adaptive_policy.dart';
@@ -17,6 +18,7 @@ import 'core/widget/home_widget_service.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/study/domain/models/study_models.dart';
+import 'app/account_role_gate.dart';
 import 'app/main_shell.dart';
 import 'app/app_navigator_key.dart';
 
@@ -60,6 +62,10 @@ void main() async {
     // Lần chạy đầu sẽ kéo bản sao lưu gần nhất về nếu cloud đã có (đúng yêu
     // cầu "mở app luôn thấy bản mới nhất"), rồi bắt đầu hỏi/lưu định kỳ.
     BackupService.start();
+    // "Cập nhật trực tiếp" cho gia đình: khi con bật công tắc, app tự dựng lại
+    // báo cáo theo đúng mục con chia sẻ và đẩy lên mỗi khi số liệu đổi — ba mẹ
+    // mở app là thấy tiến độ mới nhất, không phải chờ con bấm gửi.
+    LiveProgressService.start();
 
     // Ghi nhận người dùng đã mở app (phục vụ tần suất nhắc thích ứng) và
     // đặt lại lịch nhắc/digest theo hành vi gần nhất (đặc tả mục 16).
@@ -146,7 +152,8 @@ class EduPulseApp extends StatelessWidget {
   /// - Nếu URL có `oobCode` + `mode=resetPassword` (bấm link reset từ email)
   ///   → mở màn đặt mật khẩu mới.
   /// - Nếu URL là deep link `task/<id>` → xử lý mở chi tiết task.
-  /// - Ngược lại: onboarding (lần đầu) hoặc MainShell.
+  /// - Ngược lại: onboarding (lần đầu) hoặc [AccountRoleGate] — nơi quyết
+  ///   định app học sinh hay màn phụ huynh theo vai trò tài khoản.
   Widget _buildHome() {
     final params = Uri.base.queryParameters;
     final oobCode = params['oobCode'];
@@ -168,7 +175,7 @@ class EduPulseApp extends StatelessWidget {
     }
 
     return StorageService.isOnboardingDone()
-        ? const MainShellScreen()
+        ? const AccountRoleGate()
         : const OnboardingScreen();
   }
 }

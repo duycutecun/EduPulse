@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +21,19 @@ class AuthService {
 
   static FirebaseAuth? _auth;
   static bool _initializing = false;
+
+  /// Hoàn tất khi [init] chạy xong lần đầu (dù thành công hay thất bại).
+  ///
+  /// UI ở chế độ phụ huynh cần biết "đã biết chắc chưa đăng nhập chưa" để
+  /// không hiện lời mời đăng nhập với người vừa đăng nhập xong (main.dart khởi
+  /// tạo Firebase SAU frame đầu cho app mở nhanh, nên frame đầu chưa có auth).
+  static final Completer<void> _ready = Completer<void>();
+
+  static Future<void> get whenReady => _ready.future;
+
+  static void _markReady() {
+    if (!_ready.isCompleted) _ready.complete();
+  }
 
   /// Đã có config Firebase hợp lệ và sẵn sàng dùng.
   static bool get isConfigured => _auth != null;
@@ -85,6 +100,9 @@ class AuthService {
       return false;
     } finally {
       _initializing = false;
+      // Đánh dấu ở ĐÂY (sau khi đã biết kết quả): báo "xong" lúc `_auth` còn
+      // null sẽ khiến UI tưởng người dùng chưa đăng nhập.
+      _markReady();
     }
   }
 

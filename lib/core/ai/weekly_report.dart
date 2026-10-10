@@ -30,6 +30,20 @@ class ReportItem {
         'value': value,
         if (detail != null) 'detail': detail,
       };
+
+  /// Đọc lại một mục từ JSON — dùng ở phía PHỤ HUYNH, nơi báo cáo đến từ
+  /// cloud chứ không dựng từ dữ liệu trên máy.
+  static ReportItem? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final title = '${raw['title'] ?? ''}'.trim();
+    if (title.isEmpty) return null;
+    return ReportItem(
+      key: '${raw['key'] ?? ''}',
+      title: title,
+      value: '${raw['value'] ?? ''}',
+      detail: raw['detail'] == null ? null : '${raw['detail']}',
+    );
+  }
 }
 
 /// Báo cáo học tập TUẦN — "cửa sổ tin cậy" giữa học sinh và phụ huynh.
@@ -170,6 +184,9 @@ class WeeklyReport {
     final burnout = StudyRhythm.burnoutRisk(now: reference);
 
     // Mở đầu luôn là điều TÍCH CỰC — câu chuyện tuần, không phải bảng điểm.
+    // Nhận diện EduPulse nằm ở chữ kèm theo (xem [toPlainText]) và ở thẻ ảnh
+    // thành tựu — KHÔNG nhét vào headline: headline là lời kể cho ba mẹ đọc,
+    // thêm tên app vào đầu mỗi câu chỉ làm câu chuyện khó đọc hơn.
     final headline = minutes == 0
         ? 'Tuần này con chưa ghi được phiên tập trung nào — tuần sau mình bắt đầu nhẹ thôi nhé.'
         : 'Tuần này con đã tập trung $minutes phút trong $days ngày'
@@ -202,6 +219,42 @@ class WeeklyReportData {
   final DateTime to;
   final DateTime generatedAt;
 
+  /// Đóng gói để gửi lên cloud cho gia đình (và để phụ huynh đọc lại).
+  ///
+  /// Chỉ chứa ĐÚNG những mục học sinh đã bật — bản thân báo cáo là bằng chứng
+  /// của sự đồng ý, nên phía phụ huynh không cần (và không có) quyền đọc thêm
+  /// dữ liệu nào khác.
+  Map<String, dynamic> toJson() => {
+        'headline': headline,
+        'items': items.map((e) => e.toJson()).toList(),
+        'from': from.toIso8601String(),
+        'to': to.toIso8601String(),
+        'generatedAt': generatedAt.toIso8601String(),
+      };
+
+  /// Đọc báo cáo từ cloud. Trả về null khi dữ liệu hỏng/thiếu mục — thà không
+  /// hiện gì còn hơn hiện một báo cáo trống rỗng gây hiểu nhầm.
+  static WeeklyReportData? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final items = <ReportItem>[];
+    final rawItems = raw['items'];
+    if (rawItems is List) {
+      for (final entry in rawItems) {
+        final item = ReportItem.fromJson(entry);
+        if (item != null) items.add(item);
+      }
+    }
+    if (items.isEmpty) return null;
+    final now = DateTime.now();
+    return WeeklyReportData(
+      headline: '${raw['headline'] ?? ''}',
+      items: items,
+      from: DateTime.tryParse('${raw['from']}') ?? now,
+      to: DateTime.tryParse('${raw['to']}') ?? now,
+      generatedAt: DateTime.tryParse('${raw['generatedAt']}') ?? now,
+    );
+  }
+
   /// Chữ thuần dùng cho chia sẻ SMS/Zalo (không cần ảnh).
   String toPlainText({required String studentName}) {
     final buf = StringBuffer();
@@ -218,6 +271,12 @@ class WeeklyReportData {
     buf.writeln();
     buf.write('Gửi từ EduPulse — học sinh chủ động chia sẻ 💚');
     return buf.toString();
+  }
+
+  /// Học sinh hiện tên mình — dùng cho placeholder/chào, không send đến cloud.
+  String studentDisplayName(String name, {String fallback = 'con'}) {
+    final n = name.trim();
+    return n.isEmpty ? fallback : n;
   }
 
   static String _d(DateTime d) => '${d.day}/${d.month}';

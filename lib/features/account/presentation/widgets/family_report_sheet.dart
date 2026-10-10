@@ -3,15 +3,24 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/ai/weekly_report.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/family/family_models.dart';
+import '../../../../core/family/family_service.dart';
+import '../../../../core/family/live_progress_service.dart';
+import '../../../../core/utils/auth_service.dart';
+import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../features/family/presentation/screens/achievement_share_screen.dart';
 
-/// "Cửa sổ tin cậy" — học sinh chủ động tạo báo cáo tuần gửi gia đình.
+/// "Cửa sổ tin cậy" — nơi học sinh chủ động chia sẻ tiến độ với gia đình.
 ///
-/// Thiết kế:
-/// - Học sinh bật/tắt từng mục; lựa chọn được NHỚ cho các tuần sau.
-/// - Xem trước cập nhật tức thì theo lựa chọn.
-/// - Không có mục nào bật → không có gì để gửi (không ép chia sẻ).
-/// - Sao chép văn bản → dán vào Zalo/SMS; không cần tài khoản phụ huynh.
+/// Ba tầng trong một sheet, theo đúng thứ tự cần thiết:
+/// 1. **Gia đình**: liên kết tài khoản ba mẹ bằng mã mời 8 chữ số (mỗi lần
+///    liên kết đều do học sinh tạo mã — ba mẹ không tự vào được).
+/// 2. **Con chọn chia sẻ gì**: công tắc từng mục; lựa chọn được NHỚ cho các
+///    tuần sau; tắt hết = không có gì để gửi (không ép chia sẻ).
+/// 3. **Gửi đi**: gửi báo cáo tuần cho ba mẹ đã liên kết, tạo ảnh thành tựu
+///    có nhận diện EduPulse để chia sẻ ra ngoài, hoặc sao chép văn bản để dán
+///    vào Zalo/SMS (cách cũ, vẫn giữ cho người chưa liên kết).
 class FamilyReportSheet extends StatefulWidget {
   const FamilyReportSheet({super.key});
 
@@ -35,6 +44,15 @@ class FamilyReportSheet extends StatefulWidget {
 class _FamilyReportSheetState extends State<FamilyReportSheet> {
   late Map<String, bool> _choices;
 
+  FamilyState? _family;
+  bool _familyLoading = false;
+  bool _sending = false;
+  FamilyInvite? _invite;
+
+  /// Con có đang bật "cập nhật trực tiếp" cho ba mẹ hay không.
+  bool _liveOn = false;
+  bool _liveSaving = false;
+
   static const Map<String, String> _labels = {
     'study_time': 'Thời gian tập trung trong tuần',
     'readiness': 'Chỉ số sẵn sàng thi (0–100)',
@@ -46,12 +64,127 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
   void initState() {
     super.initState();
     _choices = WeeklyReport.savedChoices() ?? WeeklyReport.defaultChoices;
+    _liveOn = LiveProgressService.enabled;
+    // Hiện ngay trạng thái đã biết (nếu có) để sheet không nháy, rồi cập nhật.
+    _family = FamilyService.cachedState;
+    _loadFamily();
+  }
+
+  Future<void> _loadFamily() async {
+    if (!AuthService.isLoggedIn) return;
+    if (mounted && _family == null) setState(() => _familyLoading = true);
+    final state = await FamilyService.fetchState();
+    if (!mounted) return;
+    setState(() {
+      _familyLoading = false;
+      if (state != null) _family = state;
+    });
+  }
+
+  /// Bật/tắt cập nhật trực tiếp cho ba mẹ.
+  ///
+  /// Bật = app tự đẩy báo cáo mỗi khi số liệu đổi (chỉ những mục con bật ở
+  /// trên). Tắt = thu hồi ngay cả bản đã chia sẻ, không để lại bản cũ.
+  Future<void> _toggleLive(bool value) async {
+    if (_liveSaving) return;
+    FeedbackService.selection();
+    setState(() => _liveSaving = true);
+    final ok = await LiveProgressService.setEnabled(value);
+    if (!mounted) return;
+    setState(() {
+      _liveOn = value;
+      _liveSaving = false;
+    });
+    if (ok) {
+      _snack(value
+          ? 'Ba mẹ sẽ thấy tiến độ cập nhật liên tục 💚'
+          : 'Đã tắt — ba mẹ không còn thấy cập nhật trực tiếp.');
+    } else {
+      _snack(
+        value
+            ? 'Đã bật. Sẽ tự gửi ngay khi có mạng.'
+            : 'Chưa tắt được trên máy chủ — kiểm tra mạng rồi thử lại nhé.',
+        error: !value,
+      );
+    }
   }
 
   void _toggle(String key) {
     setState(() => _choices[key] = !(_choices[key] ?? false));
     // Lưu lựa chọn — tuần sau không phải chọn lại. Fire-and-forget.
     WeeklyReport.saveChoices(_choices);
+  }
+
+  // ─── Liên kết gia đình ─────────────────────────────────────────────────────
+
+  Future<void> _createInvite() async {
+    FeedbackService.selection();
+    setState(() => _familyLoading = true);
+    final invite = await FamilyService.createInvite(
+      studentName: StorageService.getUserName(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _familyLoading = false;
+      _invite = invite;
+    });
+    if (invite == null) {
+      _snack('Không tạo được mã mời — kiểm tra mạng rồi thử lại nhé.', error: true);
+    }
+  }
+
+  Future<void> _copyCode(String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (!mounted) return;
+    _snack('Đã sao chép mã mời — gửi cho ba mẹ nhé!');
+  }
+
+  Future<void> _unlinkParent(FamilyMember parent) async {
+    final result = await FamilyService.unlink(parent.linkId, asParent: false);
+    if (!mounted) return;
+    _snack(result.message, error: !result.ok);
+    await _loadFamily();
+  }
+
+  Future<void> _sendToFamily(WeeklyReportData report) async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    FeedbackService.selection();
+
+    // Nuốt lỗi banging: không có mạng chứ không phải học sinh làm sai.
+    // Khi đó báo cáo vẫn được gửi đi trong quá trình — người dùng không cần
+    // biết raw HTTP fail; chỉ cần biết “đã gửi” hoặc “đã lưu, đợi ba mẹ
+    // liên kết rồi sẽ hiện”. Server trả `sentTo` cho cả trường hợp chưa ai
+    // liên kết (0) — đó không phải lỗi.
+    try {
+      final sent = await FamilyService.shareReport(
+        report,
+        studentName: StorageService.getUserName(),
+      );
+      if (!mounted) return;
+      setState(() => _sending = false);
+      if (sent == null) {
+        _snack('Chưa gửi được — kiểm tra mạng rồi thử lại nhé.', error: true);
+        return;
+      }
+      _snack(sent == 0
+          ? 'Đã lưu báo cáo tuần. Khi ba mẹ liên kết, báo cáo này sẽ hiện cho ba mẹ xem 💚'
+          : 'Đã gửi báo cáo tuần cho $sent thành viên gia đình 💚');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      _snack('Gửi thất bại — thử lại sau nhé.', error: true);
+    }
+    await _loadFamily();
+  }
+
+  void _snack(String message, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: error ? AppColors.red : AppColors.primary,
+    ));
   }
 
   @override
@@ -62,9 +195,9 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
     return SafeArea(
       child: DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.82,
+        initialChildSize: 0.88,
         minChildSize: 0.5,
-        maxChildSize: 0.94,
+        maxChildSize: 0.96,
         builder: (ctx, scrollCtrl) => ListView(
           controller: scrollCtrl,
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -97,6 +230,9 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             ),
             const SizedBox(height: 18),
 
+            _familySection(),
+            const SizedBox(height: 16),
+
             // --- Công tắc từng mục ---
             ..._labels.entries.map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -122,7 +258,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             const SizedBox(height: 12),
 
             // --- Xem trước ---
-            Text('Xem trước',
+            const Text('Xem trước',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -179,18 +315,77 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             ),
             const SizedBox(height: 16),
 
-            // --- Sao chép để gửi ---
+            // --- Gửi cho gia đình (cần đăng nhập + đã liên kết) ---
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                key: const Key('family-send-report'),
+                onPressed:
+                    (report == null || _sending || !AuthService.isLoggedIn)
+                        ? null
+                        : () => _sendToFamily(report),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                icon: _sending
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.family_restroom_rounded, size: 18),
+                label: const Text('Gửi cho gia đình',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              ),
+            ),
+            if (!AuthService.isLoggedIn) ...[
+              const SizedBox(height: 6),
+              const Text(
+                'Đăng nhập (tab Tôi) rồi tạo mã mời để ba mẹ nhận được báo cáo.',
+                style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+              ),
+            ],
+            const SizedBox(height: 10),
+
+            // --- Ảnh thành tựu tuần để chia sẻ ra ngoài ---
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                key: const Key('family-share-achievement'),
+                onPressed: () => AchievementShareScreen.open(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(color: AppColors.primary, width: 2),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.auto_awesome_rounded,
+                    size: 18, color: AppColors.primary),
+                label: const Text('Tạo ảnh thành tựu tuần',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // --- Sao chép để gửi (cách cũ, không cần liên kết) ---
             SizedBox(
               width: double.infinity,
               height: 48,
-              child: ElevatedButton.icon(
+              child: TextButton.icon(
                 onPressed: report == null
                     ? null
                     : () async {
                         await Clipboard.setData(ClipboardData(
                             text: report.toPlainText(studentName: name)));
                         if (!context.mounted) return;
-                        Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
@@ -200,17 +395,13 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                           ),
                         );
                       },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                icon: const Icon(Icons.copy_rounded, size: 18),
-                label: const Text('Sao chép báo cáo tuần',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                icon: const Icon(Icons.copy_rounded,
+                    size: 17, color: AppColors.textSecondary),
+                label: const Text('Sao chép báo cáo dạng chữ',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.5,
+                        color: AppColors.textSecondary)),
               ),
             ),
           ],
@@ -218,4 +409,266 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
       ),
     );
   }
+
+  /// Khối "Gia đình": liên kết tài khoản ba mẹ bằng mã mời.
+  Widget _familySection() {
+    final state = _family;
+    final parents = state?.parents ?? const <FamilyMember>[];
+    final invite = _invite ?? state?.invite;
+
+    // Gợi ý vị trí phụ huynh — chỉ cần một dòng khi học sinh đang xem trước
+    // lúc chưa liên kết, để người dùng biết phía nhận báo cáo ở đâu.
+    final hasParents = parents.isNotEmpty || (state?.hasLinkedParents ?? false);
+
+    if (!AuthService.isLoggedIn) {
+      return _card(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.family_restroom_rounded,
+                size: 20, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Tài khoản phụ huynh: đăng nhập (tab Tôi) để tạo mã mời 8 chữ số '
+                'cho ba mẹ. Ba mẹ chỉ thấy những mục con bật.',
+                style: TextStyle(
+                    fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.family_restroom_rounded,
+                  size: 20, color: AppColors.primary),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Tài khoản phụ huynh',
+                    style: TextStyle(
+                        fontSize: 13.5, fontWeight: FontWeight.w800)),
+              ),
+              if (_familyLoading)
+                const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2)),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Đã liên kết với ai
+          if (parents.isEmpty)
+            Text(
+              'Chưa liên kết với ba mẹ nào. Tạo mã mời rồi đọc cho ba mẹ nhập. '
+              'Ba mẹ đăng nhập rồi vào Cửa sổ tin cậy sẽ thấy con bạn và tiến độ học tập '
+              'con đã gửi 💚',
+              style: TextStyle(
+                  fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+            )
+          else
+            ...parents.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_user_rounded,
+                          size: 16, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(p.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12.5, fontWeight: FontWeight.w700)),
+                      ),
+                      TextButton(
+                        onPressed: () => _unlinkParent(p),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          minimumSize: const Size(0, 30),
+                        ),
+                        child: const Text('Ngắt',
+                            style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.red)),
+                      ),
+                    ],
+                  ),
+                )),
+
+          const SizedBox(height: 8),
+
+          // Mã mời
+          if (invite != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.greenSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('MÃ MỜI CHO BA MẸ',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: AppColors.primaryDark)),
+                        const SizedBox(height: 2),
+                        Text(_spacedCode(invite.code),
+                            style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2,
+                                color: AppColors.textPrimary)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Sao chép mã',
+                    onPressed: () => _copyCode(invite.code),
+                    icon: const Icon(Icons.copy_rounded,
+                        size: 20, color: AppColors.primaryDark),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Mã có hiệu lực 2 ngày. Nhập lại mã cũ sẽ không dùng được — mỗi lần tạo mới là mã cũ hết hiệu lực.',
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              key: const Key('family-create-invite'),
+              onPressed: _familyLoading ? null : _createInvite,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.greenSoft,
+                foregroundColor: AppColors.primaryDark,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.vpn_key_rounded, size: 17),
+              label: Text(invite == null ? 'Tạo mã mời' : 'Tạo mã mời mới',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 13)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _liveCard(linked: hasParents),
+        ],
+      ),
+    );
+  }
+
+  /// Công tắc "Cập nhật trực tiếp": ba mẹ thấy tiến độ liền tay mà con không
+  /// phải bấm gửi lại từng lần.
+  Widget _liveCard({required bool linked}) {
+    final String hint;
+    if (!linked) {
+      hint = 'Liên kết với ba mẹ trước đã, rồi mới bật được cập nhật trực tiếp.';
+    } else if (_liveOn) {
+      hint = 'Đang bật: mỗi khi số liệu đổi, ba mẹ thấy ngay — chỉ những mục con '
+          'bật ở trên. Tắt bất cứ lúc nào là ba mẹ không thấy nữa.';
+    } else {
+      hint = 'Bật để ba mẹ thấy tiến độ liên tục, không phải chờ con bấm gửi. '
+          'Vẫn chỉ những mục con bật ở trên mới được chia sẻ.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 4, 6, 8),
+      decoration: BoxDecoration(
+        color: _liveOn ? AppColors.greenSoft : AppColors.bgPageSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: _liveOn ? AppColors.primary : AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(_liveOn ? Icons.podcasts_rounded : Icons.podcasts_outlined,
+                  size: 18,
+                  color: _liveOn ? AppColors.primaryDark : AppColors.textMuted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Cập nhật trực tiếp cho ba mẹ',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: _liveOn
+                          ? AppColors.primaryDark
+                          : AppColors.textPrimary,
+                    )),
+              ),
+              if (_liveSaving)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              else
+                Switch(
+                  key: const Key('family-live-switch'),
+                  value: _liveOn,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: linked ? _toggleLive : null,
+                ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 26, right: 10, bottom: 2),
+            child: Text(
+              hint,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.4,
+                color: _liveOn
+                    ? AppColors.primaryDark
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _card({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.bgPage,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+
+  /// "12345678" → "1234 5678": dễ đọc cho ba mẹ hơn hẳn một dãy liền.
+  static String _spacedCode(String code) =>
+      code.length == 8 ? '${code.substring(0, 4)} ${code.substring(4)}' : code;
 }
