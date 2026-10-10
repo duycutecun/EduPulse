@@ -120,16 +120,23 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
   Future<void> _createInvite() async {
     FeedbackService.selection();
     setState(() => _familyLoading = true);
-    final invite = await FamilyService.createInvite(
-      studentName: StorageService.getUserName(),
-    );
+    FamilyInvite? invite;
+    String? serverError;
+    try {
+      invite = await FamilyService.createInvite(
+        studentName: StorageService.getUserName(),
+      );
+    } on FamilyActionException catch (e) {
+      serverError = e.message;
+    }
     if (!mounted) return;
     setState(() {
       _familyLoading = false;
-      _invite = invite;
+      if (invite != null) _invite = invite;
     });
     if (invite == null) {
-      _snack('Không tạo được mã mời — kiểm tra mạng rồi thử lại nhé.', error: true);
+      _snack(serverError ?? 'Không tạo được mã mời — kiểm tra mạng rồi thử lại nhé.',
+          error: true);
     }
   }
 

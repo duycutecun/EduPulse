@@ -7,7 +7,7 @@ class ShareText {
   ShareText._();
 
   /// Link giới thiệu app — người nhận mở là vào được bản web.
-  static const String appLink = 'https://edu-pulse-five.vercel.app';
+  static const String appLink = 'https://edu-pulse-five-gamma.vercel.app';
 
   /// Chữ ký cuối mỗi đoạn chia sẻ.
   static const String signature = '— Học cùng EduPulse 📚';

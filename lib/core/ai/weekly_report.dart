@@ -117,31 +117,57 @@ class WeeklyReport {
     final readiness = ReadinessScore.compute();
 
     // --- Kỳ thi chính ---
+    // Đúng ngữ nghĩa toàn app (xem ExamRepository.primaryExam): kỳ thi đã ghim
+    // (còn đếm được), chưa ghim hay ghim vào kỳ thi đã qua thì lấy kỳ thi chưa
+    // qua gần nhất. Chỉ đọc chứ không ghi gì vào storage.
     ExamModel? exam;
     final primaryId = StorageService.getPrimaryExamId();
+    final allExams = <ExamModel>[];
     for (final id in StorageService.getExamIds()) {
       final raw = StorageService.getExamJson(id);
       if (raw == null) continue;
       try {
-        final e = ExamModel.fromJsonString(raw);
-        if (e.id == primaryId) {
-          exam = e;
-          break;
-        }
+        allExams.add(ExamModel.fromJsonString(raw));
       } catch (_) {}
+    }
+    final referenceId = primaryId;
+    for (final e in allExams) {
+      if (referenceId != null &&
+          e.id == referenceId &&
+          !e.isExamDayOverAt(reference)) {
+        exam = e;
+        break;
+      }
+    }
+    if (exam == null) {
+      final upcoming = allExams
+          .where((e) => !e.isExamDayOverAt(reference))
+          .toList()
+        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      exam = upcoming.isNotEmpty
+          ? upcoming.first
+          : (allExams.isNotEmpty ? allExams.first : null);
     }
     final daysLeft = exam?.dateTime.difference(reference).inDays;
 
     // --- Điểm thi thử mới nhất ---
-    String? latestScore;
+    // Chọn THEO NGÀY (m.date) thay vì vị trí trong danh sách: dữ liệu sau khi
+    // synced/khôi phục có thể thứ tự không còn là "cũ → mới", nên bản ghi đầu
+    // danh sách chưa chắc là bản mới nhất — đúng nhãn hiển thị "mới nhất".
+    MockScore? newestScore;
     for (final id in StorageService.getMockScoreIds()) {
       final raw = StorageService.getMockScoreJson(id);
       if (raw == null) continue;
       try {
         final m = MockScore.fromJsonString(raw);
-        latestScore ??= '${m.subject}: ${m.score.toStringAsFixed(1)}/10';
+        if (newestScore == null || m.date.isAfter(newestScore.date)) {
+          newestScore = m;
+        }
       } catch (_) {}
     }
+    final latestScore = newestScore == null
+        ? null
+        : '${newestScore.subject}: ${newestScore.score.toStringAsFixed(1)}/10';
 
     // --- Mục theo tuỳ chọn của học sinh ---
     final items = <ReportItem>[];

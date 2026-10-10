@@ -200,17 +200,31 @@ async function invite(supabase, user, body, res) {
     .eq('status', 'pending');
   if (clearError) return fail(res, 500, 'Không tạo được mã mời.');
 
-  const code = newCode();
-  const { error } = await supabase.from(LINK_TABLE).insert({
-    code,
-    student_user_id: user.uid,
-    student_name: name,
-    status: 'pending',
-    created_at: new Date().toISOString(),
-  });
-  if (error) return fail(res, 500, 'Không tạo được mã mời.');
-
-  return ok(res, { ok: true, code, expiresAt: Date.now() + CODE_TTL_MS });
+  // `code` bị ràng buộc UNIQUE (family_links_code_key). Trùng mã 8 chữ số rất
+  // hiếm nhưng có thể xảy ra — thử lại vài lần thay vì trả lỗi 500 cho người
+  // dùng vừa bấm nút.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = newCode();
+    const { error } = await supabase.from(LINK_TABLE).insert({
+      code,
+      student_user_id: user.uid,
+      student_name: name,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    });
+    if (!error) {
+      return ok(res, {
+        ok: true,
+        code,
+        expiresAt: Date.now() + CODE_TTL_MS,
+      });
+    }
+    // error.code === '23505' = duplicate key (mã trùng) → thử mã khác.
+    if (error.code !== '23505') {
+      return fail(res, 500, 'Không tạo được mã mời.');
+    }
+  }
+  return fail(res, 500, 'Không tạo được mã mời.');
 }
 
 /** Trạng thái gia đình của người đang gọi — dùng chung cho cả hai vai. */

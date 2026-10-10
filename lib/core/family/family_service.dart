@@ -9,6 +9,17 @@ import '../utils/auth_service.dart';
 import '../utils/supabase_service.dart';
 import 'family_models.dart';
 
+/// Lỗi nghiệp vụ do SERVER trả về (vd "Mã mời đã được dùng rồi", "Không tạo
+/// được mã mời.") — khác với `null` mà `_post` trả về khi mạng/đăng nhập.
+class FamilyActionException implements Exception {
+  const FamilyActionException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'FamilyActionException: $message';
+}
+
 /// Cầu nối tới `/api/family.js` — "Cửa sổ tin cậy" giữa học sinh và phụ huynh.
 ///
 /// Vì sao đi qua API chứ không gọi thẳng Supabase: app đăng nhập bằng FIREBASE
@@ -42,12 +53,21 @@ class FamilyService {
   // ─── HỌC SINH ──────────────────────────────────────────────────────────────
 
   /// Tạo (hoặc thay) mã mời. Mã cũ mất hiệu lực ngay khi mã mới được tạo.
+  ///
+  /// Ném [FamilyActionException] kèm thông báo cụ thể khi server chối (thay vì
+  /// gộp vào `null` như lỗi mạng) — để UI báo cho học sinh đúng lý do thay vì
+  /// nói chung chung "kiểm tra mạng".
   static Future<FamilyInvite?> createInvite({String? studentName}) async {
     final body = await _post({
       'action': 'invite',
       if (studentName != null) 'studentName': studentName,
     });
-    if (body == null || body['ok'] != true) return null;
+    if (body == null) return null;
+    if (body['ok'] != true) {
+      throw FamilyActionException(
+        '${body['error'] ?? 'Không tạo được mã mời.'}',
+      );
+    }
     return FamilyInvite.fromJson({
       'code': body['code'],
       'expiresAt': body['expiresAt'],
