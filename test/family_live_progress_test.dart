@@ -163,8 +163,8 @@ void main() {
   });
 
   group('Công tắc của con', () {
-    test('mặc định TẮT — không tự ý theo dõi ai', () {
-      expect(LiveProgressService.enabled, isFalse);
+    test('mặc định BẬT — ba mẹ đồng hành cùng con', () {
+      expect(LiveProgressService.enabled, isTrue);
     });
 
     test('bật rồi tắt: nhớ lựa chọn và quên vân tay (bật lại phải gửi mới)',
@@ -388,7 +388,7 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('con chưa bật → nói thật, không hiện thẻ trực tiếp',
+    testWidgets('con chưa có dữ liệu → nói thật, không hiện thẻ trực tiếp',
         (tester) async {
       FamilyService.debugProgressFetcher = (userId, since) async =>
           const ChildProgress();
@@ -396,7 +396,7 @@ void main() {
       await pumpScreen(tester, child);
       expect(find.byKey(const Key('child-live-card')), findsNothing);
       expect(find.byKey(const Key('child-no-live-card')), findsOneWidget);
-      expect(find.text('Con chưa bật cập nhật trực tiếp'), findsOneWidget);
+      expect(find.text('Con chưa có tiến độ trực tiếp'), findsOneWidget);
       expect(find.text('Trực tiếp'), findsNothing);
 
       await tester.pumpWidget(const SizedBox());

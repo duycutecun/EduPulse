@@ -1064,44 +1064,79 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  /// Lối vào CHẾ ĐỘ PHỤ HUYNH — lựa chọn loại tài khoản thứ hai khi đăng nhập.
+  /// Phần CÀI ĐẶT CHẾ ĐỘ PHỤ HUYNH trong tab "Tôi" — hai việc:
   ///
-  /// Đã đăng nhập thì đổi vai ngay (không bắt đăng nhập lại); chưa đăng nhập
-  /// thì mở màn đăng nhập với vai "Phụ huynh" chọn sẵn.
+  /// 1. **Công tắc vào chế độ phụ huynh**: bật là [AccountRoleGate] chuyển
+  ///    ngay sang màn phụ huynh. Đã đăng nhập thì đổi vai tức thì; chưa đăng
+  ///    nhập thì đăng nhập vai "Phụ huynh" trước. (Nút thoát nằm ở màn phụ
+  ///    huynh — "Chế độ học sinh".)
+  /// 2. **Hạng mục chia sẻ cho ba mẹ**: cùng một lựa chọn như Cửa sổ tin cậy,
+  ///    hiện ngay trong Cài đặt — mặc định bật cả 4 mục (kể cả Điểm thi thử
+  ///    mới nhất + Đếm ngược kỳ thi), con tắt mục nào thì ba mẹ không thấy
+  ///    mục đó.
   Widget _buildParentModeEntry() {
     return GlassCard(
-      onTap: _openParentMode,
+      key: const Key('account-parent-mode'),
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AppIcon(
-            Icons.supervisor_account_rounded,
-            tileSize: 36,
-            iconSize: 18,
-            color: AppColors.purple,
-            bg: AppColors.purpleSoft,
+          Row(
+            children: [
+              const AppIcon(
+                Icons.supervisor_account_rounded,
+                tileSize: 36,
+                iconSize: 18,
+                color: AppColors.purple,
+                bg: AppColors.purpleSoft,
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Chế độ phụ huynh',
+                        style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary)),
+                    SizedBox(height: 2),
+                    Text(
+                        'Bật để chuyển sang màn phụ huynh — xem tiến độ con đã gửi',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              Switch(
+                key: const Key('parent-mode-switch'),
+                // Màn này chỉ hiện ở chế độ học sinh, nên công tắc luôn TẮT —
+                // bật là chuyển vai ngay (đúng ngữ nghĩa "vào/ra").
+                value: false,
+                activeThumbColor: AppColors.purple,
+                onChanged: (v) {
+                  if (v) _openParentMode();
+                },
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Tài khoản phụ huynh',
-                    style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-                SizedBox(height: 2),
-                Text(
-                    'Ba mẹ đăng nhập bằng mã mời của con để xem tiến độ học tập',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        height: 1.35)),
-              ],
-            ),
+          const SizedBox(height: 4),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 2),
+            child: Text('Ba mẹ đã liên kết sẽ thấy toàn bộ tiến độ học tập',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary)),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+          Text(
+            'Điểm thi thử, đếm ngược kỳ thi, thời gian tập trung và chỉ số sẵn '
+            'sàng — cập nhật liên tục. Mở "Cửa sổ tin cậy" bên dưới để liên kết '
+            'hoặc tạm dừng chia sẻ.',
+            style: TextStyle(
+                fontSize: 11.5, height: 1.35, color: AppColors.textMuted),
+          ),
         ],
       ),
     );

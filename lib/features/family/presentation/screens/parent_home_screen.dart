@@ -8,6 +8,7 @@ import '../../../../core/family/family_models.dart';
 import '../../../../core/family/family_notify_service.dart';
 import '../../../../core/family/family_service.dart';
 import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/push/web_push_service.dart';
 import '../../../../core/utils/auth_service.dart';
 import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -53,12 +54,17 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
   /// Ba mẹ có bật thông báo "con vừa cập nhật" hay không.
   bool _notifyOn = false;
 
+  /// Trạng thái Web Push (thông báo khi app đã đóng) + cờ đang xử lý.
+  bool _pushOn = false;
+  bool _pushBusy = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     FamilyService.liveSignal.addListener(_onLiveSignal);
     _notifyOn = FamilyNotifyService.enabled;
+    _pushOn = WebPushService.currentSubscription() != null;
     _bootstrap();
     _startPolling();
   }
@@ -153,6 +159,55 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     }
   }
 
+  /// Bật/tắt thông báo đẩy (app đã đóng) — chỉ trên web/PWA có hỗ trợ.
+  ///
+  /// Bật: xin quyền + đăng ký với trình duyệt, rồi gửi subscription lên server.
+  /// Tắt: huỷ subscription và xoá token trên server.
+  Future<void> _togglePush(bool value) async {
+    if (_pushBusy) return;
+    FeedbackService.selection();
+    setState(() => _pushBusy = true);
+
+    if (!value) {
+      final token = WebPushService.currentSubscription();
+      await WebPushService.unsubscribe();
+      if (token != null) await FamilyService.clearPushToken(token);
+      if (!mounted) return;
+      setState(() {
+        _pushOn = false;
+        _pushBusy = false;
+      });
+      _snack('Đã tắt thông báo đẩy.');
+      return;
+    }
+
+    final vapid = await FamilyService.fetchVapidPublicKey();
+    if (!mounted) return;
+    if (vapid == null) {
+      setState(() => _pushBusy = false);
+      _snack('Máy chủ chưa cấu hình thông báo đẩy.', error: true);
+      return;
+    }
+    final token = await WebPushService.subscribe(vapid);
+    if (!mounted) return;
+    if (token == null) {
+      setState(() => _pushBusy = false);
+      _snack('Chưa bật được — hãy cho phép thông báo trong trình duyệt.',
+          error: true);
+      return;
+    }
+    final ok = await FamilyService.registerPushToken(token);
+    if (!mounted) return;
+    setState(() {
+      _pushOn = ok;
+      _pushBusy = false;
+    });
+    _snack(ok
+        ? 'Từ giờ bạn nhận thông báo kể cả khi đã đóng app.'
+        : 'Đã đăng ký trên máy này, nhưng chưa đồng bộ được — thử lại sau.',
+        error: !ok);
+  }
+
   Future<void> _link() async {
     if (_linking) return;
     final code = _codeCtrl.text.trim();
@@ -226,6 +281,85 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     StorageService.setAccountRole(StorageService.roleStudent);
   }
 
+  /// Cài đặt chế độ phụ huynh: thông báo + thoát về chế độ học sinh — gom
+  /// ngay từ màn phụ huynh, không bắt ba mẹ đi tìm ở đâu khác.
+  void _openParentSettings() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: StatefulBuilder(
+          builder: (sheetContext, setSheetState) => ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              const Text('Cài đặt chế độ phụ huynh',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text(
+                'Ba mẹ thấy toàn bộ tiến độ học tập con cập nhật. Thay đổi ở đây áp dụng ngay.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile.adaptive(
+                key: const Key('parent-settings-notify-switch'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Thông báo khi con cập nhật'),
+                subtitle: const Text('Báo ngay khi con chia sẻ tiến độ mới.',
+                    style: TextStyle(fontSize: 11)),
+                value: _notifyOn,
+                activeThumbColor: AppColors.primary,
+                onChanged: (value) async {
+                  setSheetState(() {});
+                  await _toggleNotify(value);
+                  if (mounted) setSheetState(() {});
+                },
+              ),
+              if (WebPushService.isSupported)
+                SwitchListTile.adaptive(
+                  key: const Key('parent-settings-push-switch'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Thông báo đẩy khi đã đóng app'),
+                  subtitle: Text(
+                      _pushBusy
+                          ? 'Đang xử lý…'
+                          : 'Nhận thông báo kể cả khi không mở EduPulse.',
+                      style: const TextStyle(fontSize: 11)),
+                  value: _pushOn,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: _pushBusy
+                      ? null
+                      : (value) async {
+                          await _togglePush(value);
+                          if (mounted) setSheetState(() {});
+                        },
+                ),
+              const Divider(),
+              const SizedBox(height: 4),
+              ListTile(
+                key: const Key('parent-settings-exit'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.school_rounded,
+                    color: AppColors.purple),
+                title: const Text('Trở về chế độ học sinh'),
+                subtitle: const Text(
+                    'Quay lại màn học tập — liên kết với con vẫn được giữ.',
+                    style: TextStyle(fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _exitParentMode();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openAuth() async {
     await Navigator.of(context).push(MaterialPageRoute(
       builder: (ctx) => AuthScreen(
@@ -251,6 +385,12 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         title: const Text('Cửa sổ tin cậy',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         actions: [
+          IconButton(
+            key: const Key('parent-settings-button'),
+            tooltip: 'Cài đặt phụ huynh',
+            onPressed: _openParentSettings,
+            icon: const Icon(Icons.settings_rounded),
+          ),
           IconButton(
             tooltip: 'Tải lại',
             onPressed: _loading ? null : _load,
@@ -302,7 +442,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
-              'Bạn đang ở chế độ PHỤ HUYNH. Chỉ thấy những gì con chủ động gửi.',
+              'Bạn đang ở chế độ PHỤ HUYNH. Thấy tiến độ học tập con cập nhật liên tục.',
               style: TextStyle(
                   fontSize: 12,
                   height: 1.35,
@@ -520,9 +660,13 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
       children: [
         Row(
           children: [
-            const Expanded(
-              child: Text('Con của bạn',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            Expanded(
+              child: Text(
+                  children.isEmpty
+                      ? 'Con của bạn'
+                      : '${children.length} con · cập nhật ${_latestAgo(children)}',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w800)),
             ),
             if (_loading)
               const SizedBox(
@@ -575,9 +719,27 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(child.name,
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w800)),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(child.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w800)),
+                        ),
+                        IconButton(
+                          key: Key('parent-rename-${child.userId}'),
+                          tooltip: 'Đổi tên hiển thị',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.only(left: 4),
+                          icon: const Icon(Icons.edit_rounded,
+                              size: 15, color: AppColors.textMuted),
+                          onPressed: () => _renameChild(child),
+                        ),
+                      ],
+                    ),
                     if (child.isLive) _liveChip(child.liveAt!),
                     const SizedBox(height: 2),
                     Text(reportText,
@@ -592,14 +754,43 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                   ],
                 ),
               ),
-              IconButton(
-                tooltip: 'Ngắt liên kết',
-                onPressed: () => _unlink(child),
-                icon: const Icon(Icons.link_off_rounded,
-                    size: 20, color: AppColors.textMuted),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    key: Key('parent-child-notify-${child.userId}'),
+                    tooltip: child.notifyOn
+                        ? 'Đang báo khi con cập nhật'
+                        : 'Đang tắt thông báo cho con',
+                    onPressed: () => _toggleChildNotify(child),
+                    icon: Icon(
+                      child.notifyOn
+                          ? Icons.notifications_active_rounded
+                          : Icons.notifications_off_rounded,
+                      size: 20,
+                      color: child.notifyOn
+                          ? AppColors.primary
+                          : AppColors.textMuted,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Ngắt liên kết',
+                    onPressed: () => _unlink(child),
+                    icon: const Icon(Icons.link_off_rounded,
+                        size: 20, color: AppColors.textMuted),
+                  ),
+                ],
               ),
             ],
           ),
+          if (child.liveSummary.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _quickStats(child.liveSummary),
+          ],
+          if (child.liveCheckin != null) ...[
+            const SizedBox(height: 8),
+            _childCheckin(child.liveCheckin!),
+          ],
           const SizedBox(height: 10),
           Row(
             children: [
@@ -632,6 +823,131 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     );
   }
 
+  /// Dải số nhanh từ bản trực tiếp: điểm thi thử, đếm ngược, thời gian tập
+  /// trung, chỉ số sẵn sàng — chỉ hiện mục con đang có dữ liệu.
+  Widget _quickStats(Map<String, String> summary) {
+    const order = ['mock_score', 'exam_countdown', 'study_time', 'readiness'];
+    const labels = {
+      'mock_score': 'Thi thử',
+      'exam_countdown': 'Kỳ thi',
+      'study_time': 'Tập trung',
+      'readiness': 'Sẵn sàng',
+    };
+    final chips = <Widget>[];
+    for (final key in order) {
+      final value = summary[key];
+      if (value == null || value.trim().isEmpty) continue;
+      chips.add(Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.bgPageSoft,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(labels[key] ?? key,
+                style: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                    color: AppColors.textMuted)),
+            const SizedBox(height: 1),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary)),
+          ],
+        ),
+      ));
+    }
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Wrap(spacing: 8, runSpacing: 8, children: chips);
+  }
+
+  Widget _childCheckin(String checkin) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.greenSoft,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('💬 ', style: TextStyle(fontSize: 12)),
+          Expanded(
+            child: Text(checkin,
+                style: const TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.primaryDark)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Đổi tên riêng để ba mẹ dễ phân biệt khi có nhiều con.
+  Future<void> _renameChild(FamilyMember child) async {
+    final ctrl = TextEditingController(text: child.parentLabel ?? '');
+    final label = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.border, width: 2)),
+        title: const Text('Đổi tên hiển thị',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 24,
+          decoration: const InputDecoration(
+            hintText: 'Ví dụ: “Bé Na”, “An lớp 9”',
+            counterText: '',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Huỷ',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('Lưu',
+                style: TextStyle(
+                    color: AppColors.primary, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (label == null) return;
+    final result = await FamilyService.setChildLabel(child.linkId, label);
+    if (!mounted) return;
+    _snack(result.message, error: !result.ok);
+    await _load();
+  }
+
+  Future<void> _toggleChildNotify(FamilyMember child) async {
+    FeedbackService.selection();
+    final ok = await FamilyService.setNotifyPref(child.userId, !child.notifyOn);
+    if (!mounted) return;
+    if (!ok) {
+      _snack('Không đổi được lúc này — kiểm tra mạng rồi thử lại.', error: true);
+      return;
+    }
+    _snack(child.notifyOn
+        ? 'Đã tắt thông báo cho ${child.name}.'
+        : 'Từ giờ ${child.name} cập nhật là bạn được báo.');
+    await _load();
+  }
+
   Widget _privacyNote() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -640,8 +956,9 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Text(
-        '💚 Cửa sổ tin cậy: con chọn chia sẻ gì thì ba mẹ thấy nấy. '
-        'App không đọc dữ liệu riêng tư của con và không nhắc con “phải” chia sẻ.',
+        '💚 Cửa sổ tin cậy: ba mẹ đồng hành cùng con — thấy tiến độ học tập con '
+        'cập nhật (điểm thi thử, đếm ngược kỳ thi, thời gian tập trung, chỉ số '
+        'sẵn sàng). App không đọc dữ liệu riêng tư khác của con.',
         style: TextStyle(
             fontSize: 11.5, height: 1.4, color: AppColors.primaryDark),
       ),
@@ -677,6 +994,18 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         ],
       ),
     );
+  }
+
+  /// "cập nhật X phút trước" — mốc mới nhất trong tất cả các con.
+  static String _latestAgo(List<FamilyMember> children) {
+    DateTime? latest;
+    for (final c in children) {
+      for (final at in [c.liveAt, c.latestReportAt]) {
+        if (at == null) continue;
+        if (latest == null || at.isAfter(latest)) latest = at;
+      }
+    }
+    return latest == null ? 'chưa có' : _agoLabel(latest);
   }
 
   /// "vừa xong / 12 phút trước / 3 giờ trước" — đủ để ba mẹ biết bản đang xem

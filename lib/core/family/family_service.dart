@@ -224,6 +224,73 @@ class FamilyService {
     return ChildProgress.fromJson(body);
   }
 
+  /// Đổi tên riêng ba mẹ đặt cho một con (chỉ hiển thị ở phía phụ huynh; không
+  /// ảnh hưởng tên thật trên máy con). Chuỗi rỗng = xoá nhãn, quay về tên thật.
+  static Future<FamilyActionResult> setChildLabel(
+    String linkId,
+    String label,
+  ) async {
+    final body = await _post({
+      'action': 'set_child_label',
+      'linkId': linkId,
+      'label': label.trim(),
+    });
+    if (body == null) {
+      return const FamilyActionResult(
+        ok: false,
+        message: 'Không đổi được lúc này — kiểm tra mạng rồi thử lại.',
+      );
+    }
+    if (body['ok'] != true) {
+      return FamilyActionResult(
+        ok: false,
+        message: '${body['error'] ?? 'Không đổi được tên hiển thị.'}',
+      );
+    }
+    await fetchState();
+    return const FamilyActionResult(ok: true, message: 'Đã lưu tên hiển thị.');
+  }
+
+  /// Bật/tắt nhận thông báo cho MỘT con (khi con cập nhật tiến độ).
+  static Future<bool> setNotifyPref(String studentUserId, bool on) async {
+    final body = await _post({
+      'action': 'notify_pref',
+      'studentUserId': studentUserId,
+      'on': on,
+    });
+    if (body == null || body['ok'] != true) return false;
+    await fetchState();
+    return true;
+  }
+
+  /// Đăng ký thiết bị này nhận thông báo đẩy (Web Push). Trả về false khi lỗi.
+  static Future<bool> registerPushToken(String token) async {
+    final body = await _post({
+      'action': 'push_token',
+      'token': token,
+    });
+    return body != null && body['ok'] == true;
+  }
+
+  /// Huỷ đăng ký nhận thông báo đẩy cho thiết bị này.
+  static Future<bool> clearPushToken(String token) async {
+    final body = await _post({
+      'action': 'push_token',
+      'token': token,
+      'remove': true,
+    });
+    return body != null && body['ok'] == true;
+  }
+
+  /// Lấy khoá công khai VAPID của server (cần để đăng ký Web Push). Null khi
+  /// server chưa cấu hình hoặc lỗi mạng.
+  static Future<String?> fetchVapidPublicKey() async {
+    final body = await _post({'action': 'push_info'});
+    if (body == null || body['ok'] != true) return null;
+    final key = '${body['vapidPublicKey'] ?? ''}'.trim();
+    return key.isEmpty ? null : key;
+  }
+
   // ─── REALTIME: "con vừa cập nhật" ──────────────────────────────────────────
 
   /// Báo có tín hiệu mới. Màn ba mẹ lắng nghe rồi kéo lại ngay thay vì chờ

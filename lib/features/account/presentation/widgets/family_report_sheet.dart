@@ -11,16 +11,13 @@ import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../features/family/presentation/screens/achievement_share_screen.dart';
 
-/// "Cửa sổ tin cậy" — nơi học sinh chủ động chia sẻ tiến độ với gia đình.
+/// "Cửa sổ tin cậy" — nơi học sinh chia sẻ tiến độ với gia đình.
 ///
-/// Ba tầng trong một sheet, theo đúng thứ tự cần thiết:
-/// 1. **Gia đình**: liên kết tài khoản ba mẹ bằng mã mời 8 chữ số (mỗi lần
-///    liên kết đều do học sinh tạo mã — ba mẹ không tự vào được).
-/// 2. **Con chọn chia sẻ gì**: công tắc từng mục; lựa chọn được NHỚ cho các
-///    tuần sau; tắt hết = không có gì để gửi (không ép chia sẻ).
-/// 3. **Gửi đi**: gửi báo cáo tuần cho ba mẹ đã liên kết, tạo ảnh thành tựu
-///    có nhận diện EduPulse để chia sẻ ra ngoài, hoặc sao chép văn bản để dán
-///    vào Zalo/SMS (cách cũ, vẫn giữ cho người chưa liên kết).
+/// Bản chất đã đổi: ba mẹ là người ĐỒNG HÀNH nên khi đã liên kết sẽ thấy toàn bộ
+/// tiến độ (bốn mục), không còn để con tự quyết từng hạng mục. Sheet gồm:
+/// 1. **Gia đình**: liên kết tài khoản ba mẹ bằng mã mời 8 chữ số.
+/// 2. **Lời nhắn**: một dòng con muốn gửi kèm (tuỳ chọn).
+/// 3. **Gửi đi**: gửi báo cáo tuần, tạo ảnh thành tựu, hoặc sao chép văn bản.
 class FamilyReportSheet extends StatefulWidget {
   const FamilyReportSheet({super.key});
 
@@ -42,7 +39,7 @@ class FamilyReportSheet extends StatefulWidget {
 }
 
 class _FamilyReportSheetState extends State<FamilyReportSheet> {
-  late Map<String, bool> _choices;
+  final TextEditingController _checkinController = TextEditingController();
 
   FamilyState? _family;
   bool _familyLoading = false;
@@ -53,21 +50,20 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
   bool _liveOn = false;
   bool _liveSaving = false;
 
-  static const Map<String, String> _labels = {
-    'study_time': 'Thời gian tập trung trong tuần',
-    'readiness': 'Chỉ số sẵn sàng thi (0–100)',
-    'mock_score': 'Điểm thi thử mới nhất',
-    'exam_countdown': 'Đếm ngược kỳ thi',
-  };
-
   @override
   void initState() {
     super.initState();
-    _choices = WeeklyReport.savedChoices() ?? WeeklyReport.defaultChoices;
     _liveOn = LiveProgressService.enabled;
+    _checkinController.text = LiveProgressService.lastCheckin ?? '';
     // Hiện ngay trạng thái đã biết (nếu có) để sheet không nháy, rồi cập nhật.
     _family = FamilyService.cachedState;
     _loadFamily();
+  }
+
+  @override
+  void dispose() {
+    _checkinController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadFamily() async {
@@ -83,8 +79,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
 
   /// Bật/tắt cập nhật trực tiếp cho ba mẹ.
   ///
-  /// Bật = app tự đẩy báo cáo mỗi khi số liệu đổi (chỉ những mục con bật ở
-  /// trên). Tắt = thu hồi ngay cả bản đã chia sẻ, không để lại bản cũ.
+  /// Bật (mặc định) = app tự đẩy báo cáo đầy đủ mỗi khi số liệu đổi. Tắt =
+  /// tạm dừng đẩy (thu hồi bản trực tiếp đang có).
   Future<void> _toggleLive(bool value) async {
     if (_liveSaving) return;
     FeedbackService.selection();
@@ -98,7 +94,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
     if (ok) {
       _snack(value
           ? 'Ba mẹ sẽ thấy tiến độ cập nhật liên tục 💚'
-          : 'Đã tắt — ba mẹ không còn thấy cập nhật trực tiếp.');
+          : 'Đã tạm dừng — ba mẹ không còn thấy cập nhật trực tiếp.');
     } else {
       _snack(
         value
@@ -107,12 +103,6 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
         error: !value,
       );
     }
-  }
-
-  void _toggle(String key) {
-    setState(() => _choices[key] = !(_choices[key] ?? false));
-    // Lưu lựa chọn — tuần sau không phải chọn lại. Fire-and-forget.
-    WeeklyReport.saveChoices(_choices);
   }
 
   // ─── Liên kết gia đình ─────────────────────────────────────────────────────
@@ -168,6 +158,10 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
         report,
         studentName: StorageService.getUserName(),
       );
+      if (sent != null) {
+        // Nhớ lời nhắn để bản "cập nhật trực tiếp" cũng mang theo.
+        await LiveProgressService.rememberCheckin(report.checkin);
+      }
       if (!mounted) return;
       setState(() => _sending = false);
       if (sent == null) {
@@ -196,7 +190,11 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final report = WeeklyReport.build(enabled: _choices);
+    final checkin = _checkinController.text.trim();
+    final report = WeeklyReport.build(
+      enabled: WeeklyReport.defaultChoices,
+      checkin: checkin.isEmpty ? null : checkin,
+    );
     final name = StorageService.getUserName().trim();
 
     return SafeArea(
@@ -230,7 +228,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             const SizedBox(height: 4),
             const Center(
               child: Text(
-                'Con chọn chia sẻ gì — gia đình chỉ thấy những mục được bật.',
+                'Ba mẹ đã liên kết sẽ thấy tiến độ học tập của con.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
@@ -240,29 +238,41 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             _familySection(),
             const SizedBox(height: 16),
 
-            // --- Công tắc từng mục ---
-            ..._labels.entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.bgPage,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: SwitchListTile(
-                      dense: true,
-                      activeThumbColor: AppColors.primary,
-                      value: _choices[e.key] ?? false,
-                      onChanged: (_) => _toggle(e.key),
-                      title: Text(e.value,
-                          style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary)),
-                    ),
-                  ),
-                )),
-            const SizedBox(height: 12),
+            // --- Lời nhắn gửi kèm (tuỳ chọn) ---
+            const Text('Lời nhắn cho ba mẹ (không bắt buộc)',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('family-checkin-field'),
+              controller: _checkinController,
+              maxLines: 2,
+              maxLength: 140,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Ví dụ: “Tuần này con hơi mệt, ba mẹ đừng lo nhé.”',
+                hintStyle: const TextStyle(fontSize: 12.5),
+                filled: true,
+                fillColor: AppColors.bgPage,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
 
             // --- Xem trước ---
             const Text('Xem trước',
@@ -281,7 +291,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               ),
               child: report == null
                   ? const Text(
-                      'Chưa có mục nào được bật — bật ít nhất 1 mục để tạo báo cáo.',
+                      'Con chưa có dữ liệu học tập để tạo báo cáo tuần này.',
                       style:
                           TextStyle(fontSize: 12.5, color: AppColors.textMuted),
                     )
@@ -438,7 +448,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             Expanded(
               child: Text(
                 'Tài khoản phụ huynh: đăng nhập (tab Tôi) để tạo mã mời 8 chữ số '
-                'cho ba mẹ. Ba mẹ chỉ thấy những mục con bật.',
+                'cho ba mẹ. Sau khi liên kết, ba mẹ thấy tiến độ học tập của con.',
                 style: TextStyle(
                     fontSize: 12, height: 1.4, color: AppColors.textSecondary),
               ),
@@ -475,8 +485,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
           if (parents.isEmpty)
             Text(
               'Chưa liên kết với ba mẹ nào. Tạo mã mời rồi đọc cho ba mẹ nhập. '
-              'Ba mẹ đăng nhập rồi vào Cửa sổ tin cậy sẽ thấy con bạn và tiến độ học tập '
-              'con đã gửi 💚',
+              'Ba mẹ đăng nhập rồi vào Cửa sổ tin cậy sẽ thấy tiến độ học tập '
+              'của con 💚',
               style: TextStyle(
                   fontSize: 12, height: 1.4, color: AppColors.textSecondary),
             )
@@ -591,13 +601,13 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
   Widget _liveCard({required bool linked}) {
     final String hint;
     if (!linked) {
-      hint = 'Liên kết với ba mẹ trước đã, rồi mới bật được cập nhật trực tiếp.';
+      hint = 'Liên kết với ba mẹ trước đã, rồi tiến độ sẽ được cập nhật liên tục.';
     } else if (_liveOn) {
-      hint = 'Đang bật: mỗi khi số liệu đổi, ba mẹ thấy ngay — chỉ những mục con '
-          'bật ở trên. Tắt bất cứ lúc nào là ba mẹ không thấy nữa.';
+      hint = 'Đang bật: mỗi khi số liệu đổi, ba mẹ thấy ngay toàn bộ tiến độ. '
+          'Con có thể tạm dừng bất cứ lúc nào.';
     } else {
-      hint = 'Bật để ba mẹ thấy tiến độ liên tục, không phải chờ con bấm gửi. '
-          'Vẫn chỉ những mục con bật ở trên mới được chia sẻ.';
+      hint = 'Đang tạm dừng. Bật lại để ba mẹ thấy tiến độ liên tục, không phải '
+          'chờ con bấm gửi.';
     }
 
     return Container(

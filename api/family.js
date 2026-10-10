@@ -14,21 +14,26 @@
 // Route: POST /api/family.js  (Firebase ID token trong body `idToken`)
 //   action = 'invite'        → học sinh tạo mã mời 8 chữ số (mã cũ bị thay)
 //   action = 'my_family'     → trạng thái của tôi: mã đang chờ / ba mẹ đã nối /
-//                              các con đã nối (kèm mốc báo cáo mới nhất)
+//                              các con đã nối (kèm mốc báo cáo, bản trực tiếp,
+//                              nhãn riêng, tuỳ chọn thông báo)
 //   action = 'redeem'        → phụ huynh nhập mã để liên kết
 //   action = 'unlink'        → ngắt liên kết (cả hai phía đều gọi được)
 //   action = 'share_report'  → học sinh gửi báo cáo tuần cho gia đình
 //   action = 'child_reports' → phụ huynh đọc báo cáo con đã gửi (+ trạng thái
-//                              trực tiếp, hỗ trợ `since` để chỉ lấy phần mới)
-//   action = 'share_live'    → học sinh bật/tắt + cập nhật "trạng thái trực
-//                              tiếp" cho ba mẹ (một dòng mới nhất, không phải
-//                              lịch sử); kèm tín hiệu Realtime cho máy ba mẹ
+//                              trực tiếp; lọc `since`/`from`/`to`)
+//   action = 'share_live'    → học sinh đẩy "trạng thái trực tiếp" cho ba mẹ
+//   action = 'set_child_label' → phụ huynh đặt tên riêng cho một con
+//   action = 'notify_pref'   → phụ huynh bật/tắt nhận thông báo cho một con
+//   action = 'push_token'    → phụ huynh đăng ký/huỷ token Web Push
+//   action = 'push_info'     → trả khoá công khai VAPID để app đăng ký push
+//
+// BẢN CHẤT (đã đổi): ba mẹ là người ĐỒNG HÀNH nên khi đã liên kết sẽ thấy toàn
+// bộ tiến độ con cập nhật — không còn để con tự quyết từng hạng mục. Giao kèo
+// còn lại: ba mẹ chỉ thấy tiến độ học tập (không đọc dữ liệu riêng tư khác).
 //
 // VÌ SAO CÓ `share_live`:
 //   Ba mẹ muốn thấy tiến độ cập nhật liên tục, không phải chờ con bấm gửi.
-//   Con bật công tắc "Cập nhật trực tiếp" ⇒ app của con tự đẩy báo cáo mỗi khi
-//   số liệu đổi. Vẫn đúng giao kèo: chỉ những mục con bật mới vào payload, và
-//   tắt công tắc là dòng trực tiếp bị xoá ngay.
+//   App của con tự đẩy báo cáo mỗi khi số liệu đổi; ngắt liên kết là dừng.
 const crypto = require('crypto');
 const {
   getFirebaseUser,
@@ -41,6 +46,7 @@ const {
 const LINK_TABLE = 'family_links';
 const REPORT_TABLE = 'family_reports';
 const LIVE_TABLE = 'family_live';
+const NOTIF_TABLE = 'family_notif_tokens';
 
 /// Mã mời sống 2 ngày. Đủ để con đọc cho ba mẹ nhập, đủ ngắn để một mã lọt ra
 /// ngoài không còn dùng được sau vài hôm.
@@ -105,25 +111,90 @@ async function broadcast(topic, event, payload) {
   }
 }
 
-/** Tài khoản ba mẹ đang liên kết với một học sinh. */
-async function linkedParentIds(supabase, studentUserId) {
+/** Tài khoản ba mẹ đang liên kết với một học sinh (kèm tuỳ chọn thông báo). */
+async function linkedParents(supabase, studentUserId) {
   try {
     const { data } = await supabase
       .from(LINK_TABLE)
-      .select('parent_user_id')
+      .select('parent_user_id, notify_on')
       .eq('student_user_id', studentUserId)
       .eq('status', 'linked');
-    return (data || []).map((r) => r.parent_user_id).filter(Boolean);
+    return (data || []).filter((r) => r.parent_user_id);
   } catch (_) {
     return [];
   }
 }
 
+// ── Web Push (thông báo khi ba mẹ đã đóng app) ─────────────────────────────
+//
+// Dùng VAPID; thư viện `web-push` là optional — cài rồi mà thiếu khoá thì bỏ
+// qua êm, không làm hỏng thao tác lưu. Token không còn hiệu lực (404/410) bị
+// xoá để bảng không đọng rác.
+let webpush = null;
+try {
+  webpush = require('web-push');
+} catch (_) {
+  webpush = null;
+}
+
+function pushConfigured() {
+  return !!(
+    webpush &&
+    process.env.VAPID_PUBLIC_KEY &&
+    process.env.VAPID_PRIVATE_KEY &&
+    process.env.VAPID_SUBJECT
+  );
+}
+
+async function sendPushTo(supabase, parentId, message) {
+  if (!pushConfigured()) return;
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  } catch (_) {
+    return;
+  }
+  const { data: tokens } = await supabase
+    .from(NOTIF_TABLE)
+    .select('token')
+    .eq('user_id', parentId);
+  const body = JSON.stringify({
+    title: message.title,
+    body: message.body,
+    at: message.at || Date.now(),
+    kind: message.kind || 'live',
+  });
+  for (const row of tokens || []) {
+    try {
+      await webpush.sendNotification(JSON.parse(row.token), body);
+    } catch (e) {
+      const status = e && e.statusCode;
+      if (status === 404 || status === 410) {
+        await supabase.from(NOTIF_TABLE).delete().eq('token', row.token);
+      }
+    }
+  }
+}
+
 /** Báo cho mọi ba mẹ đã liên kết rằng con vừa có gì đó mới. */
-async function notifyParents(supabase, studentUserId, payload) {
-  const parents = await linkedParentIds(supabase, studentUserId);
-  for (const parentId of parents) {
-    await broadcast(topicFor(parentId), 'family', payload);
+async function notifyParents(supabase, studentUserId, payload, studentName) {
+  const parents = await linkedParents(supabase, studentUserId);
+  const name = (studentName || 'Con').trim() || 'Con';
+  const kind = payload && payload.kind;
+  let message = null;
+  if (kind === 'report') {
+    message = { title: 'Báo cáo tuần mới', body: `${name} vừa gửi báo cáo tuần cho ba mẹ.` };
+  } else if (kind === 'live') {
+    message = { title: 'Con vừa cập nhật', body: `${name} vừa cập nhật tiến độ học tập.` };
+  }
+  for (const parent of parents) {
+    await broadcast(topicFor(parent.parent_user_id), 'family', payload);
+    if (message && parent.notify_on !== false) {
+      await sendPushTo(supabase, parent.parent_user_id, { ...message, at: payload.at, kind });
+    }
   }
   return parents.length;
 }
@@ -180,6 +251,17 @@ module.exports = async function handler(req, res) {
         return await shareLive(supabase, user, body, res);
       case 'child_reports':
         return await childReports(supabase, user, body, res);
+      case 'set_child_label':
+        return await setChildLabel(supabase, user, body, res);
+      case 'notify_pref':
+        return await notifyPref(supabase, user, body, res);
+      case 'push_token':
+        return await pushToken(supabase, user, body, res);
+      case 'push_info':
+        return ok(res, {
+          ok: true,
+          vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '',
+        });
       default:
         return fail(res, 400, 'Hành động không hợp lệ.');
     }
@@ -232,7 +314,7 @@ async function myFamily(supabase, user, res) {
   const { data, error } = await supabase
     .from(LINK_TABLE)
     .select(
-      'id, code, student_user_id, student_name, parent_user_id, parent_name, status, created_at, linked_at'
+      'id, code, student_user_id, student_name, parent_user_id, parent_name, parent_label, notify_on, status, created_at, linked_at'
     )
     .or(`student_user_id.eq.${user.uid},parent_user_id.eq.${user.uid}`);
   if (error) return fail(res, 500, 'Không đọc được liên kết gia đình.');
@@ -265,10 +347,13 @@ async function myFamily(supabase, user, res) {
     .map((r) => ({
       linkId: r.id,
       userId: r.student_user_id,
-      name: r.student_name || 'Con',
+      // Nhãn ba mẹ đặt riêng được ưu tiên hơn tên thật của con.
+      name: r.parent_label || r.student_name || 'Con',
+      parentLabel: r.parent_label || '',
+      notifyOn: r.notify_on !== false,
       linkedAt: toMillis(r.linked_at),
       latestReportAt: 0,
-      // Có "trạng thái trực tiếp" = con đã bật cập nhật liên tục (0 = chưa).
+      // Có "trạng thái trực tiếp" = con đã cập nhật (0 = chưa).
       liveAt: 0,
     }));
 
@@ -292,13 +377,29 @@ async function myFamily(supabase, user, res) {
 
     const { data: liveRows } = await supabase
       .from(LIVE_TABLE)
-      .select('student_user_id, updated_at')
+      .select('student_user_id, payload, updated_at')
       .in('student_user_id', ids);
     const liveAt = {};
+    const liveSummary = {};
+    const liveCheckin = {};
     for (const r of liveRows || []) {
       liveAt[r.student_user_id] = toMillis(r.updated_at);
+      const payload = r.payload && typeof r.payload === 'object' ? r.payload : {};
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const summary = {};
+      for (const item of items) {
+        if (item && item.key && item.value != null) {
+          summary[item.key] = String(item.value);
+        }
+      }
+      liveSummary[r.student_user_id] = summary;
+      if (payload.checkin) liveCheckin[r.student_user_id] = String(payload.checkin);
     }
-    for (const c of children) c.liveAt = liveAt[c.userId] || 0;
+    for (const c of children) {
+      c.liveAt = liveAt[c.userId] || 0;
+      c.liveSummary = liveSummary[c.userId] || {};
+      c.liveCheckin = liveCheckin[c.userId] || '';
+    }
   }
 
   // `topic` = kênh Realtime của CHÍNH người đang gọi. App dùng nó để nghe tín
@@ -471,7 +572,7 @@ async function shareReport(supabase, user, body, res) {
   await notifyParents(supabase, user.uid, {
     at: Date.now(),
     kind: 'report',
-  });
+  }, body.studentName);
 
   return ok(res, { ok: true, sentTo: parentCount });
 }
@@ -493,7 +594,7 @@ async function shareLive(supabase, user, body, res) {
       .delete()
       .eq('student_user_id', user.uid);
     if (error) return fail(res, 500, 'Không tắt được cập nhật trực tiếp.');
-    await notifyParents(supabase, user.uid, { at: Date.now(), kind: 'off' });
+    await notifyParents(supabase, user.uid, { at: Date.now(), kind: 'off' }, name);
     return ok(res, { ok: true, live: false });
   }
 
@@ -514,7 +615,7 @@ async function shareLive(supabase, user, body, res) {
   if (error) return fail(res, 500, 'Không cập nhật được trạng thái trực tiếp.');
 
   const at = toMillis(updatedAt) || Date.now();
-  await notifyParents(supabase, user.uid, { at, kind: 'live' });
+  await notifyParents(supabase, user.uid, { at, kind: 'live' }, name);
   return ok(res, { ok: true, live: true, updatedAt: at });
 }
 
@@ -538,6 +639,8 @@ async function childReports(supabase, user, body, res) {
   // `since` (epoch ms) cho vòng hỏi định kỳ / tín hiệu Realtime: chỉ kéo phần
   // MỚI hơn cái đã có, không tải lại cả trang mỗi 30 giây.
   const since = Number(body.since) || 0;
+  const from = Number(body.from) || 0;
+  const to = Number(body.to) || 0;
   let query = supabase
     .from(REPORT_TABLE)
     .select('id, student_name, payload, created_at')
@@ -545,6 +648,8 @@ async function childReports(supabase, user, body, res) {
     .order('created_at', { ascending: false })
     .limit(REPORTS_PAGE);
   if (since > 0) query = query.gt('created_at', new Date(since).toISOString());
+  if (from > 0) query = query.gte('created_at', new Date(from).toISOString());
+  if (to > 0) query = query.lte('created_at', new Date(to).toISOString());
 
   const { data, error } = await query;
   if (error) return fail(res, 500, 'Không đọc được báo cáo của con.');
@@ -574,4 +679,70 @@ async function childReports(supabase, user, body, res) {
       payload: r.payload || {},
     })),
   });
+}
+
+/** Phụ huynh đặt tên riêng cho một con (chỉ hiển thị phía phụ huynh). */
+async function setChildLabel(supabase, user, body, res) {
+  const linkId = String(body.linkId || '').trim();
+  const label = String(body.label || '').trim().slice(0, 24);
+  if (!linkId) return fail(res, 400, 'Thiếu liên kết cần đổi tên.');
+
+  const { data, error } = await supabase
+    .from(LINK_TABLE)
+    .select('id, parent_user_id')
+    .eq('id', linkId)
+    .maybeSingle();
+  if (error) return fail(res, 500, 'Không đọc được liên kết.');
+  if (!data || data.parent_user_id !== user.uid) {
+    return fail(res, 403, 'Bạn không phải phụ huynh của liên kết này.');
+  }
+
+  const { error: updateError } = await supabase
+    .from(LINK_TABLE)
+    .update({ parent_label: label })
+    .eq('id', linkId);
+  if (updateError) return fail(res, 500, 'Không đổi được tên hiển thị.');
+  return ok(res, { ok: true, label });
+}
+
+/** Phụ huynh bật/tắt nhận thông báo khi một con cập nhật. */
+async function notifyPref(supabase, user, body, res) {
+  const studentUserId = String(body.studentUserId || '').trim();
+  const on = body.on !== false;
+  if (!studentUserId) return fail(res, 400, 'Thiếu tài khoản của con.');
+
+  const { error } = await supabase
+    .from(LINK_TABLE)
+    .update({ notify_on: on })
+    .eq('student_user_id', studentUserId)
+    .eq('parent_user_id', user.uid);
+  if (error) return fail(res, 500, 'Không lưu được tuỳ chọn thông báo.');
+  return ok(res, { ok: true, on });
+}
+
+/** Đăng ký / huỷ token Web Push của thiết bị này cho tài khoản đang đăng nhập. */
+async function pushToken(supabase, user, body, res) {
+  const token = String(body.token || '').trim();
+  if (!token) return fail(res, 400, 'Thiếu token thiết bị.');
+
+  if (body.remove === true) {
+    const { error } = await supabase
+      .from(NOTIF_TABLE)
+      .delete()
+      .eq('token', token)
+      .eq('user_id', user.uid);
+    if (error) return fail(res, 500, 'Không huỷ được token.');
+    return ok(res, { ok: true });
+  }
+
+  const { error } = await supabase.from(NOTIF_TABLE).upsert(
+    {
+      token,
+      user_id: user.uid,
+      created_at: new Date().toISOString(),
+    },
+    { onConflict: 'token' }
+  );
+  if (error) return fail(res, 500, 'Không đăng ký được thông báo đẩy.');
+  return ok(res, { ok: true });
 }

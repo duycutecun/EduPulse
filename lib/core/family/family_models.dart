@@ -39,6 +39,10 @@ class FamilyMember {
     this.linkedAt,
     this.latestReportAt,
     this.liveAt,
+    this.parentLabel,
+    this.notifyOn = true,
+    this.liveSummary = const {},
+    this.liveCheckin,
   });
 
   /// Id liên kết — cần để ngắt liên kết.
@@ -52,13 +56,26 @@ class FamilyMember {
   final DateTime? latestReportAt;
 
   /// Mốc con cập nhật "trạng thái trực tiếp" gần nhất (chỉ có ở phía phụ
-  /// huynh). Null = con CHƯA bật cập nhật trực tiếp — không phải lỗi, chỉ là
-  /// con chưa chọn chia sẻ liên tục.
+  /// huynh). Null = con chưa có bản trực tiếp nào.
   final DateTime? liveAt;
+
+  /// Tên riêng ba mẹ đặt cho con (chỉ có ở phía phụ huynh). Null = chưa đặt,
+  /// dùng tên thật. Khi có, server đã trả về [name] là nhãn này.
+  final String? parentLabel;
+
+  /// Ba mẹ có muốn nhận thông báo khi con cập nhật? (mặc định có).
+  final bool notifyOn;
+
+  /// Vài con số nhanh từ bản trực tiếp (chỉ có ở phía phụ huynh): key → giá trị
+  /// đã format sẵn (ví dụ `mock_score`: "Toán: 8.5/10"). Rỗng khi chưa có.
+  final Map<String, String> liveSummary;
+
+  /// Lời nhắn gần nhất con gửi kèm (chỉ có ở phía phụ huynh). Null = không có.
+  final String? liveCheckin;
 
   bool get hasReport => latestReportAt != null;
 
-  /// Con đang chia sẻ tiến độ liên tục (đã bật công tắc ở phía con).
+  /// Con đang có bản cập nhật trực tiếp để xem.
   bool get isLive => liveAt != null;
 
   static FamilyMember? fromJson(Object? raw) {
@@ -71,9 +88,23 @@ class FamilyMember {
       return n > 0 ? n : null;
     }
 
+    Map<String, String> readSummary(Object? v) {
+      if (v is! Map) return const {};
+      final out = <String, String>{};
+      v.forEach((key, value) {
+        if (value == null) return;
+        final s = '$value'.trim();
+        if (s.isNotEmpty) out['$key'] = s;
+      });
+      return out;
+    }
+
     final linkedAt = millis(raw['linkedAt']);
     final latest = millis(raw['latestReportAt']);
     final live = millis(raw['liveAt']);
+    final label = '${raw['parentLabel'] ?? ''}'.trim();
+    final rawCheckin = raw['liveCheckin'];
+    final checkin = rawCheckin == null ? '' : '$rawCheckin'.trim();
     return FamilyMember(
       linkId: linkId,
       userId: userId,
@@ -85,6 +116,10 @@ class FamilyMember {
       latestReportAt:
           latest == null ? null : DateTime.fromMillisecondsSinceEpoch(latest),
       liveAt: live == null ? null : DateTime.fromMillisecondsSinceEpoch(live),
+      parentLabel: label.isEmpty ? null : label,
+      notifyOn: raw['notifyOn'] != false,
+      liveSummary: readSummary(raw['liveSummary']),
+      liveCheckin: checkin.isEmpty ? null : checkin,
     );
   }
 }

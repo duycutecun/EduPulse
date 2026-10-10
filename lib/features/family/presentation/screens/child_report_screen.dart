@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/family/family_models.dart';
 import '../../../../core/family/family_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import 'child_trend_screen.dart';
 
 /// Phụ huynh xem tiến độ học tập của con — CẬP NHẬT LIÊN TỤC.
 ///
@@ -16,9 +17,9 @@ import '../../../../shared/widgets/glass_card.dart';
 ///   giây chỉ là lưới an toàn khi tín hiệu không tới.
 /// - **Báo cáo tuần**: từng mốc con tự tay bấm gửi, giữ lại làm lịch sử.
 ///
-/// Vẫn đúng "Cửa sổ tin cậy": cả hai đều là nội dung con chọn chia sẻ. Màn này
-/// không đọc dữ liệu thô, không suy diễn thêm, và nói thật khi con chưa bật
-/// cập nhật trực tiếp.
+/// Bản chất: ba mẹ đồng hành cùng con nên thấy toàn bộ tiến độ con cập nhật,
+/// không còn chờ con chọn từng mục. Màn này không đọc dữ liệu thô, không suy
+/// diễn thêm.
 class ChildReportScreen extends StatefulWidget {
   const ChildReportScreen({super.key, required this.child});
 
@@ -47,6 +48,33 @@ class _ChildReportScreenState extends State<ChildReportScreen>
   String? _error;
   DateTime? _updatedAt;
   Timer? _pollTimer;
+
+  /// Lọc báo cáo theo thời gian: 0 = tất cả, còn lại là số ngày gần đây.
+  int _rangeDays = 0;
+
+  /// Báo cáo sau khi lọc theo [_rangeDays].
+  List<SharedReport> get _visibleReports {
+    if (_rangeDays <= 0) return _reports;
+    final cutoff = DateTime.now().subtract(Duration(days: _rangeDays));
+    return _reports.where((r) => r.createdAt.isAfter(cutoff)).toList();
+  }
+
+  String get _rangeLabel {
+    switch (_rangeDays) {
+      case 7:
+        return '7 ngày';
+      case 30:
+        return '30 ngày';
+      default:
+        return 'Tất cả';
+    }
+  }
+
+  void _openTrend() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ChildTrendScreen(child: widget.child, reports: _reports),
+    ));
+  }
 
   @override
   void initState() {
@@ -182,6 +210,12 @@ class _ChildReportScreenState extends State<ChildReportScreen>
             const SizedBox(width: 2),
           ],
           IconButton(
+            key: const Key('child-trend-button'),
+            tooltip: 'Xu hướng & cột mốc',
+            onPressed: _loading ? null : _openTrend,
+            icon: const Icon(Icons.insights_rounded),
+          ),
+          IconButton(
             tooltip: 'Làm mới / tải lại',
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
@@ -212,23 +246,60 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               else
                 _noLiveCard(),
               const SizedBox(height: 16),
-              const Text('Báo cáo tuần con đã gửi',
-                  style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textSecondary)),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text('Báo cáo tuần con đã gửi',
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textSecondary)),
+                  ),
+                  if (_reports.isNotEmpty)
+                    PopupMenuButton<int>(
+                      key: const Key('child-range-filter'),
+                      tooltip: 'Lọc theo thời gian',
+                      initialValue: _rangeDays,
+                      onSelected: (v) => setState(() => _rangeDays = v),
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 0, child: Text('Tất cả')),
+                        PopupMenuItem(value: 7, child: Text('7 ngày gần đây')),
+                        PopupMenuItem(value: 30, child: Text('30 ngày gần đây')),
+                      ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.filter_list_rounded,
+                              size: 16, color: AppColors.textSecondary),
+                          const SizedBox(width: 4),
+                          Text(_rangeLabel,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textSecondary)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 8),
               if (_reports.isEmpty)
                 _messageCard(
                   emoji: '💚',
                   title: 'Chưa có báo cáo tuần nào',
                   body:
-                      'Khi con vào Cửa sổ tin cậy và bấm “Gửi cho gia đình”, báo cáo tuần sẽ hiện ở đây. '
-                      'Con có thể chỉ chọn vài mục — đó là quyền của con.',
+                      'Khi con bấm “Gửi cho gia đình” trong Cửa sổ tin cậy, báo cáo tuần sẽ hiện ở đây. '
+                      'Trong lúc chờ, tiến độ trực tiếp của con vẫn cập nhật phía trên.',
+                )
+              else if (_visibleReports.isEmpty)
+                _messageCard(
+                  emoji: '🗓️',
+                  title: 'Không có báo cáo trong $_rangeLabel',
+                  body: 'Thử chọn “Tất cả” để xem toàn bộ lịch sử con đã gửi.',
                 )
               else
-                for (var i = 0; i < _reports.length; i++) ...[
-                  _reportCard(_reports[i], isLatest: i == 0),
+                for (var i = 0; i < _visibleReports.length; i++) ...[
+                  _reportCard(_visibleReports[i], isLatest: i == 0),
                   const SizedBox(height: 12),
                 ],
             ],
@@ -303,14 +374,15 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary),
             ),
+            if (report.checkin != null) _checkinBubble(report.checkin!),
             const SizedBox(height: 12),
             for (final item in report.items) _itemRow(item),
           ],
           if (stale) ...[
             const SizedBox(height: 4),
             const Text(
-              'Con chưa cập nhật hôm nay — con có thể đang nghỉ, hoặc đã tắt '
-              'cập nhật trực tiếp.',
+              'Con chưa cập nhật hôm nay — con có thể đang nghỉ, hoặc chưa mở '
+              'app. Số liệu bên dưới là lần cập nhật gần nhất.',
               style: TextStyle(fontSize: 11.5, height: 1.4, color: AppColors.textMuted),
             ),
           ],
@@ -319,7 +391,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
     );
   }
 
-  /// Con chưa bật cập nhật trực tiếp — nói thật, kèm cách bật, không doạ.
+  /// Con chưa có bản cập nhật trực tiếp — nói thật, kèm cách khắc phục.
   Widget _noLiveCard() {
     return GlassCard(
       key: const Key('child-no-live-card'),
@@ -334,15 +406,14 @@ class _ChildReportScreenState extends State<ChildReportScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Con chưa bật cập nhật trực tiếp',
+                const Text('Con chưa có tiến độ trực tiếp',
                     style:
                         TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text(
-                  'Báo cáo tuần con gửi vẫn hiện ngay bên dưới. Muốn thấy tiến độ '
-                  'cập nhật liên tục, nhờ ${widget.child.name} mở Cửa sổ tin cậy và '
-                  'bật “Cập nhật trực tiếp cho ba mẹ” — con chọn chia sẻ mục nào thì '
-                  'chỉ mục đó được cập nhật.',
+                  'Báo cáo tuần con gửi vẫn hiện ngay bên dưới. Tiến độ trực tiếp '
+                  'sẽ tự cập nhật ngay khi ${widget.child.name} mở app (đã đăng '
+                  'nhập và liên kết với ba mẹ).',
                   style: const TextStyle(
                       fontSize: 12, height: 1.45, color: AppColors.textSecondary),
                 ),
@@ -443,6 +514,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary),
             ),
+            if (report.checkin != null) _checkinBubble(report.checkin!),
             const SizedBox(height: 12),
             for (final item in report.items) _itemRow(item),
           ],
@@ -478,6 +550,41 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                       color: AppColors.textPrimary),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Lời nhắn con gửi kèm — hiển thị như một trích dẫn để ba mẹ đọc.
+  Widget _checkinBubble(String checkin) {
+    return Container(
+      key: const Key('child-checkin'),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bgPage,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(color: AppColors.primary, width: 3),
+          top: const BorderSide(color: AppColors.border),
+          right: const BorderSide(color: AppColors.border),
+          bottom: const BorderSide(color: AppColors.border),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('💬 ', style: TextStyle(fontSize: 13)),
+          Expanded(
+            child: Text(
+              checkin,
+              style: const TextStyle(
+                  fontSize: 12.5,
+                  height: 1.4,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.textPrimary),
             ),
           ),
         ],

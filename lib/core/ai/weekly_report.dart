@@ -60,14 +60,15 @@ class WeeklyReport {
 
   static const String _prefsKey = 'ai_weekly_report_v1';
 
-  /// Mặc định khi học sinh CHƯA chọn lần nào: thời gian học + readiness
-  /// bật (an toàn, không nhạy cảm), điểm số + đếm ngược thi tắt (học sinh
-  /// phải chủ động bật nếu muốn chia sẻ).
+  /// Mặc định khi học sinh CHƯA chọn lần nào: cả 4 mục đều bật sẵn — kể cả
+  /// "Điểm thi thử mới nhất" và "Đếm ngược kỳ thi" (yêu cầu: cho phép chia
+  /// sẻ hai mục này mặc định). Học sinh vẫn có thể tắt từng mục khi mở thẻ
+  /// chia sẻ; ba mẹ chỉ thấy mục nào để bật.
   static Map<String, bool> get defaultChoices => const {
         'study_time': true,
         'readiness': true,
-        'mock_score': false,
-        'exam_countdown': false,
+        'mock_score': true,
+        'exam_countdown': true,
       };
 
   /// Tuần hiện tại: thứ 2 → chủ nhật.
@@ -101,6 +102,7 @@ class WeeklyReport {
   static WeeklyReportData? build({
     required Map<String, bool> enabled,
     DateTime? now,
+    String? checkin,
   }) {
     final reference = now ?? DateTime.now();
     final (start, end) = weekBounds(reference);
@@ -225,6 +227,7 @@ class WeeklyReport {
       from: start,
       to: end,
       generatedAt: DateTime.now(),
+      checkin: checkin,
     );
   }
 }
@@ -237,6 +240,7 @@ class WeeklyReportData {
     required this.from,
     required this.to,
     required this.generatedAt,
+    this.checkin,
   });
 
   final String headline;
@@ -244,6 +248,9 @@ class WeeklyReportData {
   final DateTime from;
   final DateTime to;
   final DateTime generatedAt;
+
+  /// Lời nhắn ngắn con gửi kèm báo cáo (tuỳ chọn). null = không có.
+  final String? checkin;
 
   /// Đóng gói để gửi lên cloud cho gia đình (và để phụ huynh đọc lại).
   ///
@@ -256,6 +263,8 @@ class WeeklyReportData {
         'from': from.toIso8601String(),
         'to': to.toIso8601String(),
         'generatedAt': generatedAt.toIso8601String(),
+        if (checkin != null && checkin!.trim().isNotEmpty)
+          'checkin': checkin!.trim(),
       };
 
   /// Đọc báo cáo từ cloud. Trả về null khi dữ liệu hỏng/thiếu mục — thà không
@@ -272,12 +281,16 @@ class WeeklyReportData {
     }
     if (items.isEmpty) return null;
     final now = DateTime.now();
+    final rawCheckin = raw['checkin'];
+    final checkin =
+        rawCheckin == null ? null : '$rawCheckin'.trim();
     return WeeklyReportData(
       headline: '${raw['headline'] ?? ''}',
       items: items,
       from: DateTime.tryParse('${raw['from']}') ?? now,
       to: DateTime.tryParse('${raw['to']}') ?? now,
       generatedAt: DateTime.tryParse('${raw['generatedAt']}') ?? now,
+      checkin: (checkin == null || checkin.isEmpty) ? null : checkin,
     );
   }
 

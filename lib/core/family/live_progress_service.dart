@@ -13,24 +13,29 @@ import 'family_service.dart';
 /// VẤN ĐỀ: báo cáo tuần chỉ lên cloud khi con tự bấm "Gửi cho gia đình", nên
 /// ba mẹ mở app thấy số liệu cũ mấy ngày dù con vẫn học đều.
 ///
-/// CÁCH LÀM: con BẬT công tắc ⇒ app tự dựng lại báo cáo theo đúng những mục con
-/// đã chọn chia sẻ, và đẩy lên khi nội dung THẬT SỰ đổi (so "vân tay" nội dung,
-/// bỏ qua mốc thời gian nên không đẩy trùng). Không có gì để đẩy mới thôi.
+/// CÁCH LÀM: khi con ĐÃ đăng nhập và ĐÃ liên kết với ít nhất một phụ huynh, app
+/// tự dựng báo cáo đầy đủ và đẩy lên khi nội dung THẬT SỰ đổi (so "vân tay" nội
+/// dung, bỏ qua mốc thời gian nên không đẩy trùng). Không có gì để đẩy thì thôi.
 ///
-/// GIAO KÈO VẪN NGUYÊN:
-/// - Mặc định TẮT. Con bật thì mới có chuyện gì để ba mẹ theo dõi.
-/// - Chỉ những mục con bật trong "Cửa sổ tin cậy" vào payload; tắt hết mục
-///   thì không đẩy gì cả.
-/// - Con tắt công tắc ⇒ xoá hẳn bản trực tiếp, ba mẹ hết thấy ngay.
-/// - Chỉ chạy khi con ĐÃ đăng nhập và ĐÃ liên kết với ít nhất một phụ huynh.
+/// BẢN CHẤT (đã thay đổi): ba mẹ là người đồng hành nên được thấy toàn bộ tiến
+/// độ — không còn để con tự quyết từng hạng mục. Đó là lý do mặc định BẬT và
+/// luôn gửi đủ bốn mục khi đã liên kết.
 ///
-/// HỎNG THÌ IM LẶNG: mất mạng hay đẩy lỗi chỉ là bỏ lỡ một nhịp — lần kiểm tra
-/// sau tự đẩy lại (vân tay chỉ được ghi khi server đã nhận).
+/// - Mặc định BẬT.
+/// - Luôn gửi đủ bốn mục (thời gian tập trung, chỉ số sẵn sàng, điểm thi thử,
+///   đếm ngược kỳ thi) mỗi khi con đã liên kết.
+/// - Con có thể rời chế độ liên kết (huỷ liên kết) để dừng chia sẻ.
+/// - HỎNG THÌ IM LẶNG: mất mạng hay đẩy lỗi chỉ là bỏ lỡ một nhịp — lần kiểm
+///   tra sau tự đẩy lại (vân tay chỉ được ghi khi server đã nhận).
 class LiveProgressService {
   LiveProgressService._();
 
-  /// Công tắc của học sinh (mặc định tắt — không tự ý theo dõi ai).
+  /// Công tắc của học sinh (mặc định BẬT — ba mẹ đồng hành cùng con).
   static const String _enabledKey = 'family_live_share';
+
+  /// Lời nhắn (check-in) gần nhất con gửi kèm báo cáo — để bản trực tiếp cũng
+  /// mang theo lời nhắn mới nhất.
+  static const String _checkinKey = 'family_last_checkin';
 
   /// Vân tay nội dung lần cuối ĐÃ đẩy thành công, để không gửi lại y hệt.
   static const String _fingerprintKey = 'family_live_fingerprint';
@@ -43,8 +48,20 @@ class LiveProgressService {
   static StreamSubscription<Object?>? _authSubscription;
   static bool _inFlight = false;
 
-  /// Con đang bật cập nhật trực tiếp?
-  static bool get enabled => StorageService.getBool(_enabledKey) ?? false;
+  /// Con đang bật cập nhật trực tiếp? (mặc định BẬT).
+  static bool get enabled => StorageService.getBool(_enabledKey) ?? true;
+
+  /// Lời nhắn gần nhất con gửi kèm báo cáo (nếu có).
+  static String? get lastCheckin {
+    final s = StorageService.getString(_checkinKey);
+    return (s == null || s.trim().isEmpty) ? null : s.trim();
+  }
+
+  /// Nhớ lời nhắn mới nhất mà con vừa gửi để bản trực tiếp mang theo.
+  static Future<void> rememberCheckin(String? checkin) async {
+    if (checkin == null || checkin.trim().isEmpty) return;
+    await StorageService.prefs.setString(_checkinKey, checkin.trim());
+  }
 
   /// Chạy nền (timer đã bật). Không phụ thuộc đăng nhập — đăng nhập sau vẫn kịp.
   static bool get isRunning => _timer != null;
@@ -99,10 +116,11 @@ class LiveProgressService {
     if (state == null) return false;
     if (!state.hasLinkedParents) return true;
 
-    final choices =
-        WeeklyReport.savedChoices() ?? WeeklyReport.defaultChoices;
-    final report = WeeklyReport.build(enabled: choices);
-    if (report == null) return true; // con tắt hết mục — không có gì để chia sẻ
+    final report = WeeklyReport.build(
+      enabled: WeeklyReport.defaultChoices,
+      checkin: lastCheckin,
+    );
+    if (report == null) return true; // chưa đủ dữ liệu — chưa có gì để chia sẻ
 
     final fingerprint = fingerprintOf(report);
     if (!force && fingerprint == StorageService.getString(_fingerprintKey)) {
@@ -130,6 +148,7 @@ class LiveProgressService {
   @visibleForTesting
   static String fingerprintOf(WeeklyReportData report) {
     final buffer = StringBuffer(report.headline);
+    if (report.checkin != null) buffer..write('@')..write(report.checkin);
     for (final item in report.items) {
       buffer
         ..write('|')

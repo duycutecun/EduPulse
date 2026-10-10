@@ -128,4 +128,53 @@ void main() {
       expect(report, isNull);
     });
   });
+
+  group('WeeklyReport.defaultChoices — bật sẵn 2 mục', () {
+    test('điểm thi thử mới nhất + đếm ngược kỳ thi mặc định BẬT', () {
+      expect(WeeklyReport.defaultChoices['mock_score'], isTrue);
+      expect(WeeklyReport.defaultChoices['exam_countdown'], isTrue);
+    });
+
+    test('chưa từng chọn → báo cáo mặc định có cả 2 mục', () {
+      final now = DateTime(2026, 10, 10);
+      StorageService.setMockScoreIds(['m']);
+      StorageService.setMockScoreJson(
+          'm', score('m', DateTime(2026, 10, 1), 'Toán', 8.5).toJsonString());
+      StorageService.setExamIds(['near']);
+      StorageService.setExamJson('near',
+          ExamModel(id: 'near', name: 'Cuối kỳ 1', dateTime: now.add(const Duration(days: 20))).toJsonString());
+
+      final report =
+          WeeklyReport.build(enabled: WeeklyReport.defaultChoices, now: now);
+
+      expect(report, isNotNull);
+      final keys = report!.items.map((i) => i.key).toList();
+      expect(keys, contains('mock_score'));
+      expect(keys, contains('exam_countdown'));
+    });
+
+    test('học sinh tắt 2 mục đó thì báo cáo không còn chứa chúng', () {
+      final now = DateTime(2026, 10, 10);
+      StorageService.setMockScoreIds(['m']);
+      StorageService.setMockScoreJson(
+          'm', score('m', DateTime(2026, 10, 1), 'Toán', 8.5).toJsonString());
+      StorageService.setExamIds(['near']);
+      StorageService.setExamJson('near',
+          ExamModel(id: 'near', name: 'Cuối kỳ 1', dateTime: now.add(const Duration(days: 20))).toJsonString());
+
+      final report = WeeklyReport.build(
+        enabled: {
+          ...WeeklyReport.defaultChoices,
+          'mock_score': false,
+          'exam_countdown': false,
+        },
+        now: now,
+      );
+
+      expect(report, isNotNull);
+      final keys = report!.items.map((i) => i.key).toList();
+      expect(keys, isNot(contains('mock_score')));
+      expect(keys, isNot(contains('exam_countdown')));
+    });
+  });
 }
