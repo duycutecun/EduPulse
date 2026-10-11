@@ -152,21 +152,22 @@ class WeeklyReport {
     }
     final daysLeft = exam?.dateTime.difference(reference).inDays;
 
-    // --- Điểm thi thử mới nhất ---
-    // Chọn THEO NGÀY (m.date) thay vì vị trí trong danh sách: dữ liệu sau khi
-    // synced/khôi phục có thể thứ tự không còn là "cũ → mới", nên bản ghi đầu
-    // danh sách chưa chắc là bản mới nhất — đúng nhãn hiển thị "mới nhất".
-    MockScore? newestScore;
+    // --- Điểm thi thử ---
+    // Gom hết bản ghi rồi sắp theo NGÀY (m.date) thay vì tin thứ tự danh sách:
+    // dữ liệu sau khi synced/khôi phục có thể không còn "cũ → mới", nên vị trí
+    // đầu danh sách chưa chắc là bản mới nhất.
+    final mockScores = <MockScore>[];
     for (final id in StorageService.getMockScoreIds()) {
       final raw = StorageService.getMockScoreJson(id);
       if (raw == null) continue;
       try {
         final m = MockScore.fromJsonString(raw);
-        if (newestScore == null || m.date.isAfter(newestScore.date)) {
-          newestScore = m;
-        }
+        mockScores.add(m);
       } catch (_) {}
     }
+    mockScores.sort((a, b) => a.date.compareTo(b.date));
+    final newestScore =
+        mockScores.isEmpty ? null : mockScores[mockScores.length - 1];
     final latestScore = newestScore == null
         ? null
         : '${newestScore.subject}: ${newestScore.score.toStringAsFixed(1)}/10';
@@ -211,6 +212,22 @@ class WeeklyReport {
     final peak = StudyRhythm.peakHour(now: reference);
     final burnout = StudyRhythm.burnoutRisk(now: reference);
 
+    // Con số cho SERVER so với mục tiêu ba mẹ đặt (xem api/family.js — máy chủ
+    // không tự suy diễn, CON tính sẵn từ dữ liệu local). Đây là "bằng chứng"
+    // gọn cho cảnh báo "con chưa đạt": phút/tuần, chuỗi ngày, 3 bài thi thử
+    // mới nhất.
+    final recentMocks = mockScores.length > 3
+        ? mockScores.sublist(mockScores.length - 3)
+        : mockScores;
+    final insights = <String, dynamic>{
+      'weekMinutes': minutes,
+      'streak': StorageService.getStreak(),
+      'mockSeries': [
+        for (final m in recentMocks)
+          {'subject': m.subject, 'score': m.score},
+      ],
+    };
+
     // Mở đầu luôn là điều TÍCH CỰC — câu chuyện tuần, không phải bảng điểm.
     // Nhận diện EduPulse nằm ở chữ kèm theo (xem [toPlainText]) và ở thẻ ảnh
     // thành tựu — KHÔNG nhét vào headline: headline là lời kể cho ba mẹ đọc,
@@ -228,6 +245,7 @@ class WeeklyReport {
       to: end,
       generatedAt: DateTime.now(),
       checkin: checkin,
+      insights: insights,
     );
   }
 }
@@ -241,6 +259,7 @@ class WeeklyReportData {
     required this.to,
     required this.generatedAt,
     this.checkin,
+    this.insights,
   });
 
   final String headline;
@@ -251,6 +270,11 @@ class WeeklyReportData {
 
   /// Lời nhắn ngắn con gửi kèm báo cáo (tuỳ chọn). null = không có.
   final String? checkin;
+
+  /// Con số tổng hợp cho SERVER so mục tiêu (phút/tuần, streak, 3 mock gần
+  /// nhất). Chỉ phục vụ cảnh báo "con chưa đạt" ở phía ba mẹ; UI phụ huynh
+  /// không render bảng này.
+  final Map<String, dynamic>? insights;
 
   /// Đóng gói để gửi lên cloud cho gia đình (và để phụ huynh đọc lại).
   ///
@@ -265,6 +289,7 @@ class WeeklyReportData {
         'generatedAt': generatedAt.toIso8601String(),
         if (checkin != null && checkin!.trim().isNotEmpty)
           'checkin': checkin!.trim(),
+        if (insights != null) 'insights': insights,
       };
 
   /// Đọc báo cáo từ cloud. Trả về null khi dữ liệu hỏng/thiếu mục — thà không

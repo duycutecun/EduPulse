@@ -263,15 +263,6 @@ class FamilyService {
     return true;
   }
 
-  /// Đăng ký thiết bị này nhận thông báo đẩy (Web Push). Trả về false khi lỗi.
-  static Future<bool> registerPushToken(String token) async {
-    final body = await _post({
-      'action': 'push_token',
-      'token': token,
-    });
-    return body != null && body['ok'] == true;
-  }
-
   /// Huỷ đăng ký nhận thông báo đẩy cho thiết bị này.
   static Future<bool> clearPushToken(String token) async {
     final body = await _post({
@@ -289,6 +280,130 @@ class FamilyService {
     if (body == null || body['ok'] != true) return null;
     final key = '${body['vapidPublicKey'] ?? ''}'.trim();
     return key.isEmpty ? null : key;
+  }
+
+  /// Đăng ký thiết bị này nhận thông báo đẩy. [kind] = 'web' (Web Push) hoặc
+  /// 'fcm' (native Android). Trả về false khi lỗi.
+  static Future<bool> registerPushToken(String token,
+      {String kind = 'web'}) async {
+    final body = await _post({
+      'action': 'push_token',
+      'token': token,
+      'kind': kind,
+    });
+    return body != null && body['ok'] == true;
+  }
+
+  // ─── MỤC TIÊU & ĐỘNG VIÊN ──────────────────────────────────────────────────
+
+  /// Đặt (hoặc cập nhật) mục tiêu cho một con. [metric] thuộc danh sách mà
+  /// server cho phép. target <= 0 (do người gọi truyền 0) = bỏ mục tiêu.
+  static Future<FamilyActionResult> setGoal(
+    String studentUserId,
+    String metric,
+    double target,
+  ) async {
+    final body = await _post({
+      'action': 'set_goal',
+      'studentUserId': studentUserId,
+      'metric': metric,
+      'target': target,
+    });
+    if (body == null) {
+      return const FamilyActionResult(
+        ok: false,
+        message: 'Chưa đặt được mục tiêu — kiểm tra mạng rồi thử lại.',
+      );
+    }
+    if (body['ok'] != true) {
+      return FamilyActionResult(
+        ok: false,
+        message: '${body['error'] ?? 'Chưa đặt được mục tiêu.'}',
+      );
+    }
+    await fetchState();
+    return const FamilyActionResult(ok: true, message: 'Đã lưu mục tiêu.');
+  }
+
+  /// Bỏ mục tiêu cho một con.
+  static Future<FamilyActionResult> removeGoal(
+    String studentUserId,
+    String metric,
+  ) async {
+    return setGoal(studentUserId, metric, 0);
+  }
+
+  /// Gửi lời nhắn động viên (ba mẹ → con, hoặc con → ba mẹ). Cùng liên kết
+  /// nên gọi được từ CẢ HAI phía — server kiểm tra vai trò.
+  static Future<FamilyActionResult> sendMessage(
+    String linkId,
+    String body,
+  ) async {
+    final resp = await _post({
+      'action': 'send_message',
+      'linkId': linkId,
+      'body': body,
+    });
+    if (resp == null) {
+      return const FamilyActionResult(
+        ok: false,
+        message: 'Chưa gửi được lời nhắn — kiểm tra mạng rồi thử lại.',
+      );
+    }
+    if (resp['ok'] != true) {
+      return FamilyActionResult(
+        ok: false,
+        message: '${resp['error'] ?? 'Chưa gửi được lời nhắn.'}',
+      );
+    }
+    return const FamilyActionResult(ok: true, message: 'Đã gửi lời nhắn 💚');
+  }
+
+  /// Đọc lời nhắn của một liên kết (server đã đánh dấu đã-đọc cho người gọi).
+  /// Mới nhất lên đầu. Trả null khi lỗi mạng; rỗng khi chưa có lời nhắn nào.
+  static Future<List<FamilyMessage>?> fetchMessages(
+    String linkId, {
+    int since = 0,
+  }) async {
+    final body = await _post({
+      'action': 'messages',
+      'linkId': linkId,
+      if (since > 0) 'since': since,
+    });
+    if (body == null || body['ok'] != true) return null;
+    final list = body['messages'];
+    if (list is! List) return const [];
+    return list
+        .map(FamilyMessage.fromJson)
+        .whereType<FamilyMessage>()
+        .toList(growable: false);
+  }
+
+  /// Gửi email tổng kết về một con (server soạn + gửi qua SMTP). Trả về kết
+  /// quả kèm thông báo cụ thể — chưa cấu hình là lỗi rõ ràng, không im lặng.
+  static Future<FamilyActionResult> sendEmailDigest(
+    String studentUserId,
+  ) async {
+    final body = await _post({
+      'action': 'email_digest',
+      'studentUserId': studentUserId,
+    });
+    if (body == null) {
+      return const FamilyActionResult(
+        ok: false,
+        message: 'Chưa gửi được email — kiểm tra mạng rồi thử lại.',
+      );
+    }
+    if (body['ok'] != true) {
+      return FamilyActionResult(
+        ok: false,
+        message: '${body['error'] ?? 'Chưa gửi được email tổng kết.'}',
+      );
+    }
+    return FamilyActionResult(
+      ok: true,
+      message: 'Đã gửi email tổng kết đến địa chỉ: ${body['to'] ?? ''}',
+    );
   }
 
   // ─── REALTIME: "con vừa cập nhật" ──────────────────────────────────────────

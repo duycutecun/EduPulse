@@ -30,6 +30,113 @@ class FamilyInvite {
   }
 }
 
+/// Một mục tiêu ba mẹ đặt cho con. `target <= 0` = mục tiêu đã bị bỏ.
+class FamilyGoal {
+  const FamilyGoal({
+    required this.metric,
+    required this.target,
+    this.updatedAt,
+  });
+
+  /// 'weekly_minutes' | 'streak' | 'mock_avg' | 'readiness'.
+  final String metric;
+
+  /// Ngưỡng cần đạt. Đơn vị theo [unit].
+  final double target;
+
+  /// Lần cuối ba mẹ chỉnh mục tiêu (null = chưa rõ).
+  final DateTime? updatedAt;
+
+  static const Map<String, String> _labels = {
+    'weekly_minutes': 'Thời gian tập trung mỗi tuần',
+    'streak': 'Chuỗi ngày học liên tiếp',
+    'mock_avg': 'Điểm thi thử trung bình',
+    'readiness': 'Chỉ số sẵn sàng',
+  };
+
+  static const Map<String, String> _units = {
+    'weekly_minutes': 'phút/tuần',
+    'streak': 'ngày',
+    'mock_avg': '/10',
+    'readiness': '/100',
+  };
+
+  String get label => _labels[metric] ?? metric;
+
+  /// Tên hiển thị của một [metric] bất kỳ (cho bộ chọn trong sheet).
+  static String labelOf(String metric) => _labels[metric] ?? metric;
+
+  String get unit => _units[metric] ?? '';
+
+  /// "8.5/10" — số thực dấu phẩy động nhưng hiển thị gọn, không đuôi `.0`.
+  String get displayTarget {
+    if (target == target.roundToDouble()) return '${target.toInt()}$unit';
+    return '$target$unit';
+  }
+
+  static final List<String> metricsOrder =
+      List<String>.from(_labels.keys);
+
+  static FamilyGoal? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final metric = '${raw['metric'] ?? ''}'.trim();
+    if (!_labels.containsKey(metric)) return null;
+    final target = (raw['target'] as num?)?.toDouble() ?? 0;
+    final updated = (raw['updatedAt'] as num?)?.toInt() ?? 0;
+    return FamilyGoal(
+      metric: metric,
+      target: target,
+      updatedAt: updated <= 0
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(updated),
+    );
+  }
+}
+
+/// Một lời nhắn trong "Cửa sổ tin cậy" (không phải chat thời gian thực —
+/// lời nhắn giữ lại để ba mẹ đọc khi rảnh).
+class FamilyMessage {
+  const FamilyMessage({
+    required this.id,
+    required this.fromRole,
+    required this.body,
+    required this.createdAt,
+    this.readAt,
+  });
+
+  final String id;
+
+  /// 'parent' = ba mẹ gửi, 'child' = con gửi.
+  final String fromRole;
+
+  final String body;
+  final DateTime createdAt;
+
+  /// Đã được người nhận đọc chưa (null = chưa).
+  final DateTime? readAt;
+
+  bool get isFromParent => fromRole == 'parent';
+  bool get isRead => readAt != null;
+
+  static FamilyMessage? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final id = '${raw['id'] ?? ''}'.trim();
+    if (id.isEmpty) return null;
+    final role = '${raw['fromRole'] ?? ''}'.trim();
+    final at = (raw['createdAt'] as num?)?.toInt() ?? 0;
+    if (at <= 0) return null;
+    final read = (raw['readAt'] as num?)?.toInt() ?? 0;
+    return FamilyMessage(
+      id: id,
+      fromRole: role == 'parent' ? 'parent' : 'child',
+      body: '${raw['body'] ?? ''}',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(at),
+      readAt:
+          read <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(read),
+    );
+  }
+}
+
 /// Một người trong gia đình: ở phía học sinh là ba/mẹ, ở phía phụ huynh là con.
 class FamilyMember {
   const FamilyMember({
@@ -43,6 +150,8 @@ class FamilyMember {
     this.notifyOn = true,
     this.liveSummary = const {},
     this.liveCheckin,
+    this.goals = const [],
+    this.unread = 0,
   });
 
   /// Id liên kết — cần để ngắt liên kết.
@@ -72,6 +181,13 @@ class FamilyMember {
 
   /// Lời nhắn gần nhất con gửi kèm (chỉ có ở phía phụ huynh). Null = không có.
   final String? liveCheckin;
+
+  /// Mục tiêu ba mẹ đang đặt cho con — rỗng nếu chưa đặt gì. Nit: server trả
+  /// về cùng `children` (góc phụ huynh), nên phía học sinh thấy ngay.
+  final List<FamilyGoal> goals;
+
+  /// Lời nhắn của đầu bên kia chưa đọc (góc nào cũng đếm được).
+  final int unread;
 
   bool get hasReport => latestReportAt != null;
 
@@ -105,6 +221,14 @@ class FamilyMember {
     final label = '${raw['parentLabel'] ?? ''}'.trim();
     final rawCheckin = raw['liveCheckin'];
     final checkin = rawCheckin == null ? '' : '$rawCheckin'.trim();
+    final goals = <FamilyGoal>[];
+    final rawGoals = raw['goals'];
+    if (rawGoals is List) {
+      for (final entry in rawGoals) {
+        final goal = FamilyGoal.fromJson(entry);
+        if (goal != null) goals.add(goal);
+      }
+    }
     return FamilyMember(
       linkId: linkId,
       userId: userId,
@@ -120,6 +244,8 @@ class FamilyMember {
       notifyOn: raw['notifyOn'] != false,
       liveSummary: readSummary(raw['liveSummary']),
       liveCheckin: checkin.isEmpty ? null : checkin,
+      goals: goals,
+      unread: (raw['unread'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -131,6 +257,8 @@ class FamilyState {
     this.parents = const [],
     this.children = const [],
     this.topic,
+    this.pushEnabled = false,
+    this.emailDigestAvailable = false,
   });
 
   /// Mã mời đang chờ (chỉ học sinh có).
@@ -146,6 +274,14 @@ class FamilyState {
   /// Nghe kênh này để biết "con vừa cập nhật" mà kéo ngay, thay vì chờ hết
   /// chu kỳ hỏi định kỳ. Null khi server chưa trả về.
   final String? topic;
+
+  /// Server có kênh push (Web Push/FCM) sẵn sàng không — để UI nói thật
+  /// trạng thái "thông báo đẩy" thay vì hiện công tắc vô tác dụng.
+  final bool pushEnabled;
+
+  /// Server có cấu hình gửi email tổng kết không (SMTP) — nút "Gửi email"
+  /// chỉ hiện khi có.
+  final bool emailDigestAvailable;
 
   bool get hasLinkedParents => parents.isNotEmpty;
   bool get hasLinkedChildren => children.isNotEmpty;
@@ -169,6 +305,8 @@ class FamilyState {
       parents: read('parents'),
       children: read('children'),
       topic: topic.isEmpty ? null : topic,
+      pushEnabled: raw['pushEnabled'] == true,
+      emailDigestAvailable: raw['emailDigestAvailable'] == true,
     );
   }
 }

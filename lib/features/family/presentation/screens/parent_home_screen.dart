@@ -15,6 +15,8 @@ import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
+import '../widgets/family_goal_sheet.dart';
+import '../widgets/family_message_sheet.dart';
 import 'child_report_screen.dart';
 
 /// Màn hình của TÀI KHOẢN PHỤ HUYNH — nửa còn lại của "Cửa sổ tin cậy".
@@ -757,6 +759,24 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        key: Key('parent-child-messages-${child.userId}'),
+                        tooltip: 'Nhắn với ${child.name}',
+                        onPressed: () => _openMessages(child),
+                        icon: const Icon(Icons.chat_bubble_outline_rounded,
+                            size: 20, color: AppColors.primary),
+                      ),
+                      if (child.unread > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: _unreadBadge(child.unread),
+                        ),
+                    ],
+                  ),
                   IconButton(
                     key: Key('parent-child-notify-${child.userId}'),
                     tooltip: child.notifyOn
@@ -791,6 +811,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
             const SizedBox(height: 8),
             _childCheckin(child.liveCheckin!),
           ],
+          const SizedBox(height: 8),
+          _goalsRow(child),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -818,6 +840,25 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               ),
             ],
           ),
+          if (_state?.emailDigestAvailable ?? false) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: Key('parent-child-digest-${child.userId}'),
+                onPressed: () => _sendDigest(child),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(0, 32),
+                  foregroundColor: AppColors.primary,
+                ),
+                icon: const Icon(Icons.mail_outline_rounded, size: 15),
+                label: const Text('Gửi email tổng kết',
+                    style:
+                        TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -932,6 +973,115 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     if (!mounted) return;
     _snack(result.message, error: !result.ok);
     await _load();
+  }
+
+  /// Mở cửa sổ nhắn với con. Đóng xong là kéo lại (server đã đánh dấu đã-đọc,
+  /// badge unread của con phải bay đi ngay).
+  Future<void> _openMessages(FamilyMember child) async {
+    await FamilyMessageSheet.open(
+      context,
+      linkId: child.linkId,
+      otherName: child.name,
+      myRole: 'parent',
+    );
+    if (mounted) await _load();
+  }
+
+  /// Mở sheet đặt/bỏ mục tiêu; lưu xong là kéo lại để chip mục tiêu đổi ngay.
+  Future<void> _editGoals(FamilyMember child) async {
+    await FamilyGoalSheet.open(
+      context,
+      studentUserId: child.userId,
+      childName: child.name,
+      current: child.goals,
+      onSaved: () {
+        if (mounted) unawaited(_load());
+      },
+    );
+  }
+
+  /// Gửi email tổng kết về con — server soạn + gửi; chỉ hiện nút khi server
+  /// có cấu hình SMTP (xem `emailDigestAvailable`).
+  Future<void> _sendDigest(FamilyMember child) async {
+    final result = await FamilyService.sendEmailDigest(child.userId);
+    if (!mounted) return;
+    _snack(result.message, error: !result.ok);
+  }
+
+  /// Dòng "mục tiêu" trên thẻ con: có mục tiêu hiện chip kèm nút sửa nhỏ; chưa
+  /// có thì hiện nút "Đặt mục tiêu" gọn, không làm lẫn với các nút chính.
+  Widget _goalsRow(FamilyMember child) {
+    if (child.goals.isEmpty) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: Key('parent-goal-add-${child.userId}'),
+          onPressed: () => _editGoals(child),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: const Size(0, 30),
+            foregroundColor: AppColors.primary,
+          ),
+          icon: const Icon(Icons.add_circle_outline_rounded, size: 15),
+          label: const Text('Đặt mục tiêu',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+        ),
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final goal in child.goals)
+                InkWell(
+                  key: Key('parent-goal-chip-${child.userId}-${goal.metric}'),
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => _editGoals(child),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.blueSoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text('🎯 ${goal.label}: ${goal.displayTarget}',
+                        style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryDark)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Chỉnh mục tiêu',
+          visualDensity: VisualDensity.compact,
+          onPressed: () => _editGoals(child),
+          icon: const Icon(Icons.edit_rounded,
+              size: 15, color: AppColors.textMuted),
+        ),
+      ],
+    );
+  }
+
+  /// Chấm đỏ kèm số: lời nhắn của con chưa đọc.
+  Widget _unreadBadge(int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: AppColors.red,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text('$count',
+          style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              color: Colors.white)),
+    );
   }
 
   Future<void> _toggleChildNotify(FamilyMember child) async {

@@ -24,8 +24,12 @@
 //   action = 'share_live'    → học sinh đẩy "trạng thái trực tiếp" cho ba mẹ
 //   action = 'set_child_label' → phụ huynh đặt tên riêng cho một con
 //   action = 'notify_pref'   → phụ huynh bật/tắt nhận thông báo cho một con
-//   action = 'push_token'    → phụ huynh đăng ký/huỷ token Web Push
+//   action = 'push_token'    → đăng ký/huỷ token Web Push hoặc FCM
 //   action = 'push_info'     → trả khoá công khai VAPID để app đăng ký push
+//   action = 'set_goal'      → phụ huynh đặt mục tiêu cho con (xoá khi <= 0)
+//   action = 'send_message'  → ba mẹ/con gửi lời nhắn động viên
+//   action = 'messages'      → đọc lời nhắn của một liên kết (đánh dấu đã đọc)
+//   action = 'email_digest'  → phụ huynh nhận email tổng kết về một con
 //
 // BẢN CHẤT (đã đổi): ba mẹ là người ĐỒNG HÀNH nên khi đã liên kết sẽ thấy toàn
 // bộ tiến độ con cập nhật — không còn để con tự quyết từng hạng mục. Giao kèo
@@ -47,6 +51,27 @@ const LINK_TABLE = 'family_links';
 const REPORT_TABLE = 'family_reports';
 const LIVE_TABLE = 'family_live';
 const NOTIF_TABLE = 'family_notif_tokens';
+const GOAL_TABLE = 'family_goals';
+const MSG_TABLE = 'family_messages';
+
+/// Mục tiêu hợp lệ ba mẹ đặt cho con. Ngoài danh sách này bị chối (tránh ghi
+/// rác vào bảng).
+const GOAL_METRICS = ['weekly_minutes', 'streak', 'mock_avg', 'readiness'];
+
+/// Nhãn tiếng Việt của từng mục tiêu — dùng khi soạn cảnh báo/email.
+const GOAL_LABELS = {
+  weekly_minutes: 'Thời gian tập trung mỗi tuần (phút)',
+  streak: 'Chuỗi ngày học liên tiếp',
+  mock_avg: 'Điểm thi thử trung bình',
+  readiness: 'Chỉ số sẵn sàng',
+};
+
+/// Không nhắc lại một mục tiêu đang chưa đạt trước khoảng này (tránh dội thông
+/// báo mỗi nhịp con cập nhật).
+const ALERT_COOLDOWN_MS = 20 * 60 * 60 * 1000;
+
+/// Giới hạn số lời nhắn trả về một lần.
+const MESSAGES_PAGE = 50;
 
 /// Mã mời sống 2 ngày. Đủ để con đọc cho ba mẹ nhập, đủ ngắn để một mã lọt ra
 /// ngoài không còn dùng được sau vài hôm.
@@ -125,11 +150,18 @@ async function linkedParents(supabase, studentUserId) {
   }
 }
 
-// ── Web Push (thông báo khi ba mẹ đã đóng app) ─────────────────────────────
+// ── Thông báo đẩy (app ba mẹ đã đóng) ──────────────────────────────────────
 //
-// Dùng VAPID; thư viện `web-push` là optional — cài rồi mà thiếu khoá thì bỏ
-// qua êm, không làm hỏng thao tác lưu. Token không còn hiệu lực (404/410) bị
-// xoá để bảng không đọng rác.
+// Hai kênh, một hàm gửi:
+//   • Web Push (VAPID, `web-push`) — web/PWA, kể cả iOS 16.4+ khi thêm vào
+//     Màn hình chính.
+//   • FCM (`firebase-admin`) — Android native (đã có trong package.json). Cần
+//     `FIREBASE_SERVICE_ACCOUNT` (JSON base64 hoặc JSON thô) trong Vercel;
+//     thiếu khoá thì bỏ qua êm, không đăng ký gì.
+//
+// Cả hai đều là optional: cài/lib thiếu khoá thì bỏ qua, KHÔNG làm hỏng thao
+// tác lưu. Token chết (Web Push 404/410, FCM unregistered) bị xoá để không
+// đọng rác.
 let webpush = null;
 try {
   webpush = require('web-push');
@@ -137,7 +169,41 @@ try {
   webpush = null;
 }
 
-function pushConfigured() {
+let admin = null;
+try {
+  admin = require('firebase-admin');
+} catch (_) {
+  admin = null;
+}
+
+let adminApp = null;
+function firebaseAdmin() {
+  if (adminApp) return adminApp;
+  if (!admin) return null;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!raw) return null;
+  let cred = null;
+  try {
+    cred = JSON.parse(raw);
+  } catch (_) {
+    try {
+      cred = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
+    } catch (_) {
+      return null;
+    }
+  }
+  if (!cred || !cred.project_id) return null;
+  try {
+    adminApp = admin.apps && admin.apps.length
+      ? admin.app()
+      : admin.initializeApp({ credential: admin.credential.cert(cred) });
+    return adminApp;
+  } catch (_) {
+    return null;
+  }
+}
+
+function webPushConfigured() {
   return !!(
     webpush &&
     process.env.VAPID_PUBLIC_KEY &&
@@ -146,8 +212,13 @@ function pushConfigured() {
   );
 }
 
-async function sendPushTo(supabase, parentId, message) {
-  if (!pushConfigured()) return;
+/** Có kênh đẩy nào sẵn sàng? (Dùng để `push_info` nói thật cho client.) */
+function pushConfigured() {
+  return webPushConfigured() || !!firebaseAdmin();
+}
+
+async function sendWebPush(supabase, tokens, title, body, data) {
+  if (!webPushConfigured()) return;
   try {
     webpush.setVapidDetails(
       process.env.VAPID_SUBJECT,
@@ -157,19 +228,10 @@ async function sendPushTo(supabase, parentId, message) {
   } catch (_) {
     return;
   }
-  const { data: tokens } = await supabase
-    .from(NOTIF_TABLE)
-    .select('token')
-    .eq('user_id', parentId);
-  const body = JSON.stringify({
-    title: message.title,
-    body: message.body,
-    at: message.at || Date.now(),
-    kind: message.kind || 'live',
-  });
-  for (const row of tokens || []) {
+  const payload = JSON.stringify({ title, body, ...data });
+  for (const row of tokens) {
     try {
-      await webpush.sendNotification(JSON.parse(row.token), body);
+      await webpush.sendNotification(JSON.parse(row.token), payload);
     } catch (e) {
       const status = e && e.statusCode;
       if (status === 404 || status === 410) {
@@ -177,6 +239,47 @@ async function sendPushTo(supabase, parentId, message) {
       }
     }
   }
+}
+
+async function sendFcm(tokens, title, body, data) {
+  const app = firebaseAdmin();
+  if (!app || !tokens.length) return;
+  try {
+    await app.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title, body },
+      data: Object.fromEntries(
+        Object.entries(data || {}).map(([k, v]) => [k, String(v)])
+      ),
+      android: { priority: 'high', notification: { channelId: 'edupulse_family' } },
+    });
+  } catch (_) {
+    // Gửi hỏng (vd token sai định dạng) — bỏ qua, lần sau dọn.
+  }
+}
+
+// Xoá token Web Push chết — dọn dẹp là việc tốt-nhất, không chặn luồng gửi.
+
+async function sendPushTo(supabase, parentId, message) {
+  if (!pushConfigured()) return;
+  const { data: tokens } = await supabase
+    .from(NOTIF_TABLE)
+    .select('token, kind')
+    .eq('user_id', parentId);
+  const rows = tokens || [];
+  const web = rows.filter((r) => (r.kind || 'web') === 'web');
+  const fcm = rows.filter((r) => r.kind === 'fcm');
+  const data = {
+    at: message.at || Date.now(),
+    kind: message.kind || 'live',
+  };
+  await sendWebPush(supabase, web, message.title, message.body, data);
+  await sendFcm(
+    fcm.map((r) => r.token),
+    message.title,
+    message.body,
+    data
+  );
 }
 
 /** Báo cho mọi ba mẹ đã liên kết rằng con vừa có gì đó mới. */
@@ -197,6 +300,392 @@ async function notifyParents(supabase, studentUserId, payload, studentName) {
     }
   }
   return parents.length;
+}
+
+// ── Mục tiêu & cảnh báo ────────────────────────────────────────────────────
+//
+// Ba mẹ đặt mục tiêu (phút/tuần, chuỗi ngày, điểm thi thử, chỉ số sẵn sàng).
+// Mỗi lần con cập nhật trực tiếp, con GỬI kèm `insights` (số liệu tổng hợp do
+// chính máy con dựng — máy chủ không tự suy diễn). Máy chủ chỉ so sánh mục
+// tiêu với `insights` và nhắc ba mẹ khi con chưa đạt, không quá thường xuyên.
+
+/** So sánh một mục tiêu với bản cập nhật của con. null = chưa đủ dữ liệu. */
+function evalGoal(goal, payload) {
+  const insights = payload && payload.insights;
+  const target = Number(goal.target);
+  if (!Number.isFinite(target) || target <= 0) return null;
+  let current = null;
+  switch (goal.metric) {
+    case 'weekly_minutes':
+      current = insights && Number(insights.weekMinutes);
+      break;
+    case 'streak':
+      current = insights && Number(insights.streak);
+      break;
+    case 'mock_avg': {
+      const series =
+        insights && Array.isArray(insights.mockSeries)
+          ? insights.mockSeries
+          : [];
+      if (series.length) {
+        const recent = series.slice(-3);
+        current =
+          recent.reduce((sum, s) => sum + Number(s.score), 0) / recent.length;
+      }
+      break;
+    }
+    case 'readiness': {
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const r = items.find((i) => i && i.key === 'readiness');
+      const m = r && /(\d+(?:\.\d+)?)\s*\/\s*100/.exec(String(r.value || ''));
+      if (m) current = Number(m[1]);
+      break;
+    }
+  }
+  if (current == null || !Number.isFinite(current)) return null;
+  return { current, target, met: current >= target };
+}
+
+/** Chuỗi ngữ cảnh cho thông báo "con chưa đạt mục tiêu". */
+function goalAlertMessage(goal, ev, studentName) {
+  const name = (studentName || 'Con').trim() || 'Con';
+  const label = GOAL_LABELS[goal.metric] || goal.metric;
+  const short =
+    goal.metric === 'weekly_minutes'
+      ? 'phút/tuần'
+      : goal.metric === 'streak'
+        ? 'ngày'
+        : goal.metric === 'mock_avg'
+          ? '/10'
+          : '/100';
+  const cur = Math.round(ev.current * 100) / 100;
+  return {
+    title: 'Mục tiêu cùng con',
+    body: `${name} đang ở ${cur}${short === 'phút/tuần' ? ' phút' : ''}${short === '/10' || short === '/100' ? short : ''}${short === 'ngày' ? ' ngày' : ''} — mục tiêu ${goal.metric === 'streak' ? 'tối thiểu' : 'là'} ${goal.target}${short === '/10' || short === '/100' ? '' : short}. Nhẹ nhàng động viên con nhé.`,
+    kind: 'alert',
+  };
+}
+
+/** Nhắc ba mẹ khi con chưa đạt mục tiêu (tôn trọng `notify_on`/`alert_on`). */
+async function evaluateAlerts(supabase, studentUserId, studentName, payload) {
+  try {
+    const insights = payload && payload.insights;
+    if (!insights || typeof insights !== 'object') return;
+    const { data: goals } = await supabase
+      .from(GOAL_TABLE)
+      .select('*')
+      .eq('student_user_id', studentUserId);
+    if (!goals || !goals.length) return;
+
+    const { data: links } = await supabase
+      .from(LINK_TABLE)
+      .select('parent_user_id, notify_on, alert_on')
+      .eq('student_user_id', studentUserId)
+      .eq('status', 'linked');
+    const linkBy = {};
+    for (const l of links || []) if (l.parent_user_id) linkBy[l.parent_user_id] = l;
+
+    const now = Date.now();
+    for (const goal of goals) {
+      const ev = evalGoal(goal, payload);
+      if (!ev || ev.met) continue;
+      const link = linkBy[goal.parent_user_id];
+      if (!link || link.notify_on === false || link.alert_on === false) continue;
+      if (goal.last_alert_at && now - toMillis(goal.last_alert_at) < ALERT_COOLDOWN_MS) {
+        continue;
+      }
+      const msg = goalAlertMessage(goal, ev, studentName);
+      const at = Number(payload.generatedAt ? toMillis(payload.generatedAt) : 0) || now;
+      await sendPushTo(supabase, goal.parent_user_id, { ...msg, at });
+      await broadcast(topicFor(goal.parent_user_id), 'family', { at: now, kind: 'alert' });
+      await supabase.from(GOAL_TABLE).update({ last_alert_at: new Date().toISOString() }).eq('id', goal.id);
+    }
+  } catch (_) {
+    // Cảnh báo là việc tốt-nhất: hỏng thì con vẫn đã chia sẻ xong.
+  }
+}
+
+/** Một liên kết đang hiệu lực (dùng chung cho các thao tác phía phụ huynh). */
+async function getLink(supabase, linkId) {
+  const { data, error } = await supabase
+    .from(LINK_TABLE)
+    .select('*')
+    .eq('id', linkId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
+/** Phụ huynh đặt (hoặc bỏ) mục tiêu cho một con. target <= 0 = bỏ mục tiêu. */
+async function setGoal(supabase, user, body, res) {
+  const studentUserId = String(body.studentUserId || '').trim();
+  const metric = String(body.metric || '').trim();
+  const target = Number(body.target);
+  if (!studentUserId) return fail(res, 400, 'Thiếu tài khoản của con.');
+  if (!GOAL_METRICS.includes(metric)) {
+    return fail(res, 400, 'Loại mục tiêu không hợp lệ.');
+  }
+
+  const { data: link, error: linkError } = await supabase
+    .from(LINK_TABLE)
+    .select('id, parent_user_id')
+    .eq('student_user_id', studentUserId)
+    .eq('parent_user_id', user.uid)
+    .eq('status', 'linked')
+    .maybeSingle();
+  if (linkError) return fail(res, 500, 'Không kiểm tra được liên kết.');
+  if (!link) return fail(res, 403, 'Tài khoản này chưa liên kết với bạn.');
+
+  if (!Number.isFinite(target) || target <= 0) {
+    const { error } = await supabase
+      .from(GOAL_TABLE)
+      .delete()
+      .eq('link_id', link.id)
+      .eq('metric', metric);
+    if (error) return fail(res, 500, 'Không bỏ được mục tiêu.');
+    return ok(res, { ok: true, metric, target: 0 });
+  }
+
+  const capped = Math.min(target, metric === 'streak' ? 365 : 100000);
+  const now = new Date().toISOString();
+  const { data: existing } = await supabase
+    .from(GOAL_TABLE)
+    .select('id')
+    .eq('parent_user_id', user.uid)
+    .eq('student_user_id', studentUserId)
+    .eq('metric', metric)
+    .maybeSingle();
+  // Tránh phụ thuộc ràng buộc unique: đọc trước, ghi đè hoặc tạo mới.
+  if (existing) {
+    const { error } = await supabase
+      .from(GOAL_TABLE)
+      .update({ target: capped, updated_at: now, last_alert_at: null })
+      .eq('id', existing.id);
+    if (error) return fail(res, 500, 'Không lưu được mục tiêu.');
+  } else {
+    const { error } = await supabase.from(GOAL_TABLE).insert({
+      id: crypto.randomUUID(),
+      link_id: link.id,
+      student_user_id: studentUserId,
+      parent_user_id: user.uid,
+      metric,
+      target: capped,
+      updated_at: now,
+    });
+    if (error) return fail(res, 500, 'Không lưu được mục tiêu.');
+  }
+  return ok(res, { ok: true, metric, target: capped });
+}
+
+/** Giữ lời nhắn gọn — bỏ qua chuỗi rỗng/quá dài. */
+function cleanMessage(value) {
+  return String(value || '').trim().slice(0, 500);
+}
+
+/** Gửi lời nhắn động viên (ba mẹ → con, hoặc con → ba mẹ). */
+async function sendMessage(supabase, user, body, res) {
+  const linkId = String(body.linkId || '').trim();
+  const text = cleanMessage(body.body);
+  if (!linkId) return fail(res, 400, 'Thiếu liên kết.');
+  if (!text) return fail(res, 400, 'Lời nhắn không được để trống.');
+
+  const link = await getLink(supabase, linkId);
+  if (!link) return fail(res, 404, 'Không tìm thấy liên kết.');
+  const isParent = link.parent_user_id === user.uid;
+  const isChild = link.student_user_id === user.uid;
+  if (!isParent && !isChild) {
+    return fail(res, 403, 'Bạn không thuộc liên kết này.');
+  }
+  const fromRole = isParent ? 'parent' : 'child';
+  const id = crypto.randomUUID();
+  const row = {
+    id,
+    link_id: linkId,
+    student_user_id: link.student_user_id,
+    parent_user_id: link.parent_user_id,
+    from_role: fromRole,
+    body: text,
+    created_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from(MSG_TABLE).insert(row);
+  if (error) return fail(res, 500, 'Không gửi được lời nhắn.');
+
+  // Báo cho đầu bên kia (broadcast + đẩy khi họ đã đóng app).
+  const toId = isParent ? link.student_user_id : link.parent_user_id;
+  const toKind = isParent ? 'child' : 'parent';
+  await broadcast(topicFor(toId), 'family', {
+    at: Date.now(),
+    kind: 'message',
+    from: fromRole,
+  });
+  if (toKind === 'parent') {
+    await sendPushTo(supabase, toId, {
+      title: 'Con gửi lời nhắn cho bạn',
+      body: text,
+      kind: 'message',
+    });
+  } else {
+    const name = (link.parent_name || 'Ba mẹ').trim() || 'Ba mẹ';
+    await sendPushTo(supabase, toId, {
+      title: `${name} gửi lời nhắn cho con`,
+      body: text,
+      kind: 'message',
+    });
+    // Báo child qua broadcast đã làm ở trên (child app — con luôn bật nên
+    // client tự bắn thông báo cục bộ khi nhận tín hiệu).
+  }
+  return ok(res, { ok: true, id, message: row });
+}
+
+/** Đọc lời nhắn của một liên kết; đánh dấu đã đọc cho đầu đang gọi. */
+async function listMessages(supabase, user, body, res) {
+  const linkId = String(body.linkId || '').trim();
+  if (!linkId) return fail(res, 400, 'Thiếu liên kết.');
+
+  const link = await getLink(supabase, linkId);
+  if (!link) return fail(res, 404, 'Không tìm thấy liên kết.');
+  const isParent = link.parent_user_id === user.uid;
+  const isChild = link.student_user_id === user.uid;
+  if (!isParent && !isChild) {
+    return fail(res, 403, 'Bạn không thuộc liên kết này.');
+  }
+
+  const since = Number(body.since) || 0;
+  let query = supabase
+    .from(MSG_TABLE)
+    .select('id, from_role, body, created_at, read_at')
+    .eq('link_id', linkId)
+    .order('created_at', { ascending: false })
+    .limit(MESSAGES_PAGE);
+  if (since > 0) query = query.gt('created_at', new Date(since).toISOString());
+  const { data, error } = await query;
+  if (error) return fail(res, 500, 'Không đọc được lời nhắn.');
+
+  // Đánh dấu đã đọc những tin HƯỚNG ĐẾN người gọi chưa đọc (đọc mới nhất trước).
+  const myRole = isParent ? 'child' : 'parent';
+  if (data && data.length) {
+    const mine = data
+      .filter((m) => m.from_role === myRole && !m.read_at)
+      .slice(0, 30)
+      .map((m) => m.id);
+    if (mine.length) {
+      await supabase
+        .from(MSG_TABLE)
+        .update({ read_at: new Date().toISOString() })
+        .in('id', mine);
+    }
+  }
+
+  return ok(res, {
+    ok: true,
+    serverTime: Date.now(),
+    messages: (data || []).map((m) => ({
+      id: m.id,
+      fromRole: m.from_role,
+      body: m.body,
+      createdAt: toMillis(m.created_at),
+      readAt: m.read_at ? toMillis(m.read_at) : 0,
+    })),
+  });
+}
+
+// ── Email tổng kết ─────────────────────────────────────────────────────────
+
+/** Dựng HTML tổng kết (không có dữ liệu thì trả null — không gửi email rỗng). */
+function digestHtml(child, payload) {
+  const name = (child.student_name || 'Con').trim() || 'Con';
+  const hasItems = payload && Array.isArray(payload.items) && payload.items.length;
+  const checkin = payload && payload.checkin ? String(payload.checkin) : '';
+  const insights = payload && payload.insights;
+
+  let body = `<p>Đây là bản tổng kết <b>${name}</b> từ EduPulse — tiến độ con chia sẻ với ba mẹ.</p>`;
+  if (!hasItems) {
+    body += `<p>Con chưa có dữ liệu mới trong báo cáo này.</p>`;
+    return null;
+  }
+  if (checkin) body += `<blockquote style="border-left:3px solid #7C4DFF;margin:12px 0;padding:6px 14px;color:#444;">💬 ${checkin}</blockquote>`;
+  body += `<ul>`;
+  for (const item of payload.items) {
+    if (!item || !item.title) continue;
+    body += `<li style="margin:7px 0;"><b>${item.title}:</b> ${item.value}${item.detail ? ' — ' + item.detail : ''}</li>`;
+  }
+  body += `</ul>`;
+  if (insights && typeof insights === 'object') {
+    const rows = [];
+    if (insights.weekMinutes != null) rows.push(['Phút tập trung tuần này', insights.weekMinutes]);
+    if (insights.streak != null) rows.push(['Chuỗi ngày học', `${insights.streak} ngày`]);
+    if (Array.isArray(insights.mockSeries) && insights.mockSeries.length) {
+      const last = insights.mockSeries[insights.mockSeries.length - 1];
+      if (last) rows.push(['Điểm thi thử mới nhất', `${last.subject}: ${last.score}/10`]);
+    }
+    if (rows.length) {
+      body += `<table style="border-collapse:collapse;margin-top:14px;">`;
+      for (const [k, v] of rows) {
+        body += `<tr><td style="padding:5px 14px 5px 0;color:#666;">${k}</td><td style="padding:5px 0;font-weight:700;">${v}</td></tr>`;
+      }
+      body += `</table>`;
+    }
+  }
+  return body;
+}
+
+/** Phụ huynh bấm "Gửi email tổng kết" → server soạn và gửi qua Gmail SMTP. */
+async function emailDigest(supabase, user, body, res) {
+  const studentUserId = String(body.studentUserId || '').trim();
+  if (!studentUserId) return fail(res, 400, 'Thiếu tài khoản của con.');
+
+  let transporter;
+  try {
+    const { getTransporter } = require('./_lib');
+    transporter = getTransporter();
+  } catch (e) {
+    return fail(res, 500, e.message || 'Máy chủ chưa cấu hình gửi email.');
+  }
+
+  const { data: link } = await supabase
+    .from(LINK_TABLE)
+    .select('*')
+    .eq('student_user_id', studentUserId)
+    .eq('parent_user_id', user.uid)
+    .eq('status', 'linked')
+    .maybeSingle();
+  if (!link) return fail(res, 403, 'Tài khoản này chưa liên kết với bạn.');
+
+  // Báo cáo mới nhất + bản trực tiếp — dùng bản nào mới hơn.
+  const { data: reports } = await supabase
+    .from(REPORT_TABLE)
+    .select('payload, created_at')
+    .eq('student_user_id', studentUserId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  const { data: live } = await supabase
+    .from(LIVE_TABLE)
+    .select('payload, updated_at')
+    .eq('student_user_id', studentUserId)
+    .maybeSingle();
+  const reportAt = reports && reports[0] ? toMillis(reports[0].created_at) : 0;
+  const liveAt = live ? toMillis(live.updated_at) : 0;
+  const newest = liveAt > reportAt ? live : (reports && reports[0]);
+  const html = digestHtml(link, newest ? newest.payload : null);
+  if (!html) {
+    return fail(res, 404, 'Con chưa có dữ liệu để gửi tổng kết.');
+  }
+
+  const to = String(link.parent_email || user.email || '').trim();
+  if (!to) return fail(res, 400, 'Tài khoản phụ huynh không có email.');
+
+  const subject = `📊 Tổng kết học tập — ${link.parent_label || link.student_name || 'con'}`;
+  try {
+    await transporter.sendMail({
+      from: `"EduPulse" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html: `<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;">${html}<p style="margin-top:18px;color:#888;font-size:12px;">Gửi từ EduPulse — ba mẹ chủ động yêu cầu. Bạn có thể gửi lại bất cứ lúc nào trong app.</p></div>`,
+    });
+  } catch (e) {
+    return fail(res, 500, 'Không gửi được email. Thử lại sau.');
+  }
+  return ok(res, { ok: true, to });
 }
 
 module.exports = async function handler(req, res) {
@@ -262,6 +751,14 @@ module.exports = async function handler(req, res) {
           ok: true,
           vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '',
         });
+      case 'set_goal':
+        return await setGoal(supabase, user, body, res);
+      case 'send_message':
+        return await sendMessage(supabase, user, body, res);
+      case 'messages':
+        return await listMessages(supabase, user, body, res);
+      case 'email_digest':
+        return await emailDigest(supabase, user, body, res);
       default:
         return fail(res, 400, 'Hành động không hợp lệ.');
     }
@@ -327,6 +824,10 @@ async function myFamily(supabase, user, res) {
       userId: r.parent_user_id,
       name: r.parent_name || 'Phụ huynh',
       linkedAt: toMillis(r.linked_at),
+      // Lời nhắn của ba mẹ chưa đọc.
+      unread: 0,
+      // Mục tiêu MÌNH đặt cho chính mình sẽ được gắn vào đây (góc học sinh).
+      goals: [],
     }));
 
   const pendingRow = rows.find(
@@ -355,6 +856,10 @@ async function myFamily(supabase, user, res) {
       latestReportAt: 0,
       // Có "trạng thái trực tiếp" = con đã cập nhật (0 = chưa).
       liveAt: 0,
+      // Mục tiêu ba mẹ đang đặt cho con (rỗng nếu chưa đặt gì).
+      goals: [],
+      // Lời nhắn của con chưa đọc.
+      unread: 0,
     }));
 
   // Mốc báo cáo mới nhất + mốc cập nhật trực tiếp của từng con — một truy vấn
@@ -402,6 +907,48 @@ async function myFamily(supabase, user, res) {
     }
   }
 
+  // Mục tiêu + lời nhắn chưa đọc — áp dụng cho CẢ HAI GÓC (ba mẹ và con).
+  // Mục tiêu ghim theo `link_id` nên gắn đúng người, không phụ thuộc vai.
+  const linkIds = [];
+  for (const c of children) linkIds.push(c.linkId);
+  for (const p of parents) linkIds.push(p.linkId);
+  if (linkIds.length) {
+    const { data: goals } = await supabase
+      .from(GOAL_TABLE)
+      .select('link_id, parent_user_id, metric, target, updated_at')
+      .in('link_id', linkIds);
+    for (const g of goals || []) {
+      const goal = {
+        metric: g.metric,
+        target: Number(g.target),
+        updatedAt: toMillis(g.updated_at),
+      };
+      const c = children.find((x) => x.linkId === g.link_id);
+      if (c) {
+        c.goals.push(goal);
+        continue;
+      }
+      const p = parents.find((x) => x.linkId === g.link_id);
+      if (p) p.goals.push(goal);
+    }
+
+    // Số lời nhắn CHƯA đọc (bên gửi là đầu bên kia của liên kết).
+    const { data: msgs } = await supabase
+      .from(MSG_TABLE)
+      .select('link_id, from_role')
+      .in('link_id', linkIds)
+      .is('read_at', null);
+    for (const m of msgs || []) {
+      if (m.from_role === 'child') {
+        const c = children.find((x) => x.linkId === m.link_id);
+        if (c) c.unread += 1;
+      } else if (m.from_role === 'parent') {
+        const p = parents.find((x) => x.linkId === m.link_id);
+        if (p) p.unread += 1;
+      }
+    }
+  }
+
   // `topic` = kênh Realtime của CHÍNH người đang gọi. App dùng nó để nghe tín
   // hiệu "con vừa cập nhật" thay vì chờ hết chu kỳ hỏi định kỳ.
   return ok(res, {
@@ -410,6 +957,9 @@ async function myFamily(supabase, user, res) {
     parents,
     children,
     topic: topicFor(user.uid),
+    // Cho app biết máy chủ có kênh push (Web Push/FCM) sẵn sàng hay không.
+    pushEnabled: pushConfigured(),
+    emailDigestAvailable: !!(process.env.SMTP_USER && process.env.SMTP_USER.trim()),
   });
 }
 
@@ -454,6 +1004,8 @@ async function redeem(supabase, user, body, res) {
     .update({
       parent_user_id: user.uid,
       parent_name: parentName,
+      // Nhớ email ba mẹ để gửi tổng kết định kỳ (cron) mà không cần token.
+      parent_email: user.email || '',
       status: 'linked',
       linked_at: new Date().toISOString(),
     })
@@ -616,6 +1168,8 @@ async function shareLive(supabase, user, body, res) {
 
   const at = toMillis(updatedAt) || Date.now();
   await notifyParents(supabase, user.uid, { at, kind: 'live' }, name);
+  // Mục tiêu & cảnh báo: nhắc ba mẹ khi con chưa đạt (chỉ khi kèm `insights`).
+  await evaluateAlerts(supabase, user.uid, name, payload);
   return ok(res, { ok: true, live: true, updatedAt: at });
 }
 
@@ -725,6 +1279,9 @@ async function pushToken(supabase, user, body, res) {
   const token = String(body.token || '').trim();
   if (!token) return fail(res, 400, 'Thiếu token thiết bị.');
 
+  // `kind` phân biệt Web Push (web) và FCM native (fcm) — mặc định web.
+  const kind = body.kind === 'fcm' ? 'fcm' : 'web';
+
   if (body.remove === true) {
     const { error } = await supabase
       .from(NOTIF_TABLE)
@@ -739,6 +1296,7 @@ async function pushToken(supabase, user, body, res) {
     {
       token,
       user_id: user.uid,
+      kind,
       created_at: new Date().toISOString(),
     },
     { onConflict: 'token' }

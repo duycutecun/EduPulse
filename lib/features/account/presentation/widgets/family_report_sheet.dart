@@ -10,6 +10,7 @@ import '../../../../core/utils/auth_service.dart';
 import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../features/family/presentation/screens/achievement_share_screen.dart';
+import '../../../../features/family/presentation/widgets/family_message_sheet.dart';
 
 /// "Cửa sổ tin cậy" — nơi học sinh chia sẻ tiến độ với gia đình.
 ///
@@ -75,6 +76,33 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
       _familyLoading = false;
       if (state != null) _family = state;
     });
+  }
+
+  /// Mở cửa sổ nhắn với một ba/mẹ; đóng xong là kéo lại để badge đã-đọc biến
+  /// mất (server đánh dấu đã-đọc ngay khi đọc).
+  Future<void> _openParentMessages(FamilyMember parent) async {
+    await FamilyMessageSheet.open(
+      context,
+      linkId: parent.linkId,
+      otherName: parent.name,
+      myRole: 'child',
+    );
+    if (mounted) await _loadFamily();
+  }
+
+  Widget _unreadBadge(int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: AppColors.red,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text('$count',
+          style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              color: Colors.white)),
+    );
   }
 
   /// Bật/tắt cập nhật trực tiếp cho ba mẹ.
@@ -493,30 +521,76 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
           else
             ...parents.map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.verified_user_rounded,
-                          size: 16, color: AppColors.primary),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(p.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          const Icon(Icons.verified_user_rounded,
+                              size: 16, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(p.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                key: Key('student-parent-messages-${p.userId}'),
+                                tooltip: 'Nhắn với ${p.name}',
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 34, minHeight: 30),
+                                onPressed: () => _openParentMessages(p),
+                                icon: const Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    size: 17,
+                                    color: AppColors.primary),
+                              ),
+                              if (p.unread > 0)
+                                Positioned(
+                                  right: -2,
+                                  top: -3,
+                                  child: _unreadBadge(p.unread),
+                                ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () => _unlinkParent(p),
+                            style: TextButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
+                              minimumSize: const Size(0, 30),
+                            ),
+                            child: const Text('Ngắt',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.red)),
+                          ),
+                        ],
+                      ),
+                      // Mục tiêu ba mẹ đặt: cho con thấy để con phấn đấu.
+                      if (p.goals.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 26, top: 1),
+                          child: Text(
+                            p.goals
+                                .map((g) => '🎯 ${g.label}: ${g.displayTarget}')
+                                .join('  ·  '),
                             style: const TextStyle(
-                                fontSize: 12.5, fontWeight: FontWeight.w700)),
-                      ),
-                      TextButton(
-                        onPressed: () => _unlinkParent(p),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          minimumSize: const Size(0, 30),
+                                fontSize: 10.5,
+                                height: 1.4,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryDark),
+                          ),
                         ),
-                        child: const Text('Ngắt',
-                            style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.red)),
-                      ),
                     ],
                   ),
                 )),
