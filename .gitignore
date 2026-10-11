@@ -49,6 +49,12 @@ app.*.map.json
 .vercel
 .env*
 
+# Node d\u00e9pendencies c\u1ee7a serverless (api/) \u2014 kh\u00f4ng commit
+node_modules/
+
+# G\u00f3i c\u00e0i iOS
+*.ipa
+
 # Screenshot kiểm tra UI (tạm)
 /shot_*.png
 /template_source.tsx
