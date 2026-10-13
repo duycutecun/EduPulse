@@ -14,6 +14,7 @@ import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/app_icon.dart';
+import '../../../../shared/widgets/state_views.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
 import '../widgets/family_goal_sheet.dart';
 import '../widgets/family_message_sheet.dart';
@@ -678,13 +679,17 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           ],
         ),
         const SizedBox(height: 8),
+        // Lỗi và rỗng dùng chung khuôn với phần còn lại của app: lỗi có nút
+        // thử lại tại chỗ, rỗng thì nói rõ thiếu gì và làm gì tiếp (kế hoạch
+        // P0-3).
         if (_error != null)
-          Text(_error!,
-              style: const TextStyle(fontSize: 12.5, color: AppColors.red)),
-        if (_error == null && children.isEmpty)
-          const Text(
-            'Chưa liên kết với tài khoản nào. Nhập mã mời của con ở trên để bắt đầu.',
-            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+          ErrorStatePanel(message: _error!, onRetry: _load)
+        else if (children.isEmpty)
+          const EmptyStatePanel(
+            dense: true,
+            icon: Icons.people_outline_rounded,
+            title: 'Chưa liên kết với tài khoản nào',
+            description: 'Nhập mã mời của con ở trên để bắt đầu.',
           ),
         for (final child in children) ...[
           _childCard(child),
@@ -733,7 +738,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                         IconButton(
                           key: Key('parent-rename-${child.userId}'),
                           tooltip: 'Đổi tên hiển thị',
-                          visualDensity: VisualDensity.compact,
+                          visualDensity: VisualDensity.comfortable,
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.only(left: 4),
                           icon: const Icon(Icons.edit_rounded,
@@ -1059,7 +1064,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         ),
         IconButton(
           tooltip: 'Chỉnh mục tiêu',
-          visualDensity: VisualDensity.compact,
+          visualDensity: VisualDensity.comfortable,
           onPressed: () => _editGoals(child),
           icon: const Icon(Icons.edit_rounded,
               size: 15, color: AppColors.textMuted),

@@ -16,6 +16,7 @@ class HomeHeader extends StatelessWidget {
   final int? remainingTasks;
   final bool? isAllTasksCompleted;
   final bool? mascotVisible;
+  final VoidCallback? onOpenAchievements;
 
   const HomeHeader({
     super.key,
@@ -25,6 +26,7 @@ class HomeHeader extends StatelessWidget {
     this.remainingTasks,
     this.isAllTasksCompleted,
     this.mascotVisible,
+    this.onOpenAchievements,
   });
 
   @override
@@ -49,6 +51,19 @@ class HomeHeader extends StatelessWidget {
           if (streak > 0) ...[
             const SizedBox(width: 8),
             _StreakChip(streak: streak),
+          ],
+          if (onOpenAchievements != null) ...[
+            const SizedBox(width: 2),
+            IconButton(
+              key: const Key('home-achievements-button'),
+              tooltip: 'Thành tích & huy hiệu',
+              onPressed: onOpenAchievements,
+              iconSize: AppTokens.iconMd,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 34, height: 48),
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.emoji_events_outlined),
+            ),
           ],
         ],
       ),

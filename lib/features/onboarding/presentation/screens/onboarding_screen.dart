@@ -897,7 +897,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           IconButton(
             tooltip: 'Bỏ nhiệm vụ này',
-            visualDensity: VisualDensity.compact,
+            visualDensity: VisualDensity.comfortable,
             onPressed: () => setState(() => _plan.removeAt(index)),
             icon: const Icon(Icons.close_rounded,
                 size: 18, color: AppColors.textMuted),

@@ -10,12 +10,15 @@ import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/subject_catalog.dart';
+import '../../../../core/gamification/achievement_service.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/mascot_avatar.dart';
+import '../../../../shared/widgets/state_views.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
+import '../../../../shared/widgets/stat_card.dart';
 import '../../domain/models/study_models.dart';
 import '../../domain/active_study_session.dart';
 import '../../domain/app_leaving.dart';
@@ -28,6 +31,9 @@ import '../../domain/study_analytics.dart';
 import '../../domain/repositories/study_session_repository.dart';
 import '../widgets/score_chart_widget.dart';
 import '../widgets/weekly_chart_widget.dart';
+import '../widgets/score_tab_view.dart';
+import '../widgets/ai_post_focus_sheet.dart';
+import '../widgets/study_entry_dialogs.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../../exams/domain/models/exam_model.dart';
 
@@ -247,23 +253,39 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     _scores.sort((a, b) => b.date.compareTo(a.date));
   }
 
-  void _addScore(String subject, double score, String? note) {
+  void _addScore(String subject, double score, String? note,
+      {String? topic}) {
     final s = MockScore(
       id: _uuid.v4(),
       date: DateTime.now(),
       subject: subject,
       score: score,
       note: note,
+      topic: (topic == null || topic.trim().isEmpty) ? null : topic.trim(),
     );
     StorageService.setMockScoreJson(s.id, s.toJsonString());
     final ids = StorageService.getMockScoreIds()..add(s.id);
     StorageService.setMockScoreIds(ids);
     setState(() => _scores.insert(0, s));
+    _celebrateNewAchievements();
   }
 
   void _deleteScore(MockScore s) {
     StorageService.removeMockScore(s.id);
     setState(() => _scores.remove(s));
+  }
+
+  /// Xét huy hiệu sau khi ghi điểm/phiên học (P2 — gamification) và báo toast
+  /// huy hiệu mới. Dùng ScaffoldMessenger gốc để không phụ thuộc sheet đang mở.
+  void _celebrateNewAchievements() {
+    final newly = AchievementService.instance.reconcile();
+    if (newly.isEmpty || !mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+      ?..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text('${newly.first.emoji} Huy hiệu mới: ${newly.first.title}'),
+        duration: const Duration(seconds: 2),
+      ));
   }
 
   void _loadLogs() {
@@ -611,519 +633,19 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   void _showAiPostFocusSheet(StudySession session) {
-    var understandingLevel = 1; // 1: Hiểu tốt, 0: Cần củng cố
-    bool showDetailed = false;
-    // Đánh giá 1 chạm (FE-3.3): 5 emoji → 5 mức. Chạm một lần là đủ để lưu,
-    // không bắt người dùng chờ điền thang chi tiết 5 dòng.
-    var quickRating = 0;
-    var mood = 4;
-    var focus = 4;
-    var difficulty = 3;
-    var understanding = 4;
-    var effectiveness = 4;
-    final noteController = TextEditingController();
-
-    showModalBottomSheet(
+    showAiPostFocusSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 18, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: AppColors.greenSoft,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.auto_awesome_rounded,
-                            color: AppColors.primary, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Xuất sắc! Xong phiên ${session.actualMinutes}p',
-                              style: const TextStyle(
-                                  fontSize: 16.5, fontWeight: FontWeight.w800),
-                            ),
-                            Text(
-                              'Môn ${session.subject} • +25 EXP Mascot',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded,
-                            color: AppColors.textMuted, size: 20),
-                        onPressed: () => Navigator.pop(sheetContext),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Text('Phiên học thế nào? Chạm 1 emoji là xong',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      for (final option in _quickRatings)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                                right: option == _quickRatings.last ? 0 : 6),
-                            child: GestureDetector(
-                              key: ValueKey('quick-rating-${option.value}'),
-                              onTap: () => setSheetState(() {
-                                quickRating = option.value;
-                                mood = option.mood;
-                                focus = option.focus;
-                                difficulty = option.difficulty;
-                                understanding = option.understanding;
-                                effectiveness = option.effectiveness;
-                                understandingLevel = option.understood ? 1 : 0;
-                              }),
-                              child: Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: quickRating == option.value
-                                      ? AppColors.primary
-                                          .withValues(alpha: 0.15)
-                                      : AppColors.cardLight,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: quickRating == option.value
-                                        ? AppColors.primary
-                                        : AppColors.border,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Text(option.emoji,
-                                        style: const TextStyle(fontSize: 22)),
-                                    const SizedBox(height: 2),
-                                    Text(option.label,
-                                        style: TextStyle(
-                                            fontSize: 9.5,
-                                            fontWeight:
-                                                quickRating == option.value
-                                                    ? FontWeight.w800
-                                                    : FontWeight.w600,
-                                            color: quickRating == option.value
-                                                ? AppColors.primary
-                                                : AppColors.textMuted)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Text('Bạn nắm kiến thức phiên này thế nào?',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setSheetState(() {
-                            understandingLevel = 1;
-                            understanding = 4;
-                            effectiveness = 4;
-                          }),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: understandingLevel == 1
-                                  ? AppColors.primary.withValues(alpha: 0.15)
-                                  : AppColors.cardLight,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: understandingLevel == 1
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('👍',
-                                    style: TextStyle(fontSize: 16)),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    'Hiểu tốt',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: understandingLevel == 1
-                                            ? FontWeight.w800
-                                            : FontWeight.w600,
-                                        color: understandingLevel == 1
-                                            ? AppColors.primary
-                                            : AppColors.textPrimary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setSheetState(() {
-                            understandingLevel = 0;
-                            understanding = 2;
-                            effectiveness = 3;
-                          }),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: understandingLevel == 0
-                                  ? AppColors.orange.withValues(alpha: 0.15)
-                                  : AppColors.cardLight,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: understandingLevel == 0
-                                    ? AppColors.orange
-                                    : AppColors.border,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('🤔',
-                                    style: TextStyle(fontSize: 16)),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    'Cần củng cố',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: understandingLevel == 0
-                                            ? FontWeight.w800
-                                            : FontWeight.w600,
-                                        color: understandingLevel == 0
-                                            ? AppColors.orange
-                                            : AppColors.textPrimary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.purpleSoft.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: AppColors.purple.withValues(alpha: 0.25)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.bolt_rounded,
-                                color: AppColors.purple, size: 16),
-                            SizedBox(width: 6),
-                            Text('Liên kết AI thông minh:',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.purple)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            ActionChip(
-                              avatar: const Icon(Icons.quiz_rounded,
-                                  size: 15, color: AppColors.purple),
-                              label: const Text('🧠 Test nhanh 1 câu AI'),
-                              backgroundColor: Colors.white,
-                              side: BorderSide(
-                                  color:
-                                      AppColors.purple.withValues(alpha: 0.4)),
-                              labelStyle: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.purple),
-                              onPressed: () {
-                                Navigator.pop(sheetContext);
-                                final sub = session.subject.isEmpty ||
-                                        session.subject == 'Pomodoro'
-                                    ? 'Toán'
-                                    : session.subject;
-                                AiCopilotService.executeAction(
-                                  context,
-                                  AiCopilotAction(
-                                    type: AiActionType.takeQuiz,
-                                    label: 'Kiểm tra nhanh',
-                                    icon: Icons.quiz_rounded,
-                                    payload: {
-                                      'subject': sub,
-                                      'topic': 'Củng cố kiến thức môn $sub',
-                                      'onTasksChanged': () {
-                                        if (mounted) setState(_loadTasks);
-                                      },
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                            ActionChip(
-                              avatar: const Icon(Icons.sticky_note_2_rounded,
-                                  size: 15, color: AppColors.blue),
-                              label: const Text('📝 Ghi chú nhanh'),
-                              backgroundColor: Colors.white,
-                              side: BorderSide(
-                                  color: AppColors.blue.withValues(alpha: 0.4)),
-                              labelStyle: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.blue),
-                              onPressed: () {
-                                Navigator.pop(sheetContext);
-                                _showQuickNoteDialog(session.subject,
-                                    sessionId: session.id);
-                              },
-                            ),
-                            if (understandingLevel == 0)
-                              ActionChip(
-                                avatar: const Icon(Icons.calendar_today_rounded,
-                                    size: 15, color: AppColors.orange),
-                                label: const Text('📅 Ôn lại ngày mai'),
-                                backgroundColor: Colors.white,
-                                side: BorderSide(
-                                    color: AppColors.orange
-                                        .withValues(alpha: 0.4)),
-                                labelStyle: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.orange),
-                                onPressed: () {
-                                  Navigator.pop(sheetContext);
-                                  _scheduleReviewTaskTomorrow(session.subject);
-                                },
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      TextButton(
-                        onPressed: () =>
-                            setSheetState(() => showDetailed = !showDetailed),
-                        child: Text(
-                          showDetailed
-                              ? 'Thu gọn đánh giá'
-                              : 'Thêm đánh giá chi tiết ▾',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        child: const Text('Bỏ qua',
-                            style: TextStyle(
-                                fontSize: 12, color: AppColors.textMuted)),
-                      ),
-                    ],
-                  ),
-                  if (showDetailed) ...[
-                    _reflectionScale('Tâm trạng', mood,
-                        (value) => setSheetState(() => mood = value)),
-                    _reflectionScale('Tập trung', focus,
-                        (value) => setSheetState(() => focus = value)),
-                    _reflectionScale('Độ khó', difficulty,
-                        (value) => setSheetState(() => difficulty = value)),
-                    _reflectionScale('Mức độ hiểu', understanding,
-                        (value) => setSheetState(() => understanding = value)),
-                    _reflectionScale('Hiệu quả', effectiveness,
-                        (value) => setSheetState(() => effectiveness = value)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: noteController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                          hintText: 'Ghi chú thêm (không bắt buộc)'),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      key: const ValueKey('save-session-feedback'),
-                      onPressed: () => _saveSessionFeedback(
-                        sheetContext,
-                        session,
-                        _SessionFeedback(
-                          mood: mood,
-                          focus: focus,
-                          difficulty: difficulty,
-                          understanding: understanding,
-                          effectiveness: effectiveness,
-                          note: noteController.text,
-                        ),
-                      ),
-                      child: Text(quickRating > 0
-                          ? 'Lưu đánh giá & Hoàn tất'
-                          : 'Lưu phản hồi & Hoàn tất'),
-                    ),
-                  ),
-                  // Đường 1 chạm: xong việc thì đánh dấu nhiệm vụ hoàn thành
-                  // và về thẳng màn Hôm nay — đúng tinh thần "xong việc này,
-                  // sang việc tiếp theo" (FE-3.3).
-                  if (_selectedTask != null) ...[
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        key: const ValueKey('complete-task-and-go-today'),
-                        onPressed: () => _completeTaskAndGoToday(
-                          sheetContext,
-                          session,
-                          _SessionFeedback(
-                            mood: mood,
-                            focus: focus,
-                            difficulty: difficulty,
-                            understanding: understanding,
-                            effectiveness: effectiveness,
-                            note: noteController.text,
-                          ),
-                        ),
-                        icon: const Icon(Icons.check_rounded, size: 18),
-                        label: Text(
-                          'Xong việc này — về Hôm nay',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ).whenComplete(noteController.dispose);
+      session: session,
+      hasSelectedTask: _selectedTask != null,
+      onSave: _saveSessionFeedback,
+      onCompleteAndGo: _completeTaskAndGoToday,
+      onScheduleReview: _scheduleReviewTaskTomorrow,
+      onQuickNote: _showQuickNoteDialog,
+      onTasksChanged: () {
+        if (mounted) setState(_loadTasks);
+      },
+    );
   }
-
-  /// Một mức đánh giá 1 chạm (FE-3.3).
-  ///
-  /// Emoji là thứ người dùng thật sự bấm; các thang đánh giá chi tiết suy ra từ
-  /// đó theo một quy tắc cố định thay vì để người dùng điền 5 dòng — nếu
-  /// không có quy tắc, số phản hồi sẽ là dữ liệu bịa.
-  static const List<_QuickRating> _quickRatings = [
-    _QuickRating(
-      emoji: '😫',
-      label: 'Khó',
-      value: 1,
-      mood: 1,
-      focus: 2,
-      difficulty: 5,
-      understanding: 1,
-      effectiveness: 2,
-      understood: false,
-    ),
-    _QuickRating(
-      emoji: '😐',
-      label: 'Tạm',
-      value: 2,
-      mood: 2,
-      focus: 3,
-      difficulty: 4,
-      understanding: 2,
-      effectiveness: 2,
-      understood: false,
-    ),
-    _QuickRating(
-      emoji: '🙂',
-      label: 'Ổn',
-      value: 3,
-      mood: 3,
-      focus: 3,
-      difficulty: 3,
-      understanding: 3,
-      effectiveness: 3,
-      understood: true,
-    ),
-    _QuickRating(
-      emoji: '😄',
-      label: 'Tốt',
-      value: 4,
-      mood: 4,
-      focus: 4,
-      difficulty: 3,
-      understanding: 4,
-      effectiveness: 4,
-      understood: true,
-    ),
-    _QuickRating(
-      emoji: '🔥',
-      label: 'Chất',
-      value: 5,
-      mood: 5,
-      focus: 5,
-      difficulty: 2,
-      understanding: 5,
-      effectiveness: 5,
-      understood: true,
-    ),
-  ];
 
   /// Lưu phản hồi của phiên vừa học xong.
   ///
@@ -1133,7 +655,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   Future<void> _saveSessionFeedback(
     BuildContext sheetContext,
     StudySession session,
-    _SessionFeedback feedback,
+    SessionFeedback feedback,
   ) async {
     await StudySessionRepository.instance.updateFeedback(
       session.id,
@@ -1147,6 +669,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     );
     AiRefreshService.notifyDataChanged();
     if (sheetContext.mounted) Navigator.pop(sheetContext);
+    // Đánh giá (focus…) vừa được ghi → có thể mở khoá huy hiệu "Tâm trí sâu".
+    _celebrateNewAchievements();
   }
 
   /// Đường 1 chạm của FE-3.3: lưu phản hồi → đánh dấu nhiệm vụ hoàn thành →
@@ -1157,7 +681,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   Future<void> _completeTaskAndGoToday(
     BuildContext sheetContext,
     StudySession session,
-    _SessionFeedback feedback,
+    SessionFeedback feedback,
   ) async {
     await _saveSessionFeedback(sheetContext, session, feedback);
 
@@ -1330,42 +854,6 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _reflectionScale(
-      String label, int value, ValueChanged<int> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          SizedBox(
-              width: 112,
-              child: Text(label,
-                  style: const TextStyle(fontWeight: FontWeight.w700))),
-          ...List.generate(
-            5,
-            (index) {
-              final score = index + 1;
-              final selected = score <= value;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onChanged(score),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Icon(
-                      selected ? Icons.circle_rounded : Icons.circle_outlined,
-                      color:
-                          selected ? AppColors.primary : AppColors.borderStrong,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showTaskPicker() {
     _loadTasks();
     showModalBottomSheet(
@@ -1394,9 +882,14 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                 },
               ),
               if (_tasks.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Chưa có nhiệm vụ chưa hoàn thành.'),
+                // Vùng rỗng trong sheet dùng bản compact của khuôn chung:
+                // một hàng gọn thay vì khối lớn chiếm chỗ.
+                const EmptyStatePanel(
+                  compact: true,
+                  icon: Icons.playlist_add_check_rounded,
+                  title: 'Chưa có nhiệm vụ chưa hoàn thành.',
+                  description: 'Thêm nhiệm vụ ở tab Hôm nay rồi quay lại đây '
+                      'để gắn việc với phiên học.',
                 )
               else
                 ..._tasks.map((task) => ListTile(
@@ -2068,47 +1561,17 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           ] else if (_sessions.isEmpty) ...[
             const SizedBox(height: 12),
             // UX mục 11 "No study history": đủ 3 câu trả lời —
-            // thiếu gì / vì sao quan trọng / làm gì tiếp theo.
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.bgPageSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Chưa có phiên học nào.',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 2),
-                  const Text(
-                      'Bắt đầu phiên đầu tiên hôm nay — sau đó bạn sẽ thấy '
-                      'giờ focus, số phiên và xu hướng tiến bộ của mình.',
-                      style: TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: AppColors.textMuted)),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 36,
-                    child: FilledButton.icon(
-                      key: const ValueKey('start-first-session'),
-                      onPressed: _startFirstSession,
-                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                      label: const Text('Bắt đầu học'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            // thiếu gì / vì sao quan trọng / làm gì tiếp theo — qua khuôn
+            // EmptyStatePanel dùng chung với các vùng rỗng khác.
+            EmptyStatePanel(
+              icon: Icons.timer_outlined,
+              title: 'Chưa có phiên học nào.',
+              description: 'Bắt đầu phiên đầu tiên hôm nay — sau đó bạn sẽ '
+                  'thấy giờ focus, số phiên và xu hướng tiến bộ của mình.',
+              actionLabel: 'Bắt đầu học',
+              actionKey: const ValueKey('start-first-session'),
+              actionIcon: Icons.play_arrow_rounded,
+              onAction: _startFirstSession,
             ),
           ],
         ],
@@ -2196,20 +1659,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 18),
           if (entries.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                children: [
-                  const Text('📚', style: TextStyle(fontSize: 48)),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Chưa có nhật ký.\nGhi chép mỗi ngày!',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 13, height: 1.4),
-                  ),
-                ],
-              ),
+            const EmptyStatePanel(
+              icon: Icons.menu_book_rounded,
+              title: 'Chưa có nhật ký.',
+              description: 'Ghi lại vài dòng sau mỗi phiên học để thấy mình '
+                  'đã đi được bao xa.',
             )
           else
             Column(
@@ -2222,46 +1676,14 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Thẻ số liệu cho tab Nhật ký / Điểm thi.
+  ///
+  /// Trả về `Container` (KHÔNG tự bọc `Expanded`): mọi chỗ gọi đều đã đặt nó
+  /// trong một `Expanded` của `Row`. Bọc thêm một lớp `Expanded` nữa khiến hai
+  /// ParentDataWidget cùng ghi parent data lên một RenderObject — mở tab Nhật
+  /// ký là Flutter ném lỗi ngay, và trên máy thật là một khung hình đỏ.
   Widget _statCard(String val, String label, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.cardWhite,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border, width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(val,
-                    style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: color)),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 16, color: color),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
-    );
+    return StatCard(value: val, label: label, color: color, icon: icon);
   }
 
   Widget _buildLogItem(StudyTimelineEntry entry) {
@@ -2352,244 +1774,18 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildScoreTab() {
-    final summaries = summarizeMockScores(_scores);
-    final avg = overallAverage(_scores);
-    final recovery =
-        buildScoreRecoveryPlan(_scores, daysLeft: _primaryExam?.daysLeft ?? 90);
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      child: Column(
-        children: [
-          // Thống kê.
-          Row(
-            children: [
-              Expanded(
-                child: _statCard('${_scores.length}', 'Lần thi thử',
-                    AppColors.blue, Icons.assignment_rounded),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _statCard(avg > 0 ? avg.toStringAsFixed(1) : '—',
-                    'Điểm TB', AppColors.primary, Icons.stars_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Hai nút action.
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: _showAddScoreDialog,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                            color: AppColors.primaryDark.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_circle, color: Colors.white, size: 18),
-                        SizedBox(width: 8),
-                        Text('GHI ĐIỂM THI THỬ',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: _scores.isEmpty ? null : _analyzeScoresWithAi,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: _scores.isEmpty
-                          ? AppColors.cardLight
-                          : AppColors.purple,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: _scores.isEmpty
-                            ? AppColors.border
-                            : AppColors.purple,
-                        width: 1.5,
-                      ),
-                      boxShadow: _scores.isEmpty
-                          ? null
-                          : [
-                              BoxShadow(
-                                  color:
-                                      AppColors.purple.withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4)),
-                            ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.psychology_rounded,
-                            color: Colors.white, size: 18),
-                        const SizedBox(width: 6),
-                        Text('AI PHÂN TÍCH',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          if (_scores.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                children: [
-                  const Text('📝', style: TextStyle(fontSize: 48)),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Chưa có điểm thi thử.\nGhi lại điểm để theo dõi tiến bộ!',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 13, height: 1.4),
-                  ),
-                ],
-              ),
-            )
-          else ...[
-            if (recovery != null) ...[
-              _buildRecoveryPlanCard(recovery),
-              const SizedBox(height: 14),
-            ],
-            if (summaries.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardWhite,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Tổng hợp theo môn',
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
-                    const SizedBox(height: 12),
-                    ...summaries.map((s) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(s.subject,
-                                      style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary)),
-                                  Text(
-                                    '${s.average.toStringAsFixed(1)} • ${s.rating}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: s.average >= 8
-                                          ? AppColors.primary
-                                          : (s.average >= 6.5
-                                              ? AppColors.orange
-                                              : AppColors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 5),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: LinearProgressIndicator(
-                                  value: (s.average / 10).clamp(0.0, 1.0),
-                                  minHeight: 8,
-                                  backgroundColor: AppColors.progressBg,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    s.average >= 8
-                                        ? AppColors.progressDone
-                                        : (s.average >= 6.5
-                                            ? AppColors.orange
-                                            : AppColors.red),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-            ],
-            ..._scores.map((s) => _buildScoreItem(s)),
-          ],
-        ],
-      ),
+    // Lát cắt trình bày đã tách sang `ScoreTabView` (kế hoạch §6.2) — màn cha
+    // giữ state và các thao tác ghi, widget con chỉ nhận dữ liệu + callback.
+    return ScoreTabView(
+      scores: _scores,
+      daysLeft: _primaryExam?.daysLeft ?? 90,
+      onAddScore: _showAddScoreDialog,
+      onAnalyze: _analyzeScoresWithAi,
+      onAddRecoveryTask: _addRecoveryTask,
+      onScheduleTopicReview: _scheduleTopicReview,
+      onDeleteScore: _deleteScore,
     );
   }
-
-  Widget _buildRecoveryPlanCard(ScoreRecoveryPlan plan) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.purpleSoft.withValues(alpha: 0.65),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Row(children: [
-            Icon(Icons.auto_graph_rounded, size: 17, color: AppColors.purple),
-            SizedBox(width: 7),
-            Text('Kế hoạch bù điểm',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800, color: AppColors.purple)),
-          ]),
-          const SizedBox(height: 7),
-          Text(
-              '${plan.reason} Gợi ý ${plan.sessionsPerWeek} phiên/tuần, ${plan.minutesPerSession} phút/phiên.',
-              style: const TextStyle(fontSize: 12.5, height: 1.35)),
-          const SizedBox(height: 9),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => _addRecoveryTask(plan),
-              icon: const Icon(Icons.add_task_rounded, size: 16),
-              label: const Text('Thêm phiên đầu tiên'),
-            ),
-          ),
-        ]),
-      );
 
   Future<void> _addRecoveryTask(ScoreRecoveryPlan plan) async {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
@@ -2619,211 +1815,46 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     ));
   }
 
-  Widget _buildScoreItem(MockScore s) {
-    final color = s.score >= 8
-        ? AppColors.primary
-        : (s.score >= 6.5 ? AppColors.orange : AppColors.red);
-    return Dismissible(
-      key: Key(s.id),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _deleteScore(s),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.cardWhite,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Score circle — nền xanh lá/cam/red tùy điểm.
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  s.score.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.subject,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  if (s.note != null && s.note!.isNotEmpty)
-                    Text(s.note!,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.textMuted),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-            Text('${s.date.day}/${s.date.month}',
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          ],
-        ),
-      ),
+  /// Thẻ chủ đề yếu: đã tách sang `ScoreTabView` cùng lát cắt Điểm thi (§6.2).
+  /// Đặt một nhiệm vụ ôn tập cho đúng chủ đề yếu (mang theo `topic` để lần sau
+  /// vẫn nhận diện được ở tầng phân tích).
+  Future<void> _scheduleTopicReview(String subject, String topic) async {
+    final sub = subject.trim().isEmpty ? 'Tổng hợp' : subject.trim();
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final task = TodayTask(
+      id: _uuid.v4(),
+      title: 'Ôn chủ đề: $topic',
+      subject: AppSubjects.normalize(sub),
+      topic: topic,
+      priority: 'high',
+      estimateMinutes: 25,
+      scheduledAt: DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 19, 0),
     );
+    final result = await TaskRepository.instance.createTaskIfMissing(task);
+    if (!mounted) return;
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.isDuplicate
+            ? 'Ngày mai đã có nhiệm vụ "Ôn chủ đề: $topic" rồi.'
+            : 'Không thêm được nhiệm vụ ôn chủ đề.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    AiRefreshService.notifyDataChanged();
+    _loadTasks();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Đã thêm "Ôn chủ đề: $topic" vào lịch ngày mai!'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   void _showAddScoreDialog() {
-    final subjectCtrl = TextEditingController();
-    final scoreCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    final subjects = [
-      '📐 Toán',
-      '📖 Văn',
-      '🇬🇧 Anh',
-      '⚡ Lý',
-      '🧪 Hóa',
-      '🧬 Sinh'
-    ];
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
-        ),
-        title: const Text('Ghi điểm thi thử',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            String subject =
-                subjectCtrl.text.isEmpty ? '📐 Toán' : subjectCtrl.text;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: subjects.map((sub) {
-                    final sel = subject == sub;
-                    return GestureDetector(
-                      onTap: () => setDialogState(() {
-                        subjectCtrl.text = sub;
-                        subject = sub;
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: sel ? AppColors.primary : AppColors.bgPage,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: sel ? AppColors.primary : AppColors.border,
-                            width: 2,
-                          ),
-                        ),
-                        child: Text(
-                          sub,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: sel ? Colors.white : AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: subjectCtrl,
-                    decoration:
-                        const InputDecoration(hintText: 'Hoặc nhập môn khác')),
-                const SizedBox(height: 8),
-                TextField(
-                    controller: scoreCtrl,
-                    decoration:
-                        const InputDecoration(hintText: 'Điểm (0–10, VD: 7.5)'),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true)),
-                const SizedBox(height: 8),
-                TextField(
-                    controller: noteCtrl,
-                    decoration:
-                        const InputDecoration(hintText: 'Ghi chú (tùy chọn)')),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
-          TextButton(
-            onPressed: () {
-              final score =
-                  double.tryParse(scoreCtrl.text.trim().replaceAll(',', '.'));
-              final subject = subjectCtrl.text.trim();
-              if (subject.isNotEmpty &&
-                  score != null &&
-                  score >= 0 &&
-                  score <= 10) {
-                _addScore(subject, score,
-                    noteCtrl.text.isEmpty ? null : noteCtrl.text.trim());
-              } else if (score == null || score < 0 || score > 10) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(
-                    content: Text('Vui lòng nhập điểm từ 0 đến 10'),
-                    behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Lưu',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
+    showAddScoreDialog(
+      context,
+      onAdd: (subject, score, note, topic) {
+        _addScore(subject, score, note, topic: topic);
+      },
     );
   }
 
@@ -2844,6 +1875,18 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     final prompt = buildScorePrompt(_scores);
     if (prompt.isEmpty) return;
 
+    // Gọi model một lần cho mỗi lần mở sheet. Giữ future trong biến ngoài
+    // `builder` để nút "Thử lại" gọi lại được mà không khiến FutureBuilder tự
+    // tạo future mới ở mỗi rebuild (mỗi rebuild = một lần gọi model).
+    Future<String> request() => AiRouter.chat(
+          model: AIModel.defaultModel,
+          history: const [],
+          userMessage: prompt,
+          searchWeb: false,
+        );
+
+    var pending = request();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2851,84 +1894,74 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '🧠 Phân tích điểm yếu',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 320,
-                child: FutureBuilder<String>(
-                  future: AiRouter.chat(
-                    model: AIModel.defaultModel,
-                    history: const [],
-                    userMessage: prompt,
-                    searchWeb: false,
-                  ),
-                  builder: (ctx, snap) {
-                    if (snap.connectionState != ConnectionState.done) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircularProgressIndicator(
-                                color: AppColors.primary),
-                            const SizedBox(height: 12),
-                            Text('AI đang phân tích...',
-                                style: TextStyle(
-                                    fontSize: 13, color: AppColors.textMuted)),
-                          ],
-                        ),
-                      );
-                    }
-                    if (snap.hasError) {
-                      return Center(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🧠 Phân tích điểm yếu',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 320,
+                  child: FutureBuilder<String>(
+                    future: pending,
+                    builder: (ctx, snap) {
+                      if (snap.connectionState != ConnectionState.done) {
+                        // Cùng khuôn tải với các màn khác — không spinner trần.
+                        return const LoadingStateView(
+                            message: 'AI đang phân tích…');
+                      }
+                      if (snap.hasError) {
+                        // Nói việc cần làm thay vì đổ nguyên văn exception cho
+                        // học sinh, và luôn để lại đường thử lại (UX 12/AI-30).
+                        return ErrorStateView(
+                          title: 'Chưa phân tích được',
+                          message: 'Không phân tích được điểm lúc này. Kiểm tra '
+                              'kết nối mạng rồi thử lại nhé.',
+                          onRetry: () =>
+                              setSheetState(() => pending = request()),
+                        );
+                      }
+                      return SingleChildScrollView(
                         child: Text(
-                          'Lỗi: ${snap.error}',
-                          style: const TextStyle(color: AppColors.red),
+                          snap.data ?? '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       );
-                    }
-                    return SingleChildScrollView(
-                      child: Text(
-                        snap.data ?? '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    },
                   ),
-                  child: const Text('Đã hiểu',
-                      style: TextStyle(fontWeight: FontWeight.w800)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text('Đã hiểu',
+                        style: TextStyle(fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2936,111 +1969,16 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   void _showAddLogDialog() {
-    final subjectCtrl = TextEditingController();
-    final hoursCtrl = TextEditingController(text: '1.0');
-    final noteCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
-        ),
-        title: const Text('Ghi nhật ký học',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: subjectCtrl,
-                decoration: const InputDecoration(hintText: 'Môn học'),
-                autofocus: true),
-            const SizedBox(height: 8),
-            TextField(
-                controller: hoursCtrl,
-                decoration: const InputDecoration(hintText: 'Số giờ'),
-                keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
-            TextField(
-                controller: noteCtrl,
-                decoration:
-                    const InputDecoration(hintText: 'Ghi chú (tùy chọn)')),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
-          TextButton(
-            onPressed: () {
-              if (subjectCtrl.text.isNotEmpty) {
-                _addLog(
-                    subjectCtrl.text.trim(),
-                    double.tryParse(hoursCtrl.text) ?? 1.0,
-                    noteCtrl.text.isEmpty ? null : noteCtrl.text);
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Lưu',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
+    showAddLogDialog(
+      context,
+      onAdd: (subject, hours, note) {
+        _addLog(subject, hours, note);
+      },
     );
   }
 }
 
-/// Nút bấm hình tròn với độ lún vật lý xúc giác 3D (Duolingo tactile press)
-/// Năm mức đánh giá phiên học, chọn bằng 1 chạm (FE-3.3).
-class _QuickRating {
-  final String emoji;
-  final String label;
-  final int value;
-  final int mood;
-  final int focus;
-  final int difficulty;
-  final int understanding;
-  final int effectiveness;
-
-  /// Đã nắm được kiến thức hay còn cần củng cố — quyết định có gợi ý "Ôn lại
-  /// ngày mai" hay không.
-  final bool understood;
-
-  const _QuickRating({
-    required this.emoji,
-    required this.label,
-    required this.value,
-    required this.mood,
-    required this.focus,
-    required this.difficulty,
-    required this.understanding,
-    required this.effectiveness,
-    required this.understood,
-  });
-}
-
-/// Phản hồi gom lại từ các điều khiển trong sheet, để hàm lưu không phải giữ
-/// tham chiếu tới `StatefulBuilder`.
-class _SessionFeedback {
-  final int mood;
-  final int focus;
-  final int difficulty;
-  final int understanding;
-  final int effectiveness;
-  final String note;
-
-  const _SessionFeedback({
-    required this.mood,
-    required this.focus,
-    required this.difficulty,
-    required this.understanding,
-    required this.effectiveness,
-    required this.note,
-  });
-}
-
+/// Nút bấm hình tròn với độ lún vật lý xúc giác 3D (Duolingo tactile press).
 class _TactileCircleButton extends StatelessWidget {
   const _TactileCircleButton({
     super.key,

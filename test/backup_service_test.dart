@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:edupulse/core/ai/ai_config.dart';
 import 'package:edupulse/core/sync/backup_service.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/features/study/domain/repositories/study_session_repository.dart';
@@ -132,6 +133,23 @@ void main() {
       // ...nhưng dữ liệu người dùng thật sự thì vẫn phải còn.
       expect(snap['user_name'], 'Minh');
       expect(otherDeviceUser, isNotNull);
+    });
+
+    test('khoá API BYOK không bị đẩy lên cloud (bí mật cá nhân)', () {
+      // Người dùng tự dán key OpenRouter/Gemini/Tavily (BYOK). Đưa lên bản sao
+      // lưu dùng chung là phơi khoá — rò rỉ nếu tài khoản bị chiếm.
+      const byokKeys = {
+        AiConfig.openRouterKeyPref,
+        AiConfig.geminiKeyPref,
+        AiConfig.tavilyKeyPref,
+      };
+      for (final key in byokKeys) {
+        StorageService.setString(key, 'sk-secret');
+        final snap = BackupSnapshot.capture();
+        expect(snap.containsKey(key), isFalse,
+            reason: '$key là bí mật, không đi lên cloud');
+        StorageService.removeString(key);
+      }
     });
 
     test('mọi khoá trong deviceLocalKeys đều bị loại (chốt bằng test)',

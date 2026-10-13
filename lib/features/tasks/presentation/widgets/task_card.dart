@@ -108,34 +108,41 @@ class TaskCard extends StatelessWidget {
                             onToggle(task);
                           },
                           borderRadius: AppTokens.brFull,
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: task.isDone
-                                  ? AppColors.progressDone
-                                  : (isSkipped
-                                      ? AppColors.textMuted
-                                      : Colors.transparent),
-                              border: Border.all(
-                                color: task.isDone || isSkipped
-                                    ? Colors.transparent
-                                    : AppColors.border,
-                                width: 1.5,
+                          child: SizedBox(
+                            width: AppTokens.minTouchTarget,
+                            height: AppTokens.minTouchTarget,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: task.isDone
+                                      ? AppColors.progressDone
+                                      : (isSkipped
+                                          ? AppColors.textMuted
+                                          : Colors.transparent),
+                                  border: Border.all(
+                                    color: task.isDone || isSkipped
+                                        ? Colors.transparent
+                                        : AppColors.border,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: task.isDone || isSkipped
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      )
+                                    : null,
                               ),
                             ),
-                            child: task.isDone || isSkipped
-                                ? const Icon(
-                                    Icons.check_rounded,
-                                    color: Colors.white,
-                                    size: 16,
-                                  )
-                                : null,
                           ),
                         ),
                       ),
-                      const SizedBox(width: AppTokens.space12),
+                      const SizedBox(width: AppTokens.space4),
 
                       // Nội dung chính
                       Expanded(
@@ -392,8 +399,8 @@ class TaskCard extends StatelessWidget {
                               tooltip: 'Bắt đầu học ngay',
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
+                                minWidth: AppTokens.minTouchTarget,
+                                minHeight: AppTokens.minTouchTarget,
                               ),
                             ),
                           ],
@@ -406,8 +413,8 @@ class TaskCard extends StatelessWidget {
                             ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
+                              minWidth: AppTokens.minTouchTarget,
+                              minHeight: AppTokens.minTouchTarget,
                             ),
                             onSelected: (option) {
                               switch (option) {

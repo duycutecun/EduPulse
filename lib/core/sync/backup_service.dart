@@ -15,6 +15,7 @@ import '../pwa/pwa_service.dart';
 import '../utils/auth_service.dart';
 import '../utils/storage_service.dart';
 import '../utils/supabase_service.dart';
+import 'change_outbox.dart';
 import 'sync_state.dart';
 
 /// Sao lưu TỰ ĐỘNG toàn bộ dữ liệu, đồng bộ gần như thời gian thực giữa mọi
@@ -52,12 +53,23 @@ class BackupService {
     'free_models_cache_v1',
     'free_models_cache_time_v1', // cache danh sách model, tự tải lại
     'exam_pending_deletes', // hàng đợi xoá riêng của máy
+    // Sổ ý định của máy này (kế hoạch 7.2): đưa lên cloud rồi áp vào máy khác
+    // sẽ biến hàng đợi của người khác thành của mình — sai hoàn toàn.
+    ChangeOutbox.storageKey,
+    ChangeOutbox.quarantineKey,
     'last_cloud_sync_ms', // mốc của luồng sync per-table cũ
     'backup_device_id',
     'backup_synced_at_ms',
     'backup_fingerprint',
     'backup_blob_index',
     'backup_prev_snapshot',
+    // Khoá API do người dùng tự dán (BYOK). Đây là bí mật cá nhân: đưa lên
+    // cloud không chỉ thừa (mỗi máy tự cấu hình) mà còn phơi khoá ra bản sao
+    // lưu dùng chung — rò rỉ nếu tài khoản bị chiếm. Khoá chủ app cấp thì nằm
+    // phía server, không bao giờ có trong prefs.
+    'ai_openrouter_key',
+    'ai_gemini_key',
+    'ai_tavily_key',
   };
 
   /// Tiền tố khoá chứa ảnh đính kèm (base64). Chỉ danh sách id đi trong
@@ -372,6 +384,7 @@ class BackupService {
   /// Đẩy toàn bộ máy lên cloud.
   static Future<void> _push() async {
     SyncStateService.markSyncing();
+    ChangeOutbox.markAllSyncing();
     final pending = _pendingBlobs();
     final removed = _removedBlobs();
 
@@ -403,6 +416,10 @@ class BackupService {
     _rememberSent(sentKeys, pending);
     _forgetRemoved(removed);
     _learnTopic(body);
+    // Bản sao lưu toàn diện đã lên cloud → mọi dòng trong sổ ý định đã tới nơi.
+    // Dọn hàng đợi TRƯỚC khi phát trạng thái, để nhãn "còn N thay đổi chờ"
+    // không hiện thêm một nhịp nữa sau khi đã đồng bộ xong.
+    ChangeOutbox.markAllSynced();
     _markSynced((body['updatedAt'] as num?)?.toInt() ?? 0);
   }
 

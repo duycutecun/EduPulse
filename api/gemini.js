@@ -10,6 +10,10 @@
 //   (model là tên sau prefix "gemini/", mặc định gemini-3.7-flash)
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+const { guard } = require('./_guard');
+
+const RATE_LIMIT_PER_MIN = 30;
+
 module.exports = async function handler(req, res) {
   // Health check: mở thẳng /api/gemini trên trình duyệt để biết máy chủ đã có
   // key chưa. Chỉ trả boolean — KHÔNG bao giờ trả giá trị key.
@@ -29,6 +33,12 @@ module.exports = async function handler(req, res) {
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
   }
+
+  const allowed = await guard(req, res, {
+    endpoint: '/api/gemini',
+    limit: RATE_LIMIT_PER_MIN,
+  });
+  if (!allowed) return undefined;
 
   let raw;
   try {

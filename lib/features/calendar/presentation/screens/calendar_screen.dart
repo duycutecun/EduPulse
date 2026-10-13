@@ -108,7 +108,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             fontSize: 18, fontWeight: FontWeight.w800)),
                     TextButton(
                       style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
+                        visualDensity: VisualDensity.comfortable,
                         padding: EdgeInsets.zero,
                       ),
                       onPressed: () {
@@ -207,7 +207,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   tooltip: accepted[i]
                                       ? 'Bỏ đề xuất này'
                                       : 'Chấp nhận dòng này',
-                                  visualDensity: VisualDensity.compact,
+                                  visualDensity: VisualDensity.comfortable,
                                   onPressed: () => setSheetState(
                                       () => accepted[i] = !accepted[i]),
                                   icon: Icon(
@@ -241,7 +241,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 alignment: Alignment.centerRight,
                                 child: TextButton.icon(
                                   style: TextButton.styleFrom(
-                                      visualDensity: VisualDensity.compact,
+                                      visualDensity: VisualDensity.comfortable,
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8)),
                                   onPressed: () async {
@@ -763,7 +763,7 @@ class _EmptyAgenda extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onOptimize,
                 style: OutlinedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
+                  visualDensity: VisualDensity.comfortable,
                   side: const BorderSide(color: AppColors.primary),
                   foregroundColor: AppColors.primaryDark,
                 ),
@@ -807,7 +807,7 @@ class _TaskAgendaRow extends StatelessWidget {
           // Task-linked note (mục 14): chụp nhanh kiến thức sau khi học xong.
           IconButton(
             tooltip: 'Ghi chú cho nhiệm vụ này',
-            visualDensity: VisualDensity.compact,
+            visualDensity: VisualDensity.comfortable,
             icon: const Icon(Icons.add_link_rounded,
                 size: 18, color: AppColors.textMuted),
             onPressed: () => NoteEditor.openLinked(

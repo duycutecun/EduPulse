@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/ai/ai_refresh_service.dart';
 import '../../../core/pwa/pwa_service.dart';
 import '../../../core/sync/backup_service.dart';
+import '../../../core/sync/change_outbox.dart';
 import '../../../core/sync/sync_state.dart';
 import '../../../core/utils/storage_service.dart';
 import '../../../core/utils/supabase_service.dart';
@@ -69,6 +70,21 @@ class ExamRepository {
   /// trong ~2 giây (ngoài luồng per-table ở trên).
   void _notifyBackup() => BackupService.notifyLocalChange();
 
+  /// Ghi nhận kỳ thi vừa đổi vào hàng đợi thay đổi (kế hoạch 7.2) — có id,
+  /// mốc thời gian, thiết bị và trạng thái, để UI nói được còn gì chưa lên
+  /// cloud và app mở lại sau khi bị tắt giữa lúc sync vẫn biết đường thử lại.
+  void _recordChange(String examId, {bool deleted = false}) {
+    if (examId.isEmpty) return;
+    ChangeOutbox.enqueue(
+      entity: _changeEntity,
+      entityId: examId,
+      op: deleted ? PendingChange.opDelete : PendingChange.opUpsert,
+    );
+  }
+
+  /// Nhãn loại dữ liệu trong hàng đợi thay đổi.
+  static const String _changeEntity = 'exam';
+
   /// Đẩy lên cloud NGAY, bỏ qua debounce.
   ///
   /// Cần cho hai lúc mà debounce không đủ:
@@ -89,6 +105,7 @@ class ExamRepository {
       // XOÁ TRƯỚC, đẩy sau. Nếu đẩy trước rồi xoá, có khe hởng giữa hai
       // lệnh: lần khôi phục loay hoay đúng khe đó sẽ thấy bản ghi đã xoá rồi
       // mang nó quay lại.
+      ChangeOutbox.markSyncing(_changeEntity);
       final pending = _pendingDeletes();
       var ok = true;
       if (pending.isNotEmpty) {
@@ -101,10 +118,16 @@ class ExamRepository {
         ok = await SupabaseService.syncExams(
             getAll(), StorageService.getPrimaryExamId());
       }
-      if (ok) SyncStateService.markSynced();
+      if (ok) {
+        ChangeOutbox.markSyncedForEntity(_changeEntity);
+        SyncStateService.markSynced();
+      } else {
+        ChangeOutbox.markFailedForEntity(_changeEntity);
+      }
       return ok;
     } catch (e) {
       debugPrint('[ExamRepository] Cloud sync failed (offline-first): $e');
+      ChangeOutbox.markFailedForEntity(_changeEntity, 'network');
       return false;
     }
   }
@@ -202,6 +225,7 @@ class ExamRepository {
     // Lưu lại = kỳ thi này tồn tại → gỡ khỏi hàng đợi xoá (trường hợp người
     // dùng bấm “Hoàn tác” ngay sau khi xoá).
     _forgetDeletes([stamped.id]);
+    _recordChange(stamped.id);
     final ids = StorageService.getExamIds();
     if (!ids.contains(exam.id)) {
       ids.add(exam.id);
@@ -250,6 +274,7 @@ class ExamRepository {
     // Ghi vào hàng đợi TRƯỚC khi báo cho UI — nếu app bị giết ngay sau khi
     // hiện “Đã xoá” thì ý định xoá vẫn còn, lần có mạng sẽ xoá nốt.
     _rememberDelete(id);
+    _recordChange(id, deleted: true);
     StorageService.removeExam(id);
     if (StorageService.getPrimaryExamId() == id) {
       final remaining = getAll();
@@ -271,6 +296,7 @@ class ExamRepository {
   void clear() {
     for (final id in StorageService.getExamIds()) {
       StorageService.removeExam(id);
+      _recordChange(id, deleted: true);
     }
     StorageService.removeString(primaryExamKey);
     _afterMutation();

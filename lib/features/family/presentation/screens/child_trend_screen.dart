@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/family/family_models.dart';
+import '../../../../shared/widgets/state_views.dart';
 
 /// Xu hướng học tập của con theo thời gian — vẽ từ chính các báo cáo con đã
 /// gửi (không suy diễn thêm dữ liệu nào).
@@ -205,29 +206,11 @@ class ChildTrendScreen extends StatelessWidget {
   }
 
   Widget _emptyCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Column(
-        children: [
-          Text('📈', style: TextStyle(fontSize: 34)),
-          SizedBox(height: 8),
-          Text('Chưa có báo cáo để vẽ xu hướng',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          SizedBox(height: 6),
-          Text(
-            'Khi con gửi báo cáo tuần vài lần, biểu đồ và cột mốc sẽ hiện ở đây.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 12.5, height: 1.45, color: AppColors.textSecondary),
-          ),
-        ],
-      ),
+    return const EmptyStatePanel(
+      icon: Icons.show_chart_rounded,
+      title: 'Chưa có báo cáo để vẽ xu hướng',
+      description:
+          'Khi con gửi báo cáo tuần vài lần, biểu đồ và cột mốc sẽ hiện ở đây.',
     );
   }
 

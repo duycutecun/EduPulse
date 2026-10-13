@@ -247,7 +247,7 @@ class TodayMissionCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onAddTask,
                     style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
+                      visualDensity: VisualDensity.comfortable,
                       side: const BorderSide(color: AppColors.primary),
                       foregroundColor: AppColors.primaryDark,
                     ),
@@ -264,7 +264,7 @@ class TodayMissionCard extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: onOpenAiPlan,
                       style: OutlinedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
+                        visualDensity: VisualDensity.comfortable,
                         side: const BorderSide(color: AppColors.blue),
                         foregroundColor: AppColors.blueDark,
                       ),

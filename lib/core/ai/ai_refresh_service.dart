@@ -87,11 +87,11 @@ class AiRefreshService {
   }
 
   /// Điều kiện gọi AI thật — nhất quán với [AiDailyBriefing._canCallAi]:
-  /// web đi proxy serverless, native cần API key build-time; người dùng tắt
-  /// quyền phân tích thì tôn trọng. Trong `flutter test` không đủ điều kiện
-  /// nên vòng lặp chạy thuần local.
+  /// đi qua backend managed (web cùng origin, native bản deploy) hoặc có key
+  /// BYOK; người dùng tắt quyền phân tích thì tôn trọng. Trong `flutter test`
+  /// không đủ điều kiện nên vòng lặp chạy thuần local.
   static bool get _canCallAi {
     if (StorageService.getBool('ai_permission_analyze') == false) return false;
-    return PwaService.isWeb || AiConfig.openRouterApiKey.isNotEmpty;
+    return AiConfig.canUseAi;
   }
 }

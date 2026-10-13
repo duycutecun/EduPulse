@@ -5,6 +5,7 @@ import '../utils/storage_service.dart';
 import '../utils/supabase_service.dart';
 import '../../features/exams/domain/exam_repository.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
+import 'change_outbox.dart';
 
 /// Trạng thái đồng bộ dữ liệu local → cloud (đặc tả mục 19 — Sync states).
 ///
@@ -32,11 +33,39 @@ class SyncState {
     this.errorMessage,
   });
 
+  /// Số thay đổi còn nằm trên máy, chưa được cloud xác nhận (kế hoạch 7.2).
+  ///
+  /// Đọc sống từ hàng đợi thay vì chụp vào state: hàng đợi đổi ở mọi thao tác
+  /// học, còn state này chỉ đổi khi trạng thái mạng/sync đổi — chụp lại sẽ có
+  /// lúc chip hiện số cũ.
+  int get pendingCount => ChangeOutbox.pendingCount;
+
+  /// Số thay đổi đã thử gửi nhưng lỗi — cần người dùng biết để thử lại.
+  int get failedCount => ChangeOutbox.failedCount;
+
+  /// Số thay đổi chờ để HIỂN THỊ: bằng 0 khi cloud chưa được cấu hình.
+  ///
+  /// Máy chưa đăng nhập mà hiện "3 thay đổi chờ đồng bộ" là câu vô nghĩa và
+  /// chỉ làm người dùng lo — nên con số chỉ xuất hiện khi việc đồng bộ là
+  /// chuyện có thật trên máy này.
+  int get visiblePending => SupabaseService.cloudSyncEnabled ? pendingCount : 0;
+
+  /// Như [visiblePending] nhưng cho số thay đổi gửi lỗi.
+  int get visibleFailed => SupabaseService.cloudSyncEnabled ? failedCount : 0;
+
   /// Câu mô tả cho UI. Không dùng ngôn ngữ gây lo lắng — lỗi sync là
   /// bình thường khi offline, dữ liệu vẫn an toàn trên máy.
   String get label {
+    final pending = visiblePending;
+    final failed = visibleFailed;
+
+    if (failed > 0) {
+      return '$failed thay đổi chưa gửi được — chạm để thử lại';
+    }
+
     switch (status) {
       case SyncStatus.synced:
+        if (pending > 0) return '$pending thay đổi chờ đồng bộ';
         final t = lastSyncedAtMs;
         if (t == null) return 'Chưa đồng bộ';
         final dt = DateTime.fromMillisecondsSinceEpoch(t);
@@ -47,11 +76,18 @@ class SyncState {
         if (diff.inDays < 1) return 'Đã đồng bộ ${diff.inHours} giờ trước';
         return 'Đã đồng bộ ${dt.day}/${dt.month}';
       case SyncStatus.syncing:
-        return 'Đang đồng bộ…';
+        return pending > 0
+            ? 'Đang đồng bộ $pending thay đổi…'
+            : 'Đang đồng bộ…';
       case SyncStatus.offline:
-        return 'Ngoại tuyến — dữ liệu lưu an toàn trên máy';
+        return pending > 0
+            ? 'Ngoại tuyến — $pending thay đổi lưu an toàn trên máy'
+            : 'Ngoại tuyến — dữ liệu lưu an toàn trên máy';
       case SyncStatus.error:
-        return errorMessage ?? 'Chưa đồng bộ được — thử lại khi sẵn sàng';
+        return errorMessage ??
+            (pending > 0
+                ? '$pending thay đổi chờ gửi lại — chạm để thử lại'
+                : 'Chưa đồng bộ được — thử lại khi sẵn sàng');
     }
   }
 }
@@ -131,17 +167,50 @@ class SyncStateService {
   static Future<void> syncInBackground() async {
     if (!SupabaseService.isConfigured) return;
     markSyncing();
+    ChangeOutbox.markAllSyncing();
     bool ok;
     try {
       ok = await SupabaseService.syncAll();
     } catch (_) {
+      ChangeOutbox.markAllFailed('syncAll');
       markError();
       return;
     }
     if (ok) {
+      // Đã đẩy toàn bộ trạng thái → sổ ý định không còn gì chờ.
+      ChangeOutbox.markAllSynced();
       markSynced();
     } else {
+      ChangeOutbox.markAllFailed();
       markError();
     }
+  }
+
+  /// Người dùng chủ động thử lại (chạm chip trạng thái).
+  ///
+  /// Đẩy hai nguồn dữ liệu chính ngay (kỳ thi + nhiệm vụ), rồi chạy một vòng
+  /// sync đầy đủ để phủ phần còn lại (phiên học, ghi chú, cài đặt).
+  static void retryNow() {
+    if (!SupabaseService.isConfigured) return;
+    if (!PwaService.isOnline) {
+      updateConnectivity(isOnline: false);
+      return;
+    }
+    markSyncing();
+    ExamRepository.instance.flushNow();
+    TaskRepository.instance.flushNow();
+    unawaited(syncInBackground());
+  }
+
+  /// Gọi một lần lúc khởi động app.
+  ///
+  /// Hai việc mà trước đây không ai làm: (1) dòng nào còn `syncing` là dấu vết
+  /// của lần app bị tắt giữa lúc gửi — trả về `pending` để vòng sau thử lại,
+  /// không để thay đổi kẹt vĩnh viễn; (2) dọn các dòng đã đồng bộ xong từ
+  /// phiên trước để hàng đợi không phình theo thời gian.
+  static void recoverAfterRestart() {
+    ChangeOutbox.recoverInterrupted();
+    ChangeOutbox.clearSynced();
+    updateConnectivity(isOnline: PwaService.isOnline);
   }
 }

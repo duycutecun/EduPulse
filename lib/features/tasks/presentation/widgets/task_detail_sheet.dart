@@ -535,7 +535,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             tooltip: canAdd
                 ? 'Gắn ảnh (tối đa ${TaskAttachment.maxBytes ~/ 1024}KB)'
                 : 'Đã đủ ${TaskAttachment.maxCount} tài liệu',
-            visualDensity: VisualDensity.compact,
+            visualDensity: VisualDensity.comfortable,
             icon: _loadingAttachments
                 ? const SizedBox(
                     width: 16,
@@ -626,7 +626,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           IconButton(
             onPressed: () => _confirmRemoveAttachment(attachment),
             tooltip: 'Gỡ tài liệu',
-            visualDensity: VisualDensity.compact,
+            visualDensity: VisualDensity.comfortable,
             icon: const Icon(Icons.delete_outline_rounded,
                 size: 18, color: AppColors.red),
           ),

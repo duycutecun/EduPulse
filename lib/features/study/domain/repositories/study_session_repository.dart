@@ -1,5 +1,6 @@
 import 'package:edupulse/core/constants/subject_catalog.dart';
 import 'package:edupulse/core/sync/backup_service.dart';
+import 'package:edupulse/core/sync/change_outbox.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 import 'package:edupulse/features/study/domain/active_study_session.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
@@ -34,6 +35,23 @@ class StudySessionRepository {
     // Bản sao lưu toàn diện: ghi xong thì có trên cloud trong ~2 giây.
     BackupService.notifyLocalChange();
   }
+
+  /// Ghi nhận phiên học vừa đổi vào hàng đợi thay đổi (kế hoạch 7.2).
+  ///
+  /// Phiên học đi lên cloud qua bản sao lưu toàn diện, không có nhánh
+  /// per-table riêng — nên đây là chỗ duy nhất nói được “phiên này chưa lên
+  /// cloud” khi đang offline.
+  void _recordChange(String sessionId, {bool deleted = false}) {
+    if (sessionId.isEmpty) return;
+    ChangeOutbox.enqueue(
+      entity: _changeEntity,
+      entityId: sessionId,
+      op: deleted ? PendingChange.opDelete : PendingChange.opUpsert,
+    );
+  }
+
+  /// Nhãn loại dữ liệu trong hàng đợi thay đổi.
+  static const String _changeEntity = 'session';
 
   /// Dữ liệu vừa bị thay từ BÊN NGOÀI (khôi phục từ bản sao lưu cloud) —
   /// chỉ bắn tín hiệu cho UI vẽ lại, **không** đẩy ngược lên cloud (vừa kéo
@@ -120,6 +138,7 @@ class StudySessionRepository {
     if (!ids.contains(session.id)) ids.add(session.id);
     StorageService.setStudySessionIds(ids);
     StorageService.setStudySessionJson(session.id, session.toJsonString());
+    _recordChange(session.id);
     _bumpRevision();
   }
 
@@ -149,6 +168,7 @@ class StudySessionRepository {
 
   void delete(String id) {
     StorageService.removeStudySession(id);
+    _recordChange(id, deleted: true);
     _bumpRevision();
   }
 

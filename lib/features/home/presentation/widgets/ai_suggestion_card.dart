@@ -3,6 +3,7 @@ import '../../../../core/utils/feedback_service.dart';
 
 import '../../../../core/ai/ai_insights.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/pwa/pwa_service.dart';
 
 /// Card gợi ý của AI ở Home: AI tự phân tích dữ liệu học tập và đưa ra
@@ -275,8 +276,9 @@ class _RefreshButton extends StatelessWidget {
     }
     return IconButton(
       onPressed: onTap,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+      constraints: const BoxConstraints(
+          minWidth: AppTokens.minTouchTarget,
+          minHeight: AppTokens.minTouchTarget),
       padding: EdgeInsets.zero,
       tooltip: 'Phân tích lại',
       icon:

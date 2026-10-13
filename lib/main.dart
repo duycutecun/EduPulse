@@ -8,6 +8,7 @@ import 'core/notifications/adaptive_policy.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/pwa/pwa_service.dart';
 import 'core/sync/backup_service.dart';
+import 'core/sync/change_outbox.dart';
 import 'core/sync/sync_state.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/appearance_service.dart';
@@ -22,6 +23,8 @@ import 'app/account_role_gate.dart';
 import 'app/main_shell.dart';
 import 'app/app_navigator_key.dart';
 
+import 'features/study/domain/repositories/study_session_repository.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   PwaService.init();
@@ -32,6 +35,10 @@ void main() async {
   logMigration(DataMigration.run(DataMigration.defaultSteps()));
   // Font scale adaptive (đặc tả mục 20) đọc trước runApp để frame đầu đã đúng.
   AppearanceService.load();
+  // Hàng đợi thay đổi cần định danh thiết bị cho từng bản ghi (kế hoạch 7.2).
+  // Gắn ở đây thay vì để hàng đợi tự import dịch vụ sao lưu — hai chiều sẽ
+  // thành phụ thuộc vòng.
+  ChangeOutbox.deviceIdProvider = () => BackupService.deviceId;
   runApp(const EduPulseApp());
 
   // Firebase (auth) + Supabase (data) + notification không chặn frame đầu
@@ -50,7 +57,11 @@ void main() async {
     // Khi đã online, đẩy dữ liệu local lên cloud ngay sau khi kết nối sẵn sàng.
     // Qua SyncStateService để mọi UI (banner, sidebar, tab Tôi) phản ánh
     // trạng thái Syncing → Synced (đặc tả mục 19).
-    SyncStateService.updateConnectivity(isOnline: PwaService.isOnline);
+    //
+    // `recoverAfterRestart` chạy TRƯỚC: thay đổi còn dấu `syncing` là dấu vết
+    // của lần app bị tắt giữa lúc gửi — phải trả chúng về hàng chờ, nếu không
+    // chúng nằm đó mãi và người dùng mất dữ liệu mà không biết vì sao.
+    SyncStateService.recoverAfterRestart();
     if (PwaService.isOnline && SupabaseService.isConfigured) {
       SyncStateService.syncInBackground();
     }
@@ -73,7 +84,7 @@ void main() async {
     AdaptivePolicy.syncReminders(
       reminderEnabled: StorageService.getBool('reminder_enabled') ?? false,
       reminderHour: StorageService.getInt('reminder_hour') ?? 19,
-      reminderMinute: StorageService.getInt('reminder_minute') ?? 30,
+      reminderMinute: StorageService.getInt('reminder_minute') ?? 0,
       tasks: StorageService.getTodayTaskIds()
           .map((id) => StorageService.getTodayTaskJson(id))
           .whereType<String>()
@@ -86,7 +97,7 @@ void main() async {
           })
           .whereType<TodayTask>()
           .toList(),
-      sessions: const [],
+      sessions: StudySessionRepository.instance.getAll(),
       primaryExam: null,
     );
 

@@ -69,6 +69,246 @@ class EmptyStateView extends StatelessWidget {
   }
 }
 
+/// Trạng thái rỗng cho **một vùng nội dung** (trong thẻ, trong sheet, trong
+/// danh sách con) — cùng ngôn ngữ hình ảnh với [EmptyStateView] nhưng thu gọn.
+///
+/// Vì sao cần: trước đây mỗi màn tự dựng một kiểu rỗng — chỗ chỉ một dòng chữ,
+/// chỗ emoji 48px, chỗ khối có nút — nên cùng một tình huống "chưa có dữ liệu"
+/// lại trông khác nhau ở mỗi nơi. Panel này giữ đúng cấu trúc ba câu trả lời
+/// (thiếu gì / vì sao quan trọng / làm gì tiếp theo) và chỉ nhận diện bằng một
+/// khuôn duy nhất, để người dùng học cách đọc nó một lần là đọc được mọi chỗ.
+class EmptyStatePanel extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  /// Gắn cho nút hành động để test/`find.byKey` trỏ tới đúng nút này.
+  final Key? actionKey;
+  final IconData? actionIcon;
+
+  /// Màu nhấn cho biểu tượng — đổi theo ngữ cảnh (môn học, AI, cảnh báo).
+  final Color accent;
+
+  /// Hàng gọn (biểu tượng + chữ + nút) cho vùng hẹp như sheet hoặc danh sách
+  /// lồng, thay vì khối canh giữa.
+  final bool compact;
+
+  /// Bản xếp dọc nhưng tiết kiệm chiều cao: biểu tượng nằm ngay cạnh tiêu đề
+  /// thay vì chiếm một hàng riêng. Dùng cho vùng rỗng nằm sâu trong một màn
+  /// dài — ở đó CTA phải còn trong tầm mắt, không bị đẩy xuống dưới.
+  final bool dense;
+
+  final EdgeInsetsGeometry padding;
+
+  const EmptyStatePanel({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.actionLabel,
+    this.onAction,
+    this.actionKey,
+    this.actionIcon,
+    this.accent = AppColors.primary,
+    this.compact = false,
+    this.dense = false,
+    this.padding = const EdgeInsets.all(AppTokens.space16),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.bgPageSoft,
+        borderRadius: AppTokens.brMd,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: compact
+          ? _compactBody()
+          : dense
+              ? _denseBody()
+              : _blockBody(),
+    );
+  }
+
+  Widget _denseBody() => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _badge(28, AppTokens.iconSm),
+              const SizedBox(width: AppTokens.space8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTokens.heading3.copyWith(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTokens.space4),
+          Text(
+            description,
+            style: AppTokens.bodySubtle.copyWith(fontSize: 12),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppTokens.space10),
+            PrimaryButton(
+              key: actionKey,
+              label: actionLabel!,
+              icon: actionIcon,
+              height: AppTokens.minTouchTarget,
+              onPressed: onAction,
+            ),
+          ],
+        ],
+      );
+
+  Widget _badge(double size, double iconSize) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: iconSize, color: accent),
+      );
+
+  Widget _blockBody() => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _badge(48, AppTokens.iconLg),
+          const SizedBox(height: AppTokens.space12),
+          Text(title, textAlign: TextAlign.center, style: AppTokens.heading3),
+          const SizedBox(height: AppTokens.space4),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: AppTokens.bodySubtle,
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppTokens.space16),
+            PrimaryButton(
+              key: actionKey,
+              label: actionLabel!,
+              icon: actionIcon,
+              onPressed: onAction,
+            ),
+          ],
+        ],
+      );
+
+  Widget _compactBody() => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _badge(32, AppTokens.iconSm),
+          const SizedBox(width: AppTokens.space12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTokens.heading3.copyWith(fontSize: 13.5),
+                ),
+                const SizedBox(height: AppTokens.space2),
+                Text(
+                  description,
+                  style: AppTokens.bodySubtle.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(width: AppTokens.space8),
+            TextButton(
+              key: actionKey,
+              onPressed: onAction,
+              child: Text(
+                actionLabel!,
+                style: AppTokens.labelSmall.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+}
+
+/// Trạng thái lỗi cho **một vùng nội dung** — bản thu gọn của
+/// [ErrorStateView]. Dùng khi phần còn lại của màn vẫn hoạt động được (ví dụ:
+/// số liệu cục bộ vẫn đúng, chỉ nhánh AI không gọi được), nên lỗi phải nằm
+/// ngay tại vùng đó kèm nút thử lại thay vì trôi qua dưới dạng toast.
+class ErrorStatePanel extends StatelessWidget {
+  final String message;
+  final VoidCallback? onRetry;
+  final String retryLabel;
+  final EdgeInsetsGeometry padding;
+
+  const ErrorStatePanel({
+    super.key,
+    required this.message,
+    this.onRetry,
+    this.retryLabel = 'Thử lại',
+    this.padding = const EdgeInsets.all(AppTokens.space12),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.redLight,
+        borderRadius: AppTokens.brMd,
+        border: Border.all(color: AppColors.red.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              size: AppTokens.iconSm, color: AppColors.redDark),
+          const SizedBox(width: AppTokens.space8),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTokens.bodySubtle.copyWith(
+                fontSize: 12,
+                color: AppColors.redDark,
+              ),
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(width: AppTokens.space8),
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: AppTokens.space8),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                retryLabel,
+                style: AppTokens.labelSmall.copyWith(
+                  color: AppColors.redDark,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Trạng thái báo lỗi thân thiện, có nút thử lại.
 class ErrorStateView extends StatelessWidget {
   final String title;

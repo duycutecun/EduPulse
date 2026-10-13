@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/family/family_models.dart';
 import '../../../../core/family/family_service.dart';
+import '../../../../shared/widgets/state_views.dart';
 
 /// Cửa sổ nhắn gọn giữa ba mẹ và con trong "Cửa sổ tin cậy".
 ///
@@ -142,27 +143,27 @@ class _BodyState extends State<_Body> {
         const Divider(height: 1),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              ? const LoadingStateView(message: 'Đang tải lời nhắn…')
               : _error != null
-                  ? _errorView()
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: ErrorStatePanel(message: _error!, onRetry: _load),
+                      ),
+                    )
                   : ListView(
                       reverse: true,
                       controller: _scroll,
                       padding: const EdgeInsets.all(14),
                       children: [
-                        ..._messages.map((m) => _bubble(m)),
                         if (_messages.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 40),
-                            child: Center(
-                              child: Text(
-                                'Chưa có lời nhắn nào. Viết vài dòng động viên nhé 💚',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 12.5, color: AppColors.textMuted),
-                              ),
-                            ),
+                          const EmptyStatePanel(
+                            compact: true,
+                            icon: Icons.chat_bubble_outline_rounded,
+                            title: 'Chưa có lời nhắn nào',
+                            description: 'Viết vài dòng động viên để bắt đầu.',
                           ),
+                        ..._messages.map((m) => _bubble(m)),
                       ],
                     ),
         ),
@@ -206,24 +207,6 @@ class _BodyState extends State<_Body> {
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close_rounded),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _errorView() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.cloud_off_rounded,
-              size: 28, color: AppColors.textMuted),
-          const SizedBox(height: 8),
-          Text(_error!,
-              style: const TextStyle(
-                  fontSize: 12.5, color: AppColors.textMuted)),
-          const SizedBox(height: 6),
-          TextButton(onPressed: _load, child: const Text('Thử lại')),
         ],
       ),
     );

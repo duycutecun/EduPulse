@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show ValueNotifier, kIsWeb;
+import 'package:flutter/foundation.dart' show ValueNotifier;
 
 import 'ai_config.dart';
 import '../utils/storage_service.dart';
@@ -129,10 +129,10 @@ class AiInsights {
   static Future<AiInsightBundle?> refresh() async {
     if (!_allowed) return null;
 
-    // Chỉ gọi khi có kênh gọi thật (web đi proxy, native cần API key).
-    // Không đủ điều kiện → giữ gợi ý quy tắc/cũ, tránh gọi mù và tránh
-    // để lại timer treo trong môi trường test.
-    if (!(kIsWeb || AiConfig.openRouterApiKey.isNotEmpty)) return null;
+    // Chỉ gọi khi có kênh gọi thật (backend managed hoặc key BYOK). Không đủ
+    // điều kiện → giữ gợi ý quy tắc/cũ, tránh gọi mù và tránh để lại timer
+    // treo trong môi trường test.
+    if (!AiConfig.canUseAi) return null;
 
     final context = AiStudyContext.build();
     if (context.isEmpty) return null;

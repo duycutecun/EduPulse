@@ -6,15 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      OPENROUTER_API_KEY:
-        description: 'OpenRouter API key (xem .env)'
-        required: false
-      GEMINI_API_KEY:
-        description: 'Gemini API key (xem .env)'
-        required: false
-      TAVILY_API_KEY:
-        description: 'Tavily API key (xem .env)'
-        required: false
       SUPABASE_URL:
         description: 'Supabase URL (xem .env)'
         required: false
@@ -92,19 +83,16 @@ jobs:
 
       # ────────────────────────────────────────────────────────────────────
       # Build-time config: KHÔNG truyền = IPA "rỗng cấu hình" (không Supabase
-      # → không database, không OpenRouter/Gemini → AI báo "chưa cấu hình key",
-      # không Firebase → không đăng nhập). Web có các giá trị này qua Vercel
-      # (build.sh); bản iOS nạp từ workflow_dispatch inputs (paste key từ .env)
-      # và fallback sang GitHub Secrets cùng tên nếu input để trống.
+      # → không database, không Firebase → không đăng nhập). Khoá AI (OpenRouter/
+      # Gemini/Tavily) KHÔNG còn nhúng vào app: AI managed đi qua backend
+      # serverless (bản deploy trong AppConfig.apiBaseUrl) — bản cài chỉ cần có
+      # mạng; người dùng vẫn có thể tự dán key BYOK trong Tôi → Cloud & AI.
       #
-      # Thiếu key nào thì bước này BÁO CẢNH BÁO (không làm hỏng build) và liệt
+      # Thiếu key nào thì bước này BÁO CẢNH WARNING (không làm hỏng build) và liệt
       # kê tên key còn thiếu ngay trong log + Summary.
       # ────────────────────────────────────────────────────────────────────
       - name: Configure Flutter iOS project (no codesign + build-time config)
         env:
-          OPENROUTER_API_KEY: ${{ inputs.OPENROUTER_API_KEY || secrets.OPENROUTER_API_KEY }}
-          GEMINI_API_KEY: ${{ inputs.GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
-          TAVILY_API_KEY: ${{ inputs.TAVILY_API_KEY || secrets.TAVILY_API_KEY }}
           SUPABASE_URL: ${{ inputs.SUPABASE_URL || secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ inputs.SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
           FIREBASE_API_KEY: ${{ inputs.FIREBASE_API_KEY || secrets.FIREBASE_API_KEY }}
@@ -129,9 +117,6 @@ jobs:
             fi
           }
 
-          add OPENROUTER_API_KEY "${OPENROUTER_API_KEY-}"
-          add GEMINI_API_KEY "${GEMINI_API_KEY-}"
-          add TAVILY_API_KEY "${TAVILY_API_KEY-}"
           add SUPABASE_URL "${SUPABASE_URL-}"
           add SUPABASE_ANON_KEY "${SUPABASE_ANON_KEY-}"
           add FIREBASE_API_KEY "${FIREBASE_API_KEY-}"
@@ -143,11 +128,11 @@ jobs:
           add FIREBASE_IOS_APP_ID "${FIREBASE_IOS_APP_ID-}"
 
           # Chỉ in TÊN, không bao giờ in giá trị secret.
-          echo "Đã nạp ${#DEFINES[@]}/12 cấu hình build cho bản iOS."
+          echo "Đã nạp ${#DEFINES[@]}/9 cấu hình build cho bản iOS."
           {
             echo "### Cấu hình build của IPA"
             echo ""
-            echo "- Đã nạp: ${#DEFINES[@]}/12"
+            echo "- Đã nạp: ${#DEFINES[@]}/9"
             if [ ${#MISSING[@]} -gt 0 ]; then
               echo "- ⚠️ Còn thiếu (tính năng tương ứng sẽ trống): ${MISSING[*]}"
             else
@@ -156,7 +141,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ ${#MISSING[@]} -gt 0 ]; then
-            echo "::warning title=IPA thiếu cấu hình::Chưa có secret: ${MISSING[*]}. Bản cài ra sẽ không kết nối được database/AI tương ứng. Người dùng vẫn có thể tự dán key trong app: Tôi → Cloud & AI."
+            echo "::warning title=IPA thiếu cấu hình::Chưa có secret: ${MISSING[*]}. Bản cài ra sẽ không kết nối được database/đăng nhập tương ứng. (AI managed đi qua backend, không phụ thuộc key nhúng; người dùng vẫn có thể tự dán key BYOK trong app: Tôi → Cloud & AI.)"
           fi
 
           flutter precache --ios

@@ -9,14 +9,23 @@
 // - POST /api/openrouter → chat completions (Ủy /api/v1/chat/completions).
 const BASE = 'https://openrouter.ai/api/v1';
 
+const { guard } = require('./_guard');
+
 const MAX_MESSAGES = 60;
 const MAX_HISTORY_TEXT_LEN = 20000;
+const RATE_LIMIT_PER_MIN = 30;
 
 async function forwardChat(req, res) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured' });
   }
+
+  const allowed = await guard(req, res, {
+    endpoint: '/api/openrouter',
+    limit: RATE_LIMIT_PER_MIN,
+  });
+  if (!allowed) return undefined;
 
   let raw;
   try {

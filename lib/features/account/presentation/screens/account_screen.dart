@@ -7,17 +7,23 @@ import '../../../../core/utils/data_transfer.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/notifications/notification_service.dart';
-import '../../../../core/theme/appearance_service.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/app_icon.dart';
+import '../../../../shared/widgets/sync_status_bar.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
+import '../../../progress/presentation/screens/deep_report_screen.dart';
+import '../../../gamification/presentation/sheets/achievements_sheet.dart';
+import '../../../leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../widgets/family_report_sheet.dart';
+import '../widgets/account_family_entries.dart';
+import '../widgets/appearance_card.dart';
 import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/repositories/study_session_repository.dart';
 
 class AccountScreen extends StatefulWidget {
   final VoidCallback onDataChanged;
@@ -40,6 +46,7 @@ class _AccountScreenState extends State<AccountScreen> {
   int _reminderHour = 19;
   int _reminderMinute = 0;
   bool _digestEnabled = false;
+  bool _advancedReminderEnabled = false;
   bool _aiMayRead = true;
   bool _aiMayAnalyze = true;
   bool _mascotEnabled = true;
@@ -62,6 +69,7 @@ class _AccountScreenState extends State<AccountScreen> {
     _reminderHour = StorageService.getInt('reminder_hour') ?? 19;
     _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
     _digestEnabled = StorageService.getBool('notif_digest_enabled') ?? false;
+    _advancedReminderEnabled = StorageService.getBool('notif_advanced_enabled') ?? false;
     _aiMayRead = StorageService.getBool('ai_permission_read') ?? true;
     _aiMayAnalyze = StorageService.getBool('ai_permission_analyze') ?? true;
     _mascotEnabled = StorageService.getBool('mascot_enabled') ?? true;
@@ -224,6 +232,11 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ],
         const SizedBox(height: 14),
+        // Trạng thái đồng bộ nằm ngay trên hồ sơ: đây là câu người dùng tự hỏi
+        // khi mở cài đặt ("dữ liệu của tôi đã lên cloud chưa?"), và là chỗ đồng
+        // bộ lại ngay khi còn thay đổi chưa gửi (kế hoạch 7.2).
+        const SyncStatusCard(),
+        const SizedBox(height: 16),
         // Danh tính luôn hiện — không nằm trong nhóm gập, để mở tab "Tôi" là
         // thấy ngay mình là ai và mục tiêu gì.
         _buildProfileSummary(),
@@ -239,11 +252,17 @@ class _AccountScreenState extends State<AccountScreen> {
           title: 'Hồ sơ & Gia đình',
           subtitle: 'Hồ sơ học tập, báo cáo gửi ba mẹ',
           children: [
-            _buildLearningProfileEntry(),
+            LearningProfileEntry(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const LearningProfileScreen(),
+              )),
+            ),
             const SizedBox(height: 10),
-            _buildFamilyReportEntry(),
+            FamilyReportEntry(
+              onTap: () => FamilyReportSheet.show(context),
+            ),
             const SizedBox(height: 10),
-            _buildParentModeEntry(),
+            ParentModeEntry(onEnterParentMode: _openParentMode),
           ],
         ),
         const SizedBox(height: 12),
@@ -255,7 +274,7 @@ class _AccountScreenState extends State<AccountScreen> {
           title: 'Hiển thị & Nhắc học',
           subtitle: 'Cỡ chữ, tương phản, nhắc học hằng ngày',
           children: [
-            _buildAppearanceCard(),
+            const AppearanceCard(),
             const SizedBox(height: 10),
             _buildReminderCard(),
           ],
@@ -550,6 +569,36 @@ class _AccountScreenState extends State<AccountScreen> {
             subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú',
                 style: TextStyle(fontSize: 11)),
             onTap: _openDataSheet,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.emoji_events_outlined,
+                color: AppColors.orange),
+            title: const Text('Thành tích & huy hiệu'),
+            subtitle: const Text('Cấp độ, chuỗi ngày và bộ huy hiệu đã đạt',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => showAchievementsSheet(context),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.emoji_events_rounded,
+                color: AppColors.yellowDark),
+            title: const Text('Bảng vàng kỷ lục'),
+            subtitle: const Text('Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const LeaderboardScreen(),
+            )),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.insights_rounded, color: AppColors.greenDark),
+            title: const Text('Báo cáo học tập sâu'),
+            subtitle: const Text('Xu hướng điểm, năng lực chủ đề, thời gian học',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const DeepReportScreen(),
+            )),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -914,234 +963,8 @@ class _AccountScreenState extends State<AccountScreen> {
       ));
   }
 
-  /// Thẻ Hiển thị (đặc tả mục 20): font size adaptive S/M/L toàn app.
-  /// Dark mode chưa cung cấp — palette tối chưa đạt chuẩn production,
-  /// không fake switch (nguyên tắc trung thực với người dùng).
-  Widget _buildAppearanceCard() {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              AppIcon(
-                Icons.format_size_rounded,
-                tileSize: 36,
-                iconSize: 18,
-                color: AppColors.blue,
-                bg: AppColors.blueSoft,
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text('Cỡ chữ',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Áp dụng cho toàn app. Cỡ chữ hệ thống vẫn được tôn trọng.',
-            style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              for (final choice in const [
-                ('small', 'S', 'Nhỏ'),
-                ('normal', 'M', 'Vừa'),
-                ('large', 'L', 'Lớn'),
-              ]) ...[
-                Expanded(child: _fontChoice(choice.$1, choice.$2, choice.$3)),
-                if (choice.$1 != 'large') const SizedBox(width: 8),
-              ],
-            ],
-          ),
-          const SizedBox(height: 14),
-          // High contrast (mục 21 — Accessibility): viền đậm hơn,
-          // chữ phụ tối hơn — giúp người dùng nhìn yếu dễ đọc hơn.
-          Row(children: [
-            const Expanded(
-              child: Text('Tương phản cao',
-                  style:
-                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-            ),
-            ValueListenableBuilder<bool>(
-              valueListenable: AppearanceService.highContrast,
-              builder: (context, value, _) => Switch(
-                value: value,
-                activeThumbColor: AppColors.primary,
-                onChanged: (v) =>
-                    setState(() => AppearanceService.setHighContrast(v)),
-              ),
-            ),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _fontChoice(String key, String letter, String label) {
-    final selected = AppearanceService.fontScaleKey == key;
-    return GestureDetector(
-      onTap: () => setState(() => AppearanceService.setFontScaleByKey(key)),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.blueSoft : AppColors.bgPage,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.blue : AppColors.border,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(letter,
-                style: TextStyle(
-                    fontSize: key == 'small'
-                        ? 14
-                        : key == 'large'
-                            ? 20
-                            : 17,
-                    fontWeight: FontWeight.w800,
-                    color:
-                        selected ? AppColors.blueDark : AppColors.textPrimary)),
-            const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color:
-                        selected ? AppColors.blueDark : AppColors.textMuted)),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// "Cửa sổ tin cậy" — học sinh chủ động chia sẻ tiến độ với gia đình:
   /// liên kết tài khoản ba mẹ bằng mã mời, gửi báo cáo tuần, tạo ảnh thành tựu.
-  Widget _buildFamilyReportEntry() {
-    return GlassCard(
-      onTap: () => FamilyReportSheet.show(context),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const AppIcon(
-            Icons.family_restroom_rounded,
-            tileSize: 36,
-            iconSize: 18,
-            color: AppColors.green,
-            bg: AppColors.greenSoft,
-          ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Cửa sổ tin cậy',
-                    style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-                SizedBox(height: 2),
-                Text(
-                    'Liên kết tài khoản ba mẹ, gửi báo cáo tuần và ảnh thành tựu — con chọn gì, gia đình thấy nấy',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        height: 1.35)),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-        ],
-      ),
-    );
-  }
-
-  /// Phần CÀI ĐẶT CHẾ ĐỘ PHỤ HUYNH trong tab "Tôi" — hai việc:
-  ///
-  /// 1. **Công tắc vào chế độ phụ huynh**: bật là [AccountRoleGate] chuyển
-  ///    ngay sang màn phụ huynh. Đã đăng nhập thì đổi vai tức thì; chưa đăng
-  ///    nhập thì đăng nhập vai "Phụ huynh" trước. (Nút thoát nằm ở màn phụ
-  ///    huynh — "Chế độ học sinh".)
-  /// 2. **Hạng mục chia sẻ cho ba mẹ**: cùng một lựa chọn như Cửa sổ tin cậy,
-  ///    hiện ngay trong Cài đặt — mặc định bật cả 4 mục (kể cả Điểm thi thử
-  ///    mới nhất + Đếm ngược kỳ thi), con tắt mục nào thì ba mẹ không thấy
-  ///    mục đó.
-  Widget _buildParentModeEntry() {
-    return GlassCard(
-      key: const Key('account-parent-mode'),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const AppIcon(
-                Icons.supervisor_account_rounded,
-                tileSize: 36,
-                iconSize: 18,
-                color: AppColors.purple,
-                bg: AppColors.purpleSoft,
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Chế độ phụ huynh',
-                        style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
-                    SizedBox(height: 2),
-                    Text(
-                        'Bật để chuyển sang màn phụ huynh — xem tiến độ con đã gửi',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Switch(
-                key: const Key('parent-mode-switch'),
-                // Màn này chỉ hiện ở chế độ học sinh, nên công tắc luôn TẮT —
-                // bật là chuyển vai ngay (đúng ngữ nghĩa "vào/ra").
-                value: false,
-                activeThumbColor: AppColors.purple,
-                onChanged: (v) {
-                  if (v) _openParentMode();
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2),
-            child: Text('Ba mẹ đã liên kết sẽ thấy toàn bộ tiến độ học tập',
-                style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
-          ),
-          Text(
-            'Điểm thi thử, đếm ngược kỳ thi, thời gian tập trung và chỉ số sẵn '
-            'sàng — cập nhật liên tục. Mở "Cửa sổ tin cậy" bên dưới để liên kết '
-            'hoặc tạm dừng chia sẻ.',
-            style: TextStyle(
-                fontSize: 11.5, height: 1.35, color: AppColors.textMuted),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _openParentMode() {
     if (SupabaseService.isLoggedIn) {
       StorageService.setAccountRole(StorageService.roleParent);
@@ -1157,48 +980,6 @@ class _AccountScreenState extends State<AccountScreen> {
         onSkip: () => Navigator.pop(ctx),
       ),
     ));
-  }
-
-  /// Entry mở Hồ sơ học tập (đặc tả mục 17) — suy luận + cho phép sửa.
-  Widget _buildLearningProfileEntry() {
-    return GlassCard(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => const LearningProfileScreen(),
-      )),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const AppIcon(
-            Icons.person_search_rounded,
-            tileSize: 36,
-            iconSize: 18,
-            color: AppColors.purple,
-            bg: AppColors.purpleSoft,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Hồ sơ học tập',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 2),
-                Text(
-                  'Nhịp học EduPulse đã hiểu về bạn — và bạn có thể chỉnh lại.',
-                  style:
-                      TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textMuted, size: 20),
-        ],
-      ),
-    );
   }
 
   /// Thẻ cài đặt nhắc học hằng ngày — chỉ trên mobile native.
@@ -1343,6 +1124,38 @@ class _AccountScreenState extends State<AccountScreen> {
                   await NotificationService.cancelId(
                       NotificationService.digestId);
                 }
+              },
+            ),
+            const Divider(height: 18),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Thông báo nâng cao (P2)',
+                  style:
+                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+              subtitle: const Text(
+                  'Báo cáo tuần vào Chủ nhật + nhắc bảo vệ chuỗi (ngôn ngữ nhẹ nhàng).',
+                  style: TextStyle(fontSize: 11)),
+              value: _advancedReminderEnabled,
+              onChanged: (v) async {
+                setState(() => _advancedReminderEnabled = v);
+                StorageService.setBool('notif_advanced_enabled', v);
+                if (v && !await _ensureNotificationPermission()) {
+                  setState(() => _advancedReminderEnabled = false);
+                  StorageService.setBool('notif_advanced_enabled', false);
+                  return;
+                }
+                // Tự đồng bộ lại nhắc khi bật/tắt — syncReminders xử lý toàn bộ.
+                    await AdaptivePolicy.syncReminders(
+                      reminderEnabled: _reminderEnabled,
+                      reminderHour: _reminderHour,
+                      reminderMinute: _reminderMinute,
+                      tasks: _digestTasks(),
+                      sessions: StudySessionRepository.instance.getAll(),
+                      primaryExam: null,
+                      advancedEnabled: _advancedReminderEnabled,
+                      weeklyReportEnabled: _advancedReminderEnabled,
+                      streakGuardEnabled: _advancedReminderEnabled,
+                    );
               },
             ),
           ],

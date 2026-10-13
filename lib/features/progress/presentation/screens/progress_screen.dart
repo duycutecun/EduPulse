@@ -6,15 +6,18 @@ import '../../../../core/utils/feedback_service.dart';
 import '../../../../core/utils/storage_service.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../../shared/widgets/state_views.dart';
 import '../../../exams/domain/exam_repository.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../domain/progress_engine.dart';
 import '../../domain/progress_insights.dart';
+import 'deep_report_screen.dart';
 
 /// FE-5.1 + FE-5.2 — Màn hình Tổng quan Tiến độ.
 ///
@@ -48,6 +51,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
   String? _aiInsight;
   bool _loadingAi = false;
 
+  /// Lỗi của lần nhờ AI phân tích gần nhất — hiển thị ngay trong thẻ nhận định
+  /// kèm nút thử lại, không trôi mất như toast.
+  String? _aiError;
+
   @override
   void initState() {
     super.initState();
@@ -79,20 +86,24 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Future<void> _askAi() async {
     final snapshot = _snapshot;
     if (snapshot == null || _loadingAi) return;
-    setState(() => _loadingAi = true);
+    setState(() {
+      _loadingAi = true;
+      _aiError = null;
+    });
     final result = await ProgressInsights.generate(snapshot);
     if (!mounted) return;
     setState(() {
       _loadingAi = false;
       _aiInsight = result;
+      // Lỗi nằm lại ngay trong vùng nhận định (kèm nút thử lại) thay vì trôi
+      // qua dưới dạng toast: người dùng biết chính xác phần nào chưa có, và
+      // nhận định cục bộ bên dưới vẫn giữ nguyên giá trị.
+      _aiError = result != null
+          ? null
+          : snapshot.hasData
+              ? 'AI cần kết nối mạng — nhận định bên dưới vẫn dựa trên số liệu thật.'
+              : 'Chưa đủ dữ liệu để AI nhận định — học vài phiên rồi thử lại nhé.';
     });
-    if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            'AI cần kết nối mạng — nhận định bên dưới vẫn dựa trên số liệu thật.'),
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
   }
 
   /// Chia sẻ tóm tắt tiến độ tuần.
@@ -136,7 +147,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
     if (snapshot == null) {
-      return const Center(child: CircularProgressIndicator());
+      // Trạng thái tải dùng chung một khuôn với các màn khác thay vì spinner
+      // trần — cùng thông điệp, cùng nhịp, cùng nơi để chỉnh về sau.
+      return const LoadingStateView(message: 'Đang tổng hợp tiến độ…');
     }
 
     final exam = ExamRepository.instance.primaryExam;
@@ -199,6 +212,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
             onPressed: widget.onOpenExams!,
           ),
         _headerIcon(
+          tooltip: 'Báo cáo học tập sâu',
+          icon: Icons.insights_outlined,
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const DeepReportScreen(
+              onStartStudy: null,
+            ),
+          )),
+        ),
+        _headerIcon(
           key: const Key('progress-share'),
           tooltip: 'Chia sẻ tiến độ',
           icon: Icons.ios_share_rounded,
@@ -228,7 +250,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         onPressed: onPressed,
         padding: EdgeInsets.zero,
         iconSize: 20,
-        visualDensity: VisualDensity.compact,
+        visualDensity: VisualDensity.comfortable,
         constraints: const BoxConstraints.tightFor(width: 36, height: 36),
         icon: Icon(icon),
       ),
@@ -466,41 +488,25 @@ class _ProgressScreenState extends State<ProgressScreen> {
           if (subjects.isEmpty)
             // UX mục 11 "No progress" + G4-B: không để trống — luôn nói rõ dữ
             // liệu gì sẽ xuất hiện sau khi học, VÀ đưa người dùng tới chỗ tạo
-            // ra dữ liệu đó bằng một chạm. Giải thích mà không có nút bấm thì
-            // người học vẫn phải tự mò về tab Hôm nay.
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Chưa có dữ liệu học trong tuần này.',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Sau mỗi phiên Focus, thẻ này sẽ hiện thời gian học, số bài '
-                    'và xu hướng ↑/→/↓ của từng môn.',
-                    style: TextStyle(
-                        fontSize: 12, height: 1.4, color: AppColors.textMuted),
-                  ),
-                  if (widget.onStartStudy != null) ...[
-                    const SizedBox(height: 12),
-                    PrimaryButton(
-                      key: const Key('progress-start-study'),
-                      label: 'Bắt đầu học ngay',
-                      icon: Icons.play_arrow_rounded,
-                      onPressed: () {
-                        FeedbackService.light();
-                        widget.onStartStudy!();
-                      },
-                    ),
-                  ],
-                ],
-              ),
+            // ra dữ liệu đó bằng một chạm. Dùng chung EmptyStatePanel với các
+            // vùng rỗng khác trong app để tình huống "chưa có dữ liệu" luôn
+            // trông và đọc giống nhau, dù gặp ở màn nào.
+            EmptyStatePanel(
+              dense: true,
+              padding: const EdgeInsets.all(AppTokens.space12),
+              icon: Icons.insights_rounded,
+              title: 'Chưa có dữ liệu học trong tuần này.',
+              description: 'Sau mỗi phiên Focus, thẻ này hiện thời gian học '
+                  'từng môn.',
+              actionLabel: 'Bắt đầu học ngay',
+              actionKey: const Key('progress-start-study'),
+              actionIcon: Icons.play_arrow_rounded,
+              onAction: widget.onStartStudy == null
+                  ? null
+                  : () {
+                      FeedbackService.light();
+                      widget.onStartStudy!();
+                    },
             )
           else
             for (final s in subjects)
@@ -664,6 +670,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 'Chưa có đủ dữ liệu để nhận định. Hãy học vài phiên rồi quay lại nhé!',
             style: const TextStyle(fontSize: 13, height: 1.45),
           ),
+          if (_aiError != null) ...[
+            const SizedBox(height: 10),
+            ErrorStatePanel(message: _aiError!, onRetry: _askAi),
+          ],
           const SizedBox(height: 12),
           // FE-6.4 — một điểm nhấn hành động rõ ràng: CTA chính của màn Tiến
           // độ là nhờ AI phân tích, luôn nổi bật ở cuối thẻ nhận định.

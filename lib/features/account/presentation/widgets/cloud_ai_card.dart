@@ -135,7 +135,7 @@ class _CloudAiCardState extends State<CloudAiCard> {
             _field(
               key: const Key('cloud-openrouter-key'),
               controller: _openRouterCtrl,
-              label: 'OpenRouter API key (cho AI)',
+              label: 'OpenRouter API key (BYOK, tùy chọn)',
               hint: 'sk-or-v1-…',
               obscure: _obscureKeys,
             ),
@@ -200,9 +200,11 @@ class _CloudAiCardState extends State<CloudAiCard> {
             ),
             const SizedBox(height: 8),
             Text(
-              AiConfig.hasBuildTimeOpenRouter
-                  ? 'Bản build đã có sẵn API key — chỉ cần dán khi bạn muốn dùng key riêng.'
-                  : 'Bản build này chưa nhúng API key, nên AI chỉ chạy sau khi bạn dán key ở trên.',
+              AiConfig.hasManagedAi
+                  ? 'AI đã chạy sẵn qua máy chủ EduPulse — chỉ dán key ở đây '
+                      'nếu bạn muốn dùng key riêng (BYOK).'
+                  : 'Thiết bị này chưa kết nối được máy chủ EduPulse. Dán key '
+                      'của bạn để dùng AI.',
               style: const TextStyle(
                   fontSize: 11, height: 1.35, color: AppColors.textMuted),
             ),

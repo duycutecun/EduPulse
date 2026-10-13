@@ -1,7 +1,17 @@
+import 'notification_tap_handler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
+void _handleNotificationTap(NotificationResponse response) {
+  // Xử lý điều hướng đơn giản: ghi payload để navigator ở cấp cao xử lý.
+  // Giữ nguyên cho hiện tại — navigator chính sẽ đọc.
+  final payload = response.payload;
+  if (payload != null && payload.isNotEmpty) {
+    NotificationTapHandler.payload = payload;
+  }
+}
 
 /// Dịch vụ nhắc học hằng ngày (local notification, không cần server).
 ///
@@ -32,7 +42,10 @@ class NotificationService {
           requestSoundPermission: false,
         ),
       );
-      await _plugin.initialize(settings: settings);
+      await _plugin.initialize(
+        settings: settings,
+        onDidReceiveNotificationResponse: _handleNotificationTap,
+      );
 
       // Android 13+ cần runtime permission riêng.
       await _plugin
@@ -111,6 +124,7 @@ class NotificationService {
     required String title,
     required String body,
     int id = 1099,
+    String? payload,
   }) async {
     if (!isSupported) return false;
     await init();
@@ -131,6 +145,7 @@ class NotificationService {
         title: title,
         body: body,
         notificationDetails: details,
+        payload: payload,
       );
       return true;
     } catch (_) {
@@ -146,6 +161,12 @@ class NotificationService {
 
   /// Id nhắc ôn flashcard đến hạn (SM-2).
   static const int flashcardReminderId = 1003;
+
+  /// Id báo cáo tuần (P2 — notification nâng cao).
+  static const int weeklyReportId = 1004;
+
+  /// Id nhắc bảo vệ chuỗi ngày (P2 — notification nâng cao).
+  static const int streakGuardId = 1005;
 
   /// Lên lịch nhắc học lặp lại mỗi ngày vào [hour]:[minute].
   static Future<void> scheduleDaily({
@@ -191,6 +212,7 @@ class NotificationService {
     required DateTime when,
     required String title,
     required String body,
+    String? payload,
   }) async {
     if (!isSupported) return;
     await init();
@@ -214,6 +236,7 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       title: title,
       body: body,
+      payload: payload,
     );
   }
 

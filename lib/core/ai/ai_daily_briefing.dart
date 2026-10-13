@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show ValueNotifier, kIsWeb;
+import 'package:flutter/foundation.dart' show ValueNotifier;
 
 import 'ai_config.dart';
 import '../utils/storage_service.dart';
@@ -130,12 +130,12 @@ class AiDailyBriefing {
     revision.value += 1;
   }
 
-  /// Chỉ gọi AI khi có kênh gọi thật: web đi proxy serverless, native cần
-  /// API key build-time. Không đủ điều kiện → dùng bản offline tổng hợp,
+  /// Chỉ gọi AI khi có kênh gọi thật: backend managed (web cùng origin, native
+  /// bản deploy) hoặc key BYOK. Không đủ điều kiện → dùng bản offline tổng hợp,
   /// tránh gọi mù (fail) và tránh để lại timer treo trong môi trường test.
   static bool get _canCallAi {
     if (StorageService.getBool('ai_permission_analyze') == false) return false;
-    return kIsWeb || AiConfig.openRouterApiKey.isNotEmpty;
+    return AiConfig.canUseAi;
   }
 
   // --- AI briefing -----------------------------------------------------

@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'ai_config.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../../core/config.dart';
 import '../../core/utils/now_context.dart';
+import '../utils/auth_service.dart';
 import 'proxy_error.dart';
 
 /// Service gọi model qua OpenRouter (chuẩn OpenAI-compatible).
@@ -67,6 +69,22 @@ class OpenRouterService {
     }
   }
 
+  /// Đi qua proxy serverless (`/api/openrouter`) khi ở web (CORS), hoặc khi
+  /// không có khoá BYOK để gọi thẳng. Nhờ vậy bản cài native không cần nhúng
+  /// khoá chủ app: AI managed đi qua backend với xác thực + hạn mức.
+  static bool get _useProxy => _onWeb || AiConfig.openRouterApiKey.isEmpty;
+
+  /// Header xác thực Firebase cho proxy cùng origin — rỗng khi chưa đăng nhập.
+  ///
+  /// Proxy (`api/_guard.js`) xác thực token khi có để tính hạn mức theo `uid`;
+  /// người dùng ẩn danh vẫn gọi được (chỉ bị giới hạn theo IP).
+  static Future<Map<String, String>> _proxyAuth() async {
+    final token = await AuthService.idToken();
+    return token == null || token.isEmpty
+        ? const {}
+        : {'Authorization': 'Bearer $token'};
+  }
+
   /// Dựng payload messages gửi lên OpenRouter.
   ///
   /// Tách riêng khỏi [chat] để test được thứ tự & nội dung các message mà
@@ -121,11 +139,7 @@ class OpenRouterService {
     String? webContext,
     String? studyContext,
   }) async* {
-    final onWeb = _onWeb;
-    if (!onWeb && AiConfig.openRouterApiKey.isEmpty) {
-      yield '❌ Chưa cấu hình OpenRouter API Key.';
-      return;
-    }
+    final useProxy = _useProxy;
 
     final messages = buildMessages(
       history: history,
@@ -136,10 +150,11 @@ class OpenRouterService {
     );
 
     try {
-      final uri =
-          onWeb ? Uri.base.resolve('/api/openrouter') : Uri.parse(_baseUrl);
-      final headers = onWeb
-          ? {'Content-Type': 'application/json'}
+      final uri = useProxy
+          ? AppConfig.apiBase().resolve('/api/openrouter')
+          : Uri.parse(_baseUrl);
+      final headers = useProxy
+          ? {'Content-Type': 'application/json', ...await _proxyAuth()}
           : {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ${AiConfig.openRouterApiKey}',
@@ -216,12 +231,9 @@ class OpenRouterService {
     String? webContext,
     String? studyContext,
   }) async {
-    // Trên desktop/mobile (không CORS) cần key build-time; trên web key do
-    // proxy `/api/openrouter` giữ phía server.
-    final onWeb = _onWeb;
-    if (!onWeb && AiConfig.openRouterApiKey.isEmpty) {
-      return '❌ Chưa cấu hình OpenRouter API Key (thiếu biến môi trường OPENROUTER_API_KEY khi build).';
-    }
+    // Web luôn qua proxy (CORS); native qua proxy khi không có khoá BYOK —
+    // khoá chủ app giữ phía server, không nhúng vào bundle.
+    final useProxy = _useProxy;
 
     final messages = buildMessages(
       history: history,
@@ -232,10 +244,11 @@ class OpenRouterService {
     );
 
     try {
-      final uri =
-          onWeb ? Uri.base.resolve('/api/openrouter') : Uri.parse(_baseUrl);
-      final headers = onWeb
-          ? {'Content-Type': 'application/json'}
+      final uri = useProxy
+          ? AppConfig.apiBase().resolve('/api/openrouter')
+          : Uri.parse(_baseUrl);
+      final headers = useProxy
+          ? {'Content-Type': 'application/json', ...await _proxyAuth()}
           : {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ${AiConfig.openRouterApiKey}',
@@ -270,7 +283,7 @@ class OpenRouterService {
         return '❌ Yêu cầu không hợp lệ (dữ liệu ảnh quá lớn hoặc model không hỗ trợ ảnh). Vui lòng thử lại.';
       } else if (resp.statusCode == 413) {
         return '❌ Ảnh/đoạn chat gửi quá lớn bị máy chủ từ chối. Hãy chọn ảnh nhỏ hơn hoặc xóa bớt ảnh cũ trong hội thoại.';
-      } else if (onWeb &&
+      } else if (useProxy &&
           (resp.statusCode == 500 ||
               resp.statusCode == 502 ||
               resp.statusCode == 503 ||

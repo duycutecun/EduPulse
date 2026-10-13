@@ -378,7 +378,7 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
       children: [
         IconButton(
           tooltip: 'Câu trả lời tốt',
-          visualDensity: VisualDensity.compact,
+          visualDensity: VisualDensity.comfortable,
           iconSize: 15,
           onPressed: voted == 'up' ? null : () => _save('up'),
           icon: Icon(
@@ -388,7 +388,7 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
         ),
         IconButton(
           tooltip: 'Câu trả lời chưa tốt',
-          visualDensity: VisualDensity.compact,
+          visualDensity: VisualDensity.comfortable,
           iconSize: 15,
           onPressed: voted == 'down'
               ? null
@@ -407,14 +407,14 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
         if (widget.onRegenerate != null)
           IconButton(
             tooltip: 'Tạo lại câu trả lời',
-            visualDensity: VisualDensity.compact,
+            visualDensity: VisualDensity.comfortable,
             iconSize: 15,
             onPressed: widget.onRegenerate,
             icon: const Icon(Icons.refresh_rounded, color: AppColors.textMuted),
           ),
         IconButton(
           tooltip: 'Báo câu trả lời có vấn đề',
-          visualDensity: VisualDensity.compact,
+          visualDensity: VisualDensity.comfortable,
           iconSize: 15,
           onPressed: _report,
           icon: const Icon(Icons.flag_outlined, color: AppColors.textMuted),
@@ -423,7 +423,7 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
         // Copy giữ nguyên từ bản cũ.
         IconButton(
           tooltip: 'Sao chép câu trả lời',
-          visualDensity: VisualDensity.compact,
+          visualDensity: VisualDensity.comfortable,
           iconSize: 15,
           onPressed: () {
             Clipboard.setData(ClipboardData(text: widget.msg.text));

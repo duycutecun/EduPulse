@@ -2,11 +2,10 @@ import 'dart:async';
 import '../../../../core/utils/feedback_service.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/study_rhythm.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/constants/subject_catalog.dart';
+import '../../../../core/gamification/achievement_service.dart';
 import '../../../../features/study/domain/distribute_day.dart';
 import '../../../study/presentation/widgets/day_balance_sheet.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -30,6 +29,11 @@ import '../widgets/ai_actions_row.dart';
 import '../widgets/today_mission_card.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/progress_insight_card.dart';
+import '../widgets/exam_mode_cards.dart';
+import '../widgets/post_exam_card.dart';
+import '../widgets/add_task_dialog.dart';
+import '../widgets/snack_message.dart';
+import '../../../gamification/presentation/sheets/achievements_sheet.dart';
 import '../../domain/services/today_service.dart';
 import '../../../study/presentation/screens/study_page.dart';
 import '../../../ai_coach/presentation/screens/flashcard_review_screen.dart';
@@ -75,67 +79,6 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
-}
-
-/// G3-A — ngữ nghĩa phản hồi bằng BA kênh: icon + màu nền + chữ.
-///
-/// Trước đây mọi SnackBar đều nền xanh mặc định và chỉ có chữ: học sinh không
-/// phân biệt được “đã xoá” với “không xoá được” nếu không đọc kỹ từng chữ.
-/// Giờ mỗi loại có một icon riêng — người mù màu vẫn đọc được.
-enum SnackKind {
-  /// Hành động đã thành công.
-  success(Icons.check_circle_rounded, AppColors.greenDark),
-
-  /// Thông tin trung tính / thay đổi lịch.
-  moved(Icons.event_rounded, AppColors.orangeDark),
-
-  /// Xoá hẳn — cần nút Hoàn tác đi kèm.
-  destructive(Icons.delete_rounded, AppColors.red),
-
-  /// Không làm được vì lý do chủ quan (đã có dữ liệu, hết hạn…).
-  warning(Icons.warning_rounded, AppColors.orangeDark),
-
-  /// Lỗi hệ thống / thất bại.
-  error(Icons.error_rounded, AppColors.redDark),
-
-  /// Trạng thái trung tính, không có gì để ăn mừng.
-  info(Icons.info_rounded, AppColors.blueDark);
-
-  const SnackKind(this.icon, this.background);
-
-  final IconData icon;
-  final Color background;
-
-  /// Nền snack đậm → chữ/nút luôn dùng trắng để đủ tương phản (WCAG AA).
-  Color get onBackground => Colors.white;
-}
-
-/// Icon + chữ trong SnackBar. Tách riêng để phần trình bày không lẫn vào
-/// logic của [HomeScreenState._showSnack].
-class _SnackMessage extends StatelessWidget {
-  const _SnackMessage({required this.message, required this.kind});
-
-  final String message;
-  final SnackKind kind;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(kind.icon, size: 20, color: kind.onBackground),
-        const SizedBox(width: AppTokens.space8),
-        Expanded(
-          child: Text(
-            message,
-            style: AppTokens.body.copyWith(
-              color: kind.onBackground,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -401,6 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final doneTask = result.task;
     if (doneTask != null) _createNextRecurringTask(doneTask);
     _notifyStreakChanged();
+    _celebrateNewAchievements();
     _toast(
       'Đã hoàn thành nhiệm vụ',
       kind: SnackKind.success,
@@ -701,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ..showSnackBar(
         SnackBar(
           backgroundColor: kind.background,
-          content: _SnackMessage(message: message, kind: kind),
+          content: SnackMessage(message: message, kind: kind),
           duration: Duration(seconds: (undo == null && !hasPrimary) ? 3 : 6),
           behavior: SnackBarBehavior.floating,
           action: hasPrimary
@@ -738,6 +682,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
+  /// Xét huy hiệu sau khi dữ liệu học tập đổi (P2 — gamification) và báo mới.
+  void _celebrateNewAchievements() {
+    final newly = AchievementService.instance.reconcile();
+    if (newly.isEmpty || !mounted) return;
+    FeedbackService.celebrate();
+    _toast(
+      '${newly.first.emoji} Huy hiệu mới: ${newly.first.title}',
+      kind: SnackKind.success,
+    );
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -763,6 +718,7 @@ class _HomeScreenState extends State<HomeScreen> {
             userName: userName,
             streak: widget.streak,
             mascotVisible: StorageService.getBool('mascot_enabled') ?? true,
+            onOpenAchievements: () => showAchievementsSheet(context),
           ),
           const SizedBox(height: 12),
           DailySummaryCard(
@@ -842,12 +798,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (exam == null) return const [];
     switch (exam.examPhase) {
       case ExamPhase.revision:
-        return [const _RevisionModeCard()];
+        return [const RevisionModeCard()];
       case ExamPhase.examDay:
         return [
-          const _ExamDayCard(),
+          const ExamDayCard(),
           const SizedBox(height: 14),
-          _TodayMissionCardCompact(
+          TodayMissionCardCompact(
             tasks: _tasks.take(3).toList(),
             onToggle: _toggleTask,
           ),
@@ -855,7 +811,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case ExamPhase.postExam:
         final reached = exam.postExamResult;
         return [
-          _PostExamCard(
+          PostExamCard(
             exam: exam,
             reachedTarget: reached,
             onOpenExam: widget.onExamTap,
@@ -981,7 +937,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAddTaskDialog() {
     showDialog(
       context: context,
-      builder: (_) => _AddTaskDialog(
+      builder: (_) => AddTaskDialog(
         onAdd: _addTask,
         exams: widget.exams,
         primaryExamId: widget.primaryExam?.id,
@@ -1102,715 +1058,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Banner chế độ ôn tập khi còn ≤7 ngày thi (đặc tả mục 39 — 7 ngày trước thi):
-/// ưu tiên weakness, high-impact topics và review, giảm workload không cần thiết.
-class _RevisionModeCard extends StatelessWidget {
-  const _RevisionModeCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.orangeLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.orange, width: 1.2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              color: AppColors.orangeSoft,
-              shape: BoxShape.circle,
-            ),
-            child:
-                const Center(child: Text('📚', style: TextStyle(fontSize: 22))),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Chế độ ôn tập đang bật',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Ưu tiên ôn điểm yếu và nội dung quan trọng. Giảm bớt nhiệm vụ mới không cần thiết.',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                      height: 1.3),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Thẻ ngày thi (đặc tả mục 39 — Exam Day): thông tin kỳ thi + checklist chuẩn bị,
-/// không hiển thị quá nhiều task để giữ Home nhẹ nhàng.
-class _ExamDayCard extends StatelessWidget {
-  const _ExamDayCard();
-
-  @override
-  Widget build(BuildContext context) {
-    const checklist = [
-      'CMND/CCCD + giấy báo dự thi',
-      'Bút, thước, máy tính được phép',
-      'Bình nước + đồ ăn nhẹ',
-      'Đến sớm trước giờ thi 30 phút',
-    ];
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.orange, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.orange.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('🍀', style: TextStyle(fontSize: 20)),
-              SizedBox(width: 8),
-              Text(
-                'Hôm nay là ngày thi — làm tốt nhé!',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Chỉ cần tập trung ôn nhẹ và chuẩn bị. EduPulse tạm ẩn danh sách nhiệm vụ dài.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 10),
-          ...checklist.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.check_circle_outline_rounded,
-                        size: 16, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(item,
-                          style: const TextStyle(
-                              fontSize: 13, color: AppColors.textPrimary)),
-                    ),
-                  ],
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-}
-
-/// Phiên bản rút gọn của danh sách nhiệm vụ cho ngày thi (tối đa 3 task).
-class _TodayMissionCardCompact extends StatelessWidget {
-  const _TodayMissionCardCompact({
-    required this.tasks,
-    required this.onToggle,
-  });
-
-  final List<TodayTask> tasks;
-  final ValueChanged<TodayTask> onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    if (tasks.isEmpty) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Ôn nhẹ hôm nay (tùy chọn)',
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 8),
-          ...tasks.map(
-            (task) => InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => onToggle(task),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Icon(
-                      task.isDone
-                          ? Icons.check_circle_rounded
-                          : Icons.radio_button_unchecked_rounded,
-                      size: 20,
-                      color: task.isDone ? AppColors.primary : AppColors.blue,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        task.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          decoration:
-                              task.isDone ? TextDecoration.lineThrough : null,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '⏱ ${task.estimateMinutes}p',
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textMuted),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Thẻ sau kỳ thi (đặc tả mục 40): nhẹ nhàng, không tiêu cực, giữ lịch sử,
-/// gợi ý tạo goal mới hoặc xem lại kỳ thi đã qua. Có **nhập điểm nhanh**
-/// ngay tại card (mục 40: "Nếu có điểm: Update goal, Compare target,
-/// Analyze, Suggest next step").
-class _PostExamCard extends StatelessWidget {
-  const _PostExamCard({
-    required this.exam,
-    required this.reachedTarget,
-    required this.onOpenExam,
-    required this.onScoreSaved,
-  });
-
-  final ExamModel exam;
-  final bool? reachedTarget; // null = chưa đủ dữ liệu kết luận
-  final VoidCallback onOpenExam;
-  final VoidCallback onScoreSaved;
-
-  Future<void> _quickScoreEntry(BuildContext context) async {
-    final controller = TextEditingController(
-      text: exam.currentScore?.toStringAsFixed(1) ?? '',
-    );
-    final value = await showDialog<double>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Nhập điểm của bạn'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              exam.targetScore != null
-                  ? 'Mục tiêu của bạn: ${exam.targetScore!.toStringAsFixed(1)} điểm'
-                  : 'Chưa có mục tiêu điểm — nhập để lưu lịch sử.',
-              style: const TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                hintText: 'VD: 8.5',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Hủy'),
-          ),
-          TextButton(
-            onPressed: () {
-              final parsed =
-                  double.tryParse(controller.text.trim().replaceAll(',', '.'));
-              if (parsed == null || parsed < 0 || parsed > 10) return;
-              Navigator.pop(dialogContext, parsed);
-            },
-            child: const Text('Lưu điểm'),
-          ),
-        ],
-      ),
-    );
-    if (value == null) return;
-
-    // Cập nhật điểm hiện tại của kỳ thi (lưu lịch sử, mục 40).
-    final updated = exam.copyWithCurrent(value);
-    StorageService.setExamJson(updated.id, updated.toJsonString());
-
-    // Ghi thêm MockScore để biểu đồ điểm có dữ liệu (mục 41).
-    final score = MockScore(
-      id: const Uuid().v4(),
-      date: DateTime.now(),
-      subject: updated.name,
-      score: value,
-      note: 'Điểm ${updated.name}',
-    );
-    StorageService.setMockScoreJson(score.id, score.toJsonString());
-    final ids = StorageService.getMockScoreIds()..add(score.id);
-    StorageService.setMockScoreIds(ids);
-
-    // Chu trình AI: điểm mới thay đổi readiness → bản tin/gợi ý tính lại.
-    AiRefreshService.notifyDataChanged();
-
-    onScoreSaved();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hasResult = reachedTarget != null;
-    final title = reachedTarget == true
-        ? 'Chúc mừng bạn đã hoàn thành ${exam.name}! 🎉'
-        : reachedTarget == false
-            ? '${exam.name} đã kết thúc. Cố gắng của bạn đều đáng giá.'
-            : '${exam.name} đã kết thúc — đang chờ kết quả';
-
-    final subtitle = reachedTarget == true
-        ? 'Bạn đã đạt mục tiêu điểm. Muốn xem lại phân tích quá trình học không?'
-        : reachedTarget == false
-            ? 'Xem phân tích khoảng cách điểm để điều chỉnh kế hoạch tiếp theo nhé.'
-            : 'Khi có điểm, cập nhật ở tab Mục tiêu để EduPulse phân tích giúp bạn.';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: TextStyle(
-                fontSize: 12.5, color: AppColors.textSecondary, height: 1.35),
-          ),
-          if (hasResult) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: reachedTarget == true
-                    ? AppColors.greenSoft
-                    : AppColors.blueLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                'Điểm hiện tại ${exam.currentScore!.toStringAsFixed(1)} • Mục tiêu ${exam.targetScore!.toStringAsFixed(1)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: reachedTarget == true
-                      ? AppColors.primaryDark
-                      : AppColors.blueDark,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          // Nhập điểm nhanh — luôn hiện khi chưa đủ target + current.
-          if (!hasResult)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: OutlinedButton.icon(
-                onPressed: () => _quickScoreEntry(context),
-                icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: const Text('Đã có điểm? Nhập ngay'),
-              ),
-            ),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onOpenExam,
-                  child: const Text('Xem kỳ thi'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Kỳ thi mới sẽ được tạo ở tab Mục tiêu → thêm kỳ thi.'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                  ),
-                  child: const Text('Tạo mục tiêu mới'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddTaskDialog extends StatefulWidget {
-  const _AddTaskDialog({
-    required this.onAdd,
-    required this.exams,
-    this.primaryExamId,
-  });
-
-  final void Function(
-      String title, String subject, String priority, int minutes,
-      {String? topic,
-      DateTime? deadline,
-      String? note,
-      String? goalId,
-      List<String> subtasks,
-      String? recurrence}) onAdd;
-  final List<ExamModel> exams;
-  final String? primaryExamId;
-
-  @override
-  State<_AddTaskDialog> createState() => _AddTaskDialogState();
-}
-
-class _AddTaskDialogState extends State<_AddTaskDialog> {
-  final _titleCtrl = TextEditingController();
-  final _topicCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
-  final _subtasksCtrl = TextEditingController();
-  String _subject = AppSubjects.toan.name;
-  String _priority = 'medium';
-  int _minutes = 45;
-  DateTime? _deadline;
-  String? _goalId;
-  String? _recurrence;
-  final _durations = [15, 30, 45, 60, 90];
-  final Map<String, String> _priorities = const {
-    'high': '🔥 Quan trọng',
-    'medium': '⭐ Vừa',
-    'low': '🌱 Nhẹ',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _goalId = widget.primaryExamId;
-  }
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _topicCtrl.dispose();
-    _noteCtrl.dispose();
-    _subtasksCtrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final title = _titleCtrl.text.trim();
-    if (title.isEmpty) {
-      FeedbackService.vibrate();
-      return;
-    }
-    widget.onAdd(
-      title,
-      _subject,
-      _priority,
-      _minutes,
-      topic: _topicCtrl.text.trim().isEmpty ? null : _topicCtrl.text.trim(),
-      deadline: _deadline,
-      note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-      goalId: _goalId,
-      subtasks: _subtasksCtrl.text
-          .split(',')
-          .map((item) => item.trim())
-          .where((item) => item.isNotEmpty)
-          .toList(),
-      recurrence: _recurrence,
-    );
-    Navigator.pop(context);
-  }
-
-  Future<void> _pickDeadline() async {
-    final now = DateTime.now();
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _deadline ?? now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 10),
-      helpText: 'Chọn hạn hoàn thành',
-    );
-    if (selected != null && mounted) setState(() => _deadline = selected);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.border, width: 2),
-      ),
-      title: const Text('Thêm nhiệm vụ',
-          style: TextStyle(fontWeight: FontWeight.w800)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _titleCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Tên nhiệm vụ (VD: Giải 1 đề Toán)',
-              ),
-              autofocus: true,
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _topicCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Chủ đề (không bắt buộc)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text('Chọn môn:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: AppSubjects.all.map((subject) {
-                final sel = _subject == subject.name;
-                final color = subject.color;
-                return GestureDetector(
-                  onTap: () => setState(() => _subject = subject.name),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: sel ? color : AppColors.bgPage,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: sel ? color : AppColors.border,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      subject.plainName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _pickDeadline,
-              icon: const Icon(Icons.event_outlined, size: 18),
-              label: Text(_deadline == null
-                  ? 'Thêm hạn hoàn thành'
-                  : 'Hạn: ${_deadline!.day.toString().padLeft(2, '0')}/${_deadline!.month.toString().padLeft(2, '0')}/${_deadline!.year}'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                hintText: 'Ghi chú (không bắt buộc)',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _subtasksCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Việc nhỏ (ngăn cách bằng dấu phẩy)',
-              ),
-            ),
-            if (widget.exams.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String?>(
-                initialValue: _goalId,
-                isExpanded: true,
-                decoration:
-                    const InputDecoration(labelText: 'Kỳ thi / Mục tiêu'),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Chưa gắn mục tiêu'),
-                  ),
-                  ...widget.exams.map(
-                    (exam) => DropdownMenuItem<String?>(
-                      value: exam.id,
-                      child: Text(exam.name, overflow: TextOverflow.ellipsis),
-                    ),
-                  ),
-                ],
-                onChanged: (value) => setState(() => _goalId = value),
-              ),
-            ],
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: _recurrence,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Lặp lại'),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('Không lặp lại')),
-                DropdownMenuItem(value: 'daily', child: Text('Mỗi ngày')),
-                DropdownMenuItem(value: 'weekly', child: Text('Mỗi tuần')),
-              ],
-              onChanged: (value) => setState(() => _recurrence = value),
-            ),
-            const SizedBox(height: 12),
-            const Text('Thời gian:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _durations.map((dur) {
-                final sel = _minutes == dur;
-                return GestureDetector(
-                  onTap: () => setState(() => _minutes = dur),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: sel ? AppColors.blue : AppColors.bgPage,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: sel ? AppColors.blue : AppColors.border,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      '$dur phút',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            const Text('Mức ưu tiên:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _priorities.entries.map((e) {
-                final sel = _priority == e.key;
-                return GestureDetector(
-                  onTap: () => setState(() => _priority = e.key),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: sel ? AppColors.orange : AppColors.bgPage,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: sel ? AppColors.orange : AppColors.border,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      e.value,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
-        ),
-        TextButton(
-          onPressed: _submit,
-          child: const Text('Thêm',
-              style: TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w800)),
-        ),
-      ],
     );
   }
 }

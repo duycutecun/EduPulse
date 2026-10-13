@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/family/family_models.dart';
 import '../../../../core/family/family_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/state_views.dart';
 import 'child_trend_screen.dart';
 
 /// Phụ huynh xem tiến độ học tập của con — CẬP NHẬT LIÊN TỤC.
@@ -231,14 +232,12 @@ class _ChildReportScreenState extends State<ChildReportScreen>
           children: [
             if (_loading && _updatedAt == null)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(child: CircularProgressIndicator()),
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: LoadingStateView(message: 'Đang tải báo cáo của con…'),
               )
             else ...[
               if (_error != null) ...[
-                Text(_error!,
-                    style:
-                        const TextStyle(fontSize: 12.5, color: AppColors.red)),
+                ErrorStatePanel(message: _error!, onRetry: _load),
                 const SizedBox(height: 10),
               ],
               if (_live != null)
@@ -284,18 +283,20 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               ),
               const SizedBox(height: 8),
               if (_reports.isEmpty)
-                _messageCard(
-                  emoji: '💚',
+                const EmptyStatePanel(
+                  icon: Icons.favorite_rounded,
                   title: 'Chưa có báo cáo tuần nào',
-                  body:
-                      'Khi con bấm “Gửi cho gia đình” trong Cửa sổ tin cậy, báo cáo tuần sẽ hiện ở đây. '
-                      'Trong lúc chờ, tiến độ trực tiếp của con vẫn cập nhật phía trên.',
+                  description:
+                      'Khi con bấm “Gửi cho gia đình” trong Cửa sổ tin cậy, báo '
+                      'cáo tuần sẽ hiện ở đây. Trong lúc chờ, tiến độ trực tiếp '
+                      'của con vẫn cập nhật phía trên.',
                 )
               else if (_visibleReports.isEmpty)
-                _messageCard(
-                  emoji: '🗓️',
+                EmptyStatePanel(
+                  icon: Icons.calendar_month_rounded,
                   title: 'Không có báo cáo trong $_rangeLabel',
-                  body: 'Thử chọn “Tất cả” để xem toàn bộ lịch sử con đã gửi.',
+                  description:
+                      'Thử chọn “Tất cả” để xem toàn bộ lịch sử con đã gửi.',
                 )
               else
                 for (var i = 0; i < _visibleReports.length; i++) ...[
@@ -393,60 +394,14 @@ class _ChildReportScreenState extends State<ChildReportScreen>
 
   /// Con chưa có bản cập nhật trực tiếp — nói thật, kèm cách khắc phục.
   Widget _noLiveCard() {
-    return GlassCard(
+    return EmptyStatePanel(
       key: const Key('child-no-live-card'),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.podcasts_outlined,
-              size: 20, color: AppColors.textMuted),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Con chưa có tiến độ trực tiếp',
-                    style:
-                        TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(
-                  'Báo cáo tuần con gửi vẫn hiện ngay bên dưới. Tiến độ trực tiếp '
-                  'sẽ tự cập nhật ngay khi ${widget.child.name} mở app (đã đăng '
-                  'nhập và liên kết với ba mẹ).',
-                  style: const TextStyle(
-                      fontSize: 12, height: 1.45, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _messageCard({
-    required String emoji,
-    required String title,
-    required String body,
-  }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 34)),
-          const SizedBox(height: 8),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          Text(body,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 12.5, height: 1.45, color: AppColors.textSecondary)),
-        ],
-      ),
+      compact: true,
+      icon: Icons.podcasts_outlined,
+      title: 'Con chưa có tiến độ trực tiếp',
+      description: 'Báo cáo tuần con gửi vẫn hiện ngay bên dưới. Tiến độ trực '
+          'tiếp sẽ tự cập nhật ngay khi ${widget.child.name} mở app (đã đăng '
+          'nhập và liên kết với ba mẹ).',
     );
   }
 

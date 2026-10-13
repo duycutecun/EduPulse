@@ -1,6 +1,9 @@
 const BASE = 'https://api.tavily.com/search';
 
+const { guard } = require('./_guard');
+
 const MAX_QUERY_LEN = 200;
+const RATE_LIMIT_PER_MIN = 60;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -11,6 +14,12 @@ module.exports = async function handler(req, res) {
   if (!apiKey) {
     return res.status(500).json({ error: 'TAVILY_API_KEY not configured' });
   }
+
+  const allowed = await guard(req, res, {
+    endpoint: '/api/search',
+    limit: RATE_LIMIT_PER_MIN,
+  });
+  if (!allowed) return undefined;
 
   const rawQuery = (req.query.q || '').toString().trim();
   if (!rawQuery) {

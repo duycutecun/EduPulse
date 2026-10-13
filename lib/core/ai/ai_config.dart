@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
+
 import '../config.dart';
+import '../utils/runtime_env.dart';
 import '../utils/storage_service.dart';
 
 /// Khoá AI **đang có hiệu lực**: ưu tiên bản người dùng dán trong app
@@ -35,6 +38,33 @@ class AiConfig {
   static bool get hasOpenRouter => openRouterApiKey.isNotEmpty;
 
   static bool get hasGemini => geminiApiKey.isNotEmpty;
+
+  /// Backend managed khả dụng? (hàm thuần để kiểm thử được mọi tổ hợp môi
+  /// trường mà không phụ thuộc nền tảng đang chạy test).
+  @visibleForTesting
+  static bool managedAiAvailable({
+    required bool isWeb,
+    required bool apiBaseConfigured,
+    required bool isTest,
+  }) =>
+      isWeb || (apiBaseConfigured && !isTest);
+
+  /// AI managed đi qua backend serverless (`/api/openrouter`, `/api/gemini`,
+  /// `/api/search`) — khoá chủ app giữ phía server, KHÔNG nhúng vào bundle.
+  ///
+  /// Trên web dùng cùng origin; trên native dùng bản deploy cố định trong
+  /// [AppConfig.apiBaseUrl]. Vì `apiBaseUrl` có mặc định nên managed AI luôn
+  /// khả dụng kể cả bản cài không kèm khoá nào. Trong `flutter test` thì tắt
+  /// để test chạy thuần local, không gọi mạng.
+  static bool get hasManagedAi => managedAiAvailable(
+        isWeb: kIsWeb,
+        apiBaseConfigured: AppConfig.apiBaseUrl.isNotEmpty,
+        isTest: RuntimeEnv.isFlutterTest,
+      );
+
+  /// Có thể gọi AI? Managed qua backend luôn có, hoặc người dùng tự dán key
+  /// (BYOK) để gọi thẳng nhà cung cấp.
+  static bool get canUseAi => hasManagedAi || openRouterApiKey.isNotEmpty;
 
   /// Đã có key nào đó đóng gói lúc build chưa (để UI phân biệt "key của bản
   /// build" với "key người dùng tự dán").

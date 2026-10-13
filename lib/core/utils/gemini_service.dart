@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import '../../features/study/domain/models/study_models.dart';
 import 'now_context.dart';
+import 'auth_service.dart';
+import '../config.dart';
 import '../ai/openrouter_service.dart';
 import '../ai/proxy_error.dart';
 
@@ -169,9 +171,9 @@ class GeminiService {
     String? webContext,
     String? studyContext,
   }) async {
-    if (apiKey.isEmpty && !_onWeb) {
-      return 'Gemini API Key chưa được cấu hình. Chủ app cần đặt key trong AppConfig (biến GEMINI_API_KEY) rồi build lại.';
-    }
+    // Web luôn qua proxy (key giữ phía server). Native cũng qua proxy khi
+    // không có khoá BYOK — không nhúng khoá chủ app vào bundle.
+    final useProxy = _onWeb || apiKey.isEmpty;
 
     final contents = buildContents(
       history: history,
@@ -186,9 +188,8 @@ class GeminiService {
       // Gọi 1 request duy nhất. Không gửi google_search grounding vì key
       // miễn phí không hỗ trợ (400/403) và làm tốn gấp đôi quota; app vẫn có
       // web search riêng (Tavily) chèn webContext vào prompt khi cần.
-      final onWeb = _onWeb;
       final resp =
-          await _post(contents, systemInstruction, apiKey, onWeb: onWeb);
+          await _post(contents, systemInstruction, apiKey, useProxy: useProxy);
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
@@ -220,7 +221,7 @@ class GeminiService {
             'Model có thể đã bị đổi tên hoặc ngừng hỗ trợ — cập nhật lại model Gemini trong app.';
       } else if (resp.statusCode == 413) {
         return '❌ Ảnh gửi quá lớn bị máy chủ từ chối. Hãy chọn ảnh nhỏ hơn.';
-      } else if (onWeb &&
+      } else if (useProxy &&
           (resp.statusCode == 500 ||
               resp.statusCode == 502 ||
               resp.statusCode == 503 ||
@@ -268,18 +269,27 @@ class GeminiService {
     List<Map<String, dynamic>> contents,
     String systemInstruction,
     String apiKey, {
-    required bool onWeb,
-  }) {
-    final uri = onWeb
-        ? Uri.base.resolve('/api/gemini')
+    required bool useProxy,
+  }) async {
+    final uri = useProxy
+        ? AppConfig.apiBase().resolve('/api/gemini')
         : Uri.parse('$_baseUrl?key=$apiKey');
+    // Proxy (`api/_guard.js`) xác thực token khi có để tính hạn mức theo
+    // `uid`; ẩn danh vẫn gọi được (giới hạn theo IP).
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (useProxy) {
+      final token = await AuthService.idToken();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
     return http
         .post(
           uri,
-          headers: {'Content-Type': 'application/json'},
+          headers: headers,
           body: jsonEncode({
             // Proxy `/api/gemini` nén model trên URL, key giữ phía server.
-            if (onWeb) 'model': model,
+            if (useProxy) 'model': model,
             // Persona + ngữ cảnh học tập đi qua systemInstruction (xem
             // buildSystemInstruction) — không chiếm lượt trong `contents`.
             'systemInstruction': {

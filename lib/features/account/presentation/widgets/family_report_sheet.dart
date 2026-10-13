@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/ai/weekly_report.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/family/family_models.dart';
 import '../../../../core/family/family_service.dart';
 import '../../../../core/family/live_progress_service.dart';
@@ -543,10 +544,10 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                               IconButton(
                                 key: Key('student-parent-messages-${p.userId}'),
                                 tooltip: 'Nhắn với ${p.name}',
-                                visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
-                                    minWidth: 34, minHeight: 30),
+                                    minWidth: AppTokens.minTouchTarget,
+                                    minHeight: AppTokens.minTouchTarget),
                                 onPressed: () => _openParentMessages(p),
                                 icon: const Icon(
                                     Icons.chat_bubble_outline_rounded,

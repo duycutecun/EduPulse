@@ -42,6 +42,19 @@ class SupabaseService {
 
   static bool get isConfigured => _client != null;
 
+  /// Như [isConfigured] nhưng đọc được cả phần ghi đè dành cho test — dùng cho
+  /// UI phụ thuộc cấu hình cloud (ví dụ con số "N thay đổi chờ đồng bộ").
+  ///
+  /// Cố ý KHÔNG dùng cho các lệnh mạng: giả lập "đã cấu hình" trong khi client
+  /// vẫn null thì mọi lời gọi Supabase sẽ nổ ngay trong test.
+  static bool get cloudSyncEnabled => _configuredOverride ?? isConfigured;
+
+  static bool? _configuredOverride;
+
+  /// Ghi đè trạng thái "cloud đã cấu hình" cho test. Truyền `null` để bỏ.
+  @visibleForTesting
+  static void setConfiguredOverride(bool? value) => _configuredOverride = value;
+
   /// Client Supabase đã khởi tạo (null nếu chưa cấu hình).
   ///
   /// Cần cho phần Realtime của [BackupService] — mọi thứ khác vẫn nên đi qua

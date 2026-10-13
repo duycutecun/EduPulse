@@ -451,12 +451,18 @@ class MockScore {
   final double score; // 0..10
   final String? note;
 
+  /// Chủ đề/dạng bài của lần thi thử (tùy chọn). Cho phép phân tích yếu ở mức
+  /// chủ đề, không chỉ mức môn. Nullable để dữ liệu cũ (chưa có trường này)
+  /// vẫn parse được mà không cần migration.
+  final String? topic;
+
   MockScore({
     required this.id,
     required this.date,
     required this.subject,
     required this.score,
     this.note,
+    this.topic,
   });
 
   Map<String, dynamic> toJson() => {
@@ -465,6 +471,7 @@ class MockScore {
         'subject': subject,
         'score': score,
         'note': note,
+        'topic': topic,
       };
 
   factory MockScore.fromJson(Map<String, dynamic> j) => MockScore(
@@ -473,6 +480,7 @@ class MockScore {
         subject: j['subject'] ?? '',
         score: (j['score'] as num).toDouble(),
         note: j['note'],
+        topic: j['topic'],
       );
 
   String toJsonString() => jsonEncode(toJson());

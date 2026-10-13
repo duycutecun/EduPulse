@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edupulse/core/ai/ai_config.dart';
 import 'package:edupulse/core/config.dart';
+import 'package:edupulse/core/utils/runtime_env.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 
 /// Bản cài từ `.ipa`/`.apk` không có `--dart-define` (chỉ web trên Vercel có),
@@ -71,6 +72,46 @@ void main() {
         expect(source.contains('AppConfig.geminiApiKey'), isFalse,
             reason: '$path đọc thẳng AppConfig.geminiApiKey');
       }
+    });
+  });
+
+  group('AI managed đi qua backend — khoá không nhúng vào bundle', () {
+    test('managed khả dụng khi có backend cấu hình (native/SDK thật)', () {
+      // Native release: apiBaseUrl có mặc định, KHÔNG phải môi trường test.
+      expect(
+        AiConfig.managedAiAvailable(
+            isWeb: false, apiBaseConfigured: true, isTest: false),
+        isTrue,
+      );
+    });
+
+    test('web luôn managed kể cả khi chạy test trên web', () {
+      expect(
+        AiConfig.managedAiAvailable(
+            isWeb: true, apiBaseConfigured: false, isTest: true),
+        isTrue,
+      );
+    });
+
+    test('test VM tắt managed để không gọi mạng', () {
+      expect(
+        AiConfig.managedAiAvailable(
+            isWeb: false, apiBaseConfigured: true, isTest: true),
+        isFalse,
+      );
+    });
+
+    test('không có backend (bản build rỗng) → không managed', () {
+      expect(
+        AiConfig.managedAiAvailable(
+            isWeb: false, apiBaseConfigured: false, isTest: false),
+        isFalse,
+      );
+    });
+
+    test('trong flutter test, managed tự tắt (an toàn mặc định)', () {
+      expect(RuntimeEnv.isFlutterTest, isTrue);
+      expect(AiConfig.hasManagedAi, isFalse);
     });
   });
 }

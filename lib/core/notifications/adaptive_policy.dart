@@ -1,9 +1,10 @@
 import '../../features/exams/domain/models/exam_model.dart';
-import '../../features/study/domain/models/study_models.dart';
 import '../ai/flashcard_service.dart';
 import '../ai/ai_daily_briefing.dart';
 import '../utils/storage_service.dart';
+import '../../features/study/domain/models/study_models.dart';
 import 'notification_service.dart';
+import 'plan_notifications.dart';
 
 /// Chính sách thông báo thích ứng (đặc tả mục 16).
 ///
@@ -183,8 +184,8 @@ class AdaptivePolicy {
   // Đồng bộ toàn bộ lịch nhắc theo policy
   // ------------------------------------------------------------------
 
-  /// Đặt lại nhắc hằng ngày/theo khoảng và digest. Gọi khi mở app và khi
-  /// thoát Focus. Không làm gì trên web (NotificationService tự no-op).
+  /// Đặt lại nhắc hằng ngày/theo khoảng, digest và thông báo nâng cao (P3).
+  /// Gọi khi mở app, thoát Focus hoặc khi bật/tắt cài đặt.
   static Future<void> syncReminders({
     required bool reminderEnabled,
     required int reminderHour,
@@ -192,6 +193,12 @@ class AdaptivePolicy {
     required List<TodayTask> tasks,
     required List<StudySession> sessions,
     required ExamModel? primaryExam,
+    bool advancedEnabled = false,
+    bool weeklyReportEnabled = false,
+    bool streakGuardEnabled = false,
+    int weeklyHour = 19,
+    int guardHour = 20,
+    int guardAfterHour = 16,
   }) async {
     if (!NotificationService.isSupported) return;
     if (inFocusSession) return; // đang Focus — đừng đặt lại, tránh đánh thức.
@@ -227,10 +234,38 @@ class AdaptivePolicy {
       primaryExam: primaryExam,
     );
 
-    // Nhắc ôn flashcard đến hạn (SM-2) — mảnh nhắc cuối của chu trình
-    // "học → AI chấm lịch → quay lại đúng lúc". Chỉ lên lịch khi có thẻ
-    // đến hạn để không làm phiền khi lịch trống.
+    // Nhắc ôn flashcard đến hạn (SM-2).
     await syncFlashcardReminder();
+
+    // Thông báo nâng cao (P3): báo cáo tuần + nhắc bảo vệ chuỗi.
+    if (!advancedEnabled) {
+      await NotificationService.cancelId(NotificationService.weeklyReportId);
+      await NotificationService.cancelId(NotificationService.streakGuardId);
+    } else {
+      final planned = planAdvancedNotifications(
+        now: now,
+        sessions: sessions,
+        streak: StorageService.getStreak(),
+        weeklyEnabled: weeklyReportEnabled,
+        streakGuardEnabled: streakGuardEnabled,
+        weeklyHour: weeklyHour,
+        guardHour: guardHour,
+        guardAfterHour: guardAfterHour,
+      );
+      for (final p in planned) {
+      await NotificationService.scheduleAt(
+        id: p.id,
+        when: p.when,
+        title: p.title,
+        body: p.body,
+        payload: p.payload,
+      );
+      }
+      // Nếu planner không trả về streakGuard (vd đã học hôm nay), đảm bảo huỷ.
+      if (!streakGuardEnabled) {
+        await NotificationService.cancelId(NotificationService.streakGuardId);
+      }
+    }
   }
 
   // ------------------------------------------------------------------

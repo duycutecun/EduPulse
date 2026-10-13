@@ -60,6 +60,22 @@ class AuthService {
 
   static Stream<User?>? get authStateChanges => _auth?.authStateChanges();
 
+  /// ID token Firebase hiện tại (null nếu chưa đăng nhập).
+  ///
+  /// Dùng để gọi các API serverless cần xác thực — `/api/openrouter`,
+  /// `/api/gemini`, `/api/search` (xem `api/_guard.js`). Gửi kèm token giúp
+  /// server định danh theo `uid` thay vì chỉ theo IP, phục vụ hạn mức và nhật
+  /// ký kiểm toán. Người dùng ẩn danh vẫn gọi được (chỉ bị giới hạn theo IP).
+  static Future<String?> idToken() async {
+    final user = currentUser;
+    if (user == null) return null;
+    try {
+      return await user.getIdToken();
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ─── INITIALIZATION ───────────────────────────────────────────────────────
 
   static Future<bool> init() async {

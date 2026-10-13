@@ -2,6 +2,9 @@
   "name": "edupulse-api",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",
     "firebase-admin": "^14.5.0",

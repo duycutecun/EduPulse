@@ -7,6 +7,7 @@ import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/sync/backup_service.dart';
+import '../../../../core/sync/change_outbox.dart';
 import '../../../../core/sync/sync_state.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../core/utils/supabase_service.dart';
@@ -365,6 +366,7 @@ class TaskRepository {
     for (final attachment in attachments) {
       StorageService.removeTaskAttachment(id, attachment.id);
     }
+    _recordChange([id], deleted: true);
     _afterMutation();
     return DeletedTaskRef(
       task: task,
@@ -389,6 +391,7 @@ class TaskRepository {
     if (listAttachments(task.id).isEmpty && ref.attachments.isNotEmpty) {
       _restoreAttachments(task.id, ref.attachments);
     }
+    _recordChange([task.id]);
     _afterMutation();
     return TaskMutationResult.success(task);
   }
@@ -465,6 +468,7 @@ class TaskRepository {
     final ids = StorageService.getTaskAttachmentIds(taskId)..add(attachment.id);
     StorageService.setTaskAttachmentIds(taskId, ids);
 
+    _recordChange([taskId]);
     _afterMutation();
     return TaskMutationResult.success(task);
   }
@@ -476,6 +480,7 @@ class TaskRepository {
       return const TaskMutationResult.failure('Không tìm thấy nhiệm vụ');
     }
     StorageService.removeTaskAttachment(taskId, attachmentId);
+    _recordChange([taskId]);
     _afterMutation();
     return TaskMutationResult.success(task);
   }
@@ -493,6 +498,7 @@ class TaskRepository {
     StorageService.setTaskAttachmentIds(taskId, ids);
     StorageService.setTaskAttachmentJson(
         taskId, attachment.id, _encodeAttachment(attachment));
+    _recordChange([taskId]);
     _afterMutation();
     return TaskMutationResult.success(task);
   }
@@ -524,6 +530,7 @@ class TaskRepository {
       return TaskMutationResult.success(null);
     }
     StorageService.setTodayTaskIds(next);
+    _recordChange(next);
     _afterMutation();
     return TaskMutationResult.success(null);
   }
@@ -622,6 +629,9 @@ class TaskRepository {
     for (final attachment in attachments) {
       StorageService.removeTaskAttachment(id, attachment.id);
     }
+    // Các phần con là bản ghi MỚI; task gốc là bản ghi bị xoá.
+    _recordChange(children.map((c) => c.id));
+    _recordChange([id], deleted: true);
     _afterMutation();
 
     return TaskSplitResult(
@@ -654,6 +664,7 @@ class TaskRepository {
     if (listAttachments(original.id).isEmpty) {
       _restoreAttachments(original.id, split.originalAttachments);
     }
+    _recordChange([original.id, ...split.parts.map((p) => p.id)]);
     _afterMutation();
     return TaskMutationResult.success(original);
   }
@@ -693,8 +704,28 @@ class TaskRepository {
       }
     }
     StorageService.setTodayTaskJson(task.id, task.toJsonString());
+    _recordChange([task.id]);
     _afterMutation();
   }
+
+  /// Ghi nhận "bản ghi này vừa đổi trên máy" vào hàng đợi thay đổi (7.2).
+  ///
+  /// Đặt cạnh [_afterMutation] nhưng tách riêng để mỗi lời gọi nói rõ **bản
+  /// ghi nào** vừa đổi: hàng đợi cần id để gộp theo bản ghi và để biết còn gì
+  /// chưa lên cloud, còn `_afterMutation` chỉ cần biết "có gì đó đổi".
+  void _recordChange(Iterable<String> taskIds, {bool deleted = false}) {
+    for (final id in taskIds) {
+      if (id.isEmpty) continue;
+      ChangeOutbox.enqueue(
+        entity: _changeEntity,
+        entityId: id,
+        op: deleted ? PendingChange.opDelete : PendingChange.opUpsert,
+      );
+    }
+  }
+
+  /// Nhãn loại dữ liệu trong hàng đợi thay đổi.
+  static const String _changeEntity = 'task';
 
   /// Mọi thay đổi task đều đi qua đây: refresh UI + chu trình AI + sync cloud.
   void _afterMutation() {
@@ -731,11 +762,19 @@ class TaskRepository {
 
   Future<bool> _pushToCloud() async {
     try {
+      ChangeOutbox.markSyncing(_changeEntity);
       final ok = await SupabaseService.syncTasks(getAllTasks());
-      if (ok) SyncStateService.markSynced();
+      if (ok) {
+        // Cloud đã nhận nhánh task → dọn các dòng chờ của đúng nhánh này.
+        ChangeOutbox.markSyncedForEntity(_changeEntity);
+        SyncStateService.markSynced();
+      } else {
+        ChangeOutbox.markFailedForEntity(_changeEntity);
+      }
       return ok;
     } catch (e) {
       debugPrint('[TaskRepository] Cloud sync failed (offline-first): $e');
+      ChangeOutbox.markFailedForEntity(_changeEntity, 'network');
       return false;
     }
   }

@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../config.dart';
+import 'auth_service.dart';
+
 /// Kết quả tra cứu web thời gian thực.
 class WebLookup {
   final String title;
@@ -37,7 +40,10 @@ class WebSearchService {
     final q = query.trim();
     if (q.isEmpty) return null;
 
-    if (_onWeb) {
+    // Đi qua proxy cùng origin/bản deploy khi ở web (CORS) hoặc khi không có
+    // khoá BYOK — khoá Tavily giữ phía server, không nhúng vào bundle.
+    final hasKey = tavilyApiKey != null && tavilyApiKey.isNotEmpty;
+    if (_onWeb || !hasKey) {
       final result = await _viaProxy(q);
       if (result != null) return result;
     } else {
@@ -60,10 +66,18 @@ class WebSearchService {
 
   /// Gọi endpoint serverless cùng origin (chống CORS, key ẩn phía server).
   static Future<WebLookup?> _viaProxy(String query) async {
-    final base = Uri.base.resolve('/api/search');
+    final base = AppConfig.apiBase().resolve('/api/search');
     final url = base.replace(queryParameters: {'q': query});
     try {
-      final resp = await http.get(url).timeout(const Duration(seconds: 18));
+      // Gửi kèm token Firebase khi đã đăng nhập — proxy (`api/_guard.js`) tính
+      // hạn mức theo `uid` thay vì chỉ theo IP.
+      final headers = <String, String>{};
+      final token = await AuthService.idToken();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final resp =
+          await http.get(url, headers: headers).timeout(const Duration(seconds: 18));
       if (resp.statusCode != 200) return null;
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
       final extract = (data['extract'] as String?)?.trim() ?? '';
