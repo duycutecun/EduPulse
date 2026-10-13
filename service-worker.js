@@ -8,7 +8,7 @@
 // bản cũ và mọi deploy mới không bao giờ tới được người dùng — buộc phải nhớ
 // bump số ở đây, quên là lỗi im lặng. Nay các script không có hash được ưu
 // tiên mạng (xem fetch handler); chỉ `/assets/` có hash mới cache-first.
-const CACHE_NAME = 'edupulse-shell-v9';
+const CACHE_NAME = 'edupulse-shell-v10';
 const OFFLINE_CACHE_NAME = 'edupulse-offline-v1';
 
 // Core app shell precached on install.
@@ -311,3 +311,37 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// ── Web Push: thông báo khi ba mẹ đã đóng app ──────────────────────────────
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+  const title = data.title || 'EduPulse';
+  const options = {
+    body: data.body || 'Con vừa cập nhật tiến độ học tập.',
+    icon: './icons/Icon-192.png',
+    badge: './icons/Icon-96.png',
+    tag: 'edupulse-family',
+    renotify: true,
+    data: { kind: data.kind || 'live', at: data.at || Date.now() },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = './';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
+});
+
