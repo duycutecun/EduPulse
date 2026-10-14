@@ -60,7 +60,8 @@ List<PlannedNotification> planAdvancedNotifications({
   if (weeklyEnabled) {
     // Chủ nhật kế tiếp (luôn sau `now` ít nhất 1 phút).
     var daysUntilSunday = (DateTime.sunday - now.weekday) % 7;
-    var when = DateTime(now.year, now.month, now.day + daysUntilSunday, weeklyHour);
+    var when =
+        DateTime(now.year, now.month, now.day + daysUntilSunday, weeklyHour);
     if (!when.isAfter(now)) {
       when = when.add(const Duration(days: 7));
     }
@@ -87,8 +88,7 @@ List<PlannedNotification> planAdvancedNotifications({
   if (streakGuardEnabled && streak > 0) {
     final today = _dateKey(now);
     final yesterday = _dateKey(now.subtract(const Duration(days: 1)));
-    final studiedToday =
-        sessions.any((s) => _dateKey(s.completedAt) == today);
+    final studiedToday = sessions.any((s) => _dateKey(s.completedAt) == today);
     final studiedYesterday =
         sessions.any((s) => _dateKey(s.completedAt) == yesterday);
 

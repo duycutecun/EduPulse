@@ -118,8 +118,7 @@ void main() {
             width: 390,
             child: DailySummaryCard(
               summary: summary,
-              primaryExam:
-                  examAt(DateTime.now().add(const Duration(days: 3))),
+              primaryExam: examAt(DateTime.now().add(const Duration(days: 3))),
               onExamTap: () {},
               remaining:
                   const Duration(days: 3, hours: 12, minutes: 34, seconds: 56),

@@ -100,9 +100,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
       ),
       child: Text('$count',
           style: const TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              color: Colors.white)),
+              fontSize: 9.5, fontWeight: FontWeight.w800, color: Colors.white)),
     );
   }
 
@@ -154,7 +152,9 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
       if (invite != null) _invite = invite;
     });
     if (invite == null) {
-      _snack(serverError ?? 'Không tạo được mã mời — kiểm tra mạng rồi thử lại nhé.',
+      _snack(
+          serverError ??
+              'Không tạo được mã mời — kiểm tra mạng rồi thử lại nhé.',
           error: true);
     }
   }
@@ -498,8 +498,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text('Tài khoản phụ huynh',
-                    style: TextStyle(
-                        fontSize: 13.5, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
               ),
               if (_familyLoading)
                 const SizedBox(
@@ -676,12 +676,14 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
   Widget _liveCard({required bool linked}) {
     final String hint;
     if (!linked) {
-      hint = 'Liên kết với ba mẹ trước đã, rồi tiến độ sẽ được cập nhật liên tục.';
+      hint =
+          'Liên kết với ba mẹ trước đã, rồi tiến độ sẽ được cập nhật liên tục.';
     } else if (_liveOn) {
       hint = 'Đang bật: mỗi khi số liệu đổi, ba mẹ thấy ngay toàn bộ tiến độ. '
           'Con có thể tạm dừng bất cứ lúc nào.';
     } else {
-      hint = 'Đang tạm dừng. Bật lại để ba mẹ thấy tiến độ liên tục, không phải '
+      hint =
+          'Đang tạm dừng. Bật lại để ba mẹ thấy tiến độ liên tục, không phải '
           'chờ con bấm gửi.';
     }
 
@@ -690,8 +692,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
       decoration: BoxDecoration(
         color: _liveOn ? AppColors.greenSoft : AppColors.bgPageSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: _liveOn ? AppColors.primary : AppColors.border),
+        border:
+            Border.all(color: _liveOn ? AppColors.primary : AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -736,9 +738,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               style: TextStyle(
                 fontSize: 11.5,
                 height: 1.4,
-                color: _liveOn
-                    ? AppColors.primaryDark
-                    : AppColors.textSecondary,
+                color:
+                    _liveOn ? AppColors.primaryDark : AppColors.textSecondary,
               ),
             ),
           ),

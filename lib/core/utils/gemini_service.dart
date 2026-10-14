@@ -182,7 +182,8 @@ class GeminiService {
       mimeType: mimeType,
       webContext: webContext,
     );
-    final systemInstruction = buildSystemInstruction(studyContext: studyContext);
+    final systemInstruction =
+        buildSystemInstruction(studyContext: studyContext);
 
     try {
       // Gọi 1 request duy nhất. Không gửi google_search grounding vì key

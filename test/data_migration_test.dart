@@ -155,7 +155,9 @@ void main() {
     test('vá mâu thuẫn: status=completed nhưng isDone=false → isDone=true', () {
       StorageService.setTodayTaskIds(const ['t1']);
       StorageService.setTodayTaskJson(
-          't1', makeTask(id: 't1', status: 'completed', isDone: false).toJsonString());
+          't1',
+          makeTask(id: 't1', status: 'completed', isDone: false)
+              .toJsonString());
 
       DataMigration.run(DataMigration.defaultSteps());
 

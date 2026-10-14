@@ -7,32 +7,36 @@ import 'package:edupulse/core/platform/platform_capabilities.dart';
 /// service đều đọc để quyết định hiện/ẩn tính năng.
 void main() {
   FeatureAvailability onAndroid(NativeFeature f) =>
-      PlatformCapabilities.availabilityFor(
-          f, isWeb: false, isAndroid: true, isIos: false);
+      PlatformCapabilities.availabilityFor(f,
+          isWeb: false, isAndroid: true, isIos: false);
 
   FeatureAvailability onIos(NativeFeature f) =>
-      PlatformCapabilities.availabilityFor(
-          f, isWeb: false, isAndroid: false, isIos: true);
+      PlatformCapabilities.availabilityFor(f,
+          isWeb: false, isAndroid: false, isIos: true);
 
   FeatureAvailability onWeb(NativeFeature f) =>
-      PlatformCapabilities.availabilityFor(
-          f, isWeb: true, isAndroid: false, isIos: false);
+      PlatformCapabilities.availabilityFor(f,
+          isWeb: true, isAndroid: false, isIos: false);
 
   group('Tính năng chỉ có trên app', () {
     test('chia sẻ: app mở bảng chia sẻ hệ thống, web chỉ có bản thay thế', () {
-      expect(onAndroid(NativeFeature.systemShare), FeatureAvailability.available);
+      expect(
+          onAndroid(NativeFeature.systemShare), FeatureAvailability.available);
       expect(onIos(NativeFeature.systemShare), FeatureAvailability.available);
       expect(onWeb(NativeFeature.systemShare), FeatureAvailability.webFallback);
     });
 
     test('thông báo nhắc học: chỉ chạy trên app native', () {
-      expect(onAndroid(NativeFeature.notifications), FeatureAvailability.available);
+      expect(onAndroid(NativeFeature.notifications),
+          FeatureAvailability.available);
       expect(onIos(NativeFeature.notifications), FeatureAvailability.available);
-      expect(onWeb(NativeFeature.notifications), FeatureAvailability.unavailable);
+      expect(
+          onWeb(NativeFeature.notifications), FeatureAvailability.unavailable);
     });
 
     test('widget màn hình chính: Android có, iOS sắp có, web không có', () {
-      expect(onAndroid(NativeFeature.homeWidget), FeatureAvailability.available);
+      expect(
+          onAndroid(NativeFeature.homeWidget), FeatureAvailability.available);
       expect(onIos(NativeFeature.homeWidget), FeatureAvailability.comingSoon);
       expect(onWeb(NativeFeature.homeWidget), FeatureAvailability.unavailable);
     });
@@ -78,7 +82,8 @@ void main() {
       expect(PlatformCapabilities.isAndroidApp, isTrue);
       expect(PlatformCapabilities.isNativeApp, isTrue);
       expect(PlatformCapabilities.platformLabel, 'Ứng dụng Android');
-      expect(PlatformCapabilities.supports(NativeFeature.notifications), isTrue);
+      expect(
+          PlatformCapabilities.supports(NativeFeature.notifications), isTrue);
       expect(PlatformCapabilities.supports(NativeFeature.homeWidget), isTrue);
       debugDefaultTargetPlatformOverride = null;
     });
@@ -88,11 +93,11 @@ void main() {
 
       expect(PlatformCapabilities.isIosApp, isTrue);
       expect(PlatformCapabilities.platformLabel, 'Ứng dụng iOS');
-      expect(PlatformCapabilities.supports(NativeFeature.notifications), isTrue);
+      expect(
+          PlatformCapabilities.supports(NativeFeature.notifications), isTrue);
       expect(PlatformCapabilities.supports(NativeFeature.systemShare), isTrue);
       expect(PlatformCapabilities.supports(NativeFeature.haptics), isTrue);
-      expect(
-          PlatformCapabilities.supports(NativeFeature.homeWidget), isFalse);
+      expect(PlatformCapabilities.supports(NativeFeature.homeWidget), isFalse);
       debugDefaultTargetPlatformOverride = null;
     });
 
@@ -102,7 +107,8 @@ void main() {
 
       expect(PlatformCapabilities.isNativeApp, isFalse);
       expect(PlatformCapabilities.platformLabel, 'Máy tính');
-      expect(PlatformCapabilities.supports(NativeFeature.notifications), isFalse);
+      expect(
+          PlatformCapabilities.supports(NativeFeature.notifications), isFalse);
       expect(PlatformCapabilities.supports(NativeFeature.homeWidget), isFalse);
       debugDefaultTargetPlatformOverride = null;
     });

@@ -58,8 +58,7 @@ void main() {
 
   test('tắt đồng ý → xóa bộ đệm', () {
     ProductAnalytics.instance.setEnabled(true);
-    ProductAnalytics.instance
-        .track(ProductEvents.onboardingCompleted);
+    ProductAnalytics.instance.track(ProductEvents.onboardingCompleted);
     expect(ProductAnalytics.instance.recent(), isNotEmpty);
 
     ProductAnalytics.instance.setEnabled(false);

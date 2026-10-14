@@ -62,8 +62,7 @@ void main() {
     expect(find.text('Chủ đề cần ôn lại'), findsNothing);
   });
 
-  testWidgets('"Ôn chủ đề này" tạo nhiệm vụ mang đúng chủ đề',
-      (tester) async {
+  testWidgets('"Ôn chủ đề này" tạo nhiệm vụ mang đúng chủ đề', (tester) async {
     seedScore(id: 'a', subject: 'Toán', topic: 'Hàm số', score: 4.0);
 
     await openScoreTab(tester);

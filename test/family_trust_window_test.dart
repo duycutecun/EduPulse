@@ -99,7 +99,8 @@ void main() {
       final fresh = FamilyInvite(
           code: '12345678', expiresAt: now.add(const Duration(hours: 2)));
       final expired = FamilyInvite(
-          code: '12345678', expiresAt: now.subtract(const Duration(minutes: 1)));
+          code: '12345678',
+          expiresAt: now.subtract(const Duration(minutes: 1)));
 
       expect(fresh.isUsableAt(now), isTrue);
       expect(expired.isUsableAt(now), isFalse);
@@ -249,8 +250,7 @@ void main() {
           daysToExam: 120,
         );
 
-    testWidgets('có tên app, mô tả app và link tải ở chân ảnh',
-        (tester) async {
+    testWidgets('có tên app, mô tả app và link tải ở chân ảnh', (tester) async {
       await pumpCard(tester, cardData());
 
       // Đây là yêu cầu trực tiếp: người xem ảnh phải biết đây là app gì.
@@ -312,9 +312,11 @@ void main() {
       expect(bytes, isNotNull);
       final png = bytes!;
       // 8 byte đầu của mọi tệp PNG.
-      expect(png.sublist(0, 8), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+      expect(
+          png.sublist(0, 8), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
       expect(png.length, greaterThan(5000),
-          reason: 'ảnh rỗng/hỏng thì quá nhỏ so với một thẻ có chữ và linh vật');
+          reason:
+              'ảnh rỗng/hỏng thì quá nhỏ so với một thẻ có chữ và linh vật');
 
       // Kích thước nằm trong chunk IHDR: 4 byte rộng + 4 byte cao, big-endian,
       // bắt đầu ở offset 16. Đọc thẳng byte thay vì decode — không cần engine.
@@ -368,8 +370,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets(
-        'khung xem trước nhỏ nhưng ảnh CHỤP RA vẫn ở khổ thật 360x640',
+    testWidgets('khung xem trước nhỏ nhưng ảnh CHỤP RA vẫn ở khổ thật 360x640',
         (tester) async {
       // Màn hình thấp: xem trước chắc chắn phải thu nhỏ.
       tester.view.physicalSize = const Size(400, 620);

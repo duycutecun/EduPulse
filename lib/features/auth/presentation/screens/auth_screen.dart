@@ -362,7 +362,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   : 'Tài khoản học sinh: 2 lựa chọn đăng nhập — 1 là học sinh, 2 là phụ huynh. '
                       'Đăng nhập xong, bạn vào app học tập để đếm ngược kỳ thi và chia sẻ thành tựu.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11.5, color: _kMuted, height: 1.35),
+              style:
+                  const TextStyle(fontSize: 11.5, color: _kMuted, height: 1.35),
             ),
             const SizedBox(height: 14),
           ] else
@@ -470,9 +471,7 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  size: 16,
-                  color: active ? _kAccent : _kMuted),
+              Icon(icon, size: 16, color: active ? _kAccent : _kMuted),
               const SizedBox(width: 6),
               Text(
                 label,

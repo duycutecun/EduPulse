@@ -91,48 +91,49 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Row(
-              children: [
-                const Text('🏅', style: TextStyle(fontSize: 22)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Thành tích & huy hiệu',
-                    style: AppTokens.heading2,
+              Row(
+                children: [
+                  const Text('🏅', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Thành tích & huy hiệu',
+                      style: AppTokens.heading2,
+                    ),
                   ),
-                ),
-                Text(
-                  '$unlockedCount/${kAchievements.length}',
-                  style: AppTokens.body.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w700,
+                  Text(
+                    '$unlockedCount/${kAchievements.length}',
+                    style: AppTokens.body.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _SummaryRow(stats: _stats),
+              const SizedBox(height: 8),
+              Text(
+                'Huy hiệu theo hành vi bền vững — không ai thưởng "cày điểm" cả.',
+                style:
+                    AppTokens.caption.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 160,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 1.05,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _SummaryRow(stats: _stats),
-            const SizedBox(height: 8),
-            Text(
-              'Huy hiệu theo hành vi bền vững — không ai thưởng "cày điểm" cả.',
-              style: AppTokens.caption.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 160,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.05,
+                itemCount: _states.length,
+                itemBuilder: (context, i) => _AchievementTile(
+                  state: _states[i],
+                  isNewest: false,
+                ),
               ),
-              itemCount: _states.length,
-              itemBuilder: (context, i) => _AchievementTile(
-                state: _states[i],
-                isNewest: false,
-              ),
-            ),
             ],
           ),
         ),
@@ -197,8 +198,8 @@ class _SummaryRow extends StatelessWidget {
               ),
               Text(
                 '🏆 Kỷ lục ${stats.streakRecord}',
-                style: AppTokens.caption.copyWith(
-                    color: AppColors.textSecondary),
+                style:
+                    AppTokens.caption.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -241,7 +242,9 @@ class _AchievementTile extends StatelessWidget {
         color: unlocked ? AppColors.cardWhite : AppColors.bgPage,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: unlocked ? AppColors.primary.withValues(alpha: 0.5) : AppColors.border,
+          color: unlocked
+              ? AppColors.primary.withValues(alpha: 0.5)
+              : AppColors.border,
           width: 1.5,
         ),
       ),
@@ -273,9 +276,7 @@ class _AchievementTile extends StatelessWidget {
               textAlign: TextAlign.center,
               style: AppTokens.caption.copyWith(
                 fontSize: 11,
-                color: unlocked
-                    ? AppColors.textSecondary
-                    : AppColors.textMuted,
+                color: unlocked ? AppColors.textSecondary : AppColors.textMuted,
               ),
             ),
           ),

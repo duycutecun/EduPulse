@@ -43,8 +43,18 @@ void main() {
       final raw = jsonEncode({
         'summary': 'Tuần khởi đầu',
         'tasks': [
-          {'title': 'Ôn hàm số', 'subject': 'Toán', 'day': 1, 'estimateMinutes': 5},
-          {'title': 'Đọc lý thuyết', 'subject': 'Lý', 'day': 2, 'estimateMinutes': 999},
+          {
+            'title': 'Ôn hàm số',
+            'subject': 'Toán',
+            'day': 1,
+            'estimateMinutes': 5
+          },
+          {
+            'title': 'Đọc lý thuyết',
+            'subject': 'Lý',
+            'day': 2,
+            'estimateMinutes': 999
+          },
           {'title': '', 'subject': 'Hóa', 'day': 3, 'estimateMinutes': 30},
         ],
       });

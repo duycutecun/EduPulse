@@ -47,7 +47,9 @@ List<WeeklyScoreBucket> weeklyAverageScores(
   }).toList();
 
   weeks.sort((a, b) => a.weekStart.compareTo(b.weekStart));
-  return weeks.length > maxWeeks ? weeks.sublist(weeks.length - maxWeeks) : weeks;
+  return weeks.length > maxWeeks
+      ? weeks.sublist(weeks.length - maxWeeks)
+      : weeks;
 }
 
 /// Báo cáo sâu (P2) — gộp toàn bộ phân tích dài hạn từ [scores] và [sessions].

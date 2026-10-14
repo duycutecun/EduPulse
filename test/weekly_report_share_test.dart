@@ -31,8 +31,10 @@ void main() {
   group('WeeklyReport.build — Điểm thi thử mới nhất', () {
     test('lấy điểm có NGÀY gần nhất, không phải bản ghi đứng trước', () {
       StorageService.setMockScoreIds(['old', 'new']);
-      StorageService.setMockScoreJson('old', score('old', DateTime(2026, 6, 1), 'Toán', 5.0).toJsonString());
-      StorageService.setMockScoreJson('new', score('new', DateTime(2026, 6, 5), 'Toán', 8.5).toJsonString());
+      StorageService.setMockScoreJson('old',
+          score('old', DateTime(2026, 6, 1), 'Toán', 5.0).toJsonString());
+      StorageService.setMockScoreJson('new',
+          score('new', DateTime(2026, 6, 5), 'Toán', 8.5).toJsonString());
 
       final report = WeeklyReport.build(
         enabled: onlyEnabled('mock_score'),
@@ -47,8 +49,10 @@ void main() {
     test('danh sách bị đảo thứ tự vẫn chọn bản mới nhất theo ngày', () {
       // Giả lập dữ liệu sau khôi phục: bản "mới" lại nằm trước trong ids.
       StorageService.setMockScoreIds(['new', 'old']);
-      StorageService.setMockScoreJson('new', score('new', DateTime(2026, 8, 9), 'Lý', 9.0).toJsonString());
-      StorageService.setMockScoreJson('old', score('old', DateTime(2026, 7, 2), 'Lý', 6.5).toJsonString());
+      StorageService.setMockScoreJson(
+          'new', score('new', DateTime(2026, 8, 9), 'Lý', 9.0).toJsonString());
+      StorageService.setMockScoreJson(
+          'old', score('old', DateTime(2026, 7, 2), 'Lý', 6.5).toJsonString());
 
       final report = WeeklyReport.build(
         enabled: onlyEnabled('mock_score'),
@@ -64,7 +68,8 @@ void main() {
         enabled: onlyEnabled('mock_score'),
         now: DateTime(2026, 6, 30),
       );
-      expect(report, isNull, reason: 'chỉ bật mục mock_score nhưng chưa có dữ liệu');
+      expect(report, isNull,
+          reason: 'chỉ bật mục mock_score nhưng chưa có dữ liệu');
     });
   });
 
@@ -75,8 +80,14 @@ void main() {
     test('chưa ghim kỳ thi chính → vẫn đếm kỳ thi chưa qua gần nhất', () {
       final now = DateTime(2026, 10, 10);
       StorageService.setExamIds(['xe', 'near']);
-      StorageService.setExamJson('xe', exam('xe', 'THPT 2027', now.add(const Duration(days: 90))).toJsonString());
-      StorageService.setExamJson('near', exam('near', 'Giữa kỳ 1', now.add(const Duration(days: 30))).toJsonString());
+      StorageService.setExamJson(
+          'xe',
+          exam('xe', 'THPT 2027', now.add(const Duration(days: 90)))
+              .toJsonString());
+      StorageService.setExamJson(
+          'near',
+          exam('near', 'Giữa kỳ 1', now.add(const Duration(days: 30)))
+              .toJsonString());
 
       final report = WeeklyReport.build(
         enabled: onlyEnabled('exam_countdown'),
@@ -92,8 +103,14 @@ void main() {
       final now = DateTime(2026, 10, 10);
       StorageService.setPrimaryExamId('past');
       StorageService.setExamIds(['past', 'near']);
-      StorageService.setExamJson('past', exam('past', 'Đã thi', now.subtract(const Duration(days: 1))).toJsonString());
-      StorageService.setExamJson('near', exam('near', 'Cuối kỳ 1', now.add(const Duration(days: 45))).toJsonString());
+      StorageService.setExamJson(
+          'past',
+          exam('past', 'Đã thi', now.subtract(const Duration(days: 1)))
+              .toJsonString());
+      StorageService.setExamJson(
+          'near',
+          exam('near', 'Cuối kỳ 1', now.add(const Duration(days: 45)))
+              .toJsonString());
 
       final report = WeeklyReport.build(
         enabled: onlyEnabled('exam_countdown'),
@@ -108,8 +125,14 @@ void main() {
       final now = DateTime(2026, 10, 10);
       StorageService.setPrimaryExamId('pinned');
       StorageService.setExamIds(['far', 'pinned']);
-      StorageService.setExamJson('far', exam('far', 'Kỳ thi xa', now.add(const Duration(days: 200))).toJsonString());
-      StorageService.setExamJson('pinned', exam('pinned', 'Kỳ thi ghim', now.add(const Duration(days: 15))).toJsonString());
+      StorageService.setExamJson(
+          'far',
+          exam('far', 'Kỳ thi xa', now.add(const Duration(days: 200)))
+              .toJsonString());
+      StorageService.setExamJson(
+          'pinned',
+          exam('pinned', 'Kỳ thi ghim', now.add(const Duration(days: 15)))
+              .toJsonString());
 
       final report = WeeklyReport.build(
         enabled: onlyEnabled('exam_countdown'),
@@ -141,8 +164,13 @@ void main() {
       StorageService.setMockScoreJson(
           'm', score('m', DateTime(2026, 10, 1), 'Toán', 8.5).toJsonString());
       StorageService.setExamIds(['near']);
-      StorageService.setExamJson('near',
-          ExamModel(id: 'near', name: 'Cuối kỳ 1', dateTime: now.add(const Duration(days: 20))).toJsonString());
+      StorageService.setExamJson(
+          'near',
+          ExamModel(
+                  id: 'near',
+                  name: 'Cuối kỳ 1',
+                  dateTime: now.add(const Duration(days: 20)))
+              .toJsonString());
 
       final report =
           WeeklyReport.build(enabled: WeeklyReport.defaultChoices, now: now);
@@ -159,8 +187,13 @@ void main() {
       StorageService.setMockScoreJson(
           'm', score('m', DateTime(2026, 10, 1), 'Toán', 8.5).toJsonString());
       StorageService.setExamIds(['near']);
-      StorageService.setExamJson('near',
-          ExamModel(id: 'near', name: 'Cuối kỳ 1', dateTime: now.add(const Duration(days: 20))).toJsonString());
+      StorageService.setExamJson(
+          'near',
+          ExamModel(
+                  id: 'near',
+                  name: 'Cuối kỳ 1',
+                  dateTime: now.add(const Duration(days: 20)))
+              .toJsonString());
 
       final report = WeeklyReport.build(
         enabled: {

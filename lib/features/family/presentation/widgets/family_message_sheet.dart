@@ -30,8 +30,9 @@ class FamilyMessageSheet {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) =>
-          SizedBox(height: MediaQuery.sizeOf(ctx).height * 0.72, child: _Body(
+      builder: (ctx) => SizedBox(
+          height: MediaQuery.sizeOf(ctx).height * 0.72,
+          child: _Body(
             linkId: linkId,
             otherName: otherName,
             myRole: myRole,
@@ -148,7 +149,8 @@ class _BodyState extends State<_Body> {
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: ErrorStatePanel(message: _error!, onRetry: _load),
+                        child:
+                            ErrorStatePanel(message: _error!, onRetry: _load),
                       ),
                     )
                   : ListView(
@@ -219,8 +221,8 @@ class _BodyState extends State<_Body> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width * 0.72),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.72),
         decoration: BoxDecoration(
           color: mine ? AppColors.primary : AppColors.bgPageSoft,
           borderRadius: BorderRadius.circular(12),
@@ -247,9 +249,7 @@ class _BodyState extends State<_Body> {
                 if (mine) ...[
                   const SizedBox(width: 4),
                   Icon(
-                    m.isRead
-                        ? Icons.done_all_rounded
-                        : Icons.done_rounded,
+                    m.isRead ? Icons.done_all_rounded : Icons.done_rounded,
                     size: 12,
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
@@ -282,8 +282,8 @@ class _BodyState extends State<_Body> {
                       const TextStyle(fontSize: 13, color: AppColors.textMuted),
                   filled: true,
                   fillColor: AppColors.bgPageSoft,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),

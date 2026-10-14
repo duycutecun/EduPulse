@@ -116,8 +116,7 @@ const List<_QuickRating> _quickRatings = [
 ];
 
 /// Thang đánh giá chi tiết 1–5 dùng trong chế độ "Thêm đánh giá chi tiết".
-Widget _reflectionScale(
-    String label, int value, ValueChanged<int> onChanged) {
+Widget _reflectionScale(String label, int value, ValueChanged<int> onChanged) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(
@@ -161,11 +160,11 @@ Future<void> showAiPostFocusSheet({
   required BuildContext context,
   required StudySession session,
   required bool hasSelectedTask,
-  required Future<void> Function(
-          BuildContext sheetContext, StudySession session, SessionFeedback feedback)
+  required Future<void> Function(BuildContext sheetContext,
+          StudySession session, SessionFeedback feedback)
       onSave,
-  required Future<void> Function(
-          BuildContext sheetContext, StudySession session, SessionFeedback feedback)
+  required Future<void> Function(BuildContext sheetContext,
+          StudySession session, SessionFeedback feedback)
       onCompleteAndGo,
   required Future<void> Function(String subject) onScheduleReview,
   required void Function(String subject, {String? sessionId}) onQuickNote,
@@ -264,12 +263,10 @@ Future<void> showAiPostFocusSheet({
                               understandingLevel = option.understood ? 1 : 0;
                             }),
                             child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 10),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
                                 color: quickRating == option.value
-                                    ? AppColors.primary
-                                        .withValues(alpha: 0.15)
+                                    ? AppColors.primary.withValues(alpha: 0.15)
                                     : AppColors.cardLight,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
@@ -336,8 +333,7 @@ Future<void> showAiPostFocusSheet({
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text('👍',
-                                  style: TextStyle(fontSize: 16)),
+                              const Text('👍', style: TextStyle(fontSize: 16)),
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
@@ -385,8 +381,7 @@ Future<void> showAiPostFocusSheet({
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text('🤔',
-                                  style: TextStyle(fontSize: 16)),
+                              const Text('🤔', style: TextStyle(fontSize: 16)),
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
@@ -446,8 +441,7 @@ Future<void> showAiPostFocusSheet({
                             label: const Text('🧠 Test nhanh 1 câu AI'),
                             backgroundColor: Colors.white,
                             side: BorderSide(
-                                color:
-                                    AppColors.purple.withValues(alpha: 0.4)),
+                                color: AppColors.purple.withValues(alpha: 0.4)),
                             labelStyle: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,

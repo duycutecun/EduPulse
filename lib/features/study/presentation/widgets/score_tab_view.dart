@@ -117,8 +117,9 @@ class ScoreTabView extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color:
-                          scores.isEmpty ? AppColors.cardLight : AppColors.purple,
+                      color: scores.isEmpty
+                          ? AppColors.cardLight
+                          : AppColors.purple,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: scores.isEmpty
@@ -297,7 +298,8 @@ class ScoreTabView extends StatelessWidget {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [
-            Icon(Icons.trending_down_rounded, size: 17, color: AppColors.orange),
+            Icon(Icons.trending_down_rounded,
+                size: 17, color: AppColors.orange),
             SizedBox(width: 7),
             Text('Chủ đề cần ôn lại',
                 style: TextStyle(
@@ -332,8 +334,8 @@ class ScoreTabView extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () => onScheduleTopicReview(t.subject, t.topic),
                     icon: const Icon(Icons.add_task_rounded, size: 16),
-                    label:
-                        const Text('Ôn chủ đề này', style: TextStyle(fontSize: 12)),
+                    label: const Text('Ôn chủ đề này',
+                        style: TextStyle(fontSize: 12)),
                   ),
                 ],
               ),

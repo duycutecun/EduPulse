@@ -13,8 +13,7 @@ class FamilyInvite {
   final DateTime? expiresAt;
 
   /// Mã còn dùng được không (chưa hết hạn).
-  bool isUsableAt(DateTime now) =>
-      expiresAt == null || expiresAt!.isAfter(now);
+  bool isUsableAt(DateTime now) => expiresAt == null || expiresAt!.isAfter(now);
 
   static FamilyInvite? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -74,8 +73,7 @@ class FamilyGoal {
     return '$target$unit';
   }
 
-  static final List<String> metricsOrder =
-      List<String>.from(_labels.keys);
+  static final List<String> metricsOrder = List<String>.from(_labels.keys);
 
   static FamilyGoal? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -86,9 +84,8 @@ class FamilyGoal {
     return FamilyGoal(
       metric: metric,
       target: target,
-      updatedAt: updated <= 0
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(updated),
+      updatedAt:
+          updated <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(updated),
     );
   }
 }
@@ -131,8 +128,7 @@ class FamilyMessage {
       fromRole: role == 'parent' ? 'parent' : 'child',
       body: '${raw['body'] ?? ''}',
       createdAt: DateTime.fromMillisecondsSinceEpoch(at),
-      readAt:
-          read <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(read),
+      readAt: read <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(read),
     );
   }
 }
@@ -235,8 +231,9 @@ class FamilyMember {
       name: ('${raw['name'] ?? ''}'.trim().isEmpty)
           ? 'Thành viên'
           : '${raw['name']}'.trim(),
-      linkedAt:
-          linkedAt == null ? null : DateTime.fromMillisecondsSinceEpoch(linkedAt),
+      linkedAt: linkedAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(linkedAt),
       latestReportAt:
           latest == null ? null : DateTime.fromMillisecondsSinceEpoch(latest),
       liveAt: live == null ? null : DateTime.fromMillisecondsSinceEpoch(live),
@@ -395,8 +392,9 @@ class ChildProgress {
     return ChildProgress(
       live: _readLive(raw['live']),
       reports: reports,
-      serverTime:
-          serverAt == null ? null : DateTime.fromMillisecondsSinceEpoch(serverAt),
+      serverTime: serverAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(serverAt),
     );
   }
 

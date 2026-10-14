@@ -112,8 +112,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
       body: RefreshIndicator(
         onRefresh: () async => _reload(),
         child: SingleChildScrollView(
-          physics:
-              const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,8 +186,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           const Text('Tuần này',
-              style: TextStyle(
-                  fontSize: 9.5, color: AppColors.textSecondary)),
+              style: TextStyle(fontSize: 9.5, color: AppColors.textSecondary)),
           Text(text,
               style: const TextStyle(
                   fontSize: 13,
@@ -241,7 +240,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
+              style:
+                  const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
         ],
       ),
     );
@@ -294,9 +294,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
   Widget _trendChart(DeepReport report) {
     final buckets = report.weeklyBuckets;
     const chartHeight = 84.0;
-    final maxValue = buckets
-        .map((b) => b.average)
-        .fold(3.0, (m, v) => v > m ? v : m);
+    final maxValue =
+        buckets.map((b) => b.average).fold(3.0, (m, v) => v > m ? v : m);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -314,7 +313,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                 const SizedBox(height: 3),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  height: (bucket.average / maxValue.clamp(3, 10)) * chartHeight,
+                  height:
+                      (bucket.average / maxValue.clamp(3, 10)) * chartHeight,
                   decoration: BoxDecoration(
                     color: _scoreColor(bucket.average),
                     borderRadius:
@@ -345,10 +345,12 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
     final String text;
     final Color color;
     if (trend.trend == 'up') {
-      text = 'Điểm đang tăng +${trend.delta!.toStringAsFixed(1)} so với lần trước.';
+      text =
+          'Điểm đang tăng +${trend.delta!.toStringAsFixed(1)} so với lần trước.';
       color = AppColors.greenDark;
     } else if (trend.trend == 'down') {
-      text = 'Điểm đang giảm nhẹ. Xem phần chủ đề yếu bên dưới để ưu tiên ôn lại.';
+      text =
+          'Điểm đang giảm nhẹ. Xem phần chủ đề yếu bên dưới để ưu tiên ôn lại.';
       color = AppColors.orangeDark;
     } else if (trend.trend == 'flat') {
       text = 'Điểm đang ổn định. Giữ nhịp thi thử định kỳ nhé!';
@@ -435,8 +437,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
         ),
         const SizedBox(width: 6),
         Text('×${subject.count}',
-            style:
-                const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
       ],
     );
   }
@@ -581,7 +582,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Hiệu quả phiên học',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+                  style:
+                      TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
               Text(efficiency.description,
                   style: const TextStyle(
                       fontSize: 11.5, color: AppColors.textSecondary)),
@@ -644,7 +646,8 @@ class _SectionTitle extends StatelessWidget {
         Icon(icon, size: 17, color: color),
         const SizedBox(width: 8),
         Text(title,
-            style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
+            style:
+                const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
       ],
     );
   }

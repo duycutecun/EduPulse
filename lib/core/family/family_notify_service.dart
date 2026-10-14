@@ -84,7 +84,8 @@ class FamilyNotifyService {
     if (changed) StorageService.setString(seenKey, jsonEncode(seen));
   }
 
-  static Future<void> _notify(FamilyMember child, {required bool isLive}) async {
+  static Future<void> _notify(FamilyMember child,
+      {required bool isLive}) async {
     final show = debugShow ?? NotificationService.showNow;
     try {
       await show(

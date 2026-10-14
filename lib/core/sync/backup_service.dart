@@ -149,9 +149,8 @@ class BackupService {
             event: 'snapshot',
             callback: (payload) {
               final rev = (payload['payload']?['revision'] ??
-                      payload['revision'] ??
-                      0)
-                  as int;
+                  payload['revision'] ??
+                  0) as int;
               if (rev <= 0) {
                 // Tín hiệu không mang số — vẫn kéo cho chắc, thay vì bỏ qua
                 // và chờ tới chu kỳ poll.
@@ -163,20 +162,20 @@ class BackupService {
             },
           )
           .subscribe((status, error) {
-            if (status == RealtimeSubscribeStatus.subscribed) {
-              _live = true;
-            } else if (status == RealtimeSubscribeStatus.closed ||
-                status == RealtimeSubscribeStatus.timedOut) {
-              // Đường tắt hỏng — vẫn đồng bộ bình thường bằng poll. Realtime
-              // client tự kết nối lại nếu socket chết, nên không tự thêm
-              // hẹn giờ thử lại: sẽ tự dính vào vòng lặp vô tận khi mạng tắt.
-              _live = false;
-              debugPrint('[BackupService] Realtime ngắt ($status) — dùng poll.');
-            }
-            if (error != null) {
-              debugPrint('[BackupService] Realtime lỗi: $error');
-            }
-          });
+        if (status == RealtimeSubscribeStatus.subscribed) {
+          _live = true;
+        } else if (status == RealtimeSubscribeStatus.closed ||
+            status == RealtimeSubscribeStatus.timedOut) {
+          // Đường tắt hỏng — vẫn đồng bộ bình thường bằng poll. Realtime
+          // client tự kết nối lại nếu socket chết, nên không tự thêm
+          // hẹn giờ thử lại: sẽ tự dính vào vòng lặp vô tận khi mạng tắt.
+          _live = false;
+          debugPrint('[BackupService] Realtime ngắt ($status) — dùng poll.');
+        }
+        if (error != null) {
+          debugPrint('[BackupService] Realtime lỗi: $error');
+        }
+      });
     } catch (e) {
       // Không cấu hình / client chưa sẵn sàng: bỏ qua, poll lo phần còn lại.
       _live = false;
@@ -538,7 +537,8 @@ class BackupService {
   /// Ảnh đã xoá trên máy nhưng còn trong chỉ mục đã gửi → báo xoá cho cloud.
   static List<String> _removedBlobs() {
     final local = _localBlobs();
-    return _blobIndex().keys
+    return _blobIndex()
+        .keys
         .where((key) => !local.containsKey(key))
         .toList(growable: false);
   }
@@ -551,7 +551,10 @@ class BackupService {
     final now = DateTime.now().millisecondsSinceEpoch;
     for (final key in sentKeys) {
       final json = byKey[key]?['base64'] as String?;
-      index[key] = {'checksum': BackupService.checksum(json ?? ''), 'updatedAt': now};
+      index[key] = {
+        'checksum': BackupService.checksum(json ?? ''),
+        'updatedAt': now
+      };
     }
     _saveBlobIndex();
   }
@@ -720,12 +723,12 @@ class BackupService {
     final token = await _idToken();
     if (token == null) return const {};
     try {
-      final resp = await http
-          .get(
-            AppConfig.apiBase().resolve('/api/backup').replace(queryParameters: query),
-            headers: {'Authorization': 'Bearer $token'},
-          )
-          .timeout(const Duration(seconds: 20));
+      final resp = await http.get(
+        AppConfig.apiBase()
+            .resolve('/api/backup')
+            .replace(queryParameters: query),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 20));
       return _decode(resp);
     } catch (e) {
       debugPrint('[BackupService] Mạng lỗi, hoãn đồng bộ: $e');

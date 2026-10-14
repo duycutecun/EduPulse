@@ -99,7 +99,8 @@ void main() async {
           .toList(),
       sessions: StudySessionRepository.instance.getAll(),
       primaryExam: null,
-      advancedEnabled: StorageService.getBool('notif_advanced_enabled') ?? false,
+      advancedEnabled:
+          StorageService.getBool('notif_advanced_enabled') ?? false,
       weeklyReportEnabled:
           StorageService.getBool('notif_advanced_enabled') ?? false,
       streakGuardEnabled:

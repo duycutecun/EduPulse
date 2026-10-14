@@ -148,7 +148,10 @@ class LiveProgressService {
   @visibleForTesting
   static String fingerprintOf(WeeklyReportData report) {
     final buffer = StringBuffer(report.headline);
-    if (report.checkin != null) buffer..write('@')..write(report.checkin);
+    if (report.checkin != null)
+      buffer
+        ..write('@')
+        ..write(report.checkin);
     for (final item in report.items) {
       buffer
         ..write('|')
@@ -157,7 +160,10 @@ class LiveProgressService {
         ..write(item.title)
         ..write('=')
         ..write(item.value);
-      if (item.detail != null) buffer..write('~')..write(item.detail);
+      if (item.detail != null)
+        buffer
+          ..write('~')
+          ..write(item.detail);
     }
     return buffer.toString();
   }

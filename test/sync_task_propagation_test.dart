@@ -19,7 +19,8 @@ void main() {
   });
 
   group('Sync toàn thiết bị — gốc của yêu cầu desktop→phone', () {
-    test('thêm task trên A bắn revision + lưu đủ field để chụp snapshot', () async {
+    test('thêm task trên A bắn revision + lưu đủ field để chụp snapshot',
+        () async {
       final repo = TaskRepository.instance;
 
       final before = repo.revision.value;
@@ -52,7 +53,8 @@ void main() {
       expect(saved.updatedAt, isNotNull);
     });
 
-    test('máy B áp snapshot máy A thì thấy task vừa thêm + bắn revision', () async {
+    test('máy B áp snapshot máy A thì thấy task vừa thêm + bắn revision',
+        () async {
       final repoA = TaskRepository.instance;
 
       final taskA = TodayTask(
@@ -130,7 +132,8 @@ void main() {
       expect(repoANew.getTaskById('t-a'), isNotNull);
     });
 
-    test('thay đổi trên A không làm mất task của B khi đẩy bản mới nhất', () async {
+    test('thay đổi trên A không làm mất task của B khi đẩy bản mới nhất',
+        () async {
       // Máy A tạo t-only-a rồi lưu snapshot làm cơ sở.
       final repoA = TaskRepository.instance;
       final taskA = TodayTask(

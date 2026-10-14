@@ -38,8 +38,8 @@ void main() {
     StorageService.setUserName('Minh');
     StorageService.setUserTarget('Đại học Bách Khoa');
     StorageService.setExamIds(['e1']);
-    StorageService.setExamJson(
-        'e1', '{"id":"e1","name":"Kỳ thi THPT","updatedAt":"2026-01-01T00:00:00.000"}');
+    StorageService.setExamJson('e1',
+        '{"id":"e1","name":"Kỳ thi THPT","updatedAt":"2026-01-01T00:00:00.000"}');
     StorageService.setPrimaryExamId('e1');
     StorageService.setTodayTaskIds(['t1']);
     StorageService.setTodayTaskJson(
@@ -60,7 +60,8 @@ void main() {
     StorageService.setStreakFreezes(2);
     StorageService.setMascotAccessory('crown');
     StorageService.setMascotBondExp(640);
-    StorageService.setString('mascot_last_fortune_text', 'Học chăm chỉ sẽ được quả');
+    StorageService.setString(
+        'mascot_last_fortune_text', 'Học chăm chỉ sẽ được quả');
 
     // Cài đặt & hồ sơ.
     StorageService.setAiModel('openai/gpt-oss-120b');
@@ -152,8 +153,7 @@ void main() {
       }
     });
 
-    test('mọi khoá trong deviceLocalKeys đều bị loại (chốt bằng test)',
-        () {
+    test('mọi khoá trong deviceLocalKeys đều bị loại (chốt bằng test)', () {
       // Bảo đảm không khoá nào lọt xuống cloud khi thêm mới sau này.
       for (final key in BackupService.deviceLocalKeys) {
         StorageService.setString(key, 'x');
@@ -192,8 +192,8 @@ void main() {
       seedEverything();
       // Thành lập bản phụ liệu (previousSnapshot) để capture sau này phát
       // hiện khoá bị xoá qua danh sách _deleted_keys.
-      StorageService.setString(
-          BackupSnapshot.previousSnapshotKey, jsonEncode(BackupSnapshot.capture()));
+      StorageService.setString(BackupSnapshot.previousSnapshotKey,
+          jsonEncode(BackupSnapshot.capture()));
       // Xoá task_t1 khỏi storage thật sự để capture phát hiện việc xoá.
       StorageService.removeTodayTask('t1');
       final cloud = BackupSnapshot.capture()
@@ -215,8 +215,8 @@ void main() {
 
       // Thành lập bản phụ liệu (previousSnapshot) để capture sau này phát
       // hiện khoá bị xoá qua danh sách _deleted_keys.
-      StorageService.setString(
-          BackupSnapshot.previousSnapshotKey, jsonEncode(BackupSnapshot.capture()));
+      StorageService.setString(BackupSnapshot.previousSnapshotKey,
+          jsonEncode(BackupSnapshot.capture()));
 
       // Máy B xoá ghi chú n2 rồi đồng bộ lên cloud → đây là bản cloud.
       StorageService.removeStudyNote('n2');
@@ -269,8 +269,7 @@ void main() {
     test('bắn tín hiệu cho repository vẽ lại (dữ liệu ghi thẳng ngoài repo)',
         () {
       final tasksBefore = TaskRepository.instance.revision.value;
-      final sessionsBefore =
-          StudySessionRepository.instance.revision.value;
+      final sessionsBefore = StudySessionRepository.instance.revision.value;
 
       BackupSnapshot.apply(seedEverything());
 
@@ -317,7 +316,9 @@ void main() {
     test('bản cất giữ không đi lên cloud (nó là bản dự phòng cục bộ)', () {
       seedEverything();
       BackupSnapshot.apply(BackupSnapshot.capture());
-      expect(BackupSnapshot.capture().containsKey(BackupSnapshot.previousSnapshotKey),
+      expect(
+          BackupSnapshot.capture()
+              .containsKey(BackupSnapshot.previousSnapshotKey),
           isFalse);
     });
   });
@@ -412,7 +413,8 @@ void main() {
       expect(BackupService.hasRealData(seedEverything()), isTrue);
     });
 
-    test('snapshot của máy khác có dữ liệu thì máy rỗng phải nhận về', () async {
+    test('snapshot của máy khác có dữ liệu thì máy rỗng phải nhận về',
+        () async {
       final fromA = seedEverything();
       await wipeDevice();
       // Máy mới cài, chưa làm gì → không có dữ liệu để mất, nên nhận bản của A.
@@ -446,8 +448,8 @@ void main() {
   group('Checksum & fingerprint', () {
     test('checksum ổn định và phân biệt nội dung khác nhau', () {
       expect(BackupService.checksum('abc'), BackupService.checksum('abc'));
-      expect(BackupService.checksum('abc'),
-          isNot(BackupService.checksum('abd')));
+      expect(
+          BackupService.checksum('abc'), isNot(BackupService.checksum('abd')));
       // Ổn định giữa các lần chạy: cùng dữ liệu phải cho cùng dấu vân tay,
       // nếu không thì app đẩy lên cloud liên tục không vì lý do.
       expect(BackupService.checksum(''), isNotEmpty);
@@ -469,7 +471,8 @@ void main() {
   });
 
   group('Sao lưu chỉ chạy khi đã đăng nhập', () {
-    test('chưa đăng nhập thì không khởi động — vì không có danh tính chung', () {
+    test('chưa đăng nhập thì không khởi động — vì không có danh tính chung',
+        () {
       // Firebase UID mới là khoá nối mọi thiết bị. Chưa đăng nhập thì mỗi máy
       // một user_id riêng → sao lưu vào đâu cũng không liên kết được với máy
       // khác, nên bật lên chỉ tạo cảm giác "đã lưu" giả.

@@ -36,7 +36,8 @@ void showAddScoreDialog(
           style: TextStyle(fontWeight: FontWeight.w800)),
       content: StatefulBuilder(
         builder: (ctx, setDialogState) {
-          String subject = subjectCtrl.text.isEmpty ? '📐 Toán' : subjectCtrl.text;
+          String subject =
+              subjectCtrl.text.isEmpty ? '📐 Toán' : subjectCtrl.text;
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [

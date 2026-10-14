@@ -36,8 +36,7 @@ void main() {
     await tester.pump();
   }
 
-  void expectMinTarget(WidgetTester tester, Finder finder,
-      {double min = 44}) {
+  void expectMinTarget(WidgetTester tester, Finder finder, {double min = 44}) {
     final size = tester.getSize(finder);
     expect(size.width, greaterThanOrEqualTo(min),
         reason: 'vùng chạm rộng ${size.width}px < ${min}px');
@@ -67,7 +66,8 @@ void main() {
     testWidgets('Nút phản hồi AI trong ChatBubble đạt ≥44dp', (tester) async {
       final msg = ChatMessage(
         id: 'm1',
-        text: 'Đây là một câu trả lời đủ dài để hiện thanh phản hồi chất lượng.',
+        text:
+            'Đây là một câu trả lời đủ dài để hiện thanh phản hồi chất lượng.',
         isUser: false,
         timestamp: DateTime(2026, 1, 1),
       );

@@ -535,8 +535,8 @@ class AiCopilotService {
     action.payload['onStreakChanged'] = onStreakChanged;
     // Người dùng vừa chủ động yêu cầu AI làm gì đó — đo ý định, không log nội
     // dung hội thoại hay dữ liệu học tập (chỉ loại hành động).
-    ProductAnalytics.instance
-        .track(ProductEvents.aiActionRequested, props: {'kind': action.type.name});
+    ProductAnalytics.instance.track(ProductEvents.aiActionRequested,
+        props: {'kind': action.type.name});
     // Xoá callback khi rời khỏi context để không giữ reference rác.
     // (payload là map thường nên gán callback an toàn, được đọc lại phía sau.)
     FeedbackService.medium();

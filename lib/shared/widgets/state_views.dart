@@ -290,7 +290,8 @@ class ErrorStatePanel extends StatelessWidget {
             TextButton(
               onPressed: onRetry,
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: AppTokens.space8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppTokens.space8),
                 minimumSize: const Size(0, 32),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

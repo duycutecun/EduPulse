@@ -343,8 +343,8 @@ class OpenRouterService {
 
         final meta = error is Map ? error['metadata'] : null;
         final headers = meta is Map ? meta['headers'] : null;
-        final millis =
-            int.tryParse('${headers is Map ? headers['X-RateLimit-Reset'] : null}');
+        final millis = int.tryParse(
+            '${headers is Map ? headers['X-RateLimit-Reset'] : null}');
         if (millis != null) {
           resetAt = DateTime.fromMillisecondsSinceEpoch(millis);
         }

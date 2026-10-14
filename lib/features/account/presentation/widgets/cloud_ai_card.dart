@@ -38,9 +38,9 @@ class _CloudAiCardState extends State<CloudAiCard> {
     // có sẵn cấu hình hay chưa); ô API key chỉ hiện key người dùng đã dán,
     // không bao giờ in key đóng gói trong bản build ra màn hình.
     _urlCtrl = TextEditingController(text: StorageService.getSupabaseUrl());
-    _anonCtrl = TextEditingController(text: StorageService.getSupabaseAnonKey());
-    _openRouterCtrl =
-        TextEditingController(text: AiConfig.storedOpenRouterKey);
+    _anonCtrl =
+        TextEditingController(text: StorageService.getSupabaseAnonKey());
+    _openRouterCtrl = TextEditingController(text: AiConfig.storedOpenRouterKey);
     _geminiCtrl = TextEditingController(text: AiConfig.storedGeminiKey);
   }
 
@@ -151,8 +151,7 @@ class _CloudAiCardState extends State<CloudAiCard> {
             Row(
               children: [
                 TextButton.icon(
-                  onPressed: () =>
-                      setState(() => _obscureKeys = !_obscureKeys),
+                  onPressed: () => setState(() => _obscureKeys = !_obscureKeys),
                   icon: Icon(
                     _obscureKeys
                         ? Icons.visibility_rounded
@@ -280,7 +279,8 @@ class _CloudAiCardState extends State<CloudAiCard> {
     _geminiCtrl.text = '';
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Đã xoá cấu hình bạn dán — app quay về cấu hình của bản build.'),
+      content:
+          Text('Đã xoá cấu hình bạn dán — app quay về cấu hình của bản build.'),
       behavior: SnackBarBehavior.floating,
     ));
   }

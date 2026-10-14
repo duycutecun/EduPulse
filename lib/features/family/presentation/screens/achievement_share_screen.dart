@@ -222,8 +222,8 @@ class _AchievementShareScreenState extends State<AchievementShareScreen> {
                       onPressed: _busy ? null : _copyCaption,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
-                        side: const BorderSide(
-                            color: AppColors.border, width: 2),
+                        side:
+                            const BorderSide(color: AppColors.border, width: 2),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),

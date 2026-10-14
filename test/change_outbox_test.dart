@@ -38,16 +38,18 @@ void main() {
       expect(change.attempts, 0);
       expect(change.deviceId, 'dev_A');
       expect(change.schemaVersion, ChangeOutbox.schema);
-      expect(change.updatedAt, DateTime(2026, 3, 18, 9, 30).millisecondsSinceEpoch);
+      expect(change.updatedAt,
+          DateTime(2026, 3, 18, 9, 30).millisecondsSinceEpoch);
       expect(ChangeOutbox.pendingCount, 1);
     });
 
     test('sửa cùng một bản ghi nhiều lần → chỉ một dòng, giữ id đầu tiên', () {
-      final first =
-          ChangeOutbox.enqueue(entity: 'task', entityId: 't1', at: DateTime(2026, 1, 1));
-      ChangeOutbox.enqueue(entity: 'task', entityId: 't1', at: DateTime(2026, 1, 2));
-      final last =
-          ChangeOutbox.enqueue(entity: 'task', entityId: 't1', at: DateTime(2026, 1, 3));
+      final first = ChangeOutbox.enqueue(
+          entity: 'task', entityId: 't1', at: DateTime(2026, 1, 1));
+      ChangeOutbox.enqueue(
+          entity: 'task', entityId: 't1', at: DateTime(2026, 1, 2));
+      final last = ChangeOutbox.enqueue(
+          entity: 'task', entityId: 't1', at: DateTime(2026, 1, 3));
 
       expect(ChangeOutbox.items.length, 1);
       expect(ChangeOutbox.pendingCount, 1);
@@ -92,7 +94,8 @@ void main() {
       expect(ChangeOutbox.pendingCount, 2);
       final task = ChangeOutbox.items.firstWhere((c) => c.entityId == 't1');
       expect(task.deviceId, 'dev_A');
-      expect(task.updatedAt, DateTime(2026, 3, 18, 9, 30).millisecondsSinceEpoch);
+      expect(
+          task.updatedAt, DateTime(2026, 3, 18, 9, 30).millisecondsSinceEpoch);
     });
 
     test('dòng còn "đang gửi" khi app bị tắt → trả về hàng chờ, không kẹt', () {
@@ -253,8 +256,8 @@ void main() {
       expect(ChangeOutbox.items.length, ChangeOutbox.maxEntries);
       // Dòng mới nhất vẫn còn (thay đổi vừa xảy ra không bị cắt).
       expect(
-        ChangeOutbox.items.any(
-            (c) => c.entityId == 't${ChangeOutbox.maxEntries + 24}'),
+        ChangeOutbox.items
+            .any((c) => c.entityId == 't${ChangeOutbox.maxEntries + 24}'),
         isTrue,
       );
     });
@@ -267,6 +270,7 @@ void main() {
     final data = jsonDecode(raw!) as Map<String, dynamic>;
 
     expect(data['schema'], ChangeOutbox.schema);
-    expect((data['items'] as List).single['schemaVersion'], ChangeOutbox.schema);
+    expect(
+        (data['items'] as List).single['schemaVersion'], ChangeOutbox.schema);
   });
 }

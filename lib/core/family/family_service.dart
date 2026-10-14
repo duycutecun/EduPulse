@@ -459,23 +459,24 @@ class FamilyService {
                       .toInt();
               if (at > 0 && !shouldPullOnSignal(at)) return;
               if (at > 0) _signalAt = at;
-              liveSignal.value = at > 0 ? at : DateTime.now().millisecondsSinceEpoch;
+              liveSignal.value =
+                  at > 0 ? at : DateTime.now().millisecondsSinceEpoch;
             },
           )
           .subscribe((status, error) {
-            if (status == RealtimeSubscribeStatus.subscribed) {
-              _subscribed = true;
-            } else if (status == RealtimeSubscribeStatus.closed ||
-                status == RealtimeSubscribeStatus.timedOut) {
-              // Đường tắt hỏng — hỏi định kỳ lo phần còn lại. Không tự hẹn thử
-              // lại: sẽ thành vòng lặp vô tận khi mạng tắt.
-              _subscribed = false;
-              debugPrint('[FamilyService] Realtime ngắt ($status) — dùng poll.');
-            }
-            if (error != null) {
-              debugPrint('[FamilyService] Realtime lỗi: $error');
-            }
-          });
+        if (status == RealtimeSubscribeStatus.subscribed) {
+          _subscribed = true;
+        } else if (status == RealtimeSubscribeStatus.closed ||
+            status == RealtimeSubscribeStatus.timedOut) {
+          // Đường tắt hỏng — hỏi định kỳ lo phần còn lại. Không tự hẹn thử
+          // lại: sẽ thành vòng lặp vô tận khi mạng tắt.
+          _subscribed = false;
+          debugPrint('[FamilyService] Realtime ngắt ($status) — dùng poll.');
+        }
+        if (error != null) {
+          debugPrint('[FamilyService] Realtime lỗi: $error');
+        }
+      });
     } catch (e) {
       _subscribed = false;
       debugPrint('[FamilyService] Không bật được Realtime: $e');
@@ -506,8 +507,7 @@ class FamilyService {
   /// POST một hành động lên `/api/family`. Trả null khi chưa đăng nhập, mất
   /// mạng, hoặc phản hồi không đọc được — người gọi phân biệt null với
   /// `{ok:false}` (lỗi nghiệp vụ có thông báo cụ thể từ server).
-  static Future<Map<String, dynamic>?> _post(
-      Map<String, dynamic> body) async {
+  static Future<Map<String, dynamic>?> _post(Map<String, dynamic> body) async {
     final user = AuthService.currentUser;
     if (user == null) return null;
     String? token;

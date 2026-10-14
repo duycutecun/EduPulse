@@ -76,8 +76,9 @@ class WebSearchService {
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
-      final resp =
-          await http.get(url, headers: headers).timeout(const Duration(seconds: 18));
+      final resp = await http
+          .get(url, headers: headers)
+          .timeout(const Duration(seconds: 18));
       if (resp.statusCode != 200) return null;
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
       final extract = (data['extract'] as String?)?.trim() ?? '';

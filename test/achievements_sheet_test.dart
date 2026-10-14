@@ -26,7 +26,8 @@ void main() {
           body: Builder(
             builder: (context) => Center(
               child: ElevatedButton(
-                onPressed: () => showAchievementsSheet(context, clock: () => now),
+                onPressed: () =>
+                    showAchievementsSheet(context, clock: () => now),
                 child: const Text('Mở'),
               ),
             ),

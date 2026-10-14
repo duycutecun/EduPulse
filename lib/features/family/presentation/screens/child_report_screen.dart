@@ -151,9 +151,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
   Future<void> _poll() async {
     if (!mounted || _fetching) return;
     _fetching = true;
-    final since = _reports.isEmpty
-        ? 0
-        : _reports.first.createdAt.millisecondsSinceEpoch;
+    final since =
+        _reports.isEmpty ? 0 : _reports.first.createdAt.millisecondsSinceEpoch;
     final progress = await FamilyService.fetchChildProgress(
       widget.child.userId,
       since: since,
@@ -195,8 +194,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.child.name,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 16)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             Text(
               _loading && _updatedAt == null
                   ? 'Tiến độ học tập con chia sẻ'
@@ -240,10 +239,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                 ErrorStatePanel(message: _error!, onRetry: _load),
                 const SizedBox(height: 10),
               ],
-              if (_live != null)
-                _liveCard(_live!)
-              else
-                _noLiveCard(),
+              if (_live != null) _liveCard(_live!) else _noLiveCard(),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -263,7 +259,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                       itemBuilder: (_) => const [
                         PopupMenuItem(value: 0, child: Text('Tất cả')),
                         PopupMenuItem(value: 7, child: Text('7 ngày gần đây')),
-                        PopupMenuItem(value: 30, child: Text('30 ngày gần đây')),
+                        PopupMenuItem(
+                            value: 30, child: Text('30 ngày gần đây')),
                       ],
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -326,8 +323,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.greenSoft,
                   borderRadius: BorderRadius.circular(8),
@@ -384,7 +380,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
             const Text(
               'Con chưa cập nhật hôm nay — con có thể đang nghỉ, hoặc chưa mở '
               'app. Số liệu bên dưới là lần cập nhật gần nhất.',
-              style: TextStyle(fontSize: 11.5, height: 1.4, color: AppColors.textMuted),
+              style: TextStyle(
+                  fontSize: 11.5, height: 1.4, color: AppColors.textMuted),
             ),
           ],
         ],

@@ -23,9 +23,8 @@ class AiConfig {
   static const String tavilyKeyPref = 'ai_tavily_key';
 
   /// OpenRouter — model chat/AI Coach. Rỗng = tính năng AI tạm tắt.
-  static String get openRouterApiKey =>
-      _pick(StorageService.getString(openRouterKeyPref),
-          AppConfig.openRouterApiKey);
+  static String get openRouterApiKey => _pick(
+      StorageService.getString(openRouterKeyPref), AppConfig.openRouterApiKey);
 
   /// Gemini — model dự phòng/đa phương thức.
   static String get geminiApiKey =>

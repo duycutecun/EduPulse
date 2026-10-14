@@ -42,7 +42,8 @@ class ChildTrendScreen extends StatelessWidget {
             const Text('Xu hướng & cột mốc',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             Text('Tiến độ của ${child.name}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ],
         ),
       ),
@@ -57,7 +58,8 @@ class ChildTrendScreen extends StatelessWidget {
               unit: 'phút',
               color: AppColors.primary,
               points: focus,
-              emptyHint: 'Chưa có dữ liệu thời gian tập trung trong các báo cáo.',
+              emptyHint:
+                  'Chưa có dữ liệu thời gian tập trung trong các báo cáo.',
             ),
             const SizedBox(height: 14),
             _chartCard(
@@ -244,8 +246,7 @@ class ChildTrendScreen extends StatelessWidget {
 
   static double? _parseMinutes(String raw) => _parseNumber(raw);
 
-  static String _dateLabel(DateTime at) =>
-      '${at.day}/${at.month}/${at.year}';
+  static String _dateLabel(DateTime at) => '${at.day}/${at.month}/${at.year}';
 }
 
 class _Point {

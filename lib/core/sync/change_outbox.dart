@@ -132,7 +132,8 @@ class PendingChange {
       op: raw['op'] is String ? raw['op'] as String : opUpsert,
       updatedAt: (raw['updatedAt'] as num?)?.toInt() ?? 0,
       deviceId: raw['deviceId'] is String ? raw['deviceId'] as String : '',
-      schemaVersion: (raw['schemaVersion'] as num?)?.toInt() ?? ChangeOutbox.schema,
+      schemaVersion:
+          (raw['schemaVersion'] as num?)?.toInt() ?? ChangeOutbox.schema,
       status: ChangeStatus.values.firstWhere(
         (s) => s.name == raw['status'],
         orElse: () => ChangeStatus.pending,
@@ -242,7 +243,8 @@ class ChangeOutbox {
       StorageService.setString(quarantineKey, raw);
       StorageService.removeString(storageKey);
       _items = const [];
-      debugPrint('[ChangeOutbox] Payload hỏng — đã cách ly, bắt đầu hàng đợi mới');
+      debugPrint(
+          '[ChangeOutbox] Payload hỏng — đã cách ly, bắt đầu hàng đợi mới');
       return;
     }
     _items = decoded;
@@ -414,9 +416,8 @@ class ChangeOutbox {
     final room = maxEntries - pending.length;
     if (room >= 0) {
       // Còn chỗ: giữ tối đa vài dòng synced gần nhất để UI khoe "vừa đồng bộ".
-      final keepSynced = synced.length > 20
-          ? synced.sublist(synced.length - 20)
-          : synced;
+      final keepSynced =
+          synced.length > 20 ? synced.sublist(synced.length - 20) : synced;
       return [...pending, ...keepSynced];
     }
     // Buộc phải cắt: bỏ dòng chờ cũ nhất. Dữ liệu học vẫn nguyên trên máy;

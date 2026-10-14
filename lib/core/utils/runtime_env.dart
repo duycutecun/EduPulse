@@ -1,5 +1,5 @@
-import 'runtime_env_io.dart'
-    if (dart.library.js_interop) 'runtime_env_web.dart' as impl;
+import 'runtime_env_io.dart' if (dart.library.js_interop) 'runtime_env_web.dart'
+    as impl;
 
 /// Nhận biết môi trường chạy — hiện dùng để TẮT gọi mạng AI trong `flutter test`
 /// (test phải chạy thuần local, không phụ thuộc backend).

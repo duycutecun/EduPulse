@@ -71,8 +71,7 @@ class AchievementService {
       if (unlocked.add(a.id)) newly.add(a);
     }
     if (newly.isNotEmpty) {
-      StorageService.setStringList(
-          kAchievementsUnlockedKey, unlocked.toList());
+      StorageService.setStringList(kAchievementsUnlockedKey, unlocked.toList());
       revision.value++;
     }
     return newly;

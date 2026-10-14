@@ -21,8 +21,7 @@ class AchievementStats {
     required this.tasksTotalToday,
   });
 
-  int get totalMinutes =>
-      sessions.fold(0, (sum, s) => sum + s.actualMinutes);
+  int get totalMinutes => sessions.fold(0, (sum, s) => sum + s.actualMinutes);
 
   bool get allTasksToday =>
       tasksTotalToday > 0 && tasksCompletedToday >= tasksTotalToday;
@@ -72,8 +71,8 @@ final List<Achievement> kAchievements = [
     emoji: '🧘',
     title: 'Tâm trí sâu',
     description: 'Một phiên ≥25 phút với độ tập trung cao.',
-    isUnlocked: (s) => s.sessions.any(
-        (x) => x.actualMinutes >= 25 && x.focus != null && x.focus! >= 4),
+    isUnlocked: (s) => s.sessions
+        .any((x) => x.actualMinutes >= 25 && x.focus != null && x.focus! >= 4),
   ),
   Achievement(
     id: 'first_score',
@@ -136,8 +135,8 @@ final List<Achievement> kAchievements = [
     emoji: '🐦',
     title: 'Chim nhiếp ảnh sớm',
     description: 'Có phiên học bắt đầu trước 7 giờ sáng.',
-    isUnlocked: (s) => s.sessions.any(
-        (x) => x.startedAt != null && x.startedAt!.hour < 7),
+    isUnlocked: (s) =>
+        s.sessions.any((x) => x.startedAt != null && x.startedAt!.hour < 7),
   ),
 ];
 
@@ -155,6 +154,4 @@ class AchievementState {
 
 /// Xét toàn bộ danh bạ để UI render trạng thái khoá/mở.
 List<AchievementState> evaluateAchievements(AchievementStats stats) =>
-    kAchievements
-        .map((a) => AchievementState(a, a.isUnlocked(stats)))
-        .toList();
+    kAchievements.map((a) => AchievementState(a, a.isUnlocked(stats))).toList();

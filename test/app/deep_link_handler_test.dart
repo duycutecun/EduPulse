@@ -21,7 +21,8 @@ void main() {
       await StorageService.init();
     });
 
-    testWidgets('openTaskDetail mở chi tiết task khi task tồn tại', (WidgetTester tester) async {
+    testWidgets('openTaskDetail mở chi tiết task khi task tồn tại',
+        (WidgetTester tester) async {
       final testTask = TodayTask(
         id: 'test-task-123',
         title: 'Test Task',
@@ -45,7 +46,8 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    DeepLinkHandler.openTaskDetail(context, taskId: 'test-task-123');
+                    DeepLinkHandler.openTaskDetail(context,
+                        taskId: 'test-task-123');
                   },
                   child: const Text('Mở chi tiết task'),
                 );
@@ -62,7 +64,8 @@ void main() {
       expect(find.text('Test Task'), findsOneWidget);
     });
 
-    testWidgets('openTaskDetail hiển thị SnackBar khi task không tồn tại', (WidgetTester tester) async {
+    testWidgets('openTaskDetail hiển thị SnackBar khi task không tồn tại',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           navigatorKey: appNavigatorKey,
@@ -71,7 +74,8 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    DeepLinkHandler.openTaskDetail(context, taskId: 'non-existent-task');
+                    DeepLinkHandler.openTaskDetail(context,
+                        taskId: 'non-existent-task');
                   },
                   child: const Text('Mở task không tồn tại'),
                 );
@@ -85,8 +89,10 @@ void main() {
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
-      expect(find.text('Không tìm thấy nhiệm vụ: non-existent-task'), findsOneWidget);
-    });    tearDown(() async {
+      expect(find.text('Không tìm thấy nhiệm vụ: non-existent-task'),
+          findsOneWidget);
+    });
+    tearDown(() async {
       try {
         await TaskRepository.instance.deleteTask('test-task-123');
       } catch (_) {

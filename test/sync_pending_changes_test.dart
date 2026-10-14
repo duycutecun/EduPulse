@@ -43,7 +43,8 @@ void main() {
           estimateMinutes: 45,
         );
 
-    test('tạo nhiệm vụ → một dòng chờ đồng bộ, gộp khi sửa nhiều lần', () async {
+    test('tạo nhiệm vụ → một dòng chờ đồng bộ, gộp khi sửa nhiều lần',
+        () async {
       final repo = TaskRepository.instance;
 
       await repo.createTask(task('t1'));

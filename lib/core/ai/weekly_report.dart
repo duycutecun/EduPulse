@@ -223,8 +223,7 @@ class WeeklyReport {
       'weekMinutes': minutes,
       'streak': StorageService.getStreak(),
       'mockSeries': [
-        for (final m in recentMocks)
-          {'subject': m.subject, 'score': m.score},
+        for (final m in recentMocks) {'subject': m.subject, 'score': m.score},
       ],
     };
 
@@ -307,8 +306,7 @@ class WeeklyReportData {
     if (items.isEmpty) return null;
     final now = DateTime.now();
     final rawCheckin = raw['checkin'];
-    final checkin =
-        rawCheckin == null ? null : '$rawCheckin'.trim();
+    final checkin = rawCheckin == null ? null : '$rawCheckin'.trim();
     return WeeklyReportData(
       headline: '${raw['headline'] ?? ''}',
       items: items,

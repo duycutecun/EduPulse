@@ -81,7 +81,8 @@ class _NotesScreenState extends State<NotesScreen> {
     ScaffoldMessenger.maybeOf(context)
       ?..clearSnackBars()
       ..showSnackBar(SnackBar(
-        content: Text('${newly.first.emoji} Huy hiệu mới: ${newly.first.title}'),
+        content:
+            Text('${newly.first.emoji} Huy hiệu mới: ${newly.first.title}'),
         duration: const Duration(seconds: 2),
       ));
   }

@@ -205,9 +205,10 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
       _pushOn = ok;
       _pushBusy = false;
     });
-    _snack(ok
-        ? 'Từ giờ bạn nhận thông báo kể cả khi đã đóng app.'
-        : 'Đã đăng ký trên máy này, nhưng chưa đồng bộ được — thử lại sau.',
+    _snack(
+        ok
+            ? 'Từ giờ bạn nhận thông báo kể cả khi đã đóng app.'
+            : 'Đã đăng ký trên máy này, nhưng chưa đồng bộ được — thử lại sau.',
         error: !ok);
   }
 
@@ -345,8 +346,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               ListTile(
                 key: const Key('parent-settings-exit'),
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.school_rounded,
-                    color: AppColors.purple),
+                leading:
+                    const Icon(Icons.school_rounded, color: AppColors.purple),
                 title: const Text('Trở về chế độ học sinh'),
                 subtitle: const Text(
                     'Quay lại màn học tập — liên kết với con vẫn được giữ.',
@@ -415,8 +416,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               const SizedBox(height: 12),
             ],
             _linkCard(),
-            if (AuthService.isLoggedIn &&
-                NotificationService.isSupported) ...[
+            if (AuthService.isLoggedIn && NotificationService.isSupported) ...[
               const SizedBox(height: 12),
               _notifyCard(),
             ],
@@ -487,7 +487,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               SizedBox(width: 10),
               Expanded(
                 child: Text('Cần đăng nhập',
-                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
               ),
             ],
           ),
@@ -513,7 +514,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                     borderRadius: BorderRadius.circular(14)),
               ),
               child: const Text('Đăng nhập tài khoản phụ huynh',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+                  style:
+                      TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
             ),
           ),
         ],
@@ -537,8 +539,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               SizedBox(width: 10),
               Expanded(
                 child: Text('Nhập mã mời của con',
-                    style: TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
               ),
             ],
           ),
@@ -630,8 +632,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Thông báo khi con cập nhật',
-                    style: TextStyle(
-                        fontSize: 13.5, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
                 SizedBox(height: 3),
                 Text(
                   'Báo ngay khi con chia sẻ tiến độ mới. Chỉ hoạt động khi app '
@@ -960,8 +962,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Huỷ',
-                style: TextStyle(color: AppColors.textMuted)),
+            child:
+                const Text('Huỷ', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text),
@@ -1046,8 +1048,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                   borderRadius: BorderRadius.circular(10),
                   onTap: () => _editGoals(child),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.blueSoft,
                       borderRadius: BorderRadius.circular(10),
@@ -1083,9 +1085,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
       ),
       child: Text('$count',
           style: const TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              color: Colors.white)),
+              fontSize: 9.5, fontWeight: FontWeight.w800, color: Colors.white)),
     );
   }
 
@@ -1094,7 +1094,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     final ok = await FamilyService.setNotifyPref(child.userId, !child.notifyOn);
     if (!mounted) return;
     if (!ok) {
-      _snack('Không đổi được lúc này — kiểm tra mạng rồi thử lại.', error: true);
+      _snack('Không đổi được lúc này — kiểm tra mạng rồi thử lại.',
+          error: true);
       return;
     }
     _snack(child.notifyOn

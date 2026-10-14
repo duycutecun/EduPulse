@@ -120,8 +120,7 @@ void main() {
     expect(find.text('Phân bổ theo môn'), findsOneWidget);
   });
 
-  testWidgets(
-      'Tài khoản: Tóm tắt hồ sơ + Storage TodayTask round-trip',
+  testWidgets('Tài khoản: Tóm tắt hồ sơ + Storage TodayTask round-trip',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;

@@ -75,7 +75,8 @@ void main() {
       expect(progress.live!.id, 'live');
       expect(progress.live!.report?.items.single.title, 'Thời gian tập trung');
       expect(progress.reports.single.id, 'r1');
-      expect(progress.serverTime, DateTime.fromMillisecondsSinceEpoch(1760000500000));
+      expect(progress.serverTime,
+          DateTime.fromMillisecondsSinceEpoch(1760000500000));
       expect(progress.isEmpty, isFalse);
     });
 
@@ -83,9 +84,13 @@ void main() {
       expect(ChildProgress.fromJson({'live': null})!.live, isNull);
       expect(ChildProgress.fromJson({'live': 'x'})!.live, isNull);
       final empty = ChildProgress.fromJson({
-        'live': {'updatedAt': 1, 'payload': {'items': []}},
+        'live': {
+          'updatedAt': 1,
+          'payload': {'items': []}
+        },
       });
-      expect(empty!.live, isNull, reason: 'không có mục nào thì không có gì để hiện');
+      expect(empty!.live, isNull,
+          reason: 'không có mục nào thì không có gì để hiện');
       expect(empty.isEmpty, isTrue);
     });
 
@@ -292,7 +297,8 @@ void main() {
         return true;
       };
 
-      await FamilyNotifyService.handleState(stateWith(latestReportAt: 1760000000000));
+      await FamilyNotifyService.handleState(
+          stateWith(latestReportAt: 1760000000000));
       expect(shown.single, contains('báo cáo tuần'));
     });
 
@@ -331,7 +337,8 @@ void main() {
       name: 'Minh',
     );
 
-    testWidgets('con bật → thẻ "CẬP NHẬT TRỰC TIẾP" hiện và tự thêm báo cáo mới',
+    testWidgets(
+        'con bật → thẻ "CẬP NHẬT TRỰC TIẾP" hiện và tự thêm báo cáo mới',
         (tester) async {
       final calls = <int>[];
       var first = true;
@@ -390,8 +397,8 @@ void main() {
 
     testWidgets('con chưa có dữ liệu → nói thật, không hiện thẻ trực tiếp',
         (tester) async {
-      FamilyService.debugProgressFetcher = (userId, since) async =>
-          const ChildProgress();
+      FamilyService.debugProgressFetcher =
+          (userId, since) async => const ChildProgress();
 
       await pumpScreen(tester, child);
       expect(find.byKey(const Key('child-live-card')), findsNothing);

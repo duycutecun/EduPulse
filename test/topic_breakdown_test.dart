@@ -41,7 +41,8 @@ void main() {
         score(topic: 'Điện', value: 7),
       ]);
 
-      expect(topics.map((t) => t.topic).toList(), ['Hàm số', 'Điện', 'Hình học']);
+      expect(
+          topics.map((t) => t.topic).toList(), ['Hàm số', 'Điện', 'Hình học']);
     });
 
     test('cùng điểm TB → chủ đề thi nhiều lần hơn lên trước', () {
@@ -116,8 +117,7 @@ void main() {
     });
 
     test('topic được lưu và đọc lại đúng', () {
-      final original =
-          score(topic: 'Hàm số', value: 6.5);
+      final original = score(topic: 'Hàm số', value: 6.5);
       final round = MockScore.fromJsonString(original.toJsonString());
       expect(round.topic, 'Hàm số');
     });

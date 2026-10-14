@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:edupulse/features/leaderboard/domain/personal_records.dart';
 import 'package:edupulse/features/study/domain/models/study_models.dart';
 
-StudySession session(DateTime at, {int minutes = 30, String subject = 'Toán'}) =>
+StudySession session(DateTime at,
+        {int minutes = 30, String subject = 'Toán'}) =>
     StudySession(
       id: 's-${at.microsecondsSinceEpoch}-$minutes',
       completedAt: at,
@@ -13,7 +14,11 @@ StudySession session(DateTime at, {int minutes = 30, String subject = 'Toán'}) 
     );
 
 MockScore score(DateTime at, double value, {String subject = 'Toán'}) =>
-    MockScore(id: 'm-${at.microsecondsSinceEpoch}', date: at, subject: subject, score: value);
+    MockScore(
+        id: 'm-${at.microsecondsSinceEpoch}',
+        date: at,
+        subject: subject,
+        score: value);
 
 void main() {
   group('formatStudyMinutes', () {
@@ -60,8 +65,7 @@ void main() {
       expect(busiest.value, '1 giờ 10 phút');
       expect(busiest.detail, '16/03');
 
-      final bestWeek =
-          records.records.firstWhere((r) => r.id == 'best_week');
+      final bestWeek = records.records.firstWhere((r) => r.id == 'best_week');
       expect(bestWeek.value, '2 giờ');
       expect(bestWeek.detail, contains('16/03'));
 
@@ -82,8 +86,7 @@ void main() {
       expect(best.value, '8.5 điểm');
       expect(best.detail, contains('Toán'));
       expect(best.detail, contains('12/03'));
-      expect(
-          records.records.firstWhere((r) => r.id == 'score_count').value,
+      expect(records.records.firstWhere((r) => r.id == 'score_count').value,
           '2 lần');
     });
 
@@ -107,8 +110,7 @@ void main() {
       expect(
           behind.records.firstWhere((r) => r.id == 'streak_record').highlight,
           isFalse);
-      expect(
-          behind.records.firstWhere((r) => r.id == 'current_streak').detail,
+      expect(behind.records.firstWhere((r) => r.id == 'current_streak').detail,
           'Kỷ lục: 7 ngày');
     });
 

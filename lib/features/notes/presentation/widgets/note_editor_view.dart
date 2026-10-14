@@ -18,7 +18,8 @@ import '../../../study/domain/models/study_models.dart';
 /// Trả [StudyNote] qua `Navigator.pop` khi bấm Lưu. Tách khỏi `notes_screen.dart`
 /// để màn danh sách không phải gánh toàn bộ logic soạn thảo.
 class NoteEditorView extends StatefulWidget {
-  const NoteEditorView({super.key, this.note, this.initialTaskId, this.initialSubject});
+  const NoteEditorView(
+      {super.key, this.note, this.initialTaskId, this.initialSubject});
   final StudyNote? note;
 
   /// Task/subject điền sẵn khi tạo từ một nhiệm vụ (Task-linked — mục 14).

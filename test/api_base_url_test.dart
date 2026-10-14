@@ -17,7 +17,8 @@ void main() {
     expect(uri.scheme, 'https');
     expect(uri.host, 'edu-pulse-five-gamma.vercel.app');
     expect(uri.path, '/api/family');
-    expect(uri.toString(), 'https://edu-pulse-five-gamma.vercel.app/api/family');
+    expect(
+        uri.toString(), 'https://edu-pulse-five-gamma.vercel.app/api/family');
   });
 
   test('apiBase() resolve /api/backup thành URL https hợp lệ', () {

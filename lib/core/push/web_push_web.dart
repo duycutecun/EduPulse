@@ -19,7 +19,8 @@ external _PushApi? get _pushApi;
 /// gọi vào cầu nối đó và trả kết quả về Dart.
 class WebPushService {
   static const Duration _pollStep = Duration(milliseconds: 500);
-  static const int _pollTries = 40; // ~20 giây, đủ để người dùng bấm "Cho phép".
+  static const int _pollTries =
+      40; // ~20 giây, đủ để người dùng bấm "Cho phép".
 
   static bool get isSupported => _pushApi?.isSupported() ?? false;
 

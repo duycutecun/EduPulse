@@ -82,7 +82,9 @@ class PlatformCapabilities {
       case NativeFeature.systemShare:
         // Web vẫn chia sẻ được (Web Share API, fallback clipboard) nhưng
         // không phải bảng chia sẻ hệ thống như trên app.
-        return isWeb ? FeatureAvailability.webFallback : FeatureAvailability.available;
+        return isWeb
+            ? FeatureAvailability.webFallback
+            : FeatureAvailability.available;
 
       case NativeFeature.notifications:
         // PWA có thể có notification, nhưng app này cố tình không làm: lịch

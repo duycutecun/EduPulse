@@ -77,8 +77,7 @@ PersonalRecords computePersonalRecords({
   DateTime? now,
 }) {
   final records = <PersonalRecord>[];
-  final totalMinutes =
-      sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes);
+  final totalMinutes = sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes);
   final hasData = sessions.isNotEmpty ||
       scores.isNotEmpty ||
       streak > 0 ||
@@ -110,8 +109,7 @@ PersonalRecords computePersonalRecords({
       byDay[key] = (byDay[key] ?? 0) + s.actualMinutes;
       dayRef[key] = DateTime(d.year, d.month, d.day);
     }
-    final bestDay = byDay.entries.reduce(
-        (a, b) => b.value > a.value ? b : a);
+    final bestDay = byDay.entries.reduce((a, b) => b.value > a.value ? b : a);
     records.add(PersonalRecord(
       id: 'busiest_day',
       emoji: '📅',
@@ -131,8 +129,7 @@ PersonalRecords computePersonalRecords({
       byWeek[key] = (byWeek[key] ?? 0) + s.actualMinutes;
       weekRef[key] = start;
     }
-    final bestWeek = byWeek.entries.reduce(
-        (a, b) => b.value > a.value ? b : a);
+    final bestWeek = byWeek.entries.reduce((a, b) => b.value > a.value ? b : a);
     records.add(PersonalRecord(
       id: 'best_week',
       emoji: '🗓️',

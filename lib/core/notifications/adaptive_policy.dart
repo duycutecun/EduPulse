@@ -253,13 +253,13 @@ class AdaptivePolicy {
         guardAfterHour: guardAfterHour,
       );
       for (final p in planned) {
-      await NotificationService.scheduleAt(
-        id: p.id,
-        when: p.when,
-        title: p.title,
-        body: p.body,
-        payload: p.payload,
-      );
+        await NotificationService.scheduleAt(
+          id: p.id,
+          when: p.when,
+          title: p.title,
+          body: p.body,
+          payload: p.payload,
+        );
       }
       // Nếu planner không trả về streakGuard (vd đã học hôm nay), đảm bảo huỷ.
       if (!streakGuardEnabled) {

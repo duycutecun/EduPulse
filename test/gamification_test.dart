@@ -90,7 +90,8 @@ void main() {
         tasksCompletedToday: 0,
         tasksTotalToday: 0,
       ));
-      final unlocked = states.where((s) => s.unlocked).map((s) => s.achievement.id);
+      final unlocked =
+          states.where((s) => s.unlocked).map((s) => s.achievement.id);
       expect(unlocked, containsAll(['first_session', 'deep_focus']));
       expect(states.firstWhere((s) => s.achievement.id == 'ten_hours').unlocked,
           isFalse);
@@ -116,8 +117,7 @@ void main() {
         tasksCompletedToday: 0,
         tasksTotalToday: 0,
       ));
-      expect(
-          states.firstWhere((s) => s.achievement.id == 'ten_hours').unlocked,
+      expect(states.firstWhere((s) => s.achievement.id == 'ten_hours').unlocked,
           isTrue);
     });
 
@@ -139,7 +139,8 @@ void main() {
         tasksCompletedToday: 2,
         tasksTotalToday: 2,
       ));
-      final unlocked = states.where((s) => s.unlocked).map((s) => s.achievement.id).toSet();
+      final unlocked =
+          states.where((s) => s.unlocked).map((s) => s.achievement.id).toSet();
       expect(
         unlocked,
         containsAll([
@@ -219,7 +220,8 @@ void main() {
       expect(StorageService.getStringList(kAchievementsUnlockedKey), isNull);
     });
 
-    test('có phiên đầu → mở Bước chân đầu, lưu lại, gọi lại không lặp', () async {
+    test('có phiên đầu → mở Bước chân đầu, lưu lại, gọi lại không lặp',
+        () async {
       await seedSession();
       final first = AchievementService.instance.reconcile();
       expect(first.map((a) => a.id), contains('first_session'));

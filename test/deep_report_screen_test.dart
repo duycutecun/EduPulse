@@ -37,8 +37,7 @@ void main() {
     StorageService.setMockScoreIds([...StorageService.getMockScoreIds(), id]);
   }
 
-  Future<void> seedSession(String id, DateTime at,
-      {int minutes = 30}) {
+  Future<void> seedSession(String id, DateTime at, {int minutes = 30}) {
     return StudySessionRepository.instance.save(StudySession(
       id: id,
       completedAt: at,
@@ -67,7 +66,8 @@ void main() {
     expect(studied, 1);
   });
 
-  testWidgets('chỉ có điểm → hiện khối điểm, ẩn khối thời gian', (tester) async {
+  testWidgets('chỉ có điểm → hiện khối điểm, ẩn khối thời gian',
+      (tester) async {
     seedScore(id: 'm1', value: 4, topic: 'Hàm số');
     seedScore(id: 'm2', value: 6, topic: 'Hàm số');
     seedScore(id: 'm3', value: 8, topic: 'Hình học');

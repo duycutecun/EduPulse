@@ -63,7 +63,8 @@ void main() {
       expect(weeks.last.weekStart, DateTime(2026, 3, 16));
     });
 
-    test('giữ tối đa maxWeeks tuần GẦN nhất (không rối khi nhiều dữ liệu cũ)', () {
+    test('giữ tối đa maxWeeks tuần GẦN nhất (không rối khi nhiều dữ liệu cũ)',
+        () {
       final scores = [
         for (var w = 0; w < 10; w++)
           score(
@@ -95,8 +96,7 @@ void main() {
         score(topic: 'Điện', value: 7, date: DateTime(2026, 3, 17)),
       ], [], now: now);
 
-      expect(report.weakTopics.map((t) => t.topic).toList(),
-          ['Hàm số']);
+      expect(report.weakTopics.map((t) => t.topic).toList(), ['Hàm số']);
       expect(report.weakTopics.single.attempts, 2);
     });
 
@@ -127,8 +127,14 @@ void main() {
         [
           session(id: 'a', at: DateTime(2026, 3, 17, 20, 0), minutes: 30),
           session(id: 'b', at: DateTime(2026, 3, 18, 20, 0), minutes: 15),
-          session(id: 'c', at: DateTime(2026, 3, 19, 20, 0), minutes: 0), // tương lai nhẹ, vẫn tuần này
-          session(id: 'd', at: DateTime(2026, 3, 9, 20, 0), minutes: 45), // tuần trước
+          session(
+              id: 'c',
+              at: DateTime(2026, 3, 19, 20, 0),
+              minutes: 0), // tương lai nhẹ, vẫn tuần này
+          session(
+              id: 'd',
+              at: DateTime(2026, 3, 9, 20, 0),
+              minutes: 45), // tuần trước
         ],
         now: now,
       );

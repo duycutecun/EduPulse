@@ -118,8 +118,7 @@ class _SyncChip extends StatelessWidget {
 
   /// Còn thay đổi chưa lên cloud (kể cả đang ngoại tuyến) → chip bấm được.
   /// Cloud chưa cấu hình thì không có gì để thử lại, cũng không hiện số.
-  bool get _retryable =>
-      sync.visiblePending > 0 || sync.visibleFailed > 0;
+  bool get _retryable => sync.visiblePending > 0 || sync.visibleFailed > 0;
 
   (IconData, Color, String) _resolve() {
     final pending = sync.visiblePending;
@@ -295,7 +294,8 @@ class _SyncStatusCardBody extends StatelessWidget {
           icon: Icons.cloud_off_rounded,
           color: AppColors.orange,
           title: 'Chưa kết nối được cloud',
-          detail: 'Dữ liệu vẫn an toàn trên máy. App sẽ tự kết nối lại khi sẵn sàng.',
+          detail:
+              'Dữ liệu vẫn an toàn trên máy. App sẽ tự kết nối lại khi sẵn sàng.',
         );
       }
       return const _StatusView(

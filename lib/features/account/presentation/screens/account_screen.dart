@@ -71,7 +71,8 @@ class _AccountScreenState extends State<AccountScreen> {
     _reminderHour = StorageService.getInt('reminder_hour') ?? 19;
     _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
     _digestEnabled = StorageService.getBool('notif_digest_enabled') ?? false;
-    _advancedReminderEnabled = StorageService.getBool('notif_advanced_enabled') ?? false;
+    _advancedReminderEnabled =
+        StorageService.getBool('notif_advanced_enabled') ?? false;
     _analyticsEnabled = ProductAnalytics.instance.enabled;
     _aiMayRead = StorageService.getBool('ai_permission_read') ?? true;
     _aiMayAnalyze = StorageService.getBool('ai_permission_analyze') ?? true;
@@ -188,8 +189,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 IconButton(
                   tooltip: 'Đăng xuất',
                   onPressed: _handleSignOut,
-                  icon: const Icon(Icons.logout,
-                      color: AppColors.red, size: 22),
+                  icon:
+                      const Icon(Icons.logout, color: AppColors.red, size: 22),
                 ),
               ],
             ),
@@ -391,93 +392,93 @@ class _AccountScreenState extends State<AccountScreen> {
   /// Thẻ tóm tắt hồ sơ (tên, mục tiêu, linh vật) — khối lớn đầu nhóm Hồ sơ.
   Widget _buildProfileSummary() {
     return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.cardWhite,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border, width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDark.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
-                child: const Center(
-                    child: Text('🎓', style: TextStyle(fontSize: 28))),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_userName,
-                        style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
-                    const SizedBox(height: 2),
-                    Text(
-                      _userTarget.isNotEmpty
-                          ? 'Mục tiêu: $_userTarget'
-                          : 'Chưa đặt mục tiêu',
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.primary, width: 1),
-                      ),
-                      child: const Text('⚡ Sĩ tử 2026',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary)),
-                    ),
-                  ],
+              ],
+            ),
+            child:
+                const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_userName,
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(
+                  _userTarget.isNotEmpty
+                      ? 'Mục tiêu: $_userTarget'
+                      : 'Chưa đặt mục tiêu',
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              GestureDetector(
-                onTap: _showEditProfileDialog,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.cardLight,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border, width: 1),
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.primary, width: 1),
                   ),
-                  child: const Icon(Icons.edit_rounded,
-                      color: AppColors.blue, size: 18),
+                  child: const Text('⚡ Sĩ tử 2026',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary)),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
+          GestureDetector(
+            onTap: _showEditProfileDialog,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.cardLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border, width: 1),
+              ),
+              child: const Icon(Icons.edit_rounded,
+                  color: AppColors.blue, size: 18),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPreferencesCard() {
@@ -587,7 +588,8 @@ class _AccountScreenState extends State<AccountScreen> {
             leading: const Icon(Icons.emoji_events_rounded,
                 color: AppColors.yellowDark),
             title: const Text('Bảng vàng kỷ lục'),
-            subtitle: const Text('Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
+            subtitle: const Text(
+                'Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
                 style: TextStyle(fontSize: 11)),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const LeaderboardScreen(),
@@ -595,9 +597,11 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.insights_rounded, color: AppColors.greenDark),
+            leading:
+                const Icon(Icons.insights_rounded, color: AppColors.greenDark),
             title: const Text('Báo cáo học tập sâu'),
-            subtitle: const Text('Xu hướng điểm, năng lực chủ đề, thời gian học',
+            subtitle: const Text(
+                'Xu hướng điểm, năng lực chủ đề, thời gian học',
                 style: TextStyle(fontSize: 11)),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const DeepReportScreen(),
@@ -1148,17 +1152,17 @@ class _AccountScreenState extends State<AccountScreen> {
                   return;
                 }
                 // Tự đồng bộ lại nhắc khi bật/tắt — syncReminders xử lý toàn bộ.
-                    await AdaptivePolicy.syncReminders(
-                      reminderEnabled: _reminderEnabled,
-                      reminderHour: _reminderHour,
-                      reminderMinute: _reminderMinute,
-                      tasks: _digestTasks(),
-                      sessions: StudySessionRepository.instance.getAll(),
-                      primaryExam: null,
-                      advancedEnabled: _advancedReminderEnabled,
-                      weeklyReportEnabled: _advancedReminderEnabled,
-                      streakGuardEnabled: _advancedReminderEnabled,
-                    );
+                await AdaptivePolicy.syncReminders(
+                  reminderEnabled: _reminderEnabled,
+                  reminderHour: _reminderHour,
+                  reminderMinute: _reminderMinute,
+                  tasks: _digestTasks(),
+                  sessions: StudySessionRepository.instance.getAll(),
+                  primaryExam: null,
+                  advancedEnabled: _advancedReminderEnabled,
+                  weeklyReportEnabled: _advancedReminderEnabled,
+                  streakGuardEnabled: _advancedReminderEnabled,
+                );
               },
             ),
             const Divider(height: 18),

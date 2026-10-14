@@ -111,7 +111,8 @@ class _GoalEditorState extends State<_GoalEditor> {
       case 'readiness':
         if (target < 0 || target > 100) return 'Chỉ số từ 0 đến 100.';
       default:
-        if (target < 1 || target > 100000) return 'Số phút trong khoảng hợp lệ.';
+        if (target < 1 || target > 100000)
+          return 'Số phút trong khoảng hợp lệ.';
     }
     return null;
   }
@@ -128,8 +129,8 @@ class _GoalEditorState extends State<_GoalEditor> {
       return;
     }
     setState(() => _saving = true);
-    final result = await FamilyService.setGoal(
-        widget.studentUserId, _metric, value);
+    final result =
+        await FamilyService.setGoal(widget.studentUserId, _metric, value);
     if (!mounted) return;
     setState(() => _saving = false);
     if (!result.ok) {
@@ -186,8 +187,8 @@ class _GoalEditorState extends State<_GoalEditor> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Mục tiêu cho con',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800)),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 3),
                   Text(
                     'Đặt mục tiêu cùng ${widget.childName} — khi con chưa đạt, '
@@ -247,8 +248,7 @@ class _GoalEditorState extends State<_GoalEditor> {
               ? 'Chọn loại rồi nhập con số: $unit'
               : 'Đang đặt: ${FamilyGoal.labelOf(existing.metric)} '
                   '${existing.displayTarget} — nhập giá trị mới để đổi.',
-          style: const TextStyle(
-              fontSize: 11, color: AppColors.textMuted),
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
         ),
         const SizedBox(height: 10),
         TextField(
@@ -281,8 +281,8 @@ class _GoalEditorState extends State<_GoalEditor> {
                   foregroundColor: AppColors.red,
                 ),
                 child: const Text('Bỏ mục tiêu này',
-                    style: TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
               ),
               const Spacer(),
             ],
@@ -295,8 +295,7 @@ class _GoalEditorState extends State<_GoalEditor> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 22),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),

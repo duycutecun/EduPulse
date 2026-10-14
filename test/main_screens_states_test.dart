@@ -94,7 +94,8 @@ void main() {
         (tester) async {
       var retried = 0;
       await tester.pumpWidget(host(ErrorStatePanel(
-        message: 'AI cần kết nối mạng — nhận định bên dưới vẫn dùng số liệu thật.',
+        message:
+            'AI cần kết nối mạng — nhận định bên dưới vẫn dùng số liệu thật.',
         onRetry: () => retried++,
       )));
 
@@ -242,7 +243,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Chưa có nhiệm vụ chưa hoàn thành.'), findsOneWidget);
-      final panel = tester.widget<EmptyStatePanel>(find.byType(EmptyStatePanel));
+      final panel =
+          tester.widget<EmptyStatePanel>(find.byType(EmptyStatePanel));
       expect(panel.compact, isTrue,
           reason: 'sheet hẹp phải dùng bản compact, không phải khối lớn');
       expect(tester.takeException(), isNull);

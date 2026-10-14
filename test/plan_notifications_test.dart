@@ -48,7 +48,8 @@ void main() {
     expect(planned.first.payload, 'leaderboard');
   });
 
-  test('streakGuard chỉ nhắc khi chưa học hôm nay nhưng học hôm qua + sau 16h', () {
+  test('streakGuard chỉ nhắc khi chưa học hôm nay nhưng học hôm qua + sau 16h',
+      () {
     final now = DateTime(2026, 3, 18, 19); // hôm nay (thứ Tư) 19h
     final planned = planAdvancedNotifications(
       now: now,

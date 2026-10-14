@@ -95,8 +95,8 @@ void main() {
       await tester.tap(find.byKey(const Key('cloud-ai-toggle')));
       await tester.pump();
 
-      await tester.enterText(
-          find.byKey(const Key('cloud-supabase-url')), 'https://demo.supabase.co');
+      await tester.enterText(find.byKey(const Key('cloud-supabase-url')),
+          'https://demo.supabase.co');
       await tester.enterText(
           find.byKey(const Key('cloud-supabase-anon')), 'anon-key-123');
       await tester.enterText(
@@ -125,7 +125,8 @@ void main() {
       await tester.pump();
 
       expect(AiConfig.hasStoredOpenRouter, isFalse);
-      expect(StorageService.getSupabaseUrl(), isNot('https://demo.supabase.co'));
+      expect(
+          StorageService.getSupabaseUrl(), isNot('https://demo.supabase.co'));
       expect(find.textContaining('xoá cấu hình bạn dán'), findsOneWidget);
     });
   });

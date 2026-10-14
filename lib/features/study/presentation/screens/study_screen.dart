@@ -254,8 +254,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     _scores.sort((a, b) => b.date.compareTo(a.date));
   }
 
-  void _addScore(String subject, double score, String? note,
-      {String? topic}) {
+  void _addScore(String subject, double score, String? note, {String? topic}) {
     final s = MockScore(
       id: _uuid.v4(),
       date: DateTime.now(),
@@ -286,7 +285,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     ScaffoldMessenger.maybeOf(context)
       ?..clearSnackBars()
       ..showSnackBar(SnackBar(
-        content: Text('${newly.first.emoji} Huy hiệu mới: ${newly.first.title}'),
+        content:
+            Text('${newly.first.emoji} Huy hiệu mới: ${newly.first.title}'),
         duration: const Duration(seconds: 2),
       ));
   }
@@ -1706,7 +1706,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                         // học sinh, và luôn để lại đường thử lại (UX 12/AI-30).
                         return ErrorStateView(
                           title: 'Chưa phân tích được',
-                          message: 'Không phân tích được điểm lúc này. Kiểm tra '
+                          message:
+                              'Không phân tích được điểm lúc này. Kiểm tra '
                               'kết nối mạng rồi thử lại nhé.',
                           onRetry: () =>
                               setSheetState(() => pending = request()),
