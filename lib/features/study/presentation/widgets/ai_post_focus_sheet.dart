@@ -35,9 +35,9 @@ class _QuickRating {
   final int understanding;
   final int effectiveness;
 
-  /// Đã nắm được kiến thức hay còn cần củng cố — quyết định có gợi ý "Ôn lại
-  /// ngày mai" hay không.
-  final bool understood;
+  /// Mức hiểu kiến thức suy ra từ emoji: 0 = chưa hiểu, 1 = tạm ổn,
+  /// 2 = tự tin. Quyết định có gợi ý "Ôn lại ngày mai" hay không (đặc tả 5.3).
+  final int understandingLevel;
 
   const _QuickRating({
     required this.emoji,
@@ -48,7 +48,7 @@ class _QuickRating {
     required this.difficulty,
     required this.understanding,
     required this.effectiveness,
-    required this.understood,
+    required this.understandingLevel,
   });
 }
 
@@ -67,7 +67,7 @@ const List<_QuickRating> _quickRatings = [
     difficulty: 5,
     understanding: 1,
     effectiveness: 2,
-    understood: false,
+    understandingLevel: 0,
   ),
   _QuickRating(
     emoji: '😐',
@@ -78,7 +78,7 @@ const List<_QuickRating> _quickRatings = [
     difficulty: 4,
     understanding: 2,
     effectiveness: 2,
-    understood: false,
+    understandingLevel: 1,
   ),
   _QuickRating(
     emoji: '🙂',
@@ -89,7 +89,7 @@ const List<_QuickRating> _quickRatings = [
     difficulty: 3,
     understanding: 3,
     effectiveness: 3,
-    understood: true,
+    understandingLevel: 2,
   ),
   _QuickRating(
     emoji: '😄',
@@ -100,7 +100,7 @@ const List<_QuickRating> _quickRatings = [
     difficulty: 3,
     understanding: 4,
     effectiveness: 4,
-    understood: true,
+    understandingLevel: 2,
   ),
   _QuickRating(
     emoji: '🔥',
@@ -111,7 +111,7 @@ const List<_QuickRating> _quickRatings = [
     difficulty: 2,
     understanding: 5,
     effectiveness: 5,
-    understood: true,
+    understandingLevel: 2,
   ),
 ];
 
@@ -151,6 +151,50 @@ Widget _reflectionScale(String label, int value, ValueChanged<int> onChanged) {
   );
 }
 
+/// Một lựa chọn "mức hiểu" trong 3 mức (đặc tả 5.3: chưa hiểu / tạm ổn / tự tin).
+///
+/// Tách thành hàm dùng chung để ba lựa chọn luôn cùng kích thước, cùng kiểu
+/// viền/chữ — tránh ba khối code gần giống nhau dễ lệch nhau khi sửa.
+Widget _understandingOption({
+  required String emoji,
+  required String label,
+  required bool selected,
+  required Color accent,
+  required VoidCallback onTap,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      decoration: BoxDecoration(
+        color: selected ? accent.withValues(alpha: 0.15) : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: selected ? accent : AppColors.border,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              color: selected ? accent : AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 /// Sheet "Phiên học thế nào?" hiển thị sau khi kết thúc một phiên focus.
 ///
 /// Toàn bộ giao diện + đánh giá 1 chạm nằm ở đây; màn Tập trung chỉ truyền
@@ -170,11 +214,12 @@ Future<void> showAiPostFocusSheet({
   required void Function(String subject, {String? sessionId}) onQuickNote,
   required VoidCallback onTasksChanged,
 }) async {
-  var understandingLevel = 1; // 1: Hiểu tốt, 0: Cần củng cố
-  bool showDetailed = false;
   // Đánh giá 1 chạm (FE-3.3): 5 emoji → 5 mức. Chạm một lần là đủ để lưu,
   // không bắt người dùng chờ điền thang chi tiết 5 dòng.
+  // Mức hiểu mặc định "tự tin" (2) khớp với understanding mặc định 4.
   var quickRating = 0;
+  var understandingLevel = 2; // 0 chưa hiểu · 1 tạm ổn · 2 tự tin (đặc tả 5.3)
+  bool showDetailed = false;
   var mood = 4;
   var focus = 4;
   var difficulty = 3;
@@ -260,7 +305,7 @@ Future<void> showAiPostFocusSheet({
                               difficulty = option.difficulty;
                               understanding = option.understanding;
                               effectiveness = option.effectiveness;
-                              understandingLevel = option.understood ? 1 : 0;
+                              understandingLevel = option.understandingLevel;
                             }),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -309,98 +354,44 @@ Future<void> showAiPostFocusSheet({
                 Row(
                   children: [
                     Expanded(
-                      child: GestureDetector(
+                      child: _understandingOption(
+                        emoji: '😕',
+                        label: 'Chưa hiểu',
+                        selected: understandingLevel == 0,
+                        accent: AppColors.red,
+                        onTap: () => setSheetState(() {
+                          understandingLevel = 0;
+                          understanding = 1;
+                          effectiveness = 2;
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _understandingOption(
+                        emoji: '😌',
+                        label: 'Tạm ổn',
+                        selected: understandingLevel == 1,
+                        accent: AppColors.orange,
                         onTap: () => setSheetState(() {
                           understandingLevel = 1;
+                          understanding = 3;
+                          effectiveness = 3;
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _understandingOption(
+                        emoji: '🤩',
+                        label: 'Tự tin',
+                        selected: understandingLevel == 2,
+                        accent: AppColors.primary,
+                        onTap: () => setSheetState(() {
+                          understandingLevel = 2;
                           understanding = 4;
                           effectiveness = 4;
                         }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: understandingLevel == 1
-                                ? AppColors.primary.withValues(alpha: 0.15)
-                                : AppColors.cardLight,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: understandingLevel == 1
-                                  ? AppColors.primary
-                                  : AppColors.border,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('👍', style: TextStyle(fontSize: 16)),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  'Hiểu tốt',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: understandingLevel == 1
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      color: understandingLevel == 1
-                                          ? AppColors.primary
-                                          : AppColors.textPrimary),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setSheetState(() {
-                          understandingLevel = 0;
-                          understanding = 2;
-                          effectiveness = 3;
-                        }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: understandingLevel == 0
-                                ? AppColors.orange.withValues(alpha: 0.15)
-                                : AppColors.cardLight,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: understandingLevel == 0
-                                  ? AppColors.orange
-                                  : AppColors.border,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('🤔', style: TextStyle(fontSize: 16)),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  'Cần củng cố',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: understandingLevel == 0
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      color: understandingLevel == 0
-                                          ? AppColors.orange
-                                          : AppColors.textPrimary),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   ],
