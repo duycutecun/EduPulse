@@ -21,6 +21,8 @@ import '../../../leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../widgets/family_report_sheet.dart';
 import '../widgets/account_family_entries.dart';
 import '../widgets/appearance_card.dart';
+import '../widgets/beta_feedback_sheet.dart';
+import '../../../../core/feedback/beta_feedback.dart';
 import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
@@ -606,6 +608,18 @@ class _AccountScreenState extends State<AccountScreen> {
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => const DeepReportScreen(),
             )),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading:
+                const Icon(Icons.feedback_outlined, color: AppColors.purple),
+            title: const Text('Gửi phản hồi beta'),
+            subtitle: Text(
+                BetaFeedbackService.instance.count > 0
+                    ? '${BetaFeedbackService.instance.count} phản hồi đã lưu trên máy này'
+                    : 'Báo lỗi, góp ý trải nghiệm cho nhóm phát triển',
+                style: const TextStyle(fontSize: 11)),
+            onTap: () => showBetaFeedbackSheet(context),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,

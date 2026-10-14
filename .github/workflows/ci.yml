@@ -1,0 +1,40 @@
+name: CI
+
+# Cổng chất lượng bắt buộc ở giai đoạn 2/4 của kế hoạch: format, analyze,
+# test và build web. Chạy trên mọi PR và mọi push vào main để không merge khi
+# còn vi phạm. Đây là "smoke test trước release" nhẹ — bảo đảm app build được
+# cho web/PWA trước khi đóng gói APK/IPA.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run unit & widget tests
+        run: flutter test
+
+      - name: Build web (smoke)
+        run: flutter build web --release
