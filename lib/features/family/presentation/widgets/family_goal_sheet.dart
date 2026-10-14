@@ -111,8 +111,9 @@ class _GoalEditorState extends State<_GoalEditor> {
       case 'readiness':
         if (target < 0 || target > 100) return 'Chỉ số từ 0 đến 100.';
       default:
-        if (target < 1 || target > 100000)
+        if (target < 1 || target > 100000) {
           return 'Số phút trong khoảng hợp lệ.';
+        }
     }
     return null;
   }
