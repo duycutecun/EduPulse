@@ -4,12 +4,23 @@ import '../../../../core/constants/app_tokens.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../study/domain/models/study_models.dart';
 
+/// Kết quả dời lịch: ngày mới kèm lý do ngắn (có thể rỗng).
+///
+/// Đặc tả 5.2: đổi lịch nên hỏi lý do ngắn để cải thiện kế hoạch — nhưng không
+/// bắt buộc, người dùng bận vẫn dời được trong một thao tác.
+class RescheduleRequest {
+  final DateTime date;
+  final String? reason;
+
+  const RescheduleRequest({required this.date, this.reason});
+}
+
 /// Modal dời lịch nhiệm vụ thông minh theo đặc tả Sprint 2 (FE-2.4)
 class RescheduleDialog extends StatefulWidget {
   final TodayTask task;
 
-  /// Ngày học sinh chọn. Được gọi kèm [RescheduleDialog.show] trả về kết quả.
-  final ValueChanged<DateTime>? onRescheduled;
+  /// Được gọi kèm khi xác nhận; cũng là giá trị [RescheduleDialog.show] trả về.
+  final ValueChanged<RescheduleRequest>? onRescheduled;
   final VoidCallback? onSplitWithAi;
 
   /// Chia nhỏ thủ công (mở [SplitTaskDialog]) — không phụ thuộc AI.
@@ -23,16 +34,16 @@ class RescheduleDialog extends StatefulWidget {
     this.onSplit,
   });
 
-  /// Mở hộp dời lịch. Trả về ngày được chọn, hoặc `null` nếu huỷ —
+  /// Mở hộp dời lịch. Trả về ngày + lý do được chọn, hoặc `null` nếu huỷ —
   /// gọi [onRescheduled] kèm theo để hai kiểu dùng đều được.
-  static Future<DateTime?> show(
+  static Future<RescheduleRequest?> show(
     BuildContext context, {
     required TodayTask task,
-    ValueChanged<DateTime>? onRescheduled,
+    ValueChanged<RescheduleRequest>? onRescheduled,
     VoidCallback? onSplitWithAi,
     VoidCallback? onSplit,
   }) {
-    return showModalBottomSheet<DateTime>(
+    return showModalBottomSheet<RescheduleRequest>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -52,6 +63,10 @@ class RescheduleDialog extends StatefulWidget {
 class _RescheduleDialogState extends State<RescheduleDialog> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
 
+  /// Lý do ngắn (không bắt buộc) — ghi vào `task.skipReason` để AI/insight học
+  /// được vì sao người dùng cứ dời việc.
+  String? _reason;
+
   @override
   Widget build(BuildContext context) {
     final isFrequent = widget.task.rescheduleCount >= 3;
@@ -70,230 +85,266 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
         color: AppColors.cardWhite,
         borderRadius: BorderRadius.vertical(top: AppTokens.rXl),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: AppTokens.brFull,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTokens.space16),
-
-          Text(
-            'Dời lịch nhiệm vụ',
-            style: AppTokens.heading2,
-          ),
-          const SizedBox(height: AppTokens.space4),
-          Text(
-            widget.task.title,
-            style: AppTokens.bodySubtle.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: AppTokens.space16),
-
-          // Cảnh báo dời nhiều lần (Đặc tả mục 7.10)
-          if (isFrequent) ...[
-            Container(
-              padding: const EdgeInsets.all(AppTokens.space12),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                borderRadius: AppTokens.brMd,
-                border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.4),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: AppTokens.brFull,
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        color: AppColors.warning,
-                        size: 18,
-                      ),
-                      const SizedBox(width: AppTokens.space8),
-                      Expanded(
-                        child: Text(
-                          'Nhiệm vụ này đã dời ${widget.task.rescheduleCount} lần',
-                          style: AppTokens.body.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.warning,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTokens.space6),
-                  Text(
-                    'Bài học có thể đang hơi dài (${widget.task.estimateMinutes} phút). Bạn có muốn chia nhỏ bài học thành các phần 25 phút để dễ hoàn thành hơn không?',
-                    style: AppTokens.bodySubtle.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  if (widget.onSplitWithAi != null ||
-                      widget.onSplit != null) ...[
-                    const SizedBox(height: AppTokens.space8),
-                    Row(
-                      children: [
-                        if (widget.onSplit != null) ...[
-                          Expanded(
-                            child: SecondaryButton(
-                              label: 'Chia nhỏ',
-                              icon: Icons.call_split_rounded,
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                widget.onSplit!();
-                              },
-                            ),
-                          ),
-                          if (widget.onSplitWithAi != null)
-                            const SizedBox(width: AppTokens.space8),
-                        ],
-                        if (widget.onSplitWithAi != null)
-                          Expanded(
-                            child: SecondaryButton(
-                              label: 'Gợi ý từ AI',
-                              icon: Icons.auto_awesome_rounded,
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                widget.onSplitWithAi!();
-                              },
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ],
               ),
             ),
             const SizedBox(height: AppTokens.space16),
-          ],
 
-          // Cảnh báo dời vượt quá deadline
-          if (isAfterDeadline) ...[
-            Container(
-              padding: const EdgeInsets.all(AppTokens.space10),
-              decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.1),
-                borderRadius: AppTokens.brMd,
-                border: Border.all(
-                  color: AppColors.red.withValues(alpha: 0.3),
-                ),
+            Text(
+              'Dời lịch nhiệm vụ',
+              style: AppTokens.heading2,
+            ),
+            const SizedBox(height: AppTokens.space4),
+            Text(
+              widget.task.title,
+              style: AppTokens.bodySubtle.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: AppColors.red, size: 18),
-                  const SizedBox(width: AppTokens.space8),
-                  Expanded(
-                    child: Text(
-                      'Ngày chọn sau hạn chót (${deadline.day}/${deadline.month}). Vui lòng cân nhắc!',
-                      style: AppTokens.caption.copyWith(
-                        color: AppColors.red,
-                        fontWeight: FontWeight.w700,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppTokens.space16),
+
+            // Cảnh báo dời nhiều lần (Đặc tả mục 7.10)
+            if (isFrequent) ...[
+              Container(
+                padding: const EdgeInsets.all(AppTokens.space12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: AppTokens.brMd,
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.warning,
+                          size: 18,
+                        ),
+                        const SizedBox(width: AppTokens.space8),
+                        Expanded(
+                          child: Text(
+                            'Nhiệm vụ này đã dời ${widget.task.rescheduleCount} lần',
+                            style: AppTokens.body.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTokens.space6),
+                    Text(
+                      'Bài học có thể đang hơi dài (${widget.task.estimateMinutes} phút). Bạn có muốn chia nhỏ bài học thành các phần 25 phút để dễ hoàn thành hơn không?',
+                      style: AppTokens.bodySubtle.copyWith(
+                        color: AppColors.textPrimary,
                       ),
                     ),
+                    if (widget.onSplitWithAi != null ||
+                        widget.onSplit != null) ...[
+                      const SizedBox(height: AppTokens.space8),
+                      Row(
+                        children: [
+                          if (widget.onSplit != null) ...[
+                            Expanded(
+                              child: SecondaryButton(
+                                label: 'Chia nhỏ',
+                                icon: Icons.call_split_rounded,
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  widget.onSplit!();
+                                },
+                              ),
+                            ),
+                            if (widget.onSplitWithAi != null)
+                              const SizedBox(width: AppTokens.space8),
+                          ],
+                          if (widget.onSplitWithAi != null)
+                            Expanded(
+                              child: SecondaryButton(
+                                label: 'Gợi ý từ AI',
+                                icon: Icons.auto_awesome_rounded,
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  widget.onSplitWithAi!();
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTokens.space16),
+            ],
+
+            // Cảnh báo dời vượt quá deadline
+            if (isAfterDeadline) ...[
+              Container(
+                padding: const EdgeInsets.all(AppTokens.space10),
+                decoration: BoxDecoration(
+                  color: AppColors.red.withValues(alpha: 0.1),
+                  borderRadius: AppTokens.brMd,
+                  border: Border.all(
+                    color: AppColors.red.withValues(alpha: 0.3),
                   ),
-                ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: AppColors.red, size: 18),
+                    const SizedBox(width: AppTokens.space8),
+                    Expanded(
+                      child: Text(
+                        'Ngày chọn sau hạn chót (${deadline.day}/${deadline.month}). Vui lòng cân nhắc!',
+                        style: AppTokens.caption.copyWith(
+                          color: AppColors.red,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTokens.space12),
+            ],
+
+            // Lựa chọn nhanh
+            Text('Chọn ngày chuyển đến:', style: AppTokens.heading3),
+            const SizedBox(height: AppTokens.space10),
+
+            Row(
+              children: [
+                _buildQuickDateChip(
+                  label: 'Hôm nay',
+                  targetDate: DateUtils.dateOnly(DateTime.now()),
+                ),
+                const SizedBox(width: AppTokens.space8),
+                _buildQuickDateChip(
+                  label: 'Ngày mai',
+                  targetDate: DateTime.now().add(const Duration(days: 1)),
+                ),
+                const SizedBox(width: AppTokens.space8),
+                _buildQuickDateChip(
+                  label: 'Cuối tuần',
+                  targetDate: _getNextWeekend(),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTokens.space10),
+
+            // Chọn ngày tùy chỉnh
+            InkWell(
+              onTap: _pickCustomDate,
+              borderRadius: AppTokens.brMd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.space12,
+                  vertical: AppTokens.space10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: AppTokens.brMd,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: AppTokens.space8),
+                    Expanded(
+                      child: Text(
+                        'Ngày đã chọn: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                        style: AppTokens.body
+                            .copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Text('Đổi',
+                        style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppTokens.space12),
-          ],
+            const SizedBox(height: AppTokens.space24),
 
-          // Lựa chọn nhanh
-          Text('Chọn ngày chuyển đến:', style: AppTokens.heading3),
-          const SizedBox(height: AppTokens.space10),
-
-          Row(
-            children: [
-              _buildQuickDateChip(
-                label: 'Hôm nay',
-                targetDate: DateUtils.dateOnly(DateTime.now()),
-              ),
-              const SizedBox(width: AppTokens.space8),
-              _buildQuickDateChip(
-                label: 'Ngày mai',
-                targetDate: DateTime.now().add(const Duration(days: 1)),
-              ),
-              const SizedBox(width: AppTokens.space8),
-              _buildQuickDateChip(
-                label: 'Cuối tuần',
-                targetDate: _getNextWeekend(),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.space10),
-
-          // Chọn ngày tùy chỉnh
-          InkWell(
-            onTap: _pickCustomDate,
-            borderRadius: AppTokens.brMd,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.space12,
-                vertical: AppTokens.space10,
-              ),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
-                borderRadius: AppTokens.brMd,
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_rounded,
-                      size: 16, color: AppColors.primary),
-                  const SizedBox(width: AppTokens.space8),
-                  Expanded(
-                    child: Text(
-                      'Ngày đã chọn: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                      style:
-                          AppTokens.body.copyWith(fontWeight: FontWeight.w600),
+            // Đặc tả 5.2: hỏi lý do ngắn (không bắt buộc) để cải thiện kế hoạch.
+            Text('Lý do dời (không bắt buộc)', style: AppTokens.heading3),
+            const SizedBox(height: AppTokens.space8),
+            Wrap(
+              spacing: AppTokens.space8,
+              runSpacing: AppTokens.space8,
+              children: [
+                for (final reason in const [
+                  'Chưa đủ thời gian',
+                  'Chưa sẵn sàng',
+                  'Bận đột xuất',
+                  'Ưu tiên việc khác',
+                ])
+                  ChoiceChip(
+                    label: Text(reason, style: AppTokens.caption),
+                    selected: _reason == reason,
+                    onSelected: (_) => setState(
+                        () => _reason = _reason == reason ? null : reason),
+                    selectedColor:
+                        AppColors.primaryLight.withValues(alpha: 0.2),
+                    side: BorderSide(
+                      color: _reason == reason
+                          ? AppColors.primary
+                          : AppColors.border,
                     ),
                   ),
-                  const Text('Đổi',
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
+              ],
             ),
-          ),
-          const SizedBox(height: AppTokens.space24),
+            const SizedBox(height: AppTokens.space24),
 
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: SecondaryButton(
-                  label: 'Hủy',
-                  onPressed: () => Navigator.of(context).pop(),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Hủy',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppTokens.space12),
-              Expanded(
-                child: PrimaryButton(
-                  label: 'Xác nhận dời',
-                  onPressed: () {
-                    widget.onRescheduled?.call(_selectedDate);
-                    Navigator.of(context).pop(_selectedDate);
-                  },
+                const SizedBox(width: AppTokens.space12),
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'Xác nhận dời',
+                    onPressed: () {
+                      final request = RescheduleRequest(
+                        date: _selectedDate,
+                        reason: _reason,
+                      );
+                      widget.onRescheduled?.call(request);
+                      Navigator.of(context).pop(request);
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

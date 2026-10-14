@@ -411,4 +411,66 @@ void main() {
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
   });
+
+  group('UX 5.2 — dời lịch hỏi lý do ngắn (không bắt buộc)', () {
+    testWidgets('chọn lý do → lưu vào nhiệm vụ', (tester) async {
+      final repo = TaskRepository.instance;
+      final n = DateTime.now();
+      await repo.createTask(TodayTask(
+        id: 'reason-1',
+        title: 'Ôn hàm số',
+        subject: '📐 Toán',
+        estimateMinutes: 30,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      ));
+
+      tester.view.physicalSize = const Size(1400, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(homeHarness());
+      await tester.pump(const Duration(milliseconds: 700));
+
+      await tester.tap(find.byTooltip('Tùy chọn nhiệm vụ').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dời lịch'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bận đột xuất'));
+      await tester.pump();
+      await tester.tap(find.text('Ngày mai'));
+      await tester.pump();
+      await tester.tap(find.text('Xác nhận dời'));
+      await tester.pumpAndSettle();
+
+      expect(repo.getTaskById('reason-1')!.skipReason, 'Bận đột xuất',
+          reason: 'lý do dời phải được ghi để cải thiện kế hoạch');
+    });
+
+    testWidgets('không chọn lý do → vẫn dời được, không ghi lý do',
+        (tester) async {
+      final repo = TaskRepository.instance;
+      final n = DateTime.now();
+      await repo.createTask(TodayTask(
+        id: 'reason-2',
+        title: 'Ôn tích phân',
+        subject: '📐 Toán',
+        estimateMinutes: 30,
+        scheduledAt: DateTime(n.year, n.month, n.day, 8),
+      ));
+
+      tester.view.physicalSize = const Size(1400, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(homeHarness());
+      await tester.pump(const Duration(milliseconds: 700));
+
+      await rescheduleViaUi(tester);
+
+      final moved = repo.getTaskById('reason-2')!;
+      expect(moved.rescheduleCount, 1);
+      expect(moved.skipReason, isNull,
+          reason: 'lý do là tùy chọn, không được chặn thao tác dời');
+    });
+  });
 }

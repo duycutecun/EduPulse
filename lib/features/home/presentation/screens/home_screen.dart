@@ -14,6 +14,7 @@ import '../../../../shared/widgets/skeleton_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../exams/domain/preset_exams.dart';
 import '../../../study/domain/models/study_models.dart';
+import '../../../study/domain/active_study_session.dart';
 import '../../../study/domain/quick_add_parser.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../../core/widget/home_widget_service.dart';
@@ -29,6 +30,7 @@ import '../../../tasks/presentation/widgets/task_edit_sheet.dart';
 import '../../../study/presentation/screens/ai_plan_screen.dart';
 import '../widgets/home_header.dart';
 import '../widgets/ai_actions_row.dart';
+import '../widgets/active_session_resume_card.dart';
 import '../widgets/today_mission_card.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/progress_insight_card.dart';
@@ -90,6 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ValueNotifier<Duration>(Duration.zero);
   List<TodayTask> _tasks = [];
   List<TodayTask> _allTasks = [];
+
+  /// Ảnh chụp phiên focus đang dở (BE-3.2), nếu có — để màn Hôm nay mời quay
+  /// lại thay vì để người học lỡ bắt đầu phiên mới (đặc tả 5.2).
+  ActiveStudySession? _activeSession;
 
   /// G3-C: khung đầu tiên hiện khung xương thay vì màn trắng, rồi mới đổ
   /// dữ liệu thật vào. Bộ nhớ cục bộ đọc đồng bộ nên vốn không có “đang tải” —
@@ -190,6 +196,31 @@ class _HomeScreenState extends State<HomeScreen> {
   void _loadTasks() {
     _tasks = TodayService.getTodayTasksSorted();
     _allTasks = TaskRepository.instance.getAllTasks();
+    // Đọc lại ảnh chụp phiên đang dở mỗi lần load: sau khi thoát màn Tập
+    // trung, thẻ "phiên đang dở" phải biến mất (hoặc hiện) đúng lúc.
+    _activeSession = StudySessionRepository.instance.getActive();
+  }
+
+  /// Mở lại màn Tập trung; nơi đó sẽ hỏi "Tiếp tục / Kết thúc" phiên đang dở
+  /// (BE-3.2) — không tự khôi phục sau lưng người học.
+  void _resumeActiveSession() {
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => StudyPage(
+          clock: widget.clock,
+          onStreakChanged: _notifyStreakChanged,
+          onSessionCompleted: () {
+            if (mounted) setState(() {});
+          },
+        ),
+      ),
+    )
+        .then((_) {
+      _loadTasks();
+      if (mounted) setState(() {});
+    });
   }
 
   void _startStudyForTask(TodayTask task) {
@@ -449,15 +480,17 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(_loadTasks);
       return;
     }
-    await _applyReschedule(task, picked);
+    await _applyReschedule(task, picked.date, reason: picked.reason);
   }
 
   /// Ghi lịch mới — cập nhật chính task này, **không tạo bản sao** (FE-2.4).
-  Future<void> _applyReschedule(TodayTask task, DateTime date) async {
+  Future<void> _applyReschedule(TodayTask task, DateTime date,
+      {String? reason}) async {
     // G3-B: dời lịch là thao tác duyệt chọn → rung “tick” nhẹ, KHÔNG rung như
     // khi hoàn thành hay xoá (người dùng chưa mất dữ liệu).
     FeedbackService.selection();
-    final result = await TaskRepository.instance.rescheduleTask(task.id, date);
+    final result = await TaskRepository.instance
+        .rescheduleTask(task.id, date, reason: reason);
     if (!mounted) return;
     if (result.failed) {
       _toast(result.error ?? 'Không dời lịch được', kind: SnackKind.error);
@@ -730,18 +763,10 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenAchievements: () => showAchievementsSheet(context),
           ),
           const SizedBox(height: 12),
-          DailySummaryCard(
-            summary: TodayService.getDailySummary(),
-            primaryExam: widget.primaryExam,
-            onExamTap: widget.onExamTap,
-            // Đồng hồ đếm ngược tự chạy mỗi giây qua notifier, không rebuild
-            // cả cây widget Home.
-            remainingListenable: _remainingNotifier,
-          ),
-          const SizedBox(height: 14),
-          // **Nhiệm vụ hôm nay lên ngay** — nguyên tắc "Mở app là biết mình
-          // phải làm gì": thứ người học cần thấy đầu tiên là việc cần làm,
-          // không phải nhận định AI hay công cụ.
+          // Đặc tả 5.2: thứ tự nội dung là (1) việc quan trọng nhất + (2) các
+          // việc kế tiếp TRƯỚC, rồi mới tới (3) phiên đang dở/CTA focus và
+          // (4) tiến độ + đếm ngược. "Mở app là biết mình phải làm gì" — việc
+          // cần làm phải ở trên, không bị thẻ tóm tắt đẩy xuống.
           if (_isLoadingTasks)
             const SkeletonTaskList()
           else
@@ -761,6 +786,27 @@ class _HomeScreenState extends State<HomeScreen> {
               onEdit: _editTask,
               onOpenDetail: _openTaskDetail,
             ),
+          const SizedBox(height: 14),
+          // Phiên đang dở (nếu có): quãng thời gian đã học đang chờ được nối
+          // lại — ngay sau danh sách việc, đúng vị trí "phiên học đang chạy".
+          if (_activeSession != null &&
+              !_activeSession!.isExpiredAt(widget.clock())) ...[
+            ActiveSessionResumeCard(
+              session: _activeSession!,
+              clock: widget.clock,
+              onResume: _resumeActiveSession,
+            ),
+            const SizedBox(height: 14),
+          ],
+          // Tiến độ hôm nay + đếm ngược kỳ thi (đặc tả 5.2 mục 4).
+          DailySummaryCard(
+            summary: TodayService.getDailySummary(),
+            primaryExam: widget.primaryExam,
+            onExamTap: widget.onExamTap,
+            // Đồng hồ đếm ngược tự chạy mỗi giây qua notifier, không rebuild
+            // cả cây widget Home.
+            remainingListenable: _remainingNotifier,
+          ),
           const SizedBox(height: 14),
           // Nhận định tiến độ tuần (AI-5.1): số liệu thật, offline-safe.
           // Đặt SAU nhiệm vụ — nó là thông tin bổ sung, không phải việc cần làm.

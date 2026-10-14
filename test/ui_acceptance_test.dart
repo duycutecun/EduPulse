@@ -140,6 +140,18 @@ void main() {
           reason: 'việc cần làm phải lọt vào nửa trên màn hình, không phải '
               'đẩy xuống dưới các thẻ tóm tắt');
     });
+
+    testWidgets('thứ tự 5.2: việc cần làm đứng TRƯỚC tiến độ/đếm ngược',
+        (tester) async {
+      await TaskRepository.instance.createTask(task('t1', 'Ôn tập Văn'));
+      await pumpShell(tester);
+
+      final taskY = tester.getTopLeft(find.byType(TodayMissionCard)).dy;
+      final summaryY = tester.getTopLeft(find.byType(DailySummaryCard)).dy;
+      expect(taskY, lessThan(summaryY),
+          reason: 'đặc tả 5.2: danh sách nhiệm vụ ở (1)(2) phải đứng trên '
+              'tiến độ + đếm ngược ở (4)');
+    });
   });
 
   group('Empty state — luôn có lối ra', () {
