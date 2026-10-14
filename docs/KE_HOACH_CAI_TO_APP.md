@@ -250,6 +250,13 @@ tự, `setEnabled(false)` xoá buffer; không tự gửi đi đâu). Gắn tại
 
 Không dùng số lượt mở chat hoặc thời gian online đơn thuần làm chỉ số thành công.
 
+> **Baseline (9.2):** các chỉ số trên chưa có số gốc vì trước đây app không thu
+> sự kiện. Từ nay baseline lấy từ `ProductAnalytics.recent()` (mục 9.1) khi người
+> dùng đã bật đồng ý — cục bộ, ẩn danh; tỉ lệ như "phiên hoàn tất/tuần" hoặc
+> "action được áp dụng" suy ra từ cặp `focus_session_completed`/`_abandoned` và
+> `ai_action_requested`/`ai_action_applied`. Chỉ chốt mục tiêu sau khi có ≥ 2
+> tuần dữ liệu; không đặt KPI trên số lượt mở chat.
+
 > **Đã kiểm kê (7.1):** xem `docs/DU_LIEU_VA_PHIEN_BAN.md` — bảng khoá
 > SharedPreferences theo loại, quy tắc phiên bản hoá qua `data_schema_version`
 > + `DataMigration` (v1→v3), và checklist khi thêm dữ liệu mới.
