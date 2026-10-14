@@ -293,7 +293,9 @@ void main() {
     await tester.tap(find.text('Tiếp tục'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Bước 3: giữ mặc định 2 giờ → Xem lộ trình đề xuất.
+    // Bước 3: giữ mặc định 2 giờ, chọn khung giờ dễ học → Xem lộ trình đề xuất.
+    await tester.tap(find.text('🌅 Sáng sớm'));
+    await tester.pump();
     await tester.tap(find.text('Xem lộ trình đề xuất'));
     // AI retry nhiều model — pump đủ thời gian giả để request lỗi xong.
     await tester.pump(const Duration(seconds: 5));
@@ -316,6 +318,8 @@ void main() {
     expect(StorageService.getUserName(), 'Minh');
     expect(StorageService.getPrimaryExamId(), 'thptqg');
     expect(StorageService.getTodayTaskIds(), isNotEmpty);
+    // Đặc tả 5.1 mục 5: khung giờ dễ học được ghi nhớ (Sáng sớm = 6h).
+    expect(StorageService.getInt('preferred_study_hour'), 6);
   });
 
   group('Study Analytics (đặc tả mục 12)', () {

@@ -45,6 +45,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   double? _targetScore;
   int _dailyMinutes = 120;
 
+  /// Đặc tả 5.1 (mục 5): khung giờ dễ học. Lưu giờ đại diện để đặt lịch nhiệm
+  /// vụ tuần đầu và gợi ý nhắc học về sau — mặc định buổi tối.
+  String _preferredSlot = 'Buổi tối';
+
   List<AiPlannedTask> _plan = const [];
 
   bool _conversationalMode = false;
@@ -105,6 +109,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final repo = TaskRepository.instance;
     for (final t in accepted) {
       final assignedDay = t.day.clamp(1, 7);
+      // Xếp vào đúng khung giờ dễ học đã chọn (đặc tả 5.1 mục 5).
+      final day = DateTime(
+        _examDate.year,
+        _examDate.month,
+        _examDate.day,
+      ).subtract(Duration(days: 7 - assignedDay));
       final task = TodayTask(
         id: _uuid.v4(),
         title: t.title,
@@ -112,14 +122,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         priority: t.priority,
         estimateMinutes: t.estimateMinutes,
         goalId: exam.id,
-        scheduledAt: DateTime(
-          _examDate.year,
-          _examDate.month,
-          _examDate.day,
-        ).subtract(Duration(days: 7 - assignedDay)),
+        scheduledAt: DateTime(day.year, day.month, day.day, _preferredHour),
       );
       await repo.createTaskIfMissing(task);
     }
+
+    // Ghi nhớ khung giờ dễ học để Home/nhắc học dùng lại về sau.
+    StorageService.setInt('preferred_study_hour', _preferredHour);
 
     // Không duyệt đề xuất nào (hoặc AI lỗi hoặc qua chat) → seed mẫu để có gì đó bắt đầu.
     if (repo.getAllTasks().isEmpty) {
@@ -660,6 +669,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 8),
+          // Đặc tả 5.1 (mục 5): khung giờ dễ học — dùng để xếp nhiệm vụ tuần
+          // đầu vào đúng lúc người học tập trung nhất.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Khung giờ bạn dễ tập trung nhất',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 4),
+                const Text('EduPulse sẽ xếp nhiệm vụ tuần đầu vào khoảng này.',
+                    style:
+                        TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final slot in _preferredSlots) _slotChip(slot.$1),
+                  ],
+                ),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             child: _primaryButton(
@@ -672,6 +709,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Khung giờ dễ học: nhãn hiển thị + giờ đại diện để đặt `scheduledAt`.
+  static const List<(String, int)> _preferredSlots = [
+    ('🌅 Sáng sớm', 6),
+    ('☀️ Buổi chiều', 14),
+    ('🌆 Buổi tối', 20),
+    ('🌙 Khuya', 22),
+  ];
+
+  /// Giờ đại diện cho khung đang chọn — dùng khi xếp nhiệm vụ.
+  int get _preferredHour => _preferredSlots
+      .firstWhere((s) => s.$1 == _preferredSlot,
+          orElse: () => _preferredSlots[2])
+      .$2;
+
+  Widget _slotChip(String label) {
+    final selected = _preferredSlot == label;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => setState(() => _preferredSlot = label),
+      selectedColor: AppColors.primaryLight.withValues(alpha: 0.2),
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.border,
+        width: 1.5,
+      ),
+      labelStyle: TextStyle(
+        fontSize: 12.5,
+        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+        color: selected ? AppColors.primaryDark : AppColors.textPrimary,
       ),
     );
   }
