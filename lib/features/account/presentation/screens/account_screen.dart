@@ -24,6 +24,7 @@ import '../widgets/appearance_card.dart';
 import 'learning_profile_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
+import '../../../../core/analytics/product_analytics.dart';
 
 class AccountScreen extends StatefulWidget {
   final VoidCallback onDataChanged;
@@ -47,6 +48,7 @@ class _AccountScreenState extends State<AccountScreen> {
   int _reminderMinute = 0;
   bool _digestEnabled = false;
   bool _advancedReminderEnabled = false;
+  bool _analyticsEnabled = false;
   bool _aiMayRead = true;
   bool _aiMayAnalyze = true;
   bool _mascotEnabled = true;
@@ -70,6 +72,7 @@ class _AccountScreenState extends State<AccountScreen> {
     _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
     _digestEnabled = StorageService.getBool('notif_digest_enabled') ?? false;
     _advancedReminderEnabled = StorageService.getBool('notif_advanced_enabled') ?? false;
+    _analyticsEnabled = ProductAnalytics.instance.enabled;
     _aiMayRead = StorageService.getBool('ai_permission_read') ?? true;
     _aiMayAnalyze = StorageService.getBool('ai_permission_analyze') ?? true;
     _mascotEnabled = StorageService.getBool('mascot_enabled') ?? true;
@@ -1156,6 +1159,21 @@ class _AccountScreenState extends State<AccountScreen> {
                       weeklyReportEnabled: _advancedReminderEnabled,
                       streakGuardEnabled: _advancedReminderEnabled,
                     );
+              },
+            ),
+            const Divider(height: 18),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Số liệu cải thiện trải nghiệm',
+                  style:
+                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+              subtitle: const Text(
+                  'Mặc định TẮT. Chỉ lưu tại máy số đếm thao tác (không gửi lên mạng, không chứa nội dung học tập).',
+                  style: TextStyle(fontSize: 11)),
+              value: _analyticsEnabled,
+              onChanged: (v) async {
+                setState(() => _analyticsEnabled = v);
+                ProductAnalytics.instance.setEnabled(v);
               },
             ),
           ],

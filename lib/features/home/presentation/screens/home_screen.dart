@@ -17,6 +17,8 @@ import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/quick_add_parser.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../../core/widget/home_widget_service.dart';
+import '../../../../core/analytics/product_analytics.dart';
+import '../../../../core/analytics/product_events.dart';
 import '../../../tasks/domain/models/task_state.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../../tasks/presentation/widgets/delete_task_dialog.dart';
@@ -134,6 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _loadTasks();
         _isLoadingTasks = false;
       });
+      // Người dùng thực sự đã thấy kế hoạch hôm nay (không phải màn tải).
+      ProductAnalytics.instance.track(ProductEvents.todayPlanViewed);
     });
   }
 
@@ -191,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _startStudyForTask(TodayTask task) {
     // G3-B: bắt đầu học = rung nhẹ, báo hiệu "sẵn sàng" mà không giật.
     FeedbackService.light();
+    ProductAnalytics.instance.track(ProductEvents.priorityTaskStarted);
     Navigator.of(context)
         .push(
       MaterialPageRoute(
@@ -347,6 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _notifyStreakChanged();
     _celebrateNewAchievements();
     HomeWidgetService.sync();
+    ProductAnalytics.instance.track(ProductEvents.priorityTaskCompleted);
     _toast(
       'Đã hoàn thành nhiệm vụ',
       kind: SnackKind.success,
@@ -459,6 +465,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     setState(_loadTasks);
     final moved = result.task ?? task;
+    ProductAnalytics.instance.track(ProductEvents.taskRescheduled);
     _toast('Đã dời "${task.title}" sang ngày mới', kind: SnackKind.moved);
     // Đặc tả 5.5: dời nhiều lần thì gợi ý thu nhỏ — đề nghị chứ không tự
     // sửa. AI must suggest, not silently modify.

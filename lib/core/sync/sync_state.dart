@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../analytics/product_analytics.dart';
+import '../analytics/product_events.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/storage_service.dart';
 import '../utils/supabase_service.dart';
@@ -180,9 +182,11 @@ class SyncStateService {
       // Đã đẩy toàn bộ trạng thái → sổ ý định không còn gì chờ.
       ChangeOutbox.markAllSynced();
       markSynced();
+      ProductAnalytics.instance.track(ProductEvents.syncSucceeded);
     } else {
       ChangeOutbox.markAllFailed();
       markError();
+      ProductAnalytics.instance.track(ProductEvents.syncFailed);
     }
   }
 

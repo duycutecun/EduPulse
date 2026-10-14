@@ -37,6 +37,8 @@ import '../widgets/study_entry_dialogs.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../../core/widget/home_widget_service.dart';
+import '../../../../core/analytics/product_analytics.dart';
+import '../../../../core/analytics/product_events.dart';
 
 class StudyScreen extends StatefulWidget {
   final VoidCallback? onStreakChanged;
@@ -377,6 +379,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
       // Vào Focus → tạm dừng notification không quan trọng (đặc tả mục 16).
       AdaptivePolicy.setInFocus(true);
       _startPomodoroTimer();
+      if (!_isBreak) {
+        ProductAnalytics.instance.track(ProductEvents.focusSessionStarted);
+      }
     }
     _persistActiveSession();
   }
@@ -498,6 +503,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     );
     repo.save(session);
     setState(() => _sessions.insert(0, session));
+    ProductAnalytics.instance.track(ProductEvents.focusSessionAbandoned,
+        props: {'minutes': '${session.actualMinutes}'});
     AiRefreshService.notifyDataChanged();
   }
 
@@ -623,6 +630,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     // một nguồn (FE-2.2).
     StudySessionRepository.instance.save(session);
     HomeWidgetService.sync();
+    ProductAnalytics.instance.track(ProductEvents.focusSessionCompleted,
+        props: {'minutes': '${session.actualMinutes}'});
     AiRefreshService.notifyDataChanged();
     setState(() => _sessions.insert(0, session));
     // Màn bên ngoài cần số phút mới ngay, không chờ người dùng điều hướng

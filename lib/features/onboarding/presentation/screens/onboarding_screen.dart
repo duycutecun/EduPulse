@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/main_shell.dart';
 import '../../../../core/ai/ai_sprint4_planner.dart';
+import '../../../../core/analytics/product_analytics.dart';
+import '../../../../core/analytics/product_events.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
@@ -149,6 +151,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     StorageService.setOnboardingDone();
+    ProductAnalytics.instance.track(ProductEvents.onboardingCompleted,
+        props: const {'source': 'plan'});
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShellScreen()),
@@ -157,6 +161,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _skip() async {
     StorageService.setOnboardingDone();
+    ProductAnalytics.instance.track(ProductEvents.onboardingCompleted,
+        props: const {'source': 'skip'});
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShellScreen()),

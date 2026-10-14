@@ -226,6 +226,18 @@ Không thu nội dung bài học hoặc chat thô trong analytics. Chỉ thu s�
 - `ai_action_requested`, `ai_action_applied`, `ai_action_failed`
 - `sync_succeeded`, `sync_failed`, `conflict_resolved`
 
+Đã hiện thực: `core/analytics/product_events.dart` (hằng tên sự kiện + tập `all`) và
+`core/analytics/product_analytics.dart` (`ProductAnalytics` singleton — opt-in mặc
+định TẮT qua key `analytics_consent`, buffer cục bộ giới hạn 200, chỉ cho phép các
+thuộc tính phi-nội-dung `count/minutes/source/result/reason/kind`, cắt value ≤40 ký
+tự, `setEnabled(false)` xoá buffer; không tự gửi đi đâu). Gắn tại: onboarding
+(`onboarding_completed`, source plan/skip), Home (`today_plan_viewed`,
+`priority_task_started/completed`, `task_rescheduled`), Study (`focus_session_started`,
+`focus_session_completed` kèm phút, `focus_session_abandoned` khi ghi phiên bỏ dở), AI
+(`ai_action_requested/applied` kèm loại hành động, `ai_action_failed` khi lỗi), sync
+(`sync_succeeded`/`sync_failed` trong vòng sync nền). Toggle đồng ý ở màn "Tôi"
+(`Số liệu cải thiện trải nghiệm`). 7 unit test cho service.
+
 ### 9.2. Chỉ số thành công
 
 | Nhóm | Chỉ số | Mục tiêu cần chốt sau baseline |

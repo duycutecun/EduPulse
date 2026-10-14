@@ -13,6 +13,8 @@ import '../../features/tasks/presentation/widgets/task_edit_sheet.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
 import '../constants/app_colors.dart';
 import '../constants/subject_catalog.dart';
+import '../analytics/product_analytics.dart';
+import '../analytics/product_events.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/storage_service.dart';
 import 'ai_models.dart';
@@ -531,6 +533,10 @@ class AiCopilotService {
   }) async {
     action.payload['onTasksChanged'] = onTasksChanged;
     action.payload['onStreakChanged'] = onStreakChanged;
+    // Người dùng vừa chủ động yêu cầu AI làm gì đó — đo ý định, không log nội
+    // dung hội thoại hay dữ liệu học tập (chỉ loại hành động).
+    ProductAnalytics.instance
+        .track(ProductEvents.aiActionRequested, props: {'kind': action.type.name});
     // Xoá callback khi rời khỏi context để không giữ reference rác.
     // (payload là map thường nên gán callback an toàn, được đọc lại phía sau.)
     FeedbackService.medium();
@@ -790,6 +796,8 @@ class AiCopilotService {
             });
           }
         } catch (e) {
+          ProductAnalytics.instance.track(ProductEvents.aiActionFailed,
+              props: {'kind': action.type.name, 'reason': 'exception'});
           if (context.mounted) {
             Navigator.of(context, rootNavigator: true).pop();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -821,6 +829,10 @@ class AiCopilotService {
     // trạng thái thuần dữ liệu (không giữ reference UI).
     action.payload.remove('onTasksChanged');
     action.payload.remove('onStreakChanged');
+    // Đi hết switch nghĩa là hành động đã được thực thi (hoặc đã mở màn hình
+    // tương ứng) — ghi nhận "đã áp dụng" kèm loại hành động.
+    ProductAnalytics.instance.track(ProductEvents.aiActionApplied,
+        props: {'kind': action.type.name, 'result': 'ok'});
   }
 
   // ─── AI-2.1: các hành động sửa / dời lịch / xoá nhiệm vụ ────────────────
