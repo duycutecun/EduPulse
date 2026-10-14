@@ -384,6 +384,44 @@ void main() {
           reason: 'thu hồi → bật lại phải đẩy bản mới, không coi là đã gửi');
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 6. AI ACTION UNDO (đặc tả 5.5)
+  // ─────────────────────────────────────────────────────────────────────────
+  group('P0 · Hành động AI luôn có Hoàn tác', () {
+    testWidgets('dời lịch bằng AI → Hoàn tác trả lịch cũ', (tester) async {
+      final original = DateTime.now();
+      await TaskRepository.instance.createTask(TodayTask(
+        id: 'rs1',
+        title: 'Ôn điện phân',
+        subject: 'Toán',
+        scheduledAt: original,
+      ));
+
+      await tester.pumpWidget(_actionHost(
+        AiCopilotAction(
+          type: AiActionType.rescheduleTask,
+          label: '📅 Dời task ôn điện phân',
+          icon: Icons.event_available_rounded,
+          payload: {'title': 'Ôn điện phân', 'days': 3},
+        ),
+      ));
+
+      await tester.tap(find.text('run'));
+      await tester.pumpAndSettle();
+
+      final moved = TaskRepository.instance.getTaskById('rs1')!;
+      expect(moved.scheduledAt!.day == original.day, isFalse,
+          reason: 'AI đã dời sang ngày khác');
+
+      await tester.tap(find.text('Hoàn tác'));
+      await tester.pumpAndSettle();
+
+      final restored = TaskRepository.instance.getTaskById('rs1')!;
+      expect(restored.scheduledAt, original,
+          reason: 'Hoàn tác phải trả lại đúng lịch cũ');
+    });
+  });
 }
 
 /// Widget tối giản có sẵn context để gọi [AiCopilotService.executeAction]

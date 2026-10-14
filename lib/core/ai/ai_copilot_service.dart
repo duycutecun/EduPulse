@@ -868,6 +868,9 @@ class AiCopilotService {
     switch (action.type) {
       case AiActionType.editTask:
         if (!context.mounted) return;
+        // Ảnh chụp trước khi sửa để luôn có đường Hoàn tác (đặc tả 5.5):
+        // hành động AI không được phép là ngõ cụt nếu người dùng đổi ý.
+        final beforeEdit = TodayTask.fromJsonString(match.toJsonString());
         final edited = await TaskEditSheet.show(context, initialTask: match);
         if (edited == null || !context.mounted) return;
         // Bỏ qua nếu người dùng đóng form mà không sửa gì.
@@ -890,6 +893,12 @@ class AiCopilotService {
               ? Icons.error_outline_rounded
               : Icons.check_circle_rounded,
           color: result.failed ? AppColors.red : AppColors.primary,
+          onUndo: result.failed
+              ? null
+              : () async {
+                  await repo.updateTask(beforeEdit);
+                  onTasksChanged?.call();
+                },
         );
 
       case AiActionType.rescheduleTask:
@@ -907,6 +916,8 @@ class AiCopilotService {
           );
           return;
         }
+        // Chụp lịch cũ để dời có thể hoàn tác (đặc tả 5.5).
+        final beforeMove = TodayTask.fromJsonString(match.toJsonString());
         final result = await repo.rescheduleTask(match.id, when);
         onTasksChanged?.call();
         _showAiSnackBar(
@@ -918,6 +929,12 @@ class AiCopilotService {
               ? Icons.error_outline_rounded
               : Icons.event_available_rounded,
           color: result.failed ? AppColors.red : AppColors.primary,
+          onUndo: result.failed
+              ? null
+              : () async {
+                  await repo.updateTask(beforeMove);
+                  onTasksChanged?.call();
+                },
         );
 
       case AiActionType.deleteTask:
