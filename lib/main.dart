@@ -99,6 +99,11 @@ void main() async {
           .toList(),
       sessions: StudySessionRepository.instance.getAll(),
       primaryExam: null,
+      advancedEnabled: StorageService.getBool('notif_advanced_enabled') ?? false,
+      weeklyReportEnabled:
+          StorageService.getBool('notif_advanced_enabled') ?? false,
+      streakGuardEnabled:
+          StorageService.getBool('notif_advanced_enabled') ?? false,
     );
 
     // Chu trình AI khép kín: mở app là dữ liệu mới nhất được AI nhìn thấy —

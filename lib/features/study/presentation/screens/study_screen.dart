@@ -36,6 +36,7 @@ import '../widgets/ai_post_focus_sheet.dart';
 import '../widgets/study_entry_dialogs.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../../exams/domain/models/exam_model.dart';
+import '../../../../core/widget/home_widget_service.dart';
 
 class StudyScreen extends StatefulWidget {
   final VoidCallback? onStreakChanged;
@@ -268,11 +269,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     StorageService.setMockScoreIds(ids);
     setState(() => _scores.insert(0, s));
     _celebrateNewAchievements();
+    HomeWidgetService.sync();
   }
 
   void _deleteScore(MockScore s) {
     StorageService.removeMockScore(s.id);
     setState(() => _scores.remove(s));
+    HomeWidgetService.sync();
   }
 
   /// Xét huy hiệu sau khi ghi điểm/phiên học (P2 — gamification) và báo toast
@@ -619,6 +622,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     // Ghi qua repository để màn chi tiết Task đọc lịch sử phiên học từ đúng
     // một nguồn (FE-2.2).
     StudySessionRepository.instance.save(session);
+    HomeWidgetService.sync();
     AiRefreshService.notifyDataChanged();
     setState(() => _sessions.insert(0, session));
     // Màn bên ngoài cần số phút mới ngay, không chờ người dùng điều hướng
@@ -671,6 +675,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     if (sheetContext.mounted) Navigator.pop(sheetContext);
     // Đánh giá (focus…) vừa được ghi → có thể mở khoá huy hiệu "Tâm trí sâu".
     _celebrateNewAchievements();
+    HomeWidgetService.sync();
   }
 
   /// Đường 1 chạm của FE-3.3: lưu phản hồi → đánh dấu nhiệm vụ hoàn thành →

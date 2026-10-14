@@ -19,6 +19,8 @@ import '../features/progress/presentation/screens/progress_screen.dart';
 import '../features/study/presentation/screens/study_page.dart';
 import '../features/calendar/presentation/screens/calendar_screen.dart';
 import '../features/account/presentation/screens/account_screen.dart';
+import '../core/notifications/notification_tap_handler.dart';
+import '../features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../features/notes/presentation/screens/notes_screen.dart';
 import 'desktop_sidebar.dart';
 import 'desktop_aux_column.dart';
@@ -71,6 +73,11 @@ class _MainShellScreenState extends State<MainShellScreen>
     WidgetsBinding.instance.addObserver(this);
     _visited[0] = true;
     _loadInitialData();
+    // Điều hướng khi người dùng nhấn thông báo (P3): đọc payload đã lưu và mở
+    // đúng đích (Home / Bảng vàng). Hoãn tới sau frame đầu để Navigator sẵn sàng.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkNotificationTap();
+    });
     // Notify user khi migration rollback (mục 42) — SnackBar nhẹ nhàng,
     // khẳng định dữ liệu an toàn, không gây lo lắng.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -185,6 +192,25 @@ class _MainShellScreenState extends State<MainShellScreen>
       context,
       taskId: taskId,
     );
+  }
+
+  /// Xử lý payload từ thông báo (P3). Chỉ chạy khi có payload chờ; mở xong thì
+  /// xoá để không điều hướng lặp lại mỗi lần rebuild.
+  void _checkNotificationTap() {
+    final payload = NotificationTapHandler.payload;
+    if (payload == null || payload.isEmpty) return;
+    if (!mounted) return;
+    NotificationTapHandler.payload = null;
+    switch (payload) {
+      case 'home':
+        _switchTab(0);
+      case 'leaderboard':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+        );
+      default:
+        break;
+    }
   }
 
   void _setPrimaryExam(ExamModel exam) {

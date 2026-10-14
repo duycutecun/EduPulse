@@ -16,6 +16,7 @@ import '../../../exams/domain/preset_exams.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/quick_add_parser.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
+import '../../../../core/widget/home_widget_service.dart';
 import '../../../tasks/domain/models/task_state.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../../tasks/presentation/widgets/delete_task_dialog.dart';
@@ -345,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (doneTask != null) _createNextRecurringTask(doneTask);
     _notifyStreakChanged();
     _celebrateNewAchievements();
+    HomeWidgetService.sync();
     _toast(
       'Đã hoàn thành nhiệm vụ',
       kind: SnackKind.success,

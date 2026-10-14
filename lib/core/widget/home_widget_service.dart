@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/study/domain/models/study_models.dart';
+import '../../features/study/domain/repositories/study_session_repository.dart';
+import '../gamification/achievement_service.dart';
 import '../utils/storage_service.dart';
 import '../ai/readiness_score.dart';
 
@@ -79,6 +81,21 @@ class HomeWidgetService {
         ready = ReadinessScore.compute()?.score ?? -1;
       } catch (_) {}
       await _write(prefs, 'ready_score', ready);
+
+      // --- Gamification gọn (P3): chuỗi, cấp, XP, huy hiệu — không gọi mạng ---
+      try {
+        final streak = StorageService.getStreak();
+        final unlocked = AchievementService.instance.unlockedCount;
+        final sessions = StudySessionRepository.instance.getAll();
+        final totalMinutes =
+            sessions.fold<int>(0, (s, e) => s + e.actualMinutes);
+        final xp = totalMinutes * 2;
+        final level = (xp ~/ 200) + 1;
+        await _write(prefs, 'streak', streak);
+        await _write(prefs, 'level', level);
+        await _write(prefs, 'xp', xp);
+        await _write(prefs, 'achievements_unlocked', unlocked);
+      } catch (_) {}
 
       await _write(prefs, 'updated_iso', DateTime.now().toIso8601String());
     } catch (_) {

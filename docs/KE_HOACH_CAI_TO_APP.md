@@ -310,7 +310,7 @@ Không dùng số lượt mở chat hoặc thời gian online đơn thuần làm
 
 - [x] Cải tiến mascot/gamification. (Achievements: domain/service/sheet + UI entries/hooks + 14 tests).
 - [x] Mở rộng leaderboard/cộng đồng. (Bảng vàng kỷ lục: personal_records + LeaderboardScreen + Account entry + 10 tests).
-- [x] Tính năng native bổ sung (notification nâng cao). (plan_notifications + AdaptivePolicy integration + Account toggle + 8 tests; Android widget đã có).
+- [x] Tính năng native bổ sung (notification nâng cao). (plan_notifications + AdaptivePolicy integration + Account toggle + 8 tests; truyền payload + điều hướng khi nhấn thông báo qua NotificationTapHandler → main_shell; widget Android sync thêm key streak/level/xp/huy hiệu + gọi lại sau task/phiên/điểm; advanced flags đọc lúc khởi động; 2 tests widget sync).
 - [x] Các báo cáo/phân tích chuyên sâu ít dùng. (Màn `DeepReportScreen` mở từ "Tôi" và tab Tiến độ: xu hướng điểm theo tuần, năng lực chủ đề <6.5, điểm theo môn, thời gian học + hiệu quả phiên. Domain `deep_report.dart` thuần + 10 unit test + 5 widget test; chạy 100% offline, không gọi AI. Có thể bổ sung thêm mảng báo cáo khác sau.)
 
 ## 12. Nguyên tắc triển khai
