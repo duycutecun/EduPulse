@@ -456,6 +456,81 @@ class _ProgressScreenState extends State<ProgressScreen> {
               }),
             ),
           ),
+          // Chỉ diễn giải khi tuần đã có dữ liệu — khi trống, màn đã có
+          // EmptyStatePanel lo phần "vì sao chưa có gì" (tránh trùng lặp và
+          // đẩy CTA ra khỏi màn hình thấp).
+          if (snapshot.week.totalMinutes > 0) ...[
+            const SizedBox(height: 14),
+            _weeklyInsightPanel(snapshot),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Diễn giải + hành động gắn liền biểu đồ tuần (đặc tả 5.4).
+  ///
+  /// Biểu đồ không bao giờ đứng một mình: mỗi con số phải kèm một câu giải
+  /// thích "vì sao" và một bước tiếp theo bấm được, tránh việc người dùng nhìn
+  /// số rồi không biết làm gì.
+  Widget _weeklyInsightPanel(ProgressSnapshot snapshot) {
+    final interpretation = ProgressInsights.weeklyInterpretation(snapshot);
+    final nextStep = ProgressInsights.weeklyNextStep(snapshot);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.blueSoft,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.lightbulb_outline_rounded,
+                  size: 16, color: AppColors.blue),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(interpretation,
+                    style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.arrow_forward_rounded,
+                  size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Bước tiếp theo: $nextStep',
+                    style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDark)),
+              ),
+            ],
+          ),
+          if (widget.onStartStudy != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () {
+                  FeedbackService.light();
+                  widget.onStartStudy!();
+                },
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: const Text('Vào phiên học'),
+              ),
+            ),
+          ],
         ],
       ),
     );

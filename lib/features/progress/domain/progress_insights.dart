@@ -44,6 +44,49 @@ abstract class ProgressInsights {
     return '${parts.join('. ')}.';
   }
 
+  /// Diễn giải ngắn cho biểu đồ tuần (trả lời "vì sao" đằng sau con số).
+  ///
+  /// Đặc tả 5.4: biểu đồ chỉ được hiển thị khi đi kèm diễn giải VÀ hành động.
+  /// Hàm này thuần số liệu (không gọi AI) nên luôn có sẵn, kể cả khi offline.
+  static String weeklyInterpretation(ProgressSnapshot snapshot) {
+    final week = snapshot.week;
+    if (!snapshot.hasData || week.totalMinutes == 0) {
+      return 'Tuần này chưa có phiên học nào.';
+    }
+    final delta = snapshot.weekDeltaPercent;
+    final rate = (week.completionRate * 100).round();
+    if (delta != null && delta <= -10) {
+      return 'Tuần này bạn học ít hơn ${-delta}% so với tuần trước.';
+    }
+    if (delta != null && delta >= 10) {
+      return 'Tuần này bạn học nhiều hơn $delta% so với tuần trước.';
+    }
+    if (week.tasksTotal > 0 && rate < 50) {
+      return 'Bạn hoàn thành $rate% kế hoạch tuần — dưới một nửa.';
+    }
+    return 'Bạn đang giữ nhịp học ổn định so với tuần trước.';
+  }
+
+  /// Bước tiếp theo cụ thể, gắn ngay dưới biểu đồ tuần (đặc tả 5.4).
+  ///
+  /// Ưu tiên môn bị bỏ quên, kế đó là nhịp hoàn thành thấp, cuối cùng là gợi ý
+  /// chung — luôn là một việc nhỏ, làm được ngay.
+  static String weeklyNextStep(ProgressSnapshot snapshot) {
+    if (!snapshot.hasData || snapshot.week.totalMinutes == 0) {
+      return 'Bắt đầu một phiên 25 phút hôm nay để có dữ liệu tuần.';
+    }
+    final neglected = snapshot.neglectedSubjects;
+    if (neglected.isNotEmpty) {
+      return 'Dành 25 phút cho '
+          '${AppSubjects.displayName(neglected.first.subject)} trong tuần này.';
+    }
+    final rate = (snapshot.week.completionRate * 100).round();
+    if (snapshot.week.tasksTotal > 0 && rate < 50) {
+      return 'Chia nhiệm vụ dài thành hai phần 25 phút để dễ hoàn thành.';
+    }
+    return 'Thêm một phiên 25 phút cho môn khó nhất.';
+  }
+
   /// Prompt gửi AI — số liệu thật, yêu cầu nhận xét + hành động cụ thể.
   static String buildPrompt(ProgressSnapshot snapshot) {
     final buffer = StringBuffer()
