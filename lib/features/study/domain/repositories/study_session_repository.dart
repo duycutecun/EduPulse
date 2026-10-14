@@ -151,6 +151,8 @@ class StudySessionRepository {
     int? understanding,
     int? effectiveness,
     String? reflectionNote,
+    bool? goalMet,
+    String? blocker,
   }) async {
     final session = getById(id);
     if (session == null) return false;
@@ -161,6 +163,8 @@ class StudySessionRepository {
     if (understanding != null) session.understanding = understanding;
     if (effectiveness != null) session.effectiveness = effectiveness;
     if (reflectionNote != null) session.reflectionNote = reflectionNote;
+    if (goalMet != null) session.goalMet = goalMet;
+    if (blocker != null) session.blocker = blocker;
 
     await save(session);
     return true;

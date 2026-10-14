@@ -14,6 +14,12 @@ class SessionFeedback {
   final int effectiveness;
   final String note;
 
+  /// Đặc tả 5.3 — "đã hoàn thành mục tiêu chưa?". Mặc định đã xong.
+  final bool goalMet;
+
+  /// Đặc tả 5.3 — "cần ôn lại / có trở ngại gì không?". Nhãn ngắn hoặc rỗng.
+  final String blocker;
+
   const SessionFeedback({
     required this.mood,
     required this.focus,
@@ -21,6 +27,8 @@ class SessionFeedback {
     required this.understanding,
     required this.effectiveness,
     required this.note,
+    this.goalMet = true,
+    this.blocker = '',
   });
 }
 
@@ -195,6 +203,29 @@ Widget _understandingOption({
   );
 }
 
+/// Chip một lựa chọn (đã chọn = tô đậm) cho câu hỏi "cần ôn lại / trở ngại".
+Widget _selectableChip({
+  required String label,
+  required bool selected,
+  required VoidCallback onTap,
+}) {
+  return ChoiceChip(
+    label: Text(label),
+    selected: selected,
+    onSelected: (_) => onTap(),
+    selectedColor: AppColors.primary.withValues(alpha: 0.15),
+    side: BorderSide(
+      color: selected ? AppColors.primary : AppColors.border,
+      width: 1.5,
+    ),
+    labelStyle: TextStyle(
+      fontSize: 11.5,
+      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+      color: selected ? AppColors.primaryDark : AppColors.textPrimary,
+    ),
+  );
+}
+
 /// Sheet "Phiên học thế nào?" hiển thị sau khi kết thúc một phiên focus.
 ///
 /// Toàn bộ giao diện + đánh giá 1 chạm nằm ở đây; màn Tập trung chỉ truyền
@@ -225,6 +256,11 @@ Future<void> showAiPostFocusSheet({
   var difficulty = 3;
   var understanding = 4;
   var effectiveness = 4;
+  // Đặc tả 5.3: hai câu hỏi bắt buộc ngoài mức hiểu — mục tiêu đã xong chưa và
+  // có trở ngại gì không. Mặc định "đã xong / không trở ngại" để học sinh bận
+  // vẫn lưu được trong 1 chạm.
+  var goalMet = true;
+  var blocker = '';
   final noteController = TextEditingController();
 
   await showModalBottomSheet(
@@ -475,7 +511,12 @@ Future<void> showAiPostFocusSheet({
                                   sessionId: session.id);
                             },
                           ),
-                          if (understandingLevel == 0)
+                          // Đặc tả 5.3: phản hồi "cần ôn lại" (dù hiểu bài) cũng
+                          // phải dẫn tới đề xuất ôn lại — không chỉ khi "chưa
+                          // hiểu". Nhờ vậy mục đích của câu hỏi trở ngại được
+                          // dùng thật, không chỉ lưu trữ.
+                          if (understandingLevel == 0 ||
+                              blocker == 'Cần ôn lại')
                             ActionChip(
                               avatar: const Icon(Icons.calendar_today_rounded,
                                   size: 15, color: AppColors.orange),
@@ -540,6 +581,69 @@ Future<void> showAiPostFocusSheet({
                     decoration: const InputDecoration(
                         hintText: 'Ghi chú thêm (không bắt buộc)'),
                   ),
+                  const SizedBox(height: 14),
+                  // Đặc tả 5.3: hai câu hỏi phản tư sâu — để trong mục "chi
+                  // tiết" nhằm giữ đường lưu 1 chạm (FE-3.3) luôn nằm trong
+                  // tầm mắt, không phải cuộn xuống.
+                  const Text('Đã hoàn thành mục tiêu phiên này chưa?',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _understandingOption(
+                          emoji: '✅',
+                          label: 'Đã xong',
+                          selected: goalMet,
+                          accent: AppColors.primary,
+                          onTap: () => setSheetState(() => goalMet = true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _understandingOption(
+                          emoji: '🟡',
+                          label: 'Chưa xong',
+                          selected: !goalMet,
+                          accent: AppColors.orange,
+                          onTap: () => setSheetState(() => goalMet = false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Cần ôn lại hoặc có trở ngại nào không?',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _selectableChip(
+                        label: 'Không',
+                        selected: blocker.isEmpty,
+                        onTap: () => setSheetState(() => blocker = ''),
+                      ),
+                      _selectableChip(
+                        label: '🔁 Cần ôn lại',
+                        selected: blocker == 'Cần ôn lại',
+                        onTap: () =>
+                            setSheetState(() => blocker = 'Cần ôn lại'),
+                      ),
+                      _selectableChip(
+                        label: '🚧 Có trở ngại',
+                        selected: blocker == 'Có trở ngại',
+                        onTap: () =>
+                            setSheetState(() => blocker = 'Có trở ngại'),
+                      ),
+                    ],
+                  ),
                 ],
                 const SizedBox(height: 12),
                 SizedBox(
@@ -556,6 +660,8 @@ Future<void> showAiPostFocusSheet({
                         understanding: understanding,
                         effectiveness: effectiveness,
                         note: noteController.text,
+                        goalMet: goalMet,
+                        blocker: blocker,
                       ),
                     ),
                     child: Text(quickRating > 0
@@ -582,6 +688,8 @@ Future<void> showAiPostFocusSheet({
                           understanding: understanding,
                           effectiveness: effectiveness,
                           note: noteController.text,
+                          goalMet: goalMet,
+                          blocker: blocker,
                         ),
                       ),
                       icon: const Icon(Icons.check_rounded, size: 18),

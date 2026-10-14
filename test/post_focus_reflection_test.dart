@@ -92,4 +92,68 @@ void main() {
     expect(saved, isNotNull);
     expect(saved!.understanding, 4);
   });
+
+  testWidgets('mặc định: đã hoàn thành mục tiêu, không trở ngại',
+      (tester) async {
+    SessionFeedback? saved;
+    await open(tester, (fb) => saved = fb);
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final save = find.text('Lưu phản hồi & Hoàn tất');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(saved, isNotNull);
+    expect(saved!.goalMet, isTrue);
+    expect(saved!.blocker, isEmpty);
+  });
+
+  testWidgets('chọn "Chưa xong" + "Có trở ngại" → lưu đúng', (tester) async {
+    SessionFeedback? saved;
+    await open(tester, (fb) => saved = fb);
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Thêm đánh giá chi tiết ▾'));
+    await tester.pumpAndSettle();
+
+    final chuaXong = find.text('Chưa xong');
+    await tester.ensureVisible(chuaXong);
+    await tester.tap(chuaXong);
+    await tester.pump();
+    final troNgai = find.text('🚧 Có trở ngại');
+    await tester.ensureVisible(troNgai);
+    await tester.tap(troNgai);
+    await tester.pump();
+
+    final save = find.text('Lưu phản hồi & Hoàn tất');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(saved, isNotNull);
+    expect(saved!.goalMet, isFalse);
+    expect(saved!.blocker, 'Có trở ngại');
+  });
+
+  testWidgets('chọn trở ngại "Cần ôn lại" → hiện đề xuất ôn lại',
+      (tester) async {
+    await open(tester, (_) {});
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('📅 Ôn lại ngày mai'), findsNothing);
+
+    await tester.tap(find.text('Thêm đánh giá chi tiết ▾'));
+    await tester.pumpAndSettle();
+
+    final onLai = find.text('🔁 Cần ôn lại');
+    await tester.ensureVisible(onLai);
+    await tester.tap(onLai);
+    await tester.pump();
+
+    expect(find.text('📅 Ôn lại ngày mai'), findsOneWidget);
+  });
 }

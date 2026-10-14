@@ -288,6 +288,14 @@ class StudySession {
   int? effectiveness;
   String? reflectionNote;
 
+  /// Đặc tả 5.3 — "đã hoàn thành mục tiêu chưa?". `null` với phiên cũ (chưa
+  /// từng được hỏi) để không gán ý nghĩa sai cho dữ liệu lịch sử.
+  bool? goalMet;
+
+  /// Đặc tả 5.3 — "cần ôn lại / có trở ngại gì không?". Nhãn ngắn, không phải
+  /// nhật ký; `null` = không nêu.
+  String? blocker;
+
   StudySession({
     required this.id,
     required this.completedAt,
@@ -304,6 +312,8 @@ class StudySession {
     this.understanding,
     this.effectiveness,
     this.reflectionNote,
+    this.goalMet,
+    this.blocker,
   });
 
   /// Phiên có chạy trọn vẹn không.
@@ -351,6 +361,8 @@ class StudySession {
         'understanding': understanding,
         'effectiveness': effectiveness,
         'reflectionNote': reflectionNote,
+        'goalMet': goalMet,
+        'blocker': blocker,
       };
 
   factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
@@ -370,6 +382,8 @@ class StudySession {
         understanding: json['understanding'],
         effectiveness: json['effectiveness'],
         reflectionNote: json['reflectionNote'],
+        goalMet: json['goalMet'],
+        blocker: json['blocker'],
       );
 
   String toJsonString() => jsonEncode(toJson());

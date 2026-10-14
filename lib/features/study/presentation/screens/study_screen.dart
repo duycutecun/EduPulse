@@ -677,6 +677,10 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
       effectiveness: feedback.effectiveness,
       reflectionNote:
           feedback.note.trim().isEmpty ? null : feedback.note.trim(),
+      // Đặc tả 5.3: lưu câu trả lời "đã xong mục tiêu?" và "trở ngại" để
+      // timeline/AI đề xuất ôn lại hoặc chia nhỏ nhiệm vụ về sau.
+      goalMet: feedback.goalMet,
+      blocker: feedback.blocker.trim().isEmpty ? null : feedback.blocker.trim(),
     );
     AiRefreshService.notifyDataChanged();
     if (sheetContext.mounted) Navigator.pop(sheetContext);
