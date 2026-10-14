@@ -4,8 +4,9 @@ import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../tasks/presentation/widgets/task_card.dart';
+import '../../domain/services/today_service.dart';
 
-class TodayMissionCard extends StatelessWidget {
+class TodayMissionCard extends StatefulWidget {
   final List<TodayTask> tasks;
   final VoidCallback onAddTask;
   final ValueChanged<TodayTask> onToggle;
@@ -56,9 +57,32 @@ class TodayMissionCard extends StatelessWidget {
   });
 
   @override
+  State<TodayMissionCard> createState() => _TodayMissionCardState();
+}
+
+class _TodayMissionCardState extends State<TodayMissionCard> {
+  /// Đặc tả 5.2 — mặc định chỉ mở "việc quan trọng nhất" + tối đa 3 việc kế
+  /// tiếp; phần còn lại thu gọn để CTA học không bị danh sách dài che khuất.
+  bool _expanded = false;
+
+  /// Số nhiệm vụ hiển thị khi thu gọn: 1 ưu tiên + 3 kế tiếp.
+  static const int _collapsedCount = 4;
+
+  @override
   Widget build(BuildContext context) {
+    final tasks = widget.tasks;
     final done = tasks.where((t) => t.isDone).length;
     final progress = tasks.isEmpty ? 0.0 : done / tasks.length;
+
+    final hasCollapse = tasks.length > _collapsedCount;
+    final visible = (_expanded || !hasCollapse)
+        ? tasks
+        : tasks.take(_collapsedCount).toList();
+    final priority = tasks.where((t) => !t.isDone).isEmpty
+        ? null
+        : tasks.firstWhere((t) => !t.isDone);
+    final priorityReason =
+        priority == null ? '' : TodayService.priorityReason(priority);
 
     return Container(
       width: double.infinity,
@@ -86,8 +110,7 @@ class TodayMissionCard extends StatelessWidget {
                   children: [
                     const Text('📋',
                         style: TextStyle(
-                            fontSize:
-                                18)), // icon, kh\u00f3ng ph\u1ea3i typography
+                            fontSize: 18)), // icon, không phải typography
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -112,13 +135,13 @@ class TodayMissionCard extends StatelessWidget {
                   // Nhịp học cá nhân: gợi ý thứ tự (môn khó lên trước).
                   // Chỉ hiện khi còn >= 2 nhiệm vụ chưa xong và học sinh
                   // chưa tắt AI cá nhân hoá.
-                  if (onSuggestOrder != null &&
+                  if (widget.onSuggestOrder != null &&
                       tasks.where((t) => !t.isDone).length >= 2 &&
                       StorageService.getBool('ai_permission_analyze') !=
                           false) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: onSuggestOrder,
+                      onTap: widget.onSuggestOrder,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
@@ -130,10 +153,10 @@ class TodayMissionCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (onQuickAdd != null) ...[
+                  if (widget.onQuickAdd != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: onQuickAdd,
+                      onTap: widget.onQuickAdd,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
@@ -145,24 +168,24 @@ class TodayMissionCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (onAddSample != null) ...[
+                  if (widget.onAddSample != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: onAddSample,
+                      onTap: widget.onAddSample,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.purpleLight,
+                          color: AppColors.greenSoft,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.auto_awesome,
-                            color: AppColors.purple, size: 18),
+                        child: const Icon(Icons.lightbulb_outline_rounded,
+                            color: AppColors.primary, size: 18),
                       ),
                     ),
-                    const SizedBox(width: 8),
                   ],
+                  const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: onAddTask,
+                    onTap: widget.onAddTask,
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
@@ -196,21 +219,46 @@ class TodayMissionCard extends StatelessWidget {
                     const AlwaysStoppedAnimation<Color>(AppColors.progressDone),
               ),
             ),
+            if (priority != null) ...[
+              const SizedBox(height: 10),
+              _PriorityHeader(task: priority, reason: priorityReason),
+            ],
             const SizedBox(height: 10),
-            ...tasks.map(
+            ...visible.map(
               (task) => TaskCard(
                 key: ValueKey(task.id),
                 task: task,
-                onToggle: onToggle,
-                onStartStudy: onStartStudy,
-                onEdit: onEdit,
-                onReschedule: onReschedule,
-                onSkip: onSkip,
-                onSplit: onSplit,
-                onDelete: onDelete,
-                onTap: onOpenDetail == null ? null : () => onOpenDetail!(task),
+                onToggle: widget.onToggle,
+                onStartStudy: widget.onStartStudy,
+                onEdit: widget.onEdit,
+                onReschedule: widget.onReschedule,
+                onSkip: widget.onSkip,
+                onSplit: widget.onSplit,
+                onDelete: widget.onDelete,
+                onTap: widget.onOpenDetail == null
+                    ? null
+                    : () => widget.onOpenDetail!(task),
               ),
             ),
+            if (hasCollapse)
+              Center(
+                child: TextButton.icon(
+                  key: const ValueKey('toggle-more-tasks'),
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                  icon: Icon(
+                    _expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _expanded
+                        ? 'Thu gọn'
+                        : 'Xem thêm ${tasks.length - _collapsedCount} việc',
+                    style: AppTokens.labelSmall,
+                  ),
+                ),
+              ),
           ] else ...[
             // Empty state đúng đặc tả mục 11 — ba câu hỏi bắt buộc: đang thiếu
             // gì, vì sao quan trọng, và làm gì tiếp theo.
@@ -245,7 +293,7 @@ class TodayMissionCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: onAddTask,
+                    onPressed: widget.onAddTask,
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.comfortable,
                       side: const BorderSide(color: AppColors.primary),
@@ -258,11 +306,11 @@ class TodayMissionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (onOpenAiPlan != null) ...[
+                if (widget.onOpenAiPlan != null) ...[
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: onOpenAiPlan,
+                      onPressed: widget.onOpenAiPlan,
                       style: OutlinedButton.styleFrom(
                         visualDensity: VisualDensity.comfortable,
                         side: const BorderSide(color: AppColors.blue),
@@ -278,11 +326,11 @@ class TodayMissionCard extends StatelessWidget {
                 ],
               ],
             ),
-            if (onAddSample != null) ...[
+            if (widget.onAddSample != null) ...[
               const SizedBox(height: 6),
               Center(
                 child: TextButton.icon(
-                  onPressed: onAddSample,
+                  onPressed: widget.onAddSample,
                   icon: const Icon(Icons.lightbulb_outline_rounded, size: 16),
                   label: const Text(
                     'Gợi ý sẵn từ kỳ thi mục tiêu',
@@ -293,6 +341,77 @@ class TodayMissionCard extends StatelessWidget {
             ],
             const SizedBox(height: 4),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Đặc tả 5.2 — thẻ "việc quan trọng nhất": nêu rõ nhiệm vụ, LÝ DO ưu tiên và
+/// thời lượng ước tính. Nút bắt đầu nằm ngay trong hàng nhiệm vụ bên dưới.
+class _PriorityHeader extends StatelessWidget {
+  final TodayTask task;
+  final String reason;
+
+  const _PriorityHeader({required this.task, required this.reason});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.greenSoft.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('⭐', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Việc quan trọng nhất',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTokens.labelSmall.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '~${task.estimateMinutes} phút',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                if (reason.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    reason,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );

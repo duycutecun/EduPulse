@@ -96,6 +96,33 @@ class TodayService {
     return tasks;
   }
 
+  /// Lý do ngắn vì sao nhiệm vụ này được đưa lên đầu (đặc tả 5.2).
+  ///
+  /// Thẻ "việc quan trọng nhất" phải nói rõ VÌ SAO chứ không chỉ xếp hạng —
+  /// nếu không, thứ tự ưu tiên trông tuỳ ý với học sinh.
+  /// Trả chuỗi rỗng khi không có lý do đáng nói (nhiệm vụ đã xong).
+  static String priorityReason(TodayTask task, {DateTime? now}) {
+    if (task.isDone) return '';
+    final ref = now ?? DateTime.now();
+    final today = DateUtils.dateOnly(ref);
+
+    if (task.deadline != null &&
+        DateUtils.dateOnly(task.deadline!).isBefore(today)) {
+      return 'Quá hạn — nên xử lý trước tiên';
+    }
+    if (task.priority.toLowerCase() == 'high') {
+      return 'Ưu tiên cao — tập trung trước';
+    }
+    if (task.rescheduleCount >= 2) {
+      return 'Đã dời lịch ${task.rescheduleCount} lần — cần học sớm';
+    }
+    if (task.scheduledAt != null &&
+        DateUtils.isSameDay(task.scheduledAt!, ref)) {
+      return 'Đến giờ học đã lên lịch';
+    }
+    return 'Việc quan trọng nhất còn lại hôm nay';
+  }
+
   static int _priorityWeight(String priority) {
     switch (priority.toLowerCase()) {
       case 'high':
