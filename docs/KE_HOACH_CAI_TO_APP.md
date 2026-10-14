@@ -250,6 +250,10 @@ tự, `setEnabled(false)` xoá buffer; không tự gửi đi đâu). Gắn tại
 
 Không dùng số lượt mở chat hoặc thời gian online đơn thuần làm chỉ số thành công.
 
+> **Đã kiểm kê (7.1):** xem `docs/DU_LIEU_VA_PHIEN_BAN.md` — bảng khoá
+> SharedPreferences theo loại, quy tắc phiên bản hoá qua `data_schema_version`
+> + `DataMigration` (v1→v3), và checklist khi thêm dữ liệu mới.
+
 ## 10. Lộ trình 12 tuần
 
 ### Giai đoạn 0 — Chuẩn bị (Tuần 1–2)
