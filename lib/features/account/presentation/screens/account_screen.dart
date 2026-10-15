@@ -24,6 +24,7 @@ import '../widgets/appearance_card.dart';
 import '../widgets/beta_feedback_sheet.dart';
 import '../../../../core/feedback/beta_feedback.dart';
 import 'learning_profile_screen.dart';
+import 'privacy_data_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../../core/analytics/product_analytics.dart';
@@ -627,6 +628,17 @@ class _AccountScreenState extends State<AccountScreen> {
                 const Icon(Icons.delete_sweep_outlined, color: AppColors.red),
             title: const Text('Xóa lịch sử trò chuyện AI'),
             onTap: _clearAiHistory,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.privacy_tip_outlined,
+                color: AppColors.greenDark),
+            title: const Text('Quyền riêng tư & dữ liệu'),
+            subtitle: const Text('Thời hạn lưu, xoá dữ liệu cá nhân',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PrivacyDataScreen(),
+            )),
           ),
         ],
       ),

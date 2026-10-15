@@ -1,0 +1,92 @@
+# Quyền riêng tư & thời hạn lưu dữ liệu
+
+Tài liệu này mô tả **dữ liệu nào được lưu ở đâu**, **thời hạn lưu/cache** và
+**cơ chế xoá dữ liệu cá nhân** của EduPulse. Nguồn đặc tả: `docs/KE_HOACH_CAI_TO_APP.md`
+mục 8 (Bảo mật và quyền riêng tư, dòng 208–214) và mục 7.1.
+
+> Nguyên tắc xuyên suốt: app **không** thu nội dung học tập/chat thô; dữ liệu
+> học tập thuộc về người học và nằm trên thiết bị là chính; cloud chỉ là bản
+> sao lưu do người dùng kiểm soát.
+
+## 1. Dữ liệu lưu ở đâu
+
+| Loại dữ liệu | Nơi lưu chính | Ghi chú |
+| --- | --- | --- |
+| Cấu hình giao diện, cờ onboarding, đồng ý analytics | `SharedPreferences` (local) | nhẹ, có version |
+| Nhiệm vụ, phiên học, điểm thử, ghi chú, nhật ký | `SharedPreferences` (local) | schema + migration (`data_schema_version`) |
+| Bản sao lưu toàn bộ (snapshot), ảnh đề bài | Supabase `user_snapshots`, `user_blobs` | chỉ qua `/api/backup`, server kiểm soát quyền |
+| Liên kết/báo cáo/mục tiêu/lời nhắn gia đình | Supabase `family_*` | chỉ server (`/api/family`) đọc/ghi; RLS bật, **không policy** |
+| Token thông báo đẩy (ba mẹ) | Supabase `family_notif_tokens` | theo `user_id` |
+| Cache AI / lịch sử trò chuyện trên máy | `SharedPreferences` (local) | xoá được bằng nút trong "Tôi" |
+
+Không có API key của chủ hệ thống trong binary/bundle: AI managed đi qua backend
+(`/api/openrouter`, `/api/gemini`, `/api/search`) với xác thực Firebase, rate limit,
+**quota theo ngày** và audit log đã lọc dữ liệu nhạy cảm (`api/_guard.js`).
+
+## 2. Thời hạn lưu / cache
+
+Hằng số nguồn: `api/account_logic.js` (`RETENTION`). Trả cho client qua
+`GET /api/account` và hiển thị ở màn **Tôi → Quyền riêng tư & dữ liệu**.
+
+| Loại | Thời hạn tối đa | Ghi chú |
+| --- | --- | --- |
+| Ảnh đề bài đính kèm (`user_blobs`) | 180 ngày | ảnh nặng, giữ ngắn để tiết kiệm |
+| Lịch sử trò chuyện với AI | 30 ngày | cache, không phải nguồn dữ liệu thật |
+| Báo cáo tuần gửi gia đình (`family_reports`) | 90 ngày | cũng bị dọn theo trần 12 báo cáo/học sinh |
+| Bản sao lưu dữ liệu (`user_snapshots`) | tới khi người dùng xoá | là bản back-up của chính người dùng |
+
+Hàm `isExpired(updatedAtMs, ttlMs, nowMs)` trong `account_logic.js` là điểm móc
+sẵn để một tác vụ dọn định kỳ (cron/Supabase scheduled function, chạy ngoài repo)
+xác định dòng nào đã quá hạn. Việc dọn tự động theo lịch **cần được cấu hình ở
+hạ tầng** (ngoài mã nguồn app); hiện tại chính sách đã được công bố và có sẵn
+hàm kiểm tra.
+
+## 3. Cơ chế xoá dữ liệu cá nhân
+
+Endpoint: **`POST /api/account`** (`api/account.js`)
+– xác thực Firebase ID token, server dùng service_role, **mỗi lệnh xoá đều ràng
+buộc `.eq(cột, uid)`** (không bao giờ xoá rộng).
+
+```json
+{ "action": "delete_my_data", "confirm": true }
+```
+
+Xoá dữ liệu ở cả hai vai trò (người dùng có thể là học sinh **hoặc** phụ huynh):
+
+- `family_messages`, `family_goals` (theo `student_user_id` và `parent_user_id`)
+- `family_reports`, `family_live` (theo `student_user_id`)
+- `family_links` (theo `student_user_id` và `parent_user_id`)
+- `family_notif_tokens` (theo `user_id`)
+- `user_blobs`, `user_snapshots` (theo `user_id`)
+
+Thứ tự xoá (bảng con trước bảng cha) và danh sách bảng nằm ở
+`account_logic.js` → `deletionTargets()` (có test `node --test`).
+
+**Giao diện:** màn **Tôi → Quyền riêng tư & dữ liệu**
+(`privacy_data_screen.dart`) yêu cầu gõ "XÓA" để xác nhận. Xoá dữ liệu máy chủ
+**không** động tới dữ liệu học tập cục bộ trên thiết bị.
+
+Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật ký) là thao tác riêng:
+**Tôi → Xuất / nhập dữ liệu → Xóa dữ liệu học cục bộ**.
+
+## 4. Nguyên tắc riêng tư khác
+
+- **Analytics là opt-in, mặc định TẮT** (`analytics_consent`). Chỉ sự kiện sản
+  phẩm ẩn danh, buffer cục bộ, không tự gửi đi đâu (`ProductAnalytics`).
+- **AI không tự ý đổi kế hoạch, xoá dữ liệu hay gửi dữ liệu gia đình.** Mọi hành
+  động AI đều qua preview + xác nhận của người dùng (`AiPlanPreviewSheet`, undo…).
+- **Phân quyền gia đình do server kiểm soát** (`api/family.js`), không tin role
+  hay consent chỉ từ client. RLS bật nhưng không policy ⇒ anon key không đọc/ghi được.
+- **BYOK:** nếu người dùng tự dán khoá AI, khoá không bao giờ bị ghi log, và có
+  nút xoá khoá. (Xem ghi chú lưu trữ an toàn theo nền tảng ở mục 5.)
+- Báo cáo phụ huynh chỉ chứa trường học sinh đã chọn chia sẻ; có màn xem trước và
+  **nhật ký thay đổi quyền chia sẻ**.
+
+## 5. Ghi chú & việc cần làm ở hạ tầng
+
+- Cấu hình tác vụ dọn theo `RETENTION` (mục 2) trên hạ tầng — mã app chỉ công bố
+  chính sách và cung cấp `isExpired`.
+- Đặt trần quota/ngày qua biến môi trường Vercel: `AI_DAILY_QUOTA` (theo uid) và
+  `AI_DAILY_QUOTA_ANON` (theo IP) — mặc định 200 và 40 (`guard_logic.js`).
+- Lưu khoá BYOK bằng kho bảo mật của hệ điều hành (Keychain/Keystore) là hướng
+  tăng cường; xem `docs/DU_LIEU_VA_PHIEN_BAN.md` để đối chiếu key `SharedPreferences`.
