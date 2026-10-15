@@ -59,9 +59,11 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
       `supabase/family_v4.sql` (RLS cho `family_goals`/`family_messages`/
       `family_notif_tokens`) và `supabase/email_codes.sql` (DDL + RLS bảng mã OTP).
       _(Bảo mật — phải áp **trước khi** mở beta công khai.)_
-- [ ] Đặt `CRON_SECRET` (+ `AI_DAILY_QUOTA`, `AI_DAILY_QUOTA_ANON`) trên Vercel.
-      _(Cron dọn dữ liệu **fail-closed** khi thiếu `CRON_SECRET` — xem
-      `docs/QUYEN_RIENG_TU_VA_LUU_TRO.md` mục 2.)_
+- [x] Đặt `CRON_SECRET` trên Vercel; trần quota để mặc định trong code
+      (`AI_DAILY_QUOTA` = 200/uid và `AI_DAILY_QUOTA_ANON` = 40/IP mỗi 24h).
+      _(2026-10-15: biến đã thêm cho Production; đã kiểm chứng — thiếu header trả
+      401, đúng header trả `{"ok":true,...}` và cron xoá được dòng `email_codes`
+      hết hạn.)_
 
 ## 2c. Migration và rollback
 
@@ -77,6 +79,10 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
 
 ## 3. Build và phân phối
 
+- [x] Giới hạn gói Hobby của Vercel: tối đa **12 Serverless Functions** cho mỗi
+      deployment — hiện dùng **11/12**. Thêm endpoint mới phải gộp vào file hiện có
+      (file trong `api/` bắt đầu bằng `_` không tính là function; có bước CI tự
+      đếm). _(2026-10-15: gỡ lỗi `exceeded_serverless_functions_per_deployment`.)_
 - [x] APK build qua `build.yml` (hoặc `flutter build apk`) thành công.
       _(2026-10-15: run `38758087851` (b1a633c) → artifact `edupulse-apk` 32,41 MB.
       Nguyên nhân cũ "fail 0s" là `secrets` dùng trong `if` — đã sửa.)_

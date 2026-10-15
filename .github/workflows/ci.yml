@@ -36,5 +36,18 @@ jobs:
       - name: Run unit & widget tests
         run: flutter test
 
+      # Vercel Hobby chỉ cho phép tối đa 12 Serverless Functions mỗi deployment;
+      # mỗi file .js trong api/ (ngoài file bắt đầu bằng `_`) = 1 function.
+      # Bước này chặn "thêm endpoint mới" phá production trước khi push lên.
+      - name: Kiem tra so luong API function (gioi han Hobby 12)
+        run: |
+          set -euo pipefail
+          count=$(find api -maxdepth 1 -type f -name '*.js' ! -name '_*' | wc -l)
+          echo "So API function: $count / 12"
+          if [ "$count" -gt 12 ]; then
+            echo "::error file=api::Hobby chi cho 12 function; dang co $count. Gop endpoint vao file hien co hoac nang Pro."
+            exit 1
+          fi
+
       - name: Build web (smoke)
         run: flutter build web --release

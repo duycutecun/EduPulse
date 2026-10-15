@@ -102,6 +102,7 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
 - Cấu hình tác vụ dọn theo `RETENTION` (mục 2): **đã triển khai** `api/cleanup.js`
   + `api/_cleanup_logic.js` + cron `0 3 * * *` trong `vercel.json`. **Bắt buộc đặt
   `CRON_SECRET` trên Vercel** — cron fail-closed khi thiếu biến này.
+  _(2026-10-15: **đã đặt** cho Production và đã kiểm chứng bằng request thật.)_
 - Áp migration RLS còn thiếu trên Supabase (chạy trong SQL editor):
   `supabase/family_v4.sql` (bật RLS cho `family_goals`, `family_messages`,
   `family_notif_tokens`) và `supabase/email_codes.sql` (DDL + RLS cho bảng mã OTP).
