@@ -6,7 +6,7 @@
 // không chạy còn hơn để bất kỳ ai gọi URL cũng xoá được dữ liệu người dùng.
 const { createHash, timingSafeEqual } = require('node:crypto');
 const { getSupabase, ok, fail } = require('./_lib');
-const { RETENTION_CLEANUP } = require('./cleanup_logic');
+const { RETENTION_CLEANUP } = require('./_cleanup_logic');
 
 /** So sánh chuỗi bí mật hằng thời gian (băm trước để độ dài luôn bằng nhau). */
 function secretMatches(actual, expected) {

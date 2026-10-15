@@ -326,7 +326,7 @@ Không dùng số lượt mở chat hoặc thời gian online đơn thuần làm
 
 - [x] Weekly planning và gợi ý phân bổ thời gian có thể chấp nhận/từ chối.
 - [x] Nâng cấp insight điểm thử, chủ đề yếu và ôn lại.
-- [x] Phân tách dần `main_shell`, Home, Study, Account và API family. (Đã tách: main_shell → `shell_banners.dart`; Home → `exam_mode_cards.dart`, `post_exam_card.dart`, `add_task_dialog.dart`, `snack_message.dart`; Study → `score_tab_view.dart`, `ai_post_focus_sheet.dart`, `study_entry_dialogs.dart`, `study_analytics_view.dart` (lát cắt biểu đồ + phân tích nâng cao, widget thuần nhận dữ liệu); Account → `account_family_entries.dart`, `appearance_card.dart`; Notes → `note_editor_view.dart`, `notes_empty.dart`; AI Coach → `ai_quick_actions.dart`. API family: harness `node --test` + logic thuần ở `api/family_logic.js` (14 test); handler Supabase còn lại tách tiếp khi cần.)
+- [x] Phân tách dần `main_shell`, Home, Study, Account và API family. (Đã tách: main_shell → `shell_banners.dart`; Home → `exam_mode_cards.dart`, `post_exam_card.dart`, `add_task_dialog.dart`, `snack_message.dart`; Study → `score_tab_view.dart`, `ai_post_focus_sheet.dart`, `study_entry_dialogs.dart`, `study_analytics_view.dart` (lát cắt biểu đồ + phân tích nâng cao, widget thuần nhận dữ liệu); Account → `account_family_entries.dart`, `appearance_card.dart`; Notes → `note_editor_view.dart`, `notes_empty.dart`; AI Coach → `ai_quick_actions.dart`. API family: harness `node --test` + logic thuần ở `api/_family_logic.js` (14 test); handler Supabase còn lại tách tiếp khi cần.)
 - [x] Accessibility: cỡ chữ, tương phản, screen reader, touch target, motion reduction.
 
 ### P2 — Chỉ cân nhắc sau khi xác nhận nhu cầu

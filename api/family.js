@@ -61,7 +61,7 @@ const {
   CODE_TTL_MS,
   MAX_REPORTS_PER_STUDENT,
   REPORTS_PAGE,
-} = require('./family_logic');
+} = require('./_family_logic');
 
 const LINK_TABLE = 'family_links';
 const REPORT_TABLE = 'family_reports';

@@ -1,10 +1,10 @@
-// Test cho `account_logic.js` — chạy bằng `node --test` (không cần Firebase).
+// Test cho `_account_logic.js` — chạy bằng `node --test` (không cần Firebase).
 // Bao phủ: danh sách bảng cần xoá theo uid, thứ tự xoá con-trước-cha, chính
 // sách lưu trữ và hàm kiểm tra hết hạn.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const logic = require('./account_logic');
+const logic = require('./_account_logic');
 
 test('DAY_MS là 24 giờ', () => {
   assert.equal(logic.DAY_MS, 24 * 60 * 60 * 1000);

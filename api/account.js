@@ -11,7 +11,7 @@
 //
 // QUYỀN: server xác thực Firebase ID token rồi dùng SUPABASE_SERVICE_ROLE_KEY,
 // bỏ qua RLS, nhưng MỖI lệnh xoá đều ràng buộc `.eq(column, uid)` — không bao
-// giờ xoá rộng. Danh sách bảng/cột ở `account_logic.js` (có test `node --test`).
+// giờ xoá rộng. Danh sách bảng/cột ở `_account_logic.js` (có test `node --test`).
 const {
   getFirebaseUser,
   getSupabase,
@@ -20,7 +20,7 @@ const {
   fail,
 } = require('./_lib');
 
-const { deletionTargets, retentionPolicy } = require('./account_logic');
+const { deletionTargets, retentionPolicy } = require('./_account_logic');
 
 const MAX_BODY = 64 * 1024; // body nhỏ — chỉ có cờ hành động, không có payload.
 

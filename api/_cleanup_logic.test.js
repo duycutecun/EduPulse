@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { isExpired, cutoffMs, RETENTION_CLEANUP } = await import('./cleanup_logic.js');
+const { isExpired, cutoffMs, RETENTION_CLEANUP } = await import('./_cleanup_logic.js');
 
 test('isExpired trả false khi ttl null', () => {
   assert.equal(isExpired(Date.now(), null), false);

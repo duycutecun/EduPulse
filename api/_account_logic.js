@@ -36,7 +36,7 @@ const DELETION_SPECS = [
   { table: 'user_blobs', column: 'user_id' },
   { table: 'user_snapshots', column: 'user_id' },
   // Mã xác minh email gắn uid (mã reset quên mật khẩu không có uid — tự hết
-  // hạn 15 phút và bị cron dọn, xem `cleanup_logic.js`).
+  // hạn 15 phút và bị cron dọn, xem `_cleanup_logic.js`).
   { table: 'email_codes', column: 'uid' },
 ];
 

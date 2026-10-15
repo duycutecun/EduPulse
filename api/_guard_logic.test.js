@@ -1,9 +1,9 @@
-// Test cho `guard_logic.js` — chạy bằng `node --test` (không cần Firebase).
+// Test cho `_guard_logic.js` — chạy bằng `node --test` (không cần Firebase).
 // Bao phủ quota theo ngày: khoá, trần mặc định, tăng/đếm, chặn và reset cửa sổ.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const logic = require('./guard_logic');
+const logic = require('./_guard_logic');
 
 test('hằng số: cửa sổ 24h và trần mặc định', () => {
   assert.equal(logic.QUOTA_WINDOW_MS, 24 * 60 * 60 * 1000);

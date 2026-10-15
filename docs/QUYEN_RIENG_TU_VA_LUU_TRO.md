@@ -26,7 +26,7 @@ Không có API key của chủ hệ thống trong binary/bundle: AI managed đi 
 
 ## 2. Thời hạn lưu / cache
 
-Hằng số nguồn: `api/account_logic.js` (`RETENTION`). Trả cho client qua
+Hằng số nguồn: `api/_account_logic.js` (`RETENTION`). Trả cho client qua
 `GET /api/account` và hiển thị ở màn **Tôi → Quyền riêng tư & dữ liệu**.
 
 | Loại | Thời hạn tối đa | Ghi chú |
@@ -36,9 +36,9 @@ Hằng số nguồn: `api/account_logic.js` (`RETENTION`). Trả cho client qua
 | Báo cáo tuần gửi gia đình (`family_reports`) | 90 ngày | cũng bị dọn theo trần 12 báo cáo/học sinh |
 | Bản sao lưu dữ liệu (`user_snapshots`) | tới khi người dùng xoá | là bản back-up của chính người dùng |
 
-Hàm `isExpired(updatedAtMs, ttlMs, nowMs)` trong `account_logic.js` là điểm móc
+Hàm `isExpired(updatedAtMs, ttlMs, nowMs)` trong `_account_logic.js` là điểm móc
 sẵn cho tác vụ dọn định kỳ. Việc dọn tự động **đã được triển khai** bằng cron:
-`api/cleanup.js` + `api/cleanup_logic.js` (`RETENTION_CLEANUP`), lịch chạy
+`api/cleanup.js` + `api/_cleanup_logic.js` (`RETENTION_CLEANUP`), lịch chạy
 `0 3 * * *` trong `vercel.json`. Cron xoá:
 
 - `user_blobs` quá 180 ngày (theo `updated_at`) — ảnh đề bài trên máy chủ;
@@ -72,7 +72,7 @@ Xoá dữ liệu ở cả hai vai trò (người dùng có thể là học sinh 
   phút và được cron dọn)
 
 Thứ tự xoá (bảng con trước bảng cha) và danh sách bảng nằm ở
-`account_logic.js` → `deletionTargets()` (có test `node --test`).
+`_account_logic.js` → `deletionTargets()` (có test `node --test`).
 
 **Giao diện:** màn **Tôi → Quyền riêng tư & dữ liệu**
 (`privacy_data_screen.dart`) yêu cầu gõ "XÓA" để xác nhận. Xoá dữ liệu máy chủ
@@ -100,7 +100,7 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
 ## 5. Ghi chú & việc cần làm ở hạ tầng
 
 - Cấu hình tác vụ dọn theo `RETENTION` (mục 2): **đã triển khai** `api/cleanup.js`
-  + `api/cleanup_logic.js` + cron `0 3 * * *` trong `vercel.json`. **Bắt buộc đặt
+  + `api/_cleanup_logic.js` + cron `0 3 * * *` trong `vercel.json`. **Bắt buộc đặt
   `CRON_SECRET` trên Vercel** — cron fail-closed khi thiếu biến này.
 - Áp migration RLS còn thiếu trên Supabase (chạy trong SQL editor):
   `supabase/family_v4.sql` (bật RLS cho `family_goals`, `family_messages`,
@@ -108,7 +108,7 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
   Trước khi áp, ba bảng gia đình đầu **chưa bật RLS** — anon key công khai có thể
   đọc/ghi qua PostgREST.
 - Đặt trần quota/ngày qua biến môi trường Vercel: `AI_DAILY_QUOTA` (theo uid) và
-  `AI_DAILY_QUOTA_ANON` (theo IP) — mặc định 200 và 40 (`guard_logic.js`).
+  `AI_DAILY_QUOTA_ANON` (theo IP) — mặc định 200 và 40 (`_guard_logic.js`).
 - Lưu khoá BYOK bằng kho bảo mật của hệ điều hành (`flutter_secure_storage`):
   `AiConfig.loadSecure()` nạp khoá vào cache lúc khởi động và **di trú** khoá cũ
   dạng plaintext từ `SharedPreferences` rồi xoá bản rõ (xem

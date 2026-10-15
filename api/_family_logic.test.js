@@ -1,9 +1,9 @@
-// Test cho `family_logic.js` — chạy bằng `node --test` (không cần Supabase).
+// Test cho `_family_logic.js` — chạy bằng `node --test` (không cần Supabase).
 // Mục đích: có lưới an toàn TRƯỚC khi tách tiếp `family.js` (kế hoạch P1-3).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const logic = require('./family_logic');
+const logic = require('./_family_logic');
 
 test('newCode: luôn là chuỗi 8 chữ số', () => {
   for (let i = 0; i < 50; i++) {

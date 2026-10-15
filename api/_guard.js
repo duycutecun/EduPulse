@@ -15,7 +15,7 @@
 //      Tavily) trong bảng điều khiển của họ.
 //   3. **Quota theo NGÀY** — trần tổng lượt/ngày mỗi uid (hoặc IP ẩn danh), chặn
 //      kiểu rải request đều đặn suốt ngày để đốt key. Logic thuần ở
-//      `guard_logic.js` (có test `node --test`).
+//      `_guard_logic.js` (có test `node --test`).
 //   4. **Nhật ký kiểm toán đã khử nhạy cảm** — chỉ ghi endpoint, uid/IP rút gọn,
 //      trạng thái và mô hình. KHÔNG bao giờ ghi key, prompt hay nội dung body.
 //
@@ -28,7 +28,7 @@ const {
   quotaLimitFor,
   checkQuota,
   quotaMessage,
-} = require('./guard_logic');
+} = require('./_guard_logic');
 
 const WINDOW_MS = 60 * 1000; // cửa sổ trượt 1 phút
 
@@ -135,7 +135,7 @@ function audit(endpoint, { id, ip, status, model, note } = {}) {
  * `null` (caller chỉ cần `if (!guard) return;`).
  *
  * `quota` (tuỳ chọn) đặt trần lượt/ngày riêng cho endpoint; bỏ trống thì dùng
- * mặc định theo loại định danh (xem `guard_logic.js`).
+ * mặc định theo loại định danh (xem `_guard_logic.js`).
  */
 async function guard(req, res, { endpoint, limit, quota, model } = {}) {
   const ip = clientIp(req);
