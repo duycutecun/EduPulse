@@ -82,3 +82,8 @@ test('isExpired: mốc cập nhật không hợp lệ → giữ lại (không xo
   assert.equal(logic.isExpired(null, 1000, now), false);
   assert.equal(logic.isExpired(NaN, 1000, now), false);
 });
+
+test('deletionTargets: có mã xác minh email (email_codes.uid)', () => {
+  const pairs = logic.deletionTargets('u').map((t) => `${t.table}.${t.column}`);
+  assert.ok(pairs.includes('email_codes.uid'));
+});

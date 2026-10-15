@@ -135,3 +135,26 @@ test('hằng số: metrics và nhãn khớp nhau', () => {
   assert.equal(logic.ALERT_COOLDOWN_MS, 20 * 60 * 60 * 1000);
   assert.equal(logic.MAX_REPORTS_PER_STUDENT, 12);
 });
+
+test('escapeHtml: vô hiệu thẻ HTML và ký tự thuộc tính', () => {
+  assert.equal(
+    logic.escapeHtml('<b>"x" & \'y\'</b>'),
+    '&lt;b&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/b&gt;'
+  );
+  assert.equal(logic.escapeHtml(null), '');
+  assert.equal(logic.escapeHtml(123), '123');
+});
+
+test('digestHtml: escape nội dung do người dùng nhập (chống chèn HTML vào email)', () => {
+  const html = logic.digestHtml(
+    { student_name: '<img src=x onerror=alert(1)>' },
+    {
+      checkin: '<script>steal()</script>',
+      items: [{ title: '<b>Fake</b>', value: '<a href="http://evil">click</a>' }],
+    }
+  );
+  assert.ok(!html.includes('<script>'), 'không được nhúng script thô');
+  assert.ok(!html.includes('<img'), 'không được nhúng thẻ img thô');
+  assert.ok(!html.includes('<a href'), 'không được nhúng link thô');
+  assert.ok(html.includes('&lt;script&gt;'), 'nội dung vẫn hiển thị dạng văn bản');
+});

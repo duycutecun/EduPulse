@@ -78,5 +78,5 @@ test('quotaMessage: là chuỗi tiếng Việt có nội dung', () => {
   const msg = logic.quotaMessage();
   assert.equal(typeof msg, 'string');
   assert.ok(msg.length > 0);
-  assert.match(msg, /hôm nay/);
+  assert.match(msg, /24 giờ/);
 });

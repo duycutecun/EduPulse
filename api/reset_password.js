@@ -6,6 +6,7 @@
 // Không xài firebase-admin (org policy chặn tạo service account key); chỉ gọi
 // REST accounts:sendOobCode với API key công khai như các endpoint khác.
 const { getSupabase, readJson, ok, fail } = require('./_lib');
+const { guard } = require('./_guard');
 
 const SEND_RESET_URL =
   'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' +
@@ -13,6 +14,11 @@ const SEND_RESET_URL =
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Chỉ hỗ trợ POST.');
+  // Chống dò mã/email hàng loạt: giới hạn theo IP (người quên mật khẩu chưa
+  // đăng nhập nên không có uid để khoá theo tài khoản).
+  if (!(await guard(req, res, { endpoint: '/api/reset_password', limit: 10, quota: 30 }))) {
+    return;
+  }
   try {
     const body = await readJson(req);
     const email = String(body.email || '').trim().toLowerCase();

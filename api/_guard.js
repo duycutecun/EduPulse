@@ -32,11 +32,26 @@ const {
 
 const WINDOW_MS = 60 * 1000; // cửa sổ trượt 1 phút
 
+/// Trần mặc định mỗi phút khi caller quên truyền `limit` — không bao giờ để
+/// hở chế độ "không giới hạn" (so sánh với undefined luôn sai).
+const DEFAULT_RATE_LIMIT = 30;
+
+/// Ngưỡng dọn Map: vượt ngưỡng thì quét bỏ entry hết hạn/không có resetAt.
+const MAX_MAP_ENTRIES = 5000;
+
 // uid/IP → { count, resetAt }
 const _hits = new Map();
 
 // uid/IP → { count, resetAt } cho quota theo ngày (cửa sổ 24h).
 const _quota = new Map();
+
+/** Dọn entry hết hạn khi Map phình to (instance ấm sống lâu — tránh rò rỉ RAM). */
+function _sweep(map, now) {
+  if (map.size <= MAX_MAP_ENTRIES) return;
+  for (const [k, v] of map) {
+    if (!v || now >= (v.resetAt || 0)) map.delete(k);
+  }
+}
 
 /** Đọc trần quota từ env (chuỗi số dương) — dùng cho cấu hình vận hành. */
 function _envQuota(name) {
@@ -76,12 +91,15 @@ async function authenticate(req) {
  */
 function rateLimit(key, limit) {
   const now = Date.now();
+  _sweep(_hits, now);
+  const max =
+    Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : DEFAULT_RATE_LIMIT;
   const entry = _hits.get(key);
   if (!entry || now >= entry.resetAt) {
     _hits.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, remaining: limit - 1, retryAfterSec: 0 };
+    return { allowed: true, remaining: max - 1, retryAfterSec: 0 };
   }
-  if (entry.count >= limit) {
+  if (entry.count >= max) {
     return {
       allowed: false,
       remaining: 0,
@@ -89,7 +107,7 @@ function rateLimit(key, limit) {
     };
   }
   entry.count += 1;
-  return { allowed: true, remaining: limit - entry.count, retryAfterSec: 0 };
+  return { allowed: true, remaining: max - entry.count, retryAfterSec: 0 };
 }
 
 /** Rút gọn định danh để log mà không phơi toàn bộ uid/IP. */
@@ -147,6 +165,7 @@ async function guard(req, res, { endpoint, limit, quota, model } = {}) {
     id,
     quota ?? (id ? _envQuota('AI_DAILY_QUOTA') : _envQuota('AI_DAILY_QUOTA_ANON'))
   );
+  _sweep(_quota, Date.now());
   const q = checkQuota(_quota, qKey, Date.now(), qLimit);
   if (!q.allowed) {
     res.setHeader('Retry-After', String(q.retryAfterSec));
@@ -159,5 +178,5 @@ async function guard(req, res, { endpoint, limit, quota, model } = {}) {
   return { id, ip };
 }
 
-module.exports = { guard, authenticate, rateLimit, clientIp, audit };
+module.exports = { guard, authenticate, rateLimit, clientIp, audit, DEFAULT_RATE_LIMIT };
 

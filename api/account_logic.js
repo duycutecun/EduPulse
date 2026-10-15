@@ -35,6 +35,9 @@ const DELETION_SPECS = [
   { table: 'family_links', column: 'parent_user_id' },
   { table: 'user_blobs', column: 'user_id' },
   { table: 'user_snapshots', column: 'user_id' },
+  // Mã xác minh email gắn uid (mã reset quên mật khẩu không có uid — tự hết
+  // hạn 15 phút và bị cron dọn, xem `cleanup_logic.js`).
+  { table: 'email_codes', column: 'uid' },
 ];
 
 /// Danh sách việc xoá cho một uid. Rỗng nếu uid không hợp lệ (không bao giờ

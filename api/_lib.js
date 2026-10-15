@@ -10,9 +10,20 @@
 //   SUPABASE_SERVICE_ROLE_KEY  — service_role key (chỉ dùng server-side)
 //   SMTP_USER / SMTP_PASS      — Gmail app-password để gửi email mã xác minh
 
+// Mã OTP/bí mật phải dùng nguồn ngẫu nhiên mật mã (không dùng Math.random —
+// trạng thái bộ sinh có thể bị khôi phục từ vài mẫu output).
+const { randomInt } = require('node:crypto');
+
 const LOOKUP_URL =
   'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' +
   encodeURIComponent(process.env.FIREBASE_API_KEY || '');
+
+/** Error kèm HTTP status để handler trả đúng mã (401 khi thiếu/hết hạn token). */
+function httpError(status, message) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
 
 let _supabase;
 let _transporter;
@@ -30,7 +41,7 @@ async function getFirebaseUser(idToken) {
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data.users || !data.users.length) {
-    throw new Error('Token đăng nhập không hợp lệ hoặc đã hết hạn.');
+    throw httpError(401, 'Token đăng nhập không hợp lệ hoặc đã hết hạn.');
   }
   const u = data.users[0];
   return {
@@ -48,7 +59,7 @@ function requireFirebaseUser(req) {
       .then(async (body) => {
         const idToken = String(body.idToken || '');
         if (!idToken) {
-          reject(new Error('Thiếu token đăng nhập.'));
+          reject(httpError(401, 'Thiếu token đăng nhập.'));
           return;
         }
         try {
@@ -92,7 +103,8 @@ function getTransporter() {
 }
 
 function newCode() {
-  return String(Math.floor(10000000 + Math.random() * 90000000));
+  // 8 chữ số, nguồn ngẫu nhiên mật mã (kể cả khi dùng để chống đoán).
+  return String(randomInt(10000000, 100000000));
 }
 
 const CODE_TTL_MS = 15 * 60 * 1000; // mã hiệu lực 15 phút
@@ -100,14 +112,27 @@ const CODE_TTL_MS = 15 * 60 * 1000; // mã hiệu lực 15 phút
 function readJson(req, maxBytes) {
   // `maxBytes` cho phép endpoint nào đó nhận payload lớn hơn (sao lưu toàn bộ
   // dữ liệu kèm ảnh đính kèm). Mặc định giữ 1MB như trước.
+  //
+  // Đo bằng BYTE (không phải ký tự) để tiếng Việt/emoji không lách trần; khi
+  // vượt trần thì drain nốt request để kết nối không bị treo giữa chừng.
   const limit = maxBytes || 1e6;
   return new Promise((resolve, reject) => {
     let body = '';
+    let bytes = 0;
+    let rejected = false;
     req.on('data', (c) => {
+      if (rejected) return;
+      bytes += Buffer.byteLength(c);
+      if (bytes > limit) {
+        rejected = true;
+        reject(new Error('Payload quá lớn.'));
+        req.resume(); // đọc bỏ phần còn lại thay vì đệm thêm vào RAM
+        return;
+      }
       body += c;
-      if (body.length > limit) reject(new Error('Payload quá lớn.'));
     });
     req.on('end', () => {
+      if (rejected) return;
       if (!body) return resolve({});
       try {
         resolve(JSON.parse(body));
@@ -140,4 +165,5 @@ module.exports = {
   readJson,
   ok,
   fail,
+  httpError,
 };

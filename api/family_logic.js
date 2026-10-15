@@ -3,6 +3,16 @@
 // gọi mạng. `family.js` require lại các hàm/hằng ở đây để hành vi không đổi.
 const crypto = require('crypto');
 
+/** Escape HTML cho mọi giá trị do người dùng nhập trước khi nhúng vào email. */
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /// Mục tiêu hợp lệ ba mẹ đặt cho con. Ngoài danh sách này bị chối (tránh ghi
 /// rác vào bảng).
 const GOAL_METRICS = ['weekly_minutes', 'streak', 'mock_avg', 'readiness'];
@@ -34,7 +44,9 @@ const MAX_REPORTS_PER_STUDENT = 12;
 const REPORTS_PAGE = 8;
 
 function newCode() {
-  return String(Math.floor(10000000 + Math.random() * 90000000));
+  // Nguồn ngẫu nhiên mật mã: mã mời là "bí mật" mở quyền đọc báo cáo của con,
+  // không được dùng Math.random (có thể đoán từ vài mẫu output cùng tiến trình).
+  return String(crypto.randomInt(10000000, 100000000));
 }
 
 function toMillis(value) {
@@ -116,9 +128,9 @@ function cleanMessage(value) {
 
 /** Dựng HTML tổng kết (không có dữ liệu thì trả null — không gửi email rỗng). */
 function digestHtml(child, payload) {
-  const name = (child.student_name || 'Con').trim() || 'Con';
+  const name = escapeHtml((child.student_name || 'Con').trim() || 'Con');
   const hasItems = payload && Array.isArray(payload.items) && payload.items.length;
-  const checkin = payload && payload.checkin ? String(payload.checkin) : '';
+  const checkin = payload && payload.checkin ? escapeHtml(payload.checkin) : '';
   const insights = payload && payload.insights;
 
   let body = `<p>Đây là bản tổng kết <b>${name}</b> từ EduPulse — tiến độ con chia sẻ với ba mẹ.</p>`;
@@ -130,7 +142,7 @@ function digestHtml(child, payload) {
   body += `<ul>`;
   for (const item of payload.items) {
     if (!item || !item.title) continue;
-    body += `<li style="margin:7px 0;"><b>${item.title}:</b> ${item.value}${item.detail ? ' — ' + item.detail : ''}</li>`;
+    body += `<li style="margin:7px 0;"><b>${escapeHtml(item.title)}:</b> ${escapeHtml(item.value)}${item.detail ? ' — ' + escapeHtml(item.detail) : ''}</li>`;
   }
   body += `</ul>`;
   if (insights && typeof insights === 'object') {
@@ -144,7 +156,7 @@ function digestHtml(child, payload) {
     if (rows.length) {
       body += `<table style="border-collapse:collapse;margin-top:14px;">`;
       for (const [k, v] of rows) {
-        body += `<tr><td style="padding:5px 14px 5px 0;color:#666;">${k}</td><td style="padding:5px 0;font-weight:700;">${v}</td></tr>`;
+        body += `<tr><td style="padding:5px 14px 5px 0;color:#666;">${escapeHtml(k)}</td><td style="padding:5px 0;font-weight:700;">${escapeHtml(v)}</td></tr>`;
       }
       body += `</table>`;
     }
@@ -167,4 +179,5 @@ module.exports = {
   goalAlertMessage,
   cleanMessage,
   digestHtml,
+  escapeHtml,
 };

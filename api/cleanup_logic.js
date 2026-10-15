@@ -6,18 +6,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const RETENTION_CLEANUP = [
   {
-    name: 'user_blobs_image',
+    // Ảnh/đính kèm đề bài lưu trên máy chủ (user_blobs). Bảng KHÔNG có cột
+    // `kind` — trước đây lọc theo `kind` khiến lệnh xoá lỗi 42703 và TTL 180
+    // ngày không bao giờ chạy; nay áp trực tiếp theo `updated_at`.
+    name: 'user_blobs',
     table: 'user_blobs',
     column: 'updated_at',
     ttlMs: 180 * DAY_MS,
-    filter: { kind: 'image' },
-  },
-  {
-    name: 'user_blobs_chat',
-    table: 'user_blobs',
-    column: 'updated_at',
-    ttlMs: 30 * DAY_MS,
-    filter: { kind: 'ai_chat' },
   },
   {
     name: 'family_reports',
@@ -25,6 +20,16 @@ const RETENTION_CLEANUP = [
     column: 'created_at',
     ttlMs: 90 * DAY_MS,
   },
+  {
+    // Mã OTP hết hạn (xác minh email / đặt lại mật khẩu): xoá ngay khi hết hạn
+    // (ttlMs = 0 ⇒ cắt tại thời điểm hiện tại).
+    name: 'email_codes_expired',
+    table: 'email_codes',
+    column: 'expires_at',
+    ttlMs: 0,
+  },
+  // Lịch sử chat AI chỉ lưu CỤC BỘ trên máy (SharedPreferences), không có bản
+  // trên máy chủ — TTL 30 ngày do client tự dọn, không cần cron.
 ];
 
 function cutoffMs(nowMs, ttlMs) {

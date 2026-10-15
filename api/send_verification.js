@@ -3,9 +3,14 @@
 // Body: { idToken: "<Firebase ID token>" } — Google tự xác thực token, không cần
 // service account (org policy của project chặn tạo service account key).
 const { requireFirebaseUser, getSupabase, getTransporter, newCode, CODE_TTL_MS, ok, fail } = require('./_lib');
+const { guard } = require('./_guard');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Chỉ hỗ trợ POST.');
+  // Chống dội email hàng loạt (mỗi lượt là một email thật qua SMTP).
+  if (!(await guard(req, res, { endpoint: '/api/send_verification', limit: 5, quota: 20 }))) {
+    return;
+  }
   try {
     const user = await requireFirebaseUser(req);
     const email = user.email;
@@ -47,6 +52,6 @@ module.exports = async function handler(req, res) {
     });
     return ok(res, { ok: true });
   } catch (e) {
-    return fail(res, 500, e.message || 'Không gửi được mã xác minh.');
+    return fail(res, e.status || 500, e.message || 'Không gửi được mã xác minh.');
   }
 };

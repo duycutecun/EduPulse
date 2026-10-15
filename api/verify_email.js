@@ -2,9 +2,14 @@
 // Kiểm tra mã 8 chữ số rồi đánh dấu email đã xác minh trong user_profiles.
 // Body: { idToken, code } — Google tự xác thực token, không cần service account.
 const { getFirebaseUser, getSupabase, readJson, ok, fail } = require('./_lib');
+const { guard } = require('./_guard');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Chỉ hỗ trợ POST.');
+  // Chống dò mã 8 chữ số: mỗi IP 10 lượt/phút.
+  if (!(await guard(req, res, { endpoint: '/api/verify_email', limit: 10, quota: 40 }))) {
+    return;
+  }
   try {
     // Đọc body MỘT lần duy nhất — đọc 2 lần cùng một stream sẽ treo vĩnh viễn.
     const body = await readJson(req);
@@ -64,6 +69,6 @@ module.exports = async function handler(req, res) {
     await supabase.from('email_codes').delete().eq('id', row.id);
     return ok(res, { ok: true });
   } catch (e) {
-    return fail(res, 500, e.message || 'Xác minh thất bại. Thử lại sau.');
+    return fail(res, e.status || 500, e.message || 'Xác minh thất bại. Thử lại sau.');
   }
 };

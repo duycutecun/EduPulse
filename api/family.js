@@ -337,6 +337,11 @@ async function setGoal(supabase, user, body, res) {
   if (!GOAL_METRICS.includes(metric)) {
     return fail(res, 400, 'Loại mục tiêu không hợp lệ.');
   }
+  // Giá trị không phải số (thiếu field, chữ, NaN, Infinity) KHÔNG được hiểu là
+  // "bỏ mục tiêu" — nếu hiểu nhầm, lỗi client sẽ xoá mất mục tiêu của ba mẹ.
+  if (!Number.isFinite(target)) {
+    return fail(res, 400, 'Giá trị mục tiêu không hợp lệ.');
+  }
 
   const { data: link, error: linkError } = await supabase
     .from(LINK_TABLE)
@@ -348,7 +353,7 @@ async function setGoal(supabase, user, body, res) {
   if (linkError) return fail(res, 500, 'Không kiểm tra được liên kết.');
   if (!link) return fail(res, 403, 'Tài khoản này chưa liên kết với bạn.');
 
-  if (!Number.isFinite(target) || target <= 0) {
+  if (target <= 0) {
     const { error } = await supabase
       .from(GOAL_TABLE)
       .delete()
@@ -444,6 +449,12 @@ async function sendMessage(supabase, user, body, res) {
   return ok(res, { ok: true, id, message: row });
 }
 
+/** Epoch ms hợp lệ (> 0, hữu hạn) từ input người dùng; giá trị lạ → 0 (bỏ qua). */
+function toEpochMs(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /** Đọc lời nhắn của một liên kết; đánh dấu đã đọc cho đầu đang gọi. */
 async function listMessages(supabase, user, body, res) {
   const linkId = String(body.linkId || '').trim();
@@ -457,7 +468,7 @@ async function listMessages(supabase, user, body, res) {
     return fail(res, 403, 'Bạn không thuộc liên kết này.');
   }
 
-  const since = Number(body.since) || 0;
+  const since = toEpochMs(body.since);
   let query = supabase
     .from(MSG_TABLE)
     .select('id, from_role, body, created_at, read_at')
@@ -677,6 +688,11 @@ async function invite(supabase, user, body, res) {
 
 /** Trạng thái gia đình của người đang gọi — dùng chung cho cả hai vai. */
 async function myFamily(supabase, user, res) {
+  // uid lấy từ token đã xác thực, nhưng vẫn chặn ký tự lạ trước khi ghép vào
+  // bộ lọc PostgREST (`.or()` nội suy chuỗi — phòng vệ theo chiều sâu).
+  if (!/^[A-Za-z0-9]{1,128}$/.test(String(user.uid || ''))) {
+    return fail(res, 500, 'Không đọc được liên kết gia đình.');
+  }
   const { data, error } = await supabase
     .from(LINK_TABLE)
     .select(
@@ -990,10 +1006,16 @@ async function shareReport(supabase, user, body, res) {
   }
 
   // Ba mẹ đang mở app thấy ngay báo cáo vừa gửi, không phải kéo làm mới.
-  await notifyParents(supabase, user.uid, {
-    at: Date.now(),
-    kind: 'report',
-  }, body.studentName);
+  // Lỗi thông báo (mạng kém, push hỏng) KHÔNG được trả 500 — báo cáo đã ghi
+  // xong; nếu trả 500, client gửi lại sẽ tạo báo cáo trùng.
+  try {
+    await notifyParents(supabase, user.uid, {
+      at: Date.now(),
+      kind: 'report',
+    }, body.studentName);
+  } catch (_) {
+    // Bỏ qua: thông báo là việc tốt-nhất.
+  }
 
   return ok(res, { ok: true, sentTo: parentCount });
 }
@@ -1015,7 +1037,11 @@ async function shareLive(supabase, user, body, res) {
       .delete()
       .eq('student_user_id', user.uid);
     if (error) return fail(res, 500, 'Không tắt được cập nhật trực tiếp.');
-    await notifyParents(supabase, user.uid, { at: Date.now(), kind: 'off' }, name);
+    try {
+      await notifyParents(supabase, user.uid, { at: Date.now(), kind: 'off' }, name);
+    } catch (_) {
+      // Bỏ qua: đã xoá xong bản trực tiếp.
+    }
     return ok(res, { ok: true, live: false });
   }
 
@@ -1036,9 +1062,13 @@ async function shareLive(supabase, user, body, res) {
   if (error) return fail(res, 500, 'Không cập nhật được trạng thái trực tiếp.');
 
   const at = toMillis(updatedAt) || Date.now();
-  await notifyParents(supabase, user.uid, { at, kind: 'live' }, name);
-  // Mục tiêu & cảnh báo: nhắc ba mẹ khi con chưa đạt (chỉ khi kèm `insights`).
-  await evaluateAlerts(supabase, user.uid, name, payload);
+  try {
+    await notifyParents(supabase, user.uid, { at, kind: 'live' }, name);
+    // Mục tiêu & cảnh báo: nhắc ba mẹ khi con chưa đạt (chỉ khi kèm `insights`).
+    await evaluateAlerts(supabase, user.uid, name, payload);
+  } catch (_) {
+    // Bỏ qua: dữ liệu trực tiếp đã ghi xong, không để lỗi thông báo thành 500.
+  }
   return ok(res, { ok: true, live: true, updatedAt: at });
 }
 
@@ -1061,9 +1091,9 @@ async function childReports(supabase, user, body, res) {
 
   // `since` (epoch ms) cho vòng hỏi định kỳ / tín hiệu Realtime: chỉ kéo phần
   // MỚI hơn cái đã có, không tải lại cả trang mỗi 30 giây.
-  const since = Number(body.since) || 0;
-  const from = Number(body.from) || 0;
-  const to = Number(body.to) || 0;
+  const since = toEpochMs(body.since);
+  const from = toEpochMs(body.from);
+  const to = toEpochMs(body.to);
   let query = supabase
     .from(REPORT_TABLE)
     .select('id, student_name, payload, created_at')
@@ -1134,12 +1164,17 @@ async function notifyPref(supabase, user, body, res) {
   const on = body.on !== false;
   if (!studentUserId) return fail(res, 400, 'Thiếu tài khoản của con.');
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from(LINK_TABLE)
     .update({ notify_on: on })
     .eq('student_user_id', studentUserId)
-    .eq('parent_user_id', user.uid);
+    .eq('parent_user_id', user.uid)
+    .eq('status', 'linked')
+    .select('id');
   if (error) return fail(res, 500, 'Không lưu được tuỳ chọn thông báo.');
+  if (!updated || !updated.length) {
+    return fail(res, 404, 'Không tìm thấy liên kết đang hoạt động với con.');
+  }
   return ok(res, { ok: true, on });
 }
 
@@ -1147,6 +1182,8 @@ async function notifyPref(supabase, user, body, res) {
 async function pushToken(supabase, user, body, res) {
   const token = String(body.token || '').trim();
   if (!token) return fail(res, 400, 'Thiếu token thiết bị.');
+  // Token hợp lệ dài vài trăm ký tự; dài bất thường = dữ liệu rác/tấn công.
+  if (token.length > 4096) return fail(res, 400, 'Token thiết bị quá dài.');
 
   // `kind` phân biệt Web Push (web) và FCM native (fcm) — mặc định web.
   const kind = body.kind === 'fcm' ? 'fcm' : 'web';
@@ -1159,6 +1196,19 @@ async function pushToken(supabase, user, body, res) {
       .eq('user_id', user.uid);
     if (error) return fail(res, 500, 'Không huỷ được token.');
     return ok(res, { ok: true });
+  }
+
+  // Không cho "chiếm" token của tài khoản khác: chỉ ghi đè khi hàng còn trống
+  // hoặc đã thuộc chính người gọi (token không phải bí mật, ai biết chuỗi cũng
+  // có thể gửi lên — nếu không kiểm tra, họ sẽ cướp thông báo của người khác).
+  const { data: existing, error: readError } = await supabase
+    .from(NOTIF_TABLE)
+    .select('user_id')
+    .eq('token', token)
+    .maybeSingle();
+  if (readError) return fail(res, 500, 'Không kiểm tra được token.');
+  if (existing && existing.user_id && existing.user_id !== user.uid) {
+    return fail(res, 409, 'Token này đã thuộc tài khoản khác.');
   }
 
   const { error } = await supabase.from(NOTIF_TABLE).upsert(

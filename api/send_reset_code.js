@@ -5,9 +5,15 @@
 // Kiểm tra email tồn tại được thực hiện ở bước 2 (reset_password) vì Firebase
 // REST không phân biệt "sai email" và "sai mật khẩu" để bảo mật thông tin.
 const { getSupabase, getTransporter, newCode, CODE_TTL_MS, readJson, ok, fail } = require('./_lib');
+const { guard } = require('./_guard');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Chỉ hỗ trợ POST.');
+  // Chống spam email: endpoint mở cho người chưa đăng nhập nên giới hạn theo IP
+  // (5 lượt/phút, tối đa 10 lượt/ngày mỗi IP — đủ cho người dùng thật).
+  if (!(await guard(req, res, { endpoint: '/api/send_reset_code', limit: 5, quota: 10 }))) {
+    return;
+  }
   try {
     const body = await readJson(req);
     const email = String(body.email || '').trim().toLowerCase();

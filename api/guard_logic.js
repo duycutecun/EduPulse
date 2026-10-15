@@ -54,9 +54,10 @@ function checkQuota(store, key, nowMs, limit) {
   return { allowed: true, remaining: limit - entry.count, retryAfterSec: 0 };
 }
 
-/** Thông báo tiếng Việt khi vượt quota ngày — thân thiện, không lộ chi tiết nội bộ. */
+/** Thông báo tiếng Việt khi vượt quota — khớp ĐÚNG ngữ nghĩa cửa sổ trượt 24h
+ * (không hứa "ngày mai" vì hạn mức tự mở lại sau 24 giờ kể từ lượt đầu). */
 function quotaMessage() {
-  return 'Bạn đã dùng hết lượt AI miễn phí hôm nay. Vui lòng thử lại vào ngày mai.';
+  return 'Bạn đã dùng hết lượt AI miễn phí trong 24 giờ qua. Vui lòng thử lại sau.';
 }
 
 module.exports = {
