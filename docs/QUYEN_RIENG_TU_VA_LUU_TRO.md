@@ -88,7 +88,8 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
 ## 5. Ghi chú & việc cần làm ở hạ tầng
 
 - Cấu hình tác vụ dọn theo `RETENTION` (mục 2) trên hạ tầng — mã app chỉ công bố
-  chính sách và cung cấp `isExpired`.
+  chính sách và cung cấp `isExpired`. **Đã thêm `api/cleanup.js` + logic + cron
+  trong `vercel.json` (lịch `0 3 * * *`); nên đặt `CRON_SECRET` trên Vercel.**
 - Đặt trần quota/ngày qua biến môi trường Vercel: `AI_DAILY_QUOTA` (theo uid) và
   `AI_DAILY_QUOTA_ANON` (theo IP) — mặc định 200 và 40 (`guard_logic.js`).
 - Lưu khoá BYOK bằng kho bảo mật của hệ điều hành (`flutter_secure_storage`):

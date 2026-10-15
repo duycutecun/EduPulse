@@ -15,7 +15,7 @@ Chạy CI (`.github/workflows/ci.yml`) và cả ba bước dưới đây phải 
 - [x] `dart format --output=none --set-exit-if-changed lib test` — không có tệp
       lệch định dạng. _(2026-10-15: sạch)_
 - [x] `flutter analyze` — không cảnh báo/lỗi. _(2026-10-15: No issues found!)_
-- [x] `flutter test` — toàn bộ test pass. _(2026-10-15: 898 test pass)_
+- [x] `flutter test` — toàn bộ test pass. _(2026-10-15: 925 test pass)_
 - [x] `flutter build web --release` — build web/PWA thành công (smoke).
       _(2026-10-15: `√ Built build\web`)_
 
@@ -70,7 +70,7 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
 - [ ] APK build qua `build.yml` (hoặc `flutter build apk`) thành công.
       _(Chưa chạy: máy Windows không có Android SDK — dùng CI.)_
 - [x] IPA build qua `ios-ipa.yml` thành công; tải artifact kiểm tra kích thước.
-      _(2026-10-15: run `38599002548` → 12,6 MB.)_
+      _(2026-10-15: run `38733195338` (b32ee0c) → 12.678.807 bytes.)_
 - [ ] Web deploy qua `deploy.yml` thành công (GitHub Pages).
 - [ ] Cấu hình build (Supabase/Firebase) có/thiếu được ghi rõ trong Summary;
       thiếu key chỉ làm giảm tính năng, **không làm build hỏng**.
