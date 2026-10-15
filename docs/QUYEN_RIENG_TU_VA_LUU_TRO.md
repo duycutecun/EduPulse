@@ -16,7 +16,8 @@ mục 8 (Bảo mật và quyền riêng tư, dòng 208–214) và mục 7.1.
 | Nhiệm vụ, phiên học, điểm thử, ghi chú, nhật ký | `SharedPreferences` (local) | schema + migration (`data_schema_version`) |
 | Bản sao lưu toàn bộ (snapshot), ảnh đề bài | Supabase `user_snapshots`, `user_blobs` | chỉ qua `/api/backup`, server kiểm soát quyền |
 | Liên kết/báo cáo/mục tiêu/lời nhắn gia đình | Supabase `family_*` | chỉ server (`/api/family`) đọc/ghi; RLS bật, **không policy** |
-| Token thông báo đẩy (ba mẹ) | Supabase `family_notif_tokens` | theo `user_id` |
+| Token thông báo đẩy (ba mẹ) | Supabase `family_notif_tokens` | theo `user_id`; RLS bật qua `supabase/family_v4.sql` |
+| Mã OTP xác minh email / đặt lại mật khẩu | Supabase `email_codes` | chỉ server (`/api/*`); RLS bật qua `supabase/email_codes.sql` |
 | Cache AI / lịch sử trò chuyện trên máy | `SharedPreferences` (local) | xoá được bằng nút trong "Tôi" |
 
 Không có API key của chủ hệ thống trong binary/bundle: AI managed đi qua backend
@@ -36,10 +37,19 @@ Hằng số nguồn: `api/account_logic.js` (`RETENTION`). Trả cho client qua
 | Bản sao lưu dữ liệu (`user_snapshots`) | tới khi người dùng xoá | là bản back-up của chính người dùng |
 
 Hàm `isExpired(updatedAtMs, ttlMs, nowMs)` trong `account_logic.js` là điểm móc
-sẵn để một tác vụ dọn định kỳ (cron/Supabase scheduled function, chạy ngoài repo)
-xác định dòng nào đã quá hạn. Việc dọn tự động theo lịch **cần được cấu hình ở
-hạ tầng** (ngoài mã nguồn app); hiện tại chính sách đã được công bố và có sẵn
-hàm kiểm tra.
+sẵn cho tác vụ dọn định kỳ. Việc dọn tự động **đã được triển khai** bằng cron:
+`api/cleanup.js` + `api/cleanup_logic.js` (`RETENTION_CLEANUP`), lịch chạy
+`0 3 * * *` trong `vercel.json`. Cron xoá:
+
+- `user_blobs` quá 180 ngày (theo `updated_at`) — ảnh đề bài trên máy chủ;
+- `family_reports` quá 90 ngày (theo `created_at`);
+- `email_codes` đã hết hạn (mã OTP hết hạn không giữ lại).
+
+Lịch sử trò chuyện AI (30 ngày) chỉ nằm **cục bộ trên máy** — client tự dọn, không
+có bản sao trên máy chủ để cron xoá.
+
+> **Bắt buộc đặt `CRON_SECRET` trên Vercel.** Cron *fail closed*: không có biến
+> này thì `/api/cleanup` từ chối chạy (503) thay vì để ai cũng xoá được dữ liệu.
 
 ## 3. Cơ chế xoá dữ liệu cá nhân
 
@@ -58,6 +68,8 @@ Xoá dữ liệu ở cả hai vai trò (người dùng có thể là học sinh 
 - `family_links` (theo `student_user_id` và `parent_user_id`)
 - `family_notif_tokens` (theo `user_id`)
 - `user_blobs`, `user_snapshots` (theo `user_id`)
+- `email_codes` (theo `uid`; mã quên mật khẩu không gắn uid — tự hết hạn sau 15
+  phút và được cron dọn)
 
 Thứ tự xoá (bảng con trước bảng cha) và danh sách bảng nằm ở
 `account_logic.js` → `deletionTargets()` (có test `node --test`).
@@ -87,9 +99,14 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
 
 ## 5. Ghi chú & việc cần làm ở hạ tầng
 
-- Cấu hình tác vụ dọn theo `RETENTION` (mục 2) trên hạ tầng — mã app chỉ công bố
-  chính sách và cung cấp `isExpired`. **Đã thêm `api/cleanup.js` + logic + cron
-  trong `vercel.json` (lịch `0 3 * * *`); nên đặt `CRON_SECRET` trên Vercel.**
+- Cấu hình tác vụ dọn theo `RETENTION` (mục 2): **đã triển khai** `api/cleanup.js`
+  + `api/cleanup_logic.js` + cron `0 3 * * *` trong `vercel.json`. **Bắt buộc đặt
+  `CRON_SECRET` trên Vercel** — cron fail-closed khi thiếu biến này.
+- Áp migration RLS còn thiếu trên Supabase (chạy trong SQL editor):
+  `supabase/family_v4.sql` (bật RLS cho `family_goals`, `family_messages`,
+  `family_notif_tokens`) và `supabase/email_codes.sql` (DDL + RLS cho bảng mã OTP).
+  Trước khi áp, ba bảng gia đình đầu **chưa bật RLS** — anon key công khai có thể
+  đọc/ghi qua PostgREST.
 - Đặt trần quota/ngày qua biến môi trường Vercel: `AI_DAILY_QUOTA` (theo uid) và
   `AI_DAILY_QUOTA_ANON` (theo IP) — mặc định 200 và 40 (`guard_logic.js`).
 - Lưu khoá BYOK bằng kho bảo mật của hệ điều hành (`flutter_secure_storage`):

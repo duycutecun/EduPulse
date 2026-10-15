@@ -15,7 +15,7 @@ Chạy CI (`.github/workflows/ci.yml`) và cả ba bước dưới đây phải 
 - [x] `dart format --output=none --set-exit-if-changed lib test` — không có tệp
       lệch định dạng. _(2026-10-15: sạch)_
 - [x] `flutter analyze` — không cảnh báo/lỗi. _(2026-10-15: No issues found!)_
-- [x] `flutter test` — toàn bộ test pass. _(2026-10-15: 925 test pass)_
+- [x] `flutter test` — toàn bộ test pass. _(2026-10-15: 934 test pass)_
 - [x] `flutter build web --release` — build web/PWA thành công (smoke).
       _(2026-10-15: `√ Built build\web`)_
 
@@ -52,6 +52,16 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
       _(2026-10-15: có test riêng cho luồng chia sẻ.)_
 - [x] Kênh phản hồi beta lưu cục bộ, người dùng chủ động chia sẻ.
       _(2026-10-15: `BetaFeedback` lưu cục bộ.)_
+- [x] Mọi điểm gọi AI kèm dữ liệu học tập đều qua cổng quyền
+      `ai_permission_read`/`ai_permission_analyze`. _(2026-10-15: audit toàn bộ
+      call site — 7 điểm thiếu cổng đã thêm `AiConsent`; `ai_consent_test.dart`.)_
+- [ ] Áp migration RLS còn thiếu trên Supabase (SQL editor):
+      `supabase/family_v4.sql` (RLS cho `family_goals`/`family_messages`/
+      `family_notif_tokens`) và `supabase/email_codes.sql` (DDL + RLS bảng mã OTP).
+      _(Bảo mật — phải áp **trước khi** mở beta công khai.)_
+- [ ] Đặt `CRON_SECRET` (+ `AI_DAILY_QUOTA`, `AI_DAILY_QUOTA_ANON`) trên Vercel.
+      _(Cron dọn dữ liệu **fail-closed** khi thiếu `CRON_SECRET` — xem
+      `docs/QUYEN_RIENG_TU_VA_LUU_TRO.md` mục 2.)_
 
 ## 2c. Migration và rollback
 
