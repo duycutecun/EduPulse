@@ -1,4 +1,4 @@
-﻿{
+{
     "outputDirectory":  "build/web",
     "framework":  null,
     "installCommand":  "git clone --depth 1 -b 3.47.1 https://github.com/flutter/flutter.git /vercel/flutter \u0026\u0026 /vercel/flutter/bin/flutter config --no-analytics \u003e/dev/null 2\u003e\u00261 \u0026\u0026 /vercel/flutter/bin/flutter --version",
