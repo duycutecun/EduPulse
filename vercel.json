@@ -1,116 +1,122 @@
-{
-  "outputDirectory": "build/web",
-  "framework": null,
-  "installCommand": "git clone --depth 1 -b 3.47.1 https://github.com/flutter/flutter.git /vercel/flutter && /vercel/flutter/bin/flutter config --no-analytics >/dev/null 2>&1 && /vercel/flutter/bin/flutter --version",
-  "buildCommand": "bash build.sh",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cross-Origin-Opener-Policy",
-          "value": "same-origin"
-        },
-        {
-          "key": "Cross-Origin-Embedder-Policy",
-          "value": "credentialless"
-        }
-      ]
-    },
-    {
-      "source": "/service-worker.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
-    {
-      "source": "/flutter_service_worker.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
-    {
-      "source": "/index.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/icons/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/favicon.png",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/favicon-16x16.png",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/favicon-32x32.png",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ]
+﻿{
+    "outputDirectory":  "build/web",
+    "framework":  null,
+    "installCommand":  "git clone --depth 1 -b 3.47.1 https://github.com/flutter/flutter.git /vercel/flutter \u0026\u0026 /vercel/flutter/bin/flutter config --no-analytics \u003e/dev/null 2\u003e\u00261 \u0026\u0026 /vercel/flutter/bin/flutter --version",
+    "buildCommand":  "bash build.sh",
+    "rewrites":  [
+                     {
+                         "source":  "/(.*)",
+                         "destination":  "/index.html"
+                     }
+                 ],
+    "headers":  [
+                    {
+                        "source":  "/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Cross-Origin-Opener-Policy",
+                                            "value":  "same-origin"
+                                        },
+                                        {
+                                            "key":  "Cross-Origin-Embedder-Policy",
+                                            "value":  "credentialless"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/service-worker.js",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-cache, no-store, must-revalidate"
+                                        },
+                                        {
+                                            "key":  "Service-Worker-Allowed",
+                                            "value":  "/"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/flutter_service_worker.js",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-cache, no-store, must-revalidate"
+                                        },
+                                        {
+                                            "key":  "Service-Worker-Allowed",
+                                            "value":  "/"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/index.html",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-cache"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/manifest.json",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-cache"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/icons/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=31536000, immutable"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/favicon.png",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=31536000, immutable"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/favicon-16x16.png",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=31536000, immutable"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/favicon-32x32.png",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=31536000, immutable"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/assets/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "public, max-age=31536000, immutable"
+                                        }
+                                    ]
+                    }
+                ],
+    "crons":  [
+                  {
+                      "path":  "/api/cleanup",
+                      "schedule":  "0 3 * * *"
+                  }
+              ]
 }
