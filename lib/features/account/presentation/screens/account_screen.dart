@@ -1255,7 +1255,13 @@ class _AccountScreenState extends State<AccountScreen> {
     setState(() => _reminderEnabled = v);
     StorageService.setBool('reminder_enabled', v);
     if (v) {
-      if (!await _ensureNotificationPermission()) return;
+      if (!await _ensureNotificationPermission()) {
+        // Máy chặn thông báo ⇒ không lịch nào được đặt; trả công tắc về OFF để
+        // UI/prefs không "nói dối" (trước đây switch vẫn ON dù không có lịch).
+        if (mounted) setState(() => _reminderEnabled = false);
+        StorageService.setBool('reminder_enabled', false);
+        return;
+      }
       await NotificationService.scheduleDaily(
         hour: _reminderHour,
         minute: _reminderMinute,
@@ -1277,7 +1283,7 @@ class _AccountScreenState extends State<AccountScreen> {
         child: child!,
       ),
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     setState(() {
       _reminderHour = picked.hour;
       _reminderMinute = picked.minute;

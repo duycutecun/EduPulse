@@ -180,9 +180,14 @@ class _MainShellScreenState extends State<MainShellScreen>
     _streak = StorageService.getStreak();
     setState(() {});
 
-    // Xử lý deep-link task (nếu có).
-    if (widget.deepLinkTaskId != null && mounted) {
-      _handleDeepLinkTask(widget.deepLinkTaskId!);
+    // Xử lý deep-link task (nếu có). HOÃN qua sau frame đầu: mở bottom sheet
+    // ngay trong initState sẽ đụng Navigator lúc đang build (crash khởi động
+    // nguội từ link /task/<id>).
+    final deepLinkTaskId = widget.deepLinkTaskId;
+    if (deepLinkTaskId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _handleDeepLinkTask(deepLinkTaskId);
+      });
     }
   }
 

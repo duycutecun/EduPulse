@@ -17,6 +17,7 @@ import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
 import '../../domain/progress_engine.dart';
 import '../../domain/progress_insights.dart';
+import '../../../../core/ai/ai_consent.dart';
 import 'deep_report_screen.dart';
 
 /// FE-5.1 + FE-5.2 — Màn hình Tổng quan Tiến độ.
@@ -84,6 +85,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Future<void> _askAi() async {
+    // Quyền riêng tư (§8): không gửi số liệu tiến độ lên AI khi đã tắt quyền.
+    if (!AiConsent.ensure(context)) return;
     final snapshot = _snapshot;
     if (snapshot == null || _loadingAi) return;
     setState(() {

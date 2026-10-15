@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/ai_router.dart';
+import '../../../../core/ai/ai_consent.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/pwa/pwa_service.dart';
@@ -419,6 +420,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   /// thẳng vào chat AI Coach để phân tích sâu — thay vì để học sinh tự chụp
   /// lại hoặc gõ lại đề.
   Future<void> _askAiHowToFix() async {
+    // Quyền riêng tư (§8): gửi câu hỏi + đáp án của học sinh lên AI.
+    if (!AiConsent.ensure(context)) return;
     final wrong = _wrongQuestions;
     final subject = widget.subject;
 

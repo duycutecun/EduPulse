@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/main_shell.dart';
 import '../../../../core/ai/ai_sprint4_planner.dart';
+import '../../../../core/ai/ai_consent.dart';
 import '../../../../core/analytics/product_analytics.dart';
 import '../../../../core/analytics/product_events.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -180,6 +181,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _generatePlan() async {
     if (_generating) return;
+    // Quyền riêng tư (§8): không lập kế hoạch AI khi người dùng đã tắt quyền.
+    if (!AiConsent.ensure(context)) {
+      setState(() => _aiFailed = true);
+      return;
+    }
     if (!PwaService.isOnline) {
       setState(() => _aiFailed = true);
       return;

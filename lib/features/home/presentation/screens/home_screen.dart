@@ -364,6 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _toggleTask(TodayTask task) async {
     final result = await TaskRepository.instance.toggleTaskDone(task.id);
+    if (!mounted) return;
     if (result.failed) {
       _toast(result.error ?? 'Không cập nhật được nhiệm vụ',
           kind: SnackKind.error);
@@ -608,6 +609,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final ref = await TaskRepository.instance.deleteTask(task.id);
+      if (!mounted) return;
       setState(_loadTasks);
       _toast(
         'Đã xóa "${task.title}"',

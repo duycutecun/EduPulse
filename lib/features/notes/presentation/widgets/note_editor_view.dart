@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
+import '../../../../core/ai/ai_consent.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
@@ -49,6 +50,9 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   // Autosave / draft recovery (mục 14 + 35 — Offline notes).
   Timer? _autosaveTimer;
   bool _draftRestored = false;
+
+  /// Đã xác nhận rời đi (Lưu/Bỏ thay đổi) — không hỏi lại trong PopScope.
+  bool _leaveConfirmed = false;
   static const String _draftKey = 'note_draft_v1';
 
   @override
@@ -187,6 +191,7 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   }
 
   void _save() {
+    _leaveConfirmed = true;
     _clearDraft();
     final now = DateTime.now();
     Navigator.pop(
@@ -209,6 +214,47 @@ class _NoteEditorViewState extends State<NoteEditorView> {
         imageBase64: _imageBase64,
       ),
     );
+  }
+
+  /// Có thay đổi chưa lưu so với bản gốc? Chỉ áp cho ghi chú đã có — ghi chú
+  /// mới đã có draft recovery tự động trong lúc gõ.
+  bool get _hasUnsavedChanges {
+    if (_leaveConfirmed) return false;
+    final n = widget.note;
+    if (n == null) return false;
+    return _title.text.trim() != n.title.trim() ||
+        _body.text.trim() != n.body.trim() ||
+        _tags.text.trim() != n.tags.join(', ').trim();
+  }
+
+  /// Hỏi khi thoát giữa chừng: trước đây bấm back là mất sửa đổi âm thầm.
+  Future<void> _confirmLeave() async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Thay đổi chưa lưu'),
+        content: const Text(
+            'Ghi chú này có thay đổi chưa được lưu. Bạn muốn làm gì?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'stay'),
+              child: const Text('Ở lại')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'discard'),
+              child: const Text('Bỏ thay đổi')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, 'save'),
+              child: const Text('Lưu')),
+        ],
+      ),
+    );
+    if (!mounted || choice == null || choice == 'stay') return;
+    if (choice == 'save') {
+      _save();
+      return;
+    }
+    _leaveConfirmed = true;
+    Navigator.pop(context);
   }
 
   // ------------------------------------------------------------------
@@ -268,6 +314,8 @@ class _NoteEditorViewState extends State<NoteEditorView> {
   }
 
   Future<void> _askAiSummarize() async {
+    // Quyền riêng tư (§8): nội dung ghi chú là dữ liệu học tập — phải có quyền.
+    if (!AiConsent.ensure(context)) return;
     final text = _body.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -392,172 +440,191 @@ $text
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgPage,
-      appBar: AppBar(
-        title: Text(widget.note == null ? 'Ghi chú mới' : 'Chỉnh sửa ghi chú',
-            style: const TextStyle(fontWeight: FontWeight.w800)),
-        actions: [
-          // Xem trước Markdown thay vì raw text.
-          IconButton(
-            tooltip: _preview ? 'Chỉnh sửa' : 'Xem trước',
-            icon:
-                Icon(_preview ? Icons.edit_rounded : Icons.visibility_outlined),
-            onPressed: () => setState(() => _preview = !_preview),
-          ),
-          TextButton(onPressed: _save, child: const Text('Lưu')),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Draft recovery banner (mục 35 — Offline notes: draft recovery).
-            if (_draftRestored)
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.blueSoft,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(children: [
-                  const Icon(Icons.history_rounded,
-                      size: 16, color: AppColors.blue),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text('Đã khôi phục bản nháp chưa lưu lần trước.',
-                        style: TextStyle(fontSize: 12)),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      _clearDraft();
-                      setState(() {
-                        _draftRestored = false;
-                        _body.clear();
-                        _title.clear();
-                        _taskId = null;
-                        _subject = null;
-                      });
-                    },
-                    child: const Text('Bỏ',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.blue)),
-                  ),
-                ]),
-              ),
-            TextField(
-              controller: _title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-              decoration: const InputDecoration(
-                  hintText: 'Tiêu đề', border: InputBorder.none),
+    // Không thoát êm khi còn thay đổi chưa lưu (back/swipe đều được hỏi).
+    // `canPop: false` + tự kiểm tra trong callback: nếu dùng `canPop` động thì
+    // lúc gõ chữ (không setState) giá trị sẽ cũ và cổng bị lọt.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (!_hasUnsavedChanges) {
+          _leaveConfirmed = true;
+          Navigator.pop(context);
+          return;
+        }
+        _confirmLeave();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.bgPage,
+        appBar: AppBar(
+          title: Text(widget.note == null ? 'Ghi chú mới' : 'Chỉnh sửa ghi chú',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          actions: [
+            // Xem trước Markdown thay vì raw text.
+            IconButton(
+              tooltip: _preview ? 'Chỉnh sửa' : 'Xem trước',
+              icon: Icon(
+                  _preview ? Icons.edit_rounded : Icons.visibility_outlined),
+              onPressed: () => setState(() => _preview = !_preview),
             ),
-            TextField(
-              controller: _tags,
-              decoration: const InputDecoration(
-                  labelText: 'Nhãn', hintText: 'Toán, công thức, lỗi sai'),
-            ),
-            const SizedBox(height: 6),
-            // Hàng liên kết + ảnh (mục 14 — Note features).
-            Row(children: [
-              // Task/subject link chip.
-              ActionChip(
-                avatar: Icon(
-                  _taskId != null ? Icons.link_rounded : Icons.add_link_rounded,
-                  size: 15,
-                  color:
-                      _taskId != null ? AppColors.primary : AppColors.textMuted,
+            TextButton(onPressed: _save, child: const Text('Lưu')),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Draft recovery banner (mục 35 — Offline notes: draft recovery).
+              if (_draftRestored)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.blueSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.history_rounded,
+                        size: 16, color: AppColors.blue),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text('Đã khôi phục bản nháp chưa lưu lần trước.',
+                          style: TextStyle(fontSize: 12)),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        _clearDraft();
+                        setState(() {
+                          _draftRestored = false;
+                          _body.clear();
+                          _title.clear();
+                          _taskId = null;
+                          _subject = null;
+                        });
+                      },
+                      child: const Text('Bỏ',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.blue)),
+                    ),
+                  ]),
                 ),
-                label: Text(
-                  _taskId != null
-                      ? 'Đã liên kết nhiệm vụ${_subject != null ? ' • $_subject' : ''}'
-                      : 'Liên kết nhiệm vụ',
-                  style: const TextStyle(fontSize: 11.5),
-                ),
-                onPressed: _pickLink,
+              TextField(
+                controller: _title,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                decoration: const InputDecoration(
+                    hintText: 'Tiêu đề', border: InputBorder.none),
               ),
-              const SizedBox(width: 8),
-              ActionChip(
-                avatar: Icon(
-                  _imageBase64 != null
-                      ? Icons.image_rounded
-                      : Icons.add_photo_alternate_outlined,
-                  size: 15,
-                  color: _imageBase64 != null
-                      ? AppColors.primary
-                      : AppColors.textMuted,
-                ),
-                label: Text(
-                  _imageBase64 != null ? 'Đã có ảnh' : 'Ảnh',
-                  style: const TextStyle(fontSize: 11.5),
-                ),
-                onPressed: _pickImage,
+              TextField(
+                controller: _tags,
+                decoration: const InputDecoration(
+                    labelText: 'Nhãn', hintText: 'Toán, công thức, lỗi sai'),
               ),
+              const SizedBox(height: 6),
+              // Hàng liên kết + ảnh (mục 14 — Note features).
+              Row(children: [
+                // Task/subject link chip.
+                ActionChip(
+                  avatar: Icon(
+                    _taskId != null
+                        ? Icons.link_rounded
+                        : Icons.add_link_rounded,
+                    size: 15,
+                    color: _taskId != null
+                        ? AppColors.primary
+                        : AppColors.textMuted,
+                  ),
+                  label: Text(
+                    _taskId != null
+                        ? 'Đã liên kết nhiệm vụ${_subject != null ? ' • $_subject' : ''}'
+                        : 'Liên kết nhiệm vụ',
+                    style: const TextStyle(fontSize: 11.5),
+                  ),
+                  onPressed: _pickLink,
+                ),
+                const SizedBox(width: 8),
+                ActionChip(
+                  avatar: Icon(
+                    _imageBase64 != null
+                        ? Icons.image_rounded
+                        : Icons.add_photo_alternate_outlined,
+                    size: 15,
+                    color: _imageBase64 != null
+                        ? AppColors.primary
+                        : AppColors.textMuted,
+                  ),
+                  label: Text(
+                    _imageBase64 != null ? 'Đã có ảnh' : 'Ảnh',
+                    style: const TextStyle(fontSize: 11.5),
+                  ),
+                  onPressed: _pickImage,
+                ),
+                if (_imageBase64 != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Gỡ ảnh',
+                    visualDensity: VisualDensity.comfortable,
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    onPressed: () => setState(() => _imageBase64 = null),
+                  ),
+                ],
+              ]),
+              if (_imageTooBig)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text('Ảnh quá lớn (> 250KB) — chọn ảnh khác nhẹ hơn.',
+                      style: TextStyle(fontSize: 12, color: AppColors.orange)),
+                ),
               if (_imageBase64 != null) ...[
-                const SizedBox(width: 4),
-                IconButton(
-                  tooltip: 'Gỡ ảnh',
-                  visualDensity: VisualDensity.comfortable,
-                  icon: const Icon(Icons.close_rounded, size: 16),
-                  onPressed: () => setState(() => _imageBase64 = null),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    base64Decode(_imageBase64!),
+                    height: 140,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ],
-            ]),
-            if (_imageTooBig)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text('Ảnh quá lớn (> 250KB) — chọn ảnh khác nhẹ hơn.',
-                    style: TextStyle(fontSize: 12, color: AppColors.orange)),
-              ),
-            if (_imageBase64 != null) ...[
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  base64Decode(_imageBase64!),
-                  height: 140,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ],
-            const SizedBox(height: 10),
-            Expanded(
-              child: _preview
-                  ? SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: NoteMarkdown(
-                            body: _body.text.isEmpty
-                                ? '*Chưa có nội dung để xem trước.*'
-                                : _body.text),
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        _buildToolbar(),
-                        const SizedBox(height: 6),
-                        Expanded(
-                          child: TextField(
-                            controller: _body,
-                            expands: true,
-                            maxLines: null,
-                            textAlignVertical: TextAlignVertical.top,
-                            decoration: const InputDecoration(
-                              hintText:
-                                  'Viết ghi chú của bạn… Hỗ trợ Markdown: **đậm**, *nghiêng*, `code`, # tiêu đề, - danh sách, công thức \$x^2\$',
-                              border: InputBorder.none,
+              const SizedBox(height: 10),
+              Expanded(
+                child: _preview
+                    ? SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: NoteMarkdown(
+                              body: _body.text.isEmpty
+                                  ? '*Chưa có nội dung để xem trước.*'
+                                  : _body.text),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          _buildToolbar(),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: TextField(
+                              controller: _body,
+                              expands: true,
+                              maxLines: null,
+                              textAlignVertical: TextAlignVertical.top,
+                              decoration: const InputDecoration(
+                                hintText:
+                                    'Viết ghi chú của bạn… Hỗ trợ Markdown: **đậm**, *nghiêng*, `code`, # tiêu đề, - danh sách, công thức \$x^2\$',
+                                border: InputBorder.none,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-            ),
-          ],
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

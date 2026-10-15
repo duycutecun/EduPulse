@@ -8,6 +8,7 @@ import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/ai_models.dart';
 import '../../../../core/ai/ai_router.dart';
+import '../../../../core/ai/ai_consent.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/gamification/achievement_service.dart';
@@ -1679,6 +1680,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _analyzeScoresWithAi() async {
+    // Quyền riêng tư (§8): không gửi điểm thi lên AI khi người dùng đã tắt.
+    if (!AiConsent.ensure(context)) return;
     if (!PwaService.isOnline) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

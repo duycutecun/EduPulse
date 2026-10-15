@@ -12,6 +12,7 @@ import '../../features/tasks/presentation/widgets/delete_task_dialog.dart';
 import '../../features/tasks/presentation/widgets/task_edit_sheet.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
 import '../constants/app_colors.dart';
+import 'ai_consent.dart';
 import '../constants/subject_catalog.dart';
 import '../analytics/product_analytics.dart';
 import '../analytics/product_events.dart';
@@ -704,6 +705,10 @@ class AiCopilotService {
             (action.payload['topic'] ?? 'Trắc nghiệm tổng hợp').toString();
         final quizOnTasks = action.payload['onTasksChanged'] as VoidCallback?;
         final quizOnStreak = action.payload['onStreakChanged'] as VoidCallback?;
+
+        // Quyền riêng tư (§8): chủ đề quiz thường do AI suy ra từ dữ liệu học
+        // tập — không gửi lại lên AI khi người dùng đã tắt quyền phân tích.
+        if (!AiConsent.ensure(context)) return;
 
         if (!PwaService.isOnline) {
           if (context.mounted) {

@@ -53,18 +53,9 @@ class DeepLinkHandler {
           // Cập nhật task vào repository.
           TaskRepository.instance.updateTask(updatedTask);
         },
-        onStartStudy: (task) {
-          // Tùy ngữ cảnh, có thể mở StudyPage — để home_screen xử lý nếu có callback.
-        },
-        onEdit: (task) {
-          // Mở task edit sheet — do user chọn từ chi tiết.
-        },
-        onReschedule: (task) {
-          // Chuyển lịch task — do user chọn.
-        },
-        onDelete: (task) {
-          // Xác nhận xóa task — cần callback xác nhận từ home_screen nếu muốn.
-        },
+        // KHÔNG truyền callback hành động: deep-link không có state của Home
+        // (nút Sửa/Xóa/Dời lịch/Bắt đầu học ẩn đi — tránh nút bấm vô tác dụng).
+        // Mở nhiệm vụ từ tab Hôm nay để thao tác đầy đủ.
       );
     } catch (e) {
       // Bất kỳ lỗi nào cũng không crash app — chỉ thông báo.

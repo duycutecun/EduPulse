@@ -9,6 +9,7 @@ import '../../../../core/ai/ai_chat_actions.dart';
 import '../../../../core/ai/ai_context.dart';
 import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/ai/ai_sprint4_planner.dart';
+import '../../../../core/ai/ai_consent.dart';
 import '../../../../core/ai/ai_weakness_analyzer.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
@@ -376,6 +377,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
   /// duyệt (AI-4.6: không ghi gì khi chưa xác nhận).
   Future<void> _quickPlan() async {
     if (_isLoading) return;
+    // Quyền riêng tư (§8): kế hoạch dựa trên điểm thi/nhiệm vụ — phải có quyền.
+    if (!AiConsent.ensure(context)) return;
     if (!PwaService.isOnline) {
       _showAiToast('AI tạm thời không khả dụng khi ngoại tuyến — '
           'bạn vẫn có thể tự học bình thường.');
@@ -835,6 +838,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
 
     // AI biết HÀNH ĐỘNG: tách khối <<<ACTIONS>>> khỏi câu trả lời — phần
     // text sạch hiển thị, phần hành động thành nút bấm thật trong bubble.
+    if (!mounted) return;
     final parsed = AiChatActionParser.parse(response);
 
     setState(() {
@@ -900,6 +904,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
         imageBytes: userMessage.imageBytes,
       );
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _messages[index] = aiMessage; // giữ câu cũ — không mất nội dung.
         _isLoading = false;
@@ -913,6 +918,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
       return;
     }
 
+    if (!mounted) return;
     final parsed = AiChatActionParser.parse(response);
     setState(() {
       _messages[index] = ChatMessage(

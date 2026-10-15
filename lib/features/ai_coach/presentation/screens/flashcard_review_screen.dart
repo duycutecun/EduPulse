@@ -3,6 +3,7 @@ import '../../../../core/utils/feedback_service.dart';
 
 import '../../../../core/ai/ai_refresh_service.dart';
 import '../../../../core/ai/flashcard_service.dart';
+import '../../../../core/ai/ai_consent.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/notifications/adaptive_policy.dart';
 import '../../../../core/pwa/pwa_service.dart';
@@ -190,6 +191,8 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
     required String subject,
     String? noteTitle,
   }) async {
+    // Quyền riêng tư (§8): nội dung nguồn (ghi chú/chủ đề) là dữ liệu học tập.
+    if (!AiConsent.ensure(context)) return;
     if (!mounted) return;
     showDialog(
       context: context,

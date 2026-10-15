@@ -20,10 +20,13 @@ import 'delete_task_dialog.dart';
 class TaskDetailSheet extends StatefulWidget {
   final TodayTask task;
   final ValueChanged<TodayTask> onTaskUpdated;
-  final ValueChanged<TodayTask> onStartStudy;
-  final ValueChanged<TodayTask> onEdit;
-  final ValueChanged<TodayTask> onReschedule;
-  final ValueChanged<TodayTask> onDelete;
+
+  /// Các hành động có thể BỎ TRỐNG: khi mở từ deep-link (không có state của
+  /// Home) ta ẩn nút thay vì hiện nút bấm không làm gì.
+  final ValueChanged<TodayTask>? onStartStudy;
+  final ValueChanged<TodayTask>? onEdit;
+  final ValueChanged<TodayTask>? onReschedule;
+  final ValueChanged<TodayTask>? onDelete;
 
   /// Chia nhỏ thủ công — luôn có sẵn, không phụ thuộc AI.
   final ValueChanged<TodayTask>? onSplit;
@@ -34,10 +37,10 @@ class TaskDetailSheet extends StatefulWidget {
     super.key,
     required this.task,
     required this.onTaskUpdated,
-    required this.onStartStudy,
-    required this.onEdit,
-    required this.onReschedule,
-    required this.onDelete,
+    this.onStartStudy,
+    this.onEdit,
+    this.onReschedule,
+    this.onDelete,
     this.onSplit,
     this.onAskAi,
     this.onSplitWithAi,
@@ -47,10 +50,10 @@ class TaskDetailSheet extends StatefulWidget {
     BuildContext context, {
     required TodayTask task,
     required ValueChanged<TodayTask> onTaskUpdated,
-    required ValueChanged<TodayTask> onStartStudy,
-    required ValueChanged<TodayTask> onEdit,
-    required ValueChanged<TodayTask> onReschedule,
-    required ValueChanged<TodayTask> onDelete,
+    ValueChanged<TodayTask>? onStartStudy,
+    ValueChanged<TodayTask>? onEdit,
+    ValueChanged<TodayTask>? onReschedule,
+    ValueChanged<TodayTask>? onDelete,
     ValueChanged<TodayTask>? onSplit,
     ValueChanged<TodayTask>? onAskAi,
     ValueChanged<TodayTask>? onSplitWithAi,
@@ -269,23 +272,25 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                   Navigator.of(context).pop();
                 },
               ),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 20),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  widget.onEdit(_currentTask);
-                },
-                tooltip: 'Sửa nhiệm vụ',
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline_rounded,
-                    size: 20, color: AppColors.red),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  widget.onDelete(_currentTask);
-                },
-                tooltip: 'Xóa nhiệm vụ',
-              ),
+              if (widget.onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    widget.onEdit!(_currentTask);
+                  },
+                  tooltip: 'Sửa nhiệm vụ',
+                ),
+              if (widget.onDelete != null)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      size: 20, color: AppColors.red),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    widget.onDelete!(_currentTask);
+                  },
+                  tooltip: 'Xóa nhiệm vụ',
+                ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, size: 20),
                 onPressed: () => Navigator.of(context).pop(),
@@ -476,37 +481,39 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           ),
           const SizedBox(height: AppTokens.space16),
 
-          // Primary Actions
-          Row(
-            children: [
-              if (!_currentTask.isDone) ...[
-                Expanded(
-                  child: SecondaryButton(
-                    label: 'Dời lịch',
-                    icon: Icons.schedule_rounded,
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      widget.onReschedule(_currentTask);
-                    },
+          // Primary Actions — ẩn nút khi không có callback (mở từ deep-link).
+          if (widget.onReschedule != null || widget.onStartStudy != null)
+            Row(
+              children: [
+                if (!_currentTask.isDone && widget.onReschedule != null) ...[
+                  Expanded(
+                    child: SecondaryButton(
+                      label: 'Dời lịch',
+                      icon: Icons.schedule_rounded,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onReschedule!(_currentTask);
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppTokens.space12),
+                  const SizedBox(width: AppTokens.space12),
+                ],
+                if (widget.onStartStudy != null)
+                  Expanded(
+                    flex: 2,
+                    child: PrimaryButton(
+                      label: _currentTask.isDone
+                          ? 'Học lại bài này'
+                          : 'Bắt đầu học ngay',
+                      icon: Icons.play_arrow_rounded,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onStartStudy!(_currentTask);
+                      },
+                    ),
+                  ),
               ],
-              Expanded(
-                flex: 2,
-                child: PrimaryButton(
-                  label: _currentTask.isDone
-                      ? 'Học lại bài này'
-                      : 'Bắt đầu học ngay',
-                  icon: Icons.play_arrow_rounded,
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    widget.onStartStudy(_currentTask);
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
         ],
       ),
     );

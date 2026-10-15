@@ -124,6 +124,9 @@ class _AuthScreenState extends State<AuthScreen> {
   /// hai chiều: học sinh mở thử màn đăng nhập phụ huynh rồi thoát vẫn là học
   /// sinh; ba mẹ đăng nhập tài khoản phụ huynh là vào thẳng màn theo dõi con.
   Future<void> _finishSuccess() async {
+    // An toàn nếu người dùng đã thoát màn trong lúc chờ (callback bên ngoài
+    // thao tác Navigator — tránh "deactivated widget's ancestor").
+    if (!mounted) return;
     StorageService.setAccountRole(_role);
     widget.onAuthSuccess();
   }
@@ -155,6 +158,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (AuthService.isLoggedIn) {
       _showMessage('Đăng nhập Google thành công! 🎉', true);
       await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
       await _finishSuccess();
       return;
     }
@@ -176,6 +180,7 @@ class _AuthScreenState extends State<AuthScreen> {
     StorageService.setString(_rememberKey, _rememberMe ? email : '');
     if (result.success) {
       await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
       await _finishSuccess();
     }
   }
@@ -263,6 +268,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _showMessage(result.message, result.success);
     if (result.success) {
       await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
       _switchView(_AuthView.login);
     }
   }
@@ -281,6 +287,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _showMessage(result.message, result.success);
     if (result.success) {
       await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
       await _finishSuccess();
     }
   }
