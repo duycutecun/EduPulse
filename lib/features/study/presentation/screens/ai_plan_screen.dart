@@ -4,6 +4,7 @@ import '../../../../core/ai/ai_sprint4_planner.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/pwa/pwa_service.dart';
 import '../../../../core/utils/storage_service.dart';
+import '../../../../shared/state/async_state.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../exams/domain/models/exam_model.dart';
 
@@ -14,6 +15,13 @@ import '../../../exams/domain/models/exam_model.dart';
 /// đều gọi [AiStudyPlannerService] rồi hiển thị [AiPlanPreviewSheet]. Trước đây
 /// màn này dùng bộ parser riêng trong `features/study/domain/ai_plan.dart` —
 /// hai luồng song song, hai cách bóc JSON, hai cách đặt ngày. Nay đã gộp.
+///
+/// Mục C3 của kế hoạch cải tổ: nối rõ nhánh "phân tích điểm thi thử → đề xuất
+/// kế hoạch". [AiStudyPlannerService.generatePlan] vốn đã nạp điểm thử qua
+/// `_buildProgressContext`; màn này nay (1) cho người dùng thấy AI sẽ đọc bao
+/// nhiêu điểm, (2) chặn khi người dùng tắt quyền cho AI đọc/phân tích, và
+/// (3) dùng mô hình trạng thái thống nhất [AsyncStateController] cho
+/// loading/data/empty/error (kế hoạch §6.3).
 class AiPlanScreen extends StatefulWidget {
   const AiPlanScreen({super.key});
 
@@ -21,11 +29,34 @@ class AiPlanScreen extends StatefulWidget {
   State<AiPlanScreen> createState() => _AiPlanScreenState();
 }
 
+/// Mô tả lỗi AI thân thiện cho [AiStudyPlannerService.generatePlan].
+String _describePlanError(Object error) {
+  final text = error.toString();
+  if (text.contains('offline')) {
+    return 'AI cần kết nối mạng — hãy thử lại khi online!';
+  }
+  return 'AI chưa trả về lộ trình đúng định dạng — thử lại nhé!';
+}
+
 class _AiPlanScreenState extends State<AiPlanScreen> {
   int _dailyMinutes = 120;
   int _planDays = 7;
-  bool _generating = false;
-  AiStudyPlan? _plan;
+
+  /// Chỉ hiển thị vùng kết quả sau lần sinh đầu tiên (mặc định ẩn, không hiện
+  /// vòng xoay khi người dùng chưa bấm gì).
+  bool _started = false;
+
+  late final AsyncStateController<AiStudyPlan> _plans =
+      AsyncStateController<AiStudyPlan>(
+    isEmpty: (plan) => plan.isEmpty,
+    describeError: _describePlanError,
+  );
+
+  @override
+  void dispose() {
+    _plans.dispose();
+    super.dispose();
+  }
 
   ExamModel? get _primaryExam {
     final id = StorageService.getPrimaryExamId();
@@ -36,7 +67,21 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
   }
 
   Future<void> _generate() async {
-    if (_generating) return;
+    if (_started && _plans.value.isLoading) return;
+
+    // Quyền riêng tư (§8): AI chỉ đọc/phân tích dữ liệu khi người dùng cho phép.
+    final readOk = StorageService.getBool('ai_permission_read') ?? true;
+    final analyzeOk = StorageService.getBool('ai_permission_analyze') ?? true;
+    if (!readOk || !analyzeOk) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Bạn đã tắt quyền cho AI đọc/phân tích dữ liệu. Bật lại ở Tôi → Cloud & AI để AI lập lộ trình.'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
+      ));
+      return;
+    }
+
     if (!PwaService.isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('AI cần kết nối mạng — hãy thử lại khi online!'),
@@ -46,46 +91,17 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
       return;
     }
 
-    setState(() {
-      _generating = true;
-      _plan = null;
-    });
+    setState(() => _started = true);
 
-    AiStudyPlan plan;
-    try {
-      plan = await AiStudyPlannerService.generatePlan(
-        daysAhead: _planDays,
-        dailyMinutes: _dailyMinutes,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _generating = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('AI chưa trả về lộ trình đúng định dạng — thử lại nhé!'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
-      ));
-      return;
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _generating = false;
-      _plan = plan;
-    });
-
-    if (plan.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('AI chưa trả về lộ trình đúng định dạng — thử lại nhé!'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
-      ));
-    }
+    await _plans.load(() => AiStudyPlannerService.generatePlan(
+          daysAhead: _planDays,
+          dailyMinutes: _dailyMinutes,
+        ));
   }
 
   /// Mở Preview chung để người dùng tick/bỏ từng nhiệm vụ trước khi áp dụng.
   Future<void> _openPreview() async {
-    final plan = _plan;
+    final plan = _plans.value.data;
     if (plan == null || plan.isEmpty) return;
 
     await AiPlanPreviewSheet.show(
@@ -97,10 +113,19 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
     );
   }
 
+  void _reject() {
+    setState(() => _started = false);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Đã bỏ đề xuất. Kế hoạch hiện tại không thay đổi.'),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final exam = _primaryExam;
-    final plan = _plan;
+    final scoreCount = StorageService.getMockScoreIds().length;
+    final generating = _started && _plans.value.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.bgPage,
@@ -155,6 +180,8 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            _scoreAnalysisCard(scoreCount),
             const SizedBox(height: 16),
             Text('Quỹ thời gian mỗi ngày',
                 style: TextStyle(
@@ -206,7 +233,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                   ],
                 ),
                 child: Center(
-                  child: _generating
+                  child: generating
                       ? const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -231,90 +258,142 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                             Icon(Icons.auto_awesome_rounded,
                                 color: Colors.white, size: 20),
                             SizedBox(width: 8),
-                            Text('SINH LỘ TRÌNH AI',
+                            Text('PHÂN TÍCH ĐIỂM THỬ & SINH LỘ TRÌNH',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 14)),
+                                    fontSize: 13)),
                           ],
                         ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            if (plan != null && plan.tasks.isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Xem trước thay đổi',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
-                  GestureDetector(
-                    onTap: _openPreview,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.blue,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text('Chấp nhận',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.purpleLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Trước: giữ nguyên kế hoạch hiện tại.\nSau khi chấp nhận: thêm ${plan.tasks.length} nhiệm vụ vào từng ngày trong lộ trình. AI không tự áp dụng thay đổi.',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.textPrimary),
+            if (_started)
+              ValueListenableBuilder<AsyncState<AiStudyPlan>>(
+                valueListenable: _plans,
+                builder: (context, state, _) => AsyncStateView<AiStudyPlan>(
+                  state: state,
+                  loadingMessage: 'AI đang đọc điểm thi thử và lập lộ trình...',
+                  onRetry: _generate,
+                  emptyIcon: Icons.auto_awesome_outlined,
+                  emptyTitle: 'AI chưa trả về lộ trình',
+                  emptyDescription:
+                      'Thử lại, hoặc đổi quỹ thời gian / độ dài lộ trình rồi sinh lại.',
+                  emptyActionLabel: 'Thử lại',
+                  onEmptyAction: _generate,
+                  builder: (context, plan) => _planResult(plan),
                 ),
               ),
-              const SizedBox(height: 10),
-              GlassCard(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < plan.tasks.length; i++) ...[
-                      if (i > 0) Divider(color: AppColors.border, height: 14),
-                      _planRow(plan.tasks[i], i + 1),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() => _plan = null);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text(
-                          'Đã bỏ đề xuất. Kế hoạch hiện tại không thay đổi.'),
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                  },
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  label: const Text('Từ chối đề xuất'),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.red),
-                ),
-              ),
-            ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _scoreAnalysisCard(int scoreCount) {
+    final hasScores = scoreCount > 0;
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('📊', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Phân tích điểm thi thử',
+                  style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasScores
+                      ? 'AI sẽ đọc $scoreCount điểm thi thử gần đây để ưu tiên môn còn yếu và chia thời gian hợp lý.'
+                      : 'Chưa có điểm thi thử. Thêm ở tab Tiến độ để AI cá nhân hoá lộ trình theo điểm thật.',
+                  style: TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _planResult(AiStudyPlan plan) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Xem trước thay đổi',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary)),
+            GestureDetector(
+              onTap: _openPreview,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.blue,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('Chấp nhận',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.purpleLight,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Trước: giữ nguyên kế hoạch hiện tại.\nSau khi chấp nhận: thêm ${plan.tasks.length} nhiệm vụ vào từng ngày trong lộ trình. AI không tự áp dụng thay đổi.',
+            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+          ),
+        ),
+        const SizedBox(height: 10),
+        GlassCard(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            children: [
+              for (var i = 0; i < plan.tasks.length; i++) ...[
+                if (i > 0) Divider(color: AppColors.border, height: 14),
+                _planRow(plan.tasks[i], i + 1),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: TextButton.icon(
+            onPressed: _reject,
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text('Từ chối đề xuất'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+          ),
+        ),
+      ],
     );
   }
 
