@@ -78,7 +78,9 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
 - **Phân quyền gia đình do server kiểm soát** (`api/family.js`), không tin role
   hay consent chỉ từ client. RLS bật nhưng không policy ⇒ anon key không đọc/ghi được.
 - **BYOK:** nếu người dùng tự dán khoá AI, khoá không bao giờ bị ghi log, và có
-  nút xoá khoá. (Xem ghi chú lưu trữ an toàn theo nền tảng ở mục 5.)
+  nút xoá khoá ngay. Khoá được lưu trong **kho an toàn của hệ điều hành**
+  (Keychain/Keystore/DPAPI/WebCrypto) qua `lib/core/utils/secure_store.dart`,
+  không để lại plaintext trong `SharedPreferences` (xem mục 5).
 - Báo cáo phụ huynh chỉ chứa trường học sinh đã chọn chia sẻ; có màn xem trước và
   **nhật ký thay đổi quyền chia sẻ** (`lib/core/privacy/share_audit_log.dart`,
   lưu cục bộ, chỉ ghi hành động bật/tắt, xem ở màn Quyền riêng tư & dữ liệu).
@@ -89,5 +91,8 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
   chính sách và cung cấp `isExpired`.
 - Đặt trần quota/ngày qua biến môi trường Vercel: `AI_DAILY_QUOTA` (theo uid) và
   `AI_DAILY_QUOTA_ANON` (theo IP) — mặc định 200 và 40 (`guard_logic.js`).
-- Lưu khoá BYOK bằng kho bảo mật của hệ điều hành (Keychain/Keystore) là hướng
-  tăng cường; xem `docs/DU_LIEU_VA_PHIEN_BAN.md` để đối chiếu key `SharedPreferences`.
+- Lưu khoá BYOK bằng kho bảo mật của hệ điều hành (`flutter_secure_storage`):
+  `AiConfig.loadSecure()` nạp khoá vào cache lúc khởi động và **di trú** khoá cũ
+  dạng plaintext từ `SharedPreferences` rồi xoá bản rõ (xem
+  `docs/DU_LIEU_VA_PHIEN_BAN.md` để đối chiếu key). Nền tảng thiếu kho an toàn
+  (ví dụ `flutter test`) tự dự phòng để không mất cấu hình.

@@ -35,7 +35,7 @@ khoá dạng bản ghi dùng tiền tố + `id` (vd `task_<id>`).
 | Đồng bộ | `sync_outbox_v1`, `last_cloud_sync_ms`, `exam_pending_deletes`, `sync_outbox_corrupt` | `core/sync/*` | hàng đợi ý định |
 | Sao lưu/khôi phục | `backup_blob_index`, `backup_prev_snapshot`, `backup_schema`, `backup_device_id`, `backup_fingerprint`, `backup_synced_at_ms` | `BackupService` | |
 | Cloud config | `supabase_url`, `supabase_anon_key` | `StorageService` | fallback compile-time |
-| AI cấu hình (BYOK) | `ai_gemini_key`, `ai_openrouter_key`, `ai_tavily_key`, `ai_model`, `ai_permission_read`, `ai_permission_analyze`, `ai_auto_read_image` | `core/ai/*` | khoá lưu cục bộ, **không log** |
+| AI cấu hình (BYOK) | `ai_gemini_key`, `ai_openrouter_key`, `ai_tavily_key`, `ai_model`, `ai_permission_read`, `ai_permission_analyze`, `ai_auto_read_image` | `core/ai/*` | 3 khoá AI lưu trong **kho an toàn OS** (`SecureStore`), **không log**; phần còn lại trong `SharedPreferences` |
 | AI cache/bộ nhớ | `ai_memory_summary`, `ai_feedback_ids`, `ai_feedback_patterns_v1`, `ai_response_cache_v1`, `ai_briefing_v1`, `ai_briefing_day_v1`, `ai_insights_v1`, `ai_insights_time_v1`, `ai_weekly_report_v1`, `ai_chat_history_v1`, `free_models_cache_v1`, `free_models_cache_time_v1`, `adaptive_quiz_performance_v1`, `flashcard_ids`, `content_urls` | `core/ai/*` | cache có thể xoá an toàn |
 | Sự kiện sản phẩm | `analytics_consent`, `product_events` | `ProductAnalytics` | opt-in, cục bộ, không PII |
 | Phiên bản schema | `data_schema_version` | `DataMigration` | số nguyên |

@@ -13,6 +13,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await StorageService.init();
+    AiConfig.resetForTesting();
     // flutter_test vốn chạy như Android — trùng đúng nền tảng app thật, nên
     // các test "trên app" không cần ghim gì thêm.
     expect(defaultTargetPlatform, TargetPlatform.android);

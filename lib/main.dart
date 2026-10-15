@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/ai/free_models_catalog.dart';
+import 'core/ai/ai_config.dart';
 import 'core/ai/ai_insights.dart';
 import 'core/family/live_progress_service.dart';
 import 'core/ai/ai_refresh_service.dart';
@@ -30,6 +31,9 @@ void main() async {
   PwaService.init();
   // Storage bắt buộc phải sẵn sàng trước khi các màn hình đọc dữ liệu.
   await StorageService.init();
+  // Nạp khoá BYOK từ kho an toàn (Keychain/Keystore) + di trú khoá cũ dạng
+  // plaintext trong SharedPreferences (đặc tả mục 8, dòng 211).
+  await AiConfig.loadSecure();
   // Migration dữ liệu (mục 42): auto backup → migrate → rollback nếu lỗi.
   // Chạy sớm trước mọi màn hình đọc data, log MigrationReport ra console.
   logMigration(DataMigration.run(DataMigration.defaultSteps()));

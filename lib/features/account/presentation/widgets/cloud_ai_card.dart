@@ -13,8 +13,8 @@ import '../../../../shared/widgets/glass_card.dart';
 /// build. Bản cài trên máy (`.ipa`/`.apk`) chỉ có những giá trị đó nếu người
 /// build truyền `--dart-define` — thiếu là "không kết nối được database,
 /// không dùng được AI" mà người dùng không có cách nào sửa. Thẻ này cho dán
-/// thẳng khoá vào máy (lưu cục bộ, không gửi đi đâu khác) để bản cài dùng
-/// được ngay, không cần build lại.
+/// thẳng khoá vào máy (khoá AI lưu trong kho an toàn của thiết bị, không gửi
+/// đi đâu khác) để bản cài dùng được ngay, không cần build lại.
 class CloudAiCard extends StatefulWidget {
   const CloudAiCard({super.key});
 
@@ -111,8 +111,8 @@ class _CloudAiCardState extends State<CloudAiCard> {
           if (_expanded) ...[
             const SizedBox(height: 6),
             const Text(
-              'Dán cấu hình của bạn vào đây. Chỉ lưu trên máy này, không gửi '
-              'tới server nào khác.',
+              'Dán cấu hình của bạn vào đây. Khoá AI lưu trong kho an toàn '
+              'của thiết bị (Keychain/Keystore), không gửi tới server nào khác.',
               style: TextStyle(
                   fontSize: 11.5, height: 1.35, color: AppColors.textMuted),
             ),

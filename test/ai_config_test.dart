@@ -1,21 +1,27 @@
 import 'dart:io';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edupulse/core/ai/ai_config.dart';
 import 'package:edupulse/core/config.dart';
 import 'package:edupulse/core/utils/runtime_env.dart';
+import 'package:edupulse/core/utils/secure_store.dart';
 import 'package:edupulse/core/utils/storage_service.dart';
 
 /// Bản cài từ `.ipa`/`.apk` không có `--dart-define` (chỉ web trên Vercel có),
 /// nên AI từng báo "Chưa cấu hình OpenRouter API Key" mà người dùng không có
 /// cách nào sửa. [AiConfig] mở đường dán khoá tại chỗ — khoá người dùng luôn
-/// thắng khoá đóng gói trong bản build.
+/// thắng khoá đóng gói trong bản build. Khoá dán được lưu trong kho an toàn
+/// (mục 8, dòng 211), không để lại plaintext.
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    // Kho an toàn giả lập trong bộ nhớ để test được luồng ghi/đọc/đọc lẫn.
+    FlutterSecureStorage.setMockInitialValues({});
     await StorageService.init();
+    AiConfig.resetForTesting();
   });
 
   group('AiConfig — khoá dán trong app thắng khoá của bản build', () {
@@ -112,6 +118,54 @@ void main() {
     test('trong flutter test, managed tự tắt (an toàn mặc định)', () {
       expect(RuntimeEnv.isFlutterTest, isTrue);
       expect(AiConfig.hasManagedAi, isFalse);
+    });
+  });
+
+  group('BYOK lưu trong kho an toàn (mục 8, dòng 211)', () {
+    test('di trú khoá cũ dạng plaintext sang kho an toàn rồi xoá plaintext',
+        () async {
+      StorageService.setString(AiConfig.openRouterKeyPref, 'legacy-key');
+      AiConfig.resetForTesting();
+
+      await AiConfig.loadSecure();
+
+      expect(AiConfig.storedOpenRouterKey, 'legacy-key');
+      expect(await SecureStore.read(AiConfig.openRouterKeyPref), 'legacy-key');
+      expect(StorageService.getString(AiConfig.openRouterKeyPref), isNull,
+          reason: 'Không được để lại khoá dạng rõ trong SharedPreferences');
+    });
+
+    test('dán khoá thì ghi vào kho an toàn, không ghi plaintext', () async {
+      AiConfig.setOpenRouterApiKey('sk-or-secure');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+
+      expect(
+          await SecureStore.read(AiConfig.openRouterKeyPref), 'sk-or-secure');
+      expect(StorageService.getString(AiConfig.openRouterKeyPref), isNull);
+      expect(AiConfig.openRouterApiKey, 'sk-or-secure');
+    });
+
+    test('xoá khoá (chuỗi rỗng) xoá luôn khỏi kho an toàn', () async {
+      AiConfig.setOpenRouterApiKey('sk-or-secure');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      AiConfig.setOpenRouterApiKey('   ');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+
+      expect(await SecureStore.read(AiConfig.openRouterKeyPref), isNull);
+      expect(AiConfig.hasStoredOpenRouter, isFalse);
+      expect(AiConfig.openRouterApiKey, AppConfig.openRouterApiKey);
+    });
+
+    test('loadSecure ưu tiên bản trong kho an toàn hơn bản plaintext cũ',
+        () async {
+      await SecureStore.write(AiConfig.geminiKeyPref, 'secure-gem');
+      StorageService.setString(AiConfig.geminiKeyPref, 'plain-gem');
+      AiConfig.resetForTesting();
+
+      await AiConfig.loadSecure();
+
+      expect(AiConfig.storedGeminiKey, 'secure-gem');
+      expect(StorageService.getString(AiConfig.geminiKeyPref), isNull);
     });
   });
 }
