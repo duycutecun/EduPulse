@@ -13,17 +13,36 @@
 //      dụng thực, nhưng đây chỉ là tầng "best-effort" — không phải hàng rào
 //      duy nhất. Nên đặt thêm hạn mức ở cấp nhà cung cấp (OpenRouter/Gemini/
 //      Tavily) trong bảng điều khiển của họ.
-//   3. **Nhật ký kiểm toán đã khử nhạy cảm** — chỉ ghi endpoint, uid/IP rút gọn,
+//   3. **Quota theo NGÀY** — trần tổng lượt/ngày mỗi uid (hoặc IP ẩn danh), chặn
+//      kiểu rải request đều đặn suốt ngày để đốt key. Logic thuần ở
+//      `guard_logic.js` (có test `node --test`).
+//   4. **Nhật ký kiểm toán đã khử nhạy cảm** — chỉ ghi endpoint, uid/IP rút gọn,
 //      trạng thái và mô hình. KHÔNG bao giờ ghi key, prompt hay nội dung body.
 //
 // Env vars liên quan: FIREBASE_API_KEY (để xác thực token), xem `_lib.js`.
+// Có thể tuỳ chỉnh quota/endpoint qua env: AI_DAILY_QUOTA, AI_DAILY_QUOTA_ANON.
 
 const { getFirebaseUser } = require('./_lib');
+const {
+  quotaKey,
+  quotaLimitFor,
+  checkQuota,
+  quotaMessage,
+} = require('./guard_logic');
 
 const WINDOW_MS = 60 * 1000; // cửa sổ trượt 1 phút
 
 // uid/IP → { count, resetAt }
 const _hits = new Map();
+
+// uid/IP → { count, resetAt } cho quota theo ngày (cửa sổ 24h).
+const _quota = new Map();
+
+/** Đọc trần quota từ env (chuỗi số dương) — dùng cho cấu hình vận hành. */
+function _envQuota(name) {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : undefined;
+}
 
 /** IP của người gọi, ưu tiên header proxy của Vercel. */
 function clientIp(req) {
@@ -92,12 +111,15 @@ function audit(endpoint, { id, ip, status, model, note } = {}) {
 }
 
 /**
- * Chạy trọn bộ bảo vệ: xác thực (tuỳ chọn) → hạn mức → ghi log.
+ * Chạy trọn bộ bảo vệ: xác thực (tuỳ chọn) → hạn mức/phút → quota/ngày → ghi log.
  *
  * Trả về `{ id, ip }` khi được phép đi tiếp; ngược lại tự gửi 401/429 và trả
  * `null` (caller chỉ cần `if (!guard) return;`).
+ *
+ * `quota` (tuỳ chọn) đặt trần lượt/ngày riêng cho endpoint; bỏ trống thì dùng
+ * mặc định theo loại định danh (xem `guard_logic.js`).
  */
-async function guard(req, res, { endpoint, limit, model } = {}) {
+async function guard(req, res, { endpoint, limit, quota, model } = {}) {
   const ip = clientIp(req);
   let id = null;
   try {
@@ -120,8 +142,22 @@ async function guard(req, res, { endpoint, limit, model } = {}) {
     return null;
   }
 
+  const qKey = quotaKey(id, ip);
+  const qLimit = quotaLimitFor(
+    id,
+    quota ?? (id ? _envQuota('AI_DAILY_QUOTA') : _envQuota('AI_DAILY_QUOTA_ANON'))
+  );
+  const q = checkQuota(_quota, qKey, Date.now(), qLimit);
+  if (!q.allowed) {
+    res.setHeader('Retry-After', String(q.retryAfterSec));
+    audit(endpoint, { id, ip, status: 429, note: 'daily-quota' });
+    res.status(429).json({ error: quotaMessage() });
+    return null;
+  }
+
   audit(endpoint, { id, ip, status: 200, model });
   return { id, ip };
 }
 
 module.exports = { guard, authenticate, rateLimit, clientIp, audit };
+
