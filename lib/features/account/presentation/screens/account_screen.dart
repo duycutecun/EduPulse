@@ -28,6 +28,7 @@ import 'privacy_data_screen.dart';
 import '../../../study/domain/models/study_models.dart';
 import '../../../study/domain/repositories/study_session_repository.dart';
 import '../../../../core/analytics/product_analytics.dart';
+import '../../../../core/privacy/share_audit_log.dart';
 
 class AccountScreen extends StatefulWidget {
   final VoidCallback onDataChanged;
@@ -505,6 +506,7 @@ class _AccountScreenState extends State<AccountScreen> {
             onChanged: (value) => setState(() {
               _aiMayRead = value;
               StorageService.setBool('ai_permission_read', value);
+              ShareAuditLog.log(ShareAuditKinds.aiRead, value ? 'bật' : 'tắt');
             }),
           ),
           SwitchListTile.adaptive(
@@ -518,6 +520,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 ? (value) => setState(() {
                       _aiMayAnalyze = value;
                       StorageService.setBool('ai_permission_analyze', value);
+                      ShareAuditLog.log(
+                          ShareAuditKinds.aiAnalyze, value ? 'bật' : 'tắt');
                     })
                 : null,
           ),
@@ -738,6 +742,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   value: StorageService.getAiAutoReadImage(),
                   onChanged: (v) {
                     StorageService.setAiAutoReadImage(v);
+                    ShareAuditLog.log(
+                        ShareAuditKinds.aiAutoImage, v ? 'bật' : 'tắt');
                     setSheetState(() {});
                   },
                 ),
@@ -1001,6 +1007,7 @@ class _AccountScreenState extends State<AccountScreen> {
   void _openParentMode() {
     if (SupabaseService.isLoggedIn) {
       StorageService.setAccountRole(StorageService.roleParent);
+      ShareAuditLog.log(ShareAuditKinds.parentMode, 'bật');
       return;
     }
     Navigator.of(context).push(CupertinoPageRoute(
@@ -1009,6 +1016,7 @@ class _AccountScreenState extends State<AccountScreen> {
         onAuthSuccess: () {
           Navigator.pop(ctx);
           StorageService.setAccountRole(StorageService.roleParent);
+          ShareAuditLog.log(ShareAuditKinds.parentMode, 'bật');
         },
         onSkip: () => Navigator.pop(ctx),
       ),

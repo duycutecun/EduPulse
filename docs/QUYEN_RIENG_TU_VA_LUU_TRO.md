@@ -80,7 +80,8 @@ Xoá dữ liệu cục bộ (nhiệm vụ, ghi chú, phiên, kỳ thi, nhật k�
 - **BYOK:** nếu người dùng tự dán khoá AI, khoá không bao giờ bị ghi log, và có
   nút xoá khoá. (Xem ghi chú lưu trữ an toàn theo nền tảng ở mục 5.)
 - Báo cáo phụ huynh chỉ chứa trường học sinh đã chọn chia sẻ; có màn xem trước và
-  **nhật ký thay đổi quyền chia sẻ**.
+  **nhật ký thay đổi quyền chia sẻ** (`lib/core/privacy/share_audit_log.dart`,
+  lưu cục bộ, chỉ ghi hành động bật/tắt, xem ở màn Quyền riêng tư & dữ liệu).
 
 ## 5. Ghi chú & việc cần làm ở hạ tầng
 

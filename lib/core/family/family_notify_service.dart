@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../notifications/notification_service.dart';
+import '../privacy/share_audit_log.dart';
 import '../utils/storage_service.dart';
 import 'family_models.dart';
 
@@ -43,6 +44,7 @@ class FamilyNotifyService {
   static Future<bool> setEnabled(bool value) async {
     if (!value) {
       StorageService.setBool(enabledKey, false);
+      ShareAuditLog.log(ShareAuditKinds.familyNotify, 'tắt');
       return true;
     }
     if (!NotificationService.isSupported) return false;
@@ -50,6 +52,10 @@ class FamilyNotifyService {
     // Android < 13 không có quyền runtime ⇒ plugin trả null, coi như được phép.
     final ok = granted != false;
     StorageService.setBool(enabledKey, ok);
+    ShareAuditLog.log(
+      ShareAuditKinds.familyNotify,
+      ok ? 'bật' : 'bị từ chối quyền',
+    );
     return ok;
   }
 

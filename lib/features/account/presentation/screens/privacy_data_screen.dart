@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/account/account_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/privacy/share_audit_log.dart';
 import '../../../../shared/state/async_state.dart';
 
 /// Màn "Quyền riêng tư & dữ liệu" (đặc tả mục 8, dòng 214).
@@ -151,9 +153,71 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
             label: Text(
                 _deleting ? 'Đang xoá...' : 'Xoá dữ liệu cá nhân trên máy chủ'),
           ),
+          const SizedBox(height: 24),
+          _buildShareAuditSection(),
         ],
       ),
     );
+  }
+
+  /// Nhật ký CỤC BỘ những lần người dùng thay đổi quyền chia sẻ/đồng ý
+  /// (§8, dòng 213). Lắng nghe [ShareAuditLog.revision] để cập nhật khi đổi.
+  Widget _buildShareAuditSection() => ValueListenableBuilder<int>(
+        valueListenable: ShareAuditLog.revision,
+        builder: (context, _, __) {
+          final entries = ShareAuditLog.recent();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionTitle('Nhật ký thay đổi quyền chia sẻ'),
+              const SizedBox(height: 4),
+              const Text(
+                'Lưu trên thiết bị này, chỉ ghi hành động (bật/tắt), không ghi '
+                'nội dung học tập.',
+                style: TextStyle(
+                    fontSize: 12, height: 1.4, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 10),
+              if (entries.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('Chưa có thay đổi quyền chia sẻ nào.',
+                      style:
+                          TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                )
+              else
+                for (final e in entries.take(30)) _AuditTile(entry: e),
+              if (entries.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: _exportAuditLog,
+                      icon: const Icon(Icons.ios_share_rounded, size: 18),
+                      label: const Text('Xuất'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => ShareAuditLog.clear(),
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          size: 18, color: AppColors.red),
+                      label: const Text('Xoá nhật ký',
+                          style: TextStyle(color: AppColors.red)),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          );
+        },
+      );
+
+  void _exportAuditLog() {
+    Clipboard.setData(ClipboardData(text: ShareAuditLog.exportText()));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content:
+          Text('Đã sao chép nhật ký thay đổi quyền chia sẻ vào clipboard.'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   Widget _sectionTitle(String text) => Text(
@@ -195,6 +259,64 @@ class _RetentionTile extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textMuted)),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuditTile extends StatelessWidget {
+  const _AuditTile({required this.entry});
+
+  final ShareAuditEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = entry.at;
+    final stamp = '${t.day.toString().padLeft(2, '0')}/'
+        '${t.month.toString().padLeft(2, '0')} '
+        '${t.hour.toString().padLeft(2, '0')}:'
+        '${t.minute.toString().padLeft(2, '0')}';
+    final label = ShareAuditKinds.labelOf(entry.kind);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.edit_note_rounded,
+              size: 18, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: '[$stamp] ',
+                style:
+                    const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary),
+                  ),
+                  TextSpan(
+                    text: entry.action,
+                    style:
+                        const TextStyle(fontSize: 13, color: AppColors.primary),
+                  ),
+                  if (entry.detail != null)
+                    TextSpan(
+                      text: ' — ${entry.detail}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textMuted),
+                    ),
+                ],
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

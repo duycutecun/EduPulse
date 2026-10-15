@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../utils/storage_service.dart';
+import '../privacy/share_audit_log.dart';
 import 'product_events.dart';
 
 /// Một sự kiện sản phẩm đã ẩn danh (không PII, không nội dung học tập).
@@ -79,6 +80,10 @@ class ProductAnalytics {
   void setEnabled(bool value) {
     StorageService.setBool('analytics_consent', value);
     if (!value) clear();
+    ShareAuditLog.log(
+      ShareAuditKinds.analyticsConsent,
+      value ? 'bật' : 'tắt',
+    );
     revision.value++;
   }
 

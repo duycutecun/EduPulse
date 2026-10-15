@@ -6,6 +6,7 @@ import 'package:realtime_client/realtime_client.dart';
 
 import '../ai/weekly_report.dart';
 import '../config.dart';
+import '../privacy/share_audit_log.dart';
 import '../utils/auth_service.dart';
 import '../utils/supabase_service.dart';
 import 'family_models.dart';
@@ -90,7 +91,13 @@ class FamilyService {
       'payload': report.toJson(),
     });
     if (body == null || body['ok'] != true) return null;
-    return (body['sentTo'] as num?)?.toInt() ?? 0;
+    final sent = (body['sentTo'] as num?)?.toInt() ?? 0;
+    ShareAuditLog.log(
+      ShareAuditKinds.familyReport,
+      'gửi báo cáo tuần',
+      detail: sent > 0 ? 'tới $sent người' : 'chưa ai liên kết',
+    );
+    return sent;
   }
 
   /// Cập nhật "trạng thái trực tiếp" cho ba mẹ — bản mới nhất, không phải
@@ -260,6 +267,10 @@ class FamilyService {
     });
     if (body == null || body['ok'] != true) return false;
     await fetchState();
+    ShareAuditLog.log(
+      ShareAuditKinds.familyNotifyPref,
+      on ? 'bật' : 'tắt',
+    );
     return true;
   }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../ai/weekly_report.dart';
+import '../privacy/share_audit_log.dart';
 import '../pwa/pwa_service.dart';
 import '../utils/auth_service.dart';
 import '../utils/storage_service.dart';
@@ -92,6 +93,10 @@ class LiveProgressService {
   /// ngay một bản để ba mẹ thấy tức thì, rồi các nhịp sau tự cập nhật.
   static Future<bool> setEnabled(bool value) async {
     StorageService.setBool(_enabledKey, value);
+    ShareAuditLog.log(
+      ShareAuditKinds.familyLive,
+      value ? 'bật' : 'tắt',
+    );
     if (!value) {
       // Quên vân tay đi: bật lại phải đẩy một bản mới, không được coi là "đã gửi".
       StorageService.removeString(_fingerprintKey);
