@@ -12,11 +12,12 @@ dưới bất kỳ hình thức nào (mục 1 của kế hoạch).
 
 Chạy CI (`.github/workflows/ci.yml`) và cả ba bước dưới đây phải xanh:
 
-- [ ] `dart format --output=none --set-exit-if-changed lib test` — không có tệp
-      lệch định dạng.
-- [ ] `flutter analyze` — không cảnh báo/lỗi.
-- [ ] `flutter test` — toàn bộ test pass.
-- [ ] `flutter build web --release` — build web/PWA thành công (smoke).
+- [x] `dart format --output=none --set-exit-if-changed lib test` — không có tệp
+      lệch định dạng. _(2026-10-15: sạch)_
+- [x] `flutter analyze` — không cảnh báo/lỗi. _(2026-10-15: No issues found!)_
+- [x] `flutter test` — toàn bộ test pass. _(2026-10-15: 898 test pass)_
+- [x] `flutter build web --release` — build web/PWA thành công (smoke).
+      _(2026-10-15: `√ Built build\web`)_
 
 ## 2. Ngưỡng chất lượng đã chốt
 
@@ -24,40 +25,52 @@ Ba ràng buộc cứng, vi phạm thì **không phát hành**:
 
 - [ ] **Luồng chính chạy offline.** Mở app → xem việc ưu tiên → bắt đầu → hoàn
       thành → thấy kế hoạch cập nhật, tất cả hoạt động khi không có mạng.
+      _(Cần kiểm thủ công trên máy thật; test offline tự động đã xanh.)_
 - [ ] **Không có lỗi mất dữ liệu học tập** đã biết còn mở.
-- [ ] **Không tính năng lõi nào phụ thuộc AI**; mọi điểm AI có fallback thủ công.
+      _(Cần con người xác nhận trước khi phát hành.)_
+- [x] **Không tính năng lõi nào phụ thuộc AI**; mọi điểm AI có fallback thủ công.
+      _(2026-10-15: AI chỉ là tăng cường; mọi luồng đều thao tác được bằng tay.)_
 
 Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt mở chat):
 
 - [ ] Funnel onboarding → nhiệm vụ đầu tiên không hồi quy.
+      _(Theo dõi qua tín hiệu ẩn danh sau beta.)_
 - [ ] Lỗi sync/AI trong ngưỡng chấp nhận (theo dõi qua tín hiệu ẩn danh khi đã
       có đồng ý).
-- [ ] Không có P0/P1 mở.
+- [x] Không có P0/P1 mở. _(2026-10-15: backlog P0/P1 đều `[x]`.)_
 
 ---
 
 ## 2b. Quyền riêng tư và đồng ý
 
-- [ ] Analytics vẫn **mặc định tắt** (`analytics_consent`); chỉ ghi khi người
-      dùng bật ở Tài khoản.
-- [ ] Sự kiện ẩn danh không chứa nội dung học tập/định danh (xem
-      `docs/DU_LIEU_VA_PHIEN_BAN.md`).
-- [ ] Family consent: báo cáo chỉ chia sẻ khi học sinh chủ động; không tự gửi.
-- [ ] Kênh phản hồi beta lưu cục bộ, người dùng chủ động chia sẻ.
+- [x] Analytics vẫn **mặc định tắt** (`analytics_consent`); chỉ ghi khi người
+      dùng bật ở Tài khoản. _(2026-10-15: mặc định TẮT, opt-in qua Tài khoản.)_
+- [x] Sự kiện ẩn danh không chứa nội dung học tập/định danh (xem
+      `docs/DU_LIEU_VA_PHIEN_BAN.md`). _(2026-10-15: allow-list thuộc tính
+      phi-nội-dung.)_
+- [x] Family consent: báo cáo chỉ chia sẻ khi học sinh chủ động; không tự gửi.
+      _(2026-10-15: có test riêng cho luồng chia sẻ.)_
+- [x] Kênh phản hồi beta lưu cục bộ, người dùng chủ động chia sẻ.
+      _(2026-10-15: `BetaFeedback` lưu cục bộ.)_
 
 ## 2c. Migration và rollback
 
-- [ ] `data_schema_version` khớp phiên bản hiện hành; `DataMigration` chạy sạch
-      từ bản cũ (kiểm thử luồng nâng cấp).
-- [ ] Đã kiểm thử **backup/restore** và **xuất JSON** trước khi cập nhật.
-- [ ] Có đường lùi: giữ bản build trước để quay lại nếu bản mới hỏng dữ liệu.
+- [x] `data_schema_version` khớp phiên bản hiện hành; `DataMigration` chạy sạch
+      từ bản cũ (kiểm thử luồng nâng cấp). _(2026-10-15:
+      `currentSchemaVersion = 3`, `data_migration_test.dart` xanh.)_
+- [x] Đã kiểm thử **backup/restore** và **xuất JSON** trước khi cập nhật.
+      _(2026-10-15: `BackupService` + test xanh.)_
+- [x] Có đường lùi: giữ bản build trước để quay lại nếu bản mới hỏng dữ liệu.
+      _(2026-10-15: giữ artifact IPA của các commit trước.)_
 
 ---
 
 ## 3. Build và phân phối
 
 - [ ] APK build qua `build.yml` (hoặc `flutter build apk`) thành công.
-- [ ] IPA build qua `ios-ipa.yml` thành công; tải artifact kiểm tra kích thước.
+      _(Chưa chạy: máy Windows không có Android SDK — dùng CI.)_
+- [x] IPA build qua `ios-ipa.yml` thành công; tải artifact kiểm tra kích thước.
+      _(2026-10-15: run `38599002548` → 12,6 MB.)_
 - [ ] Web deploy qua `deploy.yml` thành công (GitHub Pages).
 - [ ] Cấu hình build (Supabase/Firebase) có/thiếu được ghi rõ trong Summary;
       thiếu key chỉ làm giảm tính năng, **không làm build hỏng**.
@@ -86,10 +99,11 @@ Lưu ý:
 
 ## 5. Quyết định phát hành
 
-- [ ] Cổng chất lượng tự động xanh.
-- [ ] Không còn P0/P1.
-- [ ] Có playbook xử lý sự cố sync/AI (`docs/PLAYBOOK_SU_CO_SYNC_VA_AI.md`).
+- [x] Cổng chất lượng tự động xanh. _(2026-10-15: format/analyze/test/web đều xanh.)_
+- [x] Không còn P0/P1. _(2026-10-15.)_
+- [x] Có playbook xử lý sự cố sync/AI (`docs/PLAYBOOK_SU_CO_SYNC_VA_AI.md`).
 - [ ] Dữ liệu beta (định lượng + định tính) ủng hộ phát hành.
+      _(Chờ ≥ 2 tuần dữ liệu beta.)_
 - [ ] Người chịu trách nhiệm ký duyệt và ghi lại quyết định.
 
 > Chỉ phát hành khi các mục trên đã tích. Nếu một mục bỏ trống, ghi rõ lý do và
