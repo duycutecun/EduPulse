@@ -40,6 +40,7 @@ jobs:
         with:
           name: edupulse-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
 
       - name: Upload APK to Firebase
         if: env.FIREBASE_TOKEN != ''
@@ -68,14 +69,38 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build IPA
-        run: flutter build ipa --release --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} --no-codesign
+      - name: Build unsigned Runner.app (no codesign)
+        # Công thức giống `ios-ipa.yml` (đã chạy thành công trước đó):
+        # `flutter build ipa --no-codesign` KHÔNG sinh file .ipa (chỉ archive),
+        # nên phải xcodebuild rồi tự đóng gói Payload.
+        run: |
+          flutter precache --ios
+          flutter build ios --config-only --release --no-codesign --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package unsigned IPA (Payload + zip)
+        run: |
+          mkdir -p build/ios/ipa/Payload
+          cp -R build/ios/Build/Products/Release-iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -qry EduPulse-unsigned.ipa Payload
+          rm -rf Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: edupulse-ipa
           path: build/ios/ipa/*.ipa
+          if-no-files-found: error
 
       - name: Upload IPA to Firebase
         if: env.FIREBASE_TOKEN != ''

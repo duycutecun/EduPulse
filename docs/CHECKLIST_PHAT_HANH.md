@@ -77,8 +77,9 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
 
 ## 3. Build và phân phối
 
-- [ ] APK build qua `build.yml` (hoặc `flutter build apk`) thành công.
-      _(Chưa chạy: máy Windows không có Android SDK — dùng CI.)_
+- [x] APK build qua `build.yml` (hoặc `flutter build apk`) thành công.
+      _(2026-10-15: run `38758087851` (b1a633c) → artifact `edupulse-apk` 32,41 MB.
+      Nguyên nhân cũ "fail 0s" là `secrets` dùng trong `if` — đã sửa.)_
 - [x] IPA build qua `ios-ipa.yml` thành công; tải artifact kiểm tra kích thước.
       _(2026-10-15: run `38733195338` (b32ee0c) → 12.678.807 bytes.)_
 - [ ] Web deploy qua `deploy.yml` thành công (GitHub Pages).
