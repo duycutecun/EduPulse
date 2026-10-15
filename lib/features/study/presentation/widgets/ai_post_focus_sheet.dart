@@ -244,6 +244,7 @@ Future<void> showAiPostFocusSheet({
   required Future<void> Function(String subject) onScheduleReview,
   required void Function(String subject, {String? sessionId}) onQuickNote,
   required VoidCallback onTasksChanged,
+  VoidCallback? onSplitTask,
 }) async {
   // Đánh giá 1 chạm (FE-3.3): 5 emoji → 5 mức. Chạm một lần là đủ để lưu,
   // không bắt người dùng chờ điền thang chi tiết 5 dòng.
@@ -532,6 +533,27 @@ Future<void> showAiPostFocusSheet({
                               onPressed: () {
                                 Navigator.pop(sheetContext);
                                 onScheduleReview(session.subject);
+                              },
+                            ),
+                          // Đặc tả 5.3: phản hồi "chưa xong mục tiêu" phải dẫn tới
+                          // đề xuất chia nhỏ nhiệm vụ cho lần sau — dùng lại câu
+                          // trả lời mục tiêu thay vì chỉ lưu trữ.
+                          if (!goalMet && onSplitTask != null)
+                            ActionChip(
+                              avatar: const Icon(Icons.call_split_rounded,
+                                  size: 15, color: AppColors.primary),
+                              label: const Text('✂️ Chia nhỏ cho lần sau'),
+                              backgroundColor: Colors.white,
+                              side: BorderSide(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.4)),
+                              labelStyle: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary),
+                              onPressed: () {
+                                Navigator.pop(sheetContext);
+                                onSplitTask();
                               },
                             ),
                         ],

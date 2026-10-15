@@ -33,6 +33,7 @@ import '../widgets/score_tab_view.dart';
 import '../widgets/ai_post_focus_sheet.dart';
 import '../widgets/study_entry_dialogs.dart';
 import '../../../tasks/domain/repositories/task_repository.dart';
+import '../../../tasks/presentation/widgets/split_task_dialog.dart';
 import '../../../exams/domain/models/exam_model.dart';
 import '../../../../core/widget/home_widget_service.dart';
 import '../../../../core/analytics/product_analytics.dart';
@@ -655,6 +656,40 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
       onTasksChanged: () {
         if (mounted) setState(_loadTasks);
       },
+      onSplitTask: _selectedTask == null ? null : _splitSelectedTask,
+    );
+  }
+
+  /// Đặc tả 5.3: khi phản tư nói "chưa xong mục tiêu", đề xuất chia nhỏ nhiệm vụ
+  /// đang chọn cho lần sau — tái dùng đúng dialog chia nhỏ của màn Hôm nay.
+  Future<void> _splitSelectedTask() async {
+    final task = _selectedTask;
+    if (task == null || !mounted) return;
+    final parts = await SplitTaskDialog.show(context, task: task);
+    if (parts == null || !mounted) return;
+    final split =
+        await TaskRepository.instance.splitTask(task.id, parts: parts);
+    if (!mounted) return;
+    if (split.failed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(split.error ?? 'Không chia nhỏ được nhiệm vụ'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    // Nhiệm vụ gốc được thay bằng các phần con → bỏ chọn để không giữ id đã mất.
+    setState(() {
+      _selectedTask = null;
+      _loadTasks();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text('Đã chia "${task.title}" thành ${split.parts.length} phần'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
