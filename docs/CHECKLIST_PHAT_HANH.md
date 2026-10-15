@@ -82,6 +82,10 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
       Nguyên nhân cũ "fail 0s" là `secrets` dùng trong `if` — đã sửa.)_
 - [x] IPA build qua `ios-ipa.yml` thành công; tải artifact kiểm tra kích thước.
       _(2026-10-15: run `38733195338` (b32ee0c) → 12.678.807 bytes.)_
+- [x] IPA cũng build + upload được qua `build.yml`. _(2026-10-15: run
+      `38760755370` (64e0aa3) → artifact `edupulse-ipa` 12,03 MB; trước đó bước
+      `flutter build ipa --no-codesign` không sinh file `.ipa` nên job "xanh"
+      nhưng rỗng — đã thay bằng quy trình xcodebuild + đóng gói Payload.)_
 - [ ] Web deploy qua `deploy.yml` thành công (GitHub Pages).
 - [ ] Cấu hình build (Supabase/Firebase) có/thiếu được ghi rõ trong Summary;
       thiếu key chỉ làm giảm tính năng, **không làm build hỏng**.
