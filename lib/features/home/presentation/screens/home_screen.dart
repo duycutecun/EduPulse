@@ -35,6 +35,7 @@ import '../widgets/today_mission_card.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/progress_insight_card.dart';
 import '../widgets/exam_mode_cards.dart';
+import '../widgets/yesterday_open_tasks_banner.dart';
 import '../widgets/post_exam_card.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/snack_message.dart';
@@ -772,21 +773,36 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_isLoadingTasks)
             const SkeletonTaskList()
           else
-            TodayMissionCard(
-              tasks: _tasks,
-              onAddTask: _showAddTaskDialog,
-              onToggle: _toggleTask,
-              onDelete: _deleteTask,
-              onSkip: _showSkipSheet,
-              onReschedule: _rescheduleTask,
-              onSplit: _splitTask,
-              onAddSample: _showSampleTasksSheet,
-              onOpenAiPlan: _openAiPlanScreen,
-              onQuickAdd: _showQuickAddSheet,
-              onSuggestOrder: _applySuggestedOrder,
-              onStartStudy: _startStudyForTask,
-              onEdit: _editTask,
-              onOpenDetail: _openTaskDetail,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // V2-M1': banner trung tính 1 việc cho việc mở từ hôm qua -
+                // «còn N việc mở từ hôm qua», không nói «trễ 7 việc».
+                YesterdayOpenTasksBanner(
+                  count: TaskRepository.instance
+                      .getTasksForDay(
+                        DateTime.now().subtract(const Duration(days: 1)),
+                      )
+                      .length,
+                ),
+                const SizedBox(height: 8),
+                TodayMissionCard(
+                  tasks: _tasks,
+                  onAddTask: _showAddTaskDialog,
+                  onToggle: _toggleTask,
+                  onDelete: _deleteTask,
+                  onSkip: _showSkipSheet,
+                  onReschedule: _rescheduleTask,
+                  onSplit: _splitTask,
+                  onAddSample: _showSampleTasksSheet,
+                  onOpenAiPlan: _openAiPlanScreen,
+                  onQuickAdd: _showQuickAddSheet,
+                  onSuggestOrder: _applySuggestedOrder,
+                  onStartStudy: _startStudyForTask,
+                  onEdit: _editTask,
+                  onOpenDetail: _openTaskDetail,
+                ),
+              ],
             ),
           const SizedBox(height: 14),
           // Phiên đang dở (nếu có): quãng thời gian đã học đang chờ được nối
