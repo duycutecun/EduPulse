@@ -1,18 +1,65 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/theme/appearance_service.dart';
+import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../../shared/widgets/glass_card.dart';
 
 /// Thẻ Hiển thị (đặc tả mục 20): font size adaptive S/M/L toàn app.
 ///
-/// Dark mode chưa cung cấp — palette tối chưa đạt chuẩn production, không fake
+/// Dark mode chưa cung cấp - palette tối chưa đạt chuẩn production, không fake
 /// switch (nguyên tắc trung thực với người dùng). Tự lắng nghe
 /// [AppearanceService.fontScale] / [AppearanceService.highContrast] nên không
-/// cần màn cha gọi `setState`.
-class AppearanceCard extends StatelessWidget {
+/// cần màn cha gọi setState.
+class AppearanceCard extends StatefulWidget {
   const AppearanceCard({super.key});
+
+  @override
+  State<AppearanceCard> createState() => _AppearanceCardState();
+}
+
+class _AppearanceCardState extends State<AppearanceCard> {
+  bool _quietStreak = false;
+  bool _quietMascot = false;
+  bool _quietSound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quietStreak = StorageService.getBool('quiet_mode_streak') ?? false;
+    _quietMascot = StorageService.getBool('quiet_mode_mascot') ?? false;
+    _quietSound = StorageService.getBool('quiet_mode_sound') ?? false;
+  }
+
+  Widget _quietSwitch(String label, String sublabel, bool value,
+      ValueChanged<bool> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.space4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 13.0, fontWeight: FontWeight.w700)),
+                Text(sublabel,
+                    style: TextStyle(
+                        fontSize: 11.0, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeThumbColor: AppColors.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +109,6 @@ class AppearanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          // High contrast (mục 21 — Accessibility): viền đậm hơn,
-          // chữ phụ tối hơn — giúp người dùng nhìn yếu dễ đọc hơn.
           Row(children: [
             const Expanded(
               child: Text('Tương phản cao',
@@ -79,6 +124,52 @@ class AppearanceCard extends StatelessWidget {
               ),
             ),
           ]),
+          const SizedBox(height: 14),
+          const Row(
+            children: [
+              Expanded(
+                child: Text('Chế độ yên lặng',
+                    style:
+                        TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Chỉ ẩn hiển thị XP/streak/mascot/âm thanh - dữ liệu vẫn được ghi.',
+            style: TextStyle(fontSize: 11.0, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 8),
+          _quietSwitch(
+            'Ẩn rim streak',
+            'Vẫn giữ streak cho lá bùa',
+            _quietStreak,
+            (v) {
+              _quietStreak = v;
+              StorageService.setBool('quiet_mode_streak', v);
+              setState(() {});
+            },
+          ),
+          _quietSwitch(
+            'Mascot yên lặng',
+            'Mascot chỉ hiện sau phiên',
+            _quietMascot,
+            (v) {
+              _quietMascot = v;
+              StorageService.setBool('quiet_mode_mascot', v);
+              setState(() {});
+            },
+          ),
+          _quietSwitch(
+            'Tắt âm thanh phản hồi',
+            'Âm chirp/pop/equip không phát',
+            _quietSound,
+            (v) {
+              _quietSound = v;
+              StorageService.setBool('quiet_mode_sound', v);
+              setState(() {});
+            },
+          ),
         ],
       ),
     );
