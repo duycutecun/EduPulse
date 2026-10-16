@@ -77,10 +77,19 @@ Phong cách Duolingo (màu xanh lá `#58CC02`).
     - `leaderboard_view` và `note_markdown` cũng đã chuyển token iOS-first
       cùng đợt "làm hết" (giao diện chức năng Leaderboard/Notes không đổi,
       chỉ màu sắc).
-11. **Leaderboard và native home widget vẫn defer** (mục 6 và 7).
-    - Conflicts của Leaderboard (giữ tab hay đẩy xuống màn con) vẫn là câu
-      hỏi mở trong `BAN_THAY_DOI_V2.md` — slice này chỉ đổi màu, không
-      đụng nav.
+11. **Xung đột Leaderboard: ĐÃ chốt theo đặc tả V2** (`BAN_THAY_DOI_V2.md`
+    mục C.1 — "Bỏ thi đua ẩn danh; không màn nào hiện số/tên người khác;
+    kỷ lục cá nhân giữ").
+    - Already: không có tab Leaderboard trong shell — "Bảng vàng kỷ lục"
+      chỉ là màn con (kỷ lục **cá nhân**) từ tab Tôi + payload thông báo
+      báo cáo tuần → tuân đặc tả, giữ nguyên.
+    - Gỡ mã thi đua cộng đồng cũ (mã chết): `shared/widgets/leaderboard_view.dart`,
+      `CommunityUser` (study_models), `fetchLeaderboard()` +
+      `_upsertLeaderboardRow()` (supabase_service) — không màn nào hiển thị
+      số/tên người học khác.
+    - Gate tự động: `test/no_other_users_gate_test.dart` — quét `lib/` ngay
+      khi mã hiện người khác dính lại đầu, đỏ trước khi lên màn.
+    - Native home widget vẫn defer (mục 7, cần macOS/Xcode).
 12. **IPA build trên GitHub Actions** (thiết lập riêng, không thuộc ADR
     design): workflow `.github/workflows/build-ios-ipa.yml` chạy trên
     `macos-14`, chạy `flutter analyze` + `flutter test` rồi

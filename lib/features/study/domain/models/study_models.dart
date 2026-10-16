@@ -501,19 +501,3 @@ class MockScore {
   factory MockScore.fromJsonString(String s) =>
       MockScore.fromJson(jsonDecode(s));
 }
-
-class CommunityUser {
-  final int rank;
-  final String name;
-  String target;
-  final int streak;
-  final String emoji;
-
-  CommunityUser({
-    required this.rank,
-    required this.name,
-    required this.target,
-    required this.streak,
-    required this.emoji,
-  });
-}

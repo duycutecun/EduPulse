@@ -113,28 +113,9 @@ class SupabaseService {
         'streak_record': StorageService.getStreakRecord(),
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
-      // Upsert dòng của mình lên bảng xếp hạng chung (bỏ qua nếu chưa đăng nhập).
-      _upsertLeaderboardRow();
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  /// Ghi dòng của user hiện tại vào bảng `leaderboard` (fire-and-forget).
-  /// Chỉ chạy khi đã đăng nhập — bảng chung không nhận dữ liệu anonymous.
-  static Future<void> _upsertLeaderboardRow() async {
-    if (!isLoggedIn) return;
-    try {
-      await _client!.from('leaderboard').upsert({
-        'user_id': _userId,
-        'name': StorageService.getUserName(),
-        'target': StorageService.getUserTarget(),
-        'streak': StorageService.getStreak(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id');
-    } catch (_) {
-      // Bảng xếp hạng là tính năng phụ — lỗi không ảnh hưởng sync chính.
     }
   }
 
@@ -236,32 +217,6 @@ class SupabaseService {
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  static Future<List<CommunityUser>?> fetchLeaderboard() async {
-    if (!isConfigured) return null;
-    try {
-      final res = await _client!
-          .from('leaderboard')
-          .select()
-          .order('streak', ascending: false)
-          .limit(20);
-
-      final List<CommunityUser> list = [];
-      int rank = 1;
-      for (final row in res) {
-        list.add(CommunityUser(
-          rank: rank++,
-          name: row['name'] ?? '',
-          target: row['target'] ?? '',
-          streak: row['streak'] ?? 0,
-          emoji: row['emoji'] ?? '🦁',
-        ));
-      }
-      return list;
-    } catch (_) {
-      return null;
     }
   }
 
