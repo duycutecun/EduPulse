@@ -104,7 +104,7 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                   Text(
                     '$unlockedCount/${kAchievements.length}',
                     style: AppTokens.body.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.iosTextSecondary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -115,8 +115,8 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
               const SizedBox(height: 8),
               Text(
                 'Huy hiệu theo hành vi bền vững — không ai thưởng "cày điểm" cả.',
-                style:
-                    AppTokens.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTokens.caption
+                    .copyWith(color: AppColors.iosTextSecondary),
               ),
               const SizedBox(height: 12),
               GridView.builder(
@@ -157,9 +157,9 @@ class _SummaryRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,13 +173,13 @@ class _SummaryRow extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
+                  color: AppColors.iosPrimary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   'Cấp $level',
                   style: AppTokens.body.copyWith(
-                    color: AppColors.primary,
+                    color: AppColors.iosPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -189,7 +189,7 @@ class _SummaryRow extends StatelessWidget {
                 '$xp XP',
                 style: AppTokens.body.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
+                  color: AppColors.iosTextSecondary,
                 ),
               ),
               Text(
@@ -198,8 +198,8 @@ class _SummaryRow extends StatelessWidget {
               ),
               Text(
                 '🏆 Kỷ lục ${stats.streakRecord}',
-                style:
-                    AppTokens.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTokens.caption
+                    .copyWith(color: AppColors.iosTextSecondary),
               ),
             ],
           ),
@@ -209,15 +209,16 @@ class _SummaryRow extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: AppColors.border,
+              backgroundColor: AppColors.iosSeparator,
               valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  const AlwaysStoppedAnimation<Color>(AppColors.iosPrimary),
             ),
           ),
           const SizedBox(height: 6),
           Text(
             'Còn $need XP lên Cấp ${level + 1}',
-            style: AppTokens.caption.copyWith(color: AppColors.textSecondary),
+            style:
+                AppTokens.caption.copyWith(color: AppColors.iosTextSecondary),
           ),
         ],
       ),
@@ -239,12 +240,12 @@ class _AchievementTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: unlocked ? AppColors.cardWhite : AppColors.bgPage,
+        color: unlocked ? AppColors.iosCard : AppColors.iosBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: unlocked
-              ? AppColors.primary.withValues(alpha: 0.5)
-              : AppColors.border,
+              ? AppColors.iosPrimary.withValues(alpha: 0.5)
+              : AppColors.iosSeparator,
           width: 1.5,
         ),
       ),
@@ -263,7 +264,7 @@ class _AchievementTile extends StatelessWidget {
             style: AppTokens.body.copyWith(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
-              color: unlocked ? AppTokens.body.color : AppColors.textMuted,
+              color: unlocked ? AppTokens.body.color : AppColors.iosTextMuted,
             ),
           ),
           const SizedBox(height: 2),
@@ -276,7 +277,9 @@ class _AchievementTile extends StatelessWidget {
               textAlign: TextAlign.center,
               style: AppTokens.caption.copyWith(
                 fontSize: 11,
-                color: unlocked ? AppColors.textSecondary : AppColors.textMuted,
+                color: unlocked
+                    ? AppColors.iosTextSecondary
+                    : AppColors.iosTextMuted,
               ),
             ),
           ),

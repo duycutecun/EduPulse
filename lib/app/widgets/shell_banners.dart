@@ -38,11 +38,12 @@ class _InstallBannerState extends State<InstallBanner> {
         }
 
         final isAndroidInstall = installable && !isIosPlatform;
-        final bg = isAndroidInstall ? AppColors.greenSoft : AppColors.blueSoft;
+        final bg =
+            isAndroidInstall ? AppColors.iosSuccessSoft : AppColors.iosInfoSoft;
         final borderColor =
-            isAndroidInstall ? AppColors.primary : AppColors.blue;
+            isAndroidInstall ? AppColors.iosPrimary : AppColors.iosInfo;
         final iconColor =
-            isAndroidInstall ? AppColors.primaryDark : AppColors.blueDark;
+            isAndroidInstall ? AppColors.iosPrimaryDark : AppColors.iosInfoDark;
 
         return Container(
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -73,7 +74,7 @@ class _InstallBannerState extends State<InstallBanner> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.iosTextPrimary,
                   ),
                 ),
               ),
@@ -84,7 +85,7 @@ class _InstallBannerState extends State<InstallBanner> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: AppColors.iosPrimary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Text(
@@ -104,7 +105,7 @@ class _InstallBannerState extends State<InstallBanner> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.blue,
+                      color: AppColors.iosInfo,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Text(
@@ -123,7 +124,7 @@ class _InstallBannerState extends State<InstallBanner> {
                 child: Icon(
                   Icons.close_rounded,
                   size: 18,
-                  color: AppColors.textMuted,
+                  color: AppColors.iosTextMuted,
                 ),
               ),
             ],
@@ -141,7 +142,7 @@ class _InstallBannerState extends State<InstallBanner> {
       builder: (ctx) => Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
@@ -161,7 +162,7 @@ class _InstallBannerState extends State<InstallBanner> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderStrong,
+                  color: AppColors.iosSeparator,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -174,9 +175,10 @@ class _InstallBannerState extends State<InstallBanner> {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.bgPage,
+                      color: AppColors.iosBackground,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border, width: 1.5),
+                      border:
+                          Border.all(color: AppColors.iosSeparator, width: 1.5),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Image.asset(
@@ -186,7 +188,7 @@ class _InstallBannerState extends State<InstallBanner> {
                       cacheWidth: 156,
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.school_rounded,
-                        color: AppColors.primary,
+                        color: AppColors.iosPrimary,
                         size: 32,
                       ),
                     ),
@@ -201,7 +203,7 @@ class _InstallBannerState extends State<InstallBanner> {
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                            color: AppColors.iosTextPrimary,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -209,7 +211,7 @@ class _InstallBannerState extends State<InstallBanner> {
                           'Dùng toàn màn hình như ứng dụng App Store',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.textSecondary,
+                            color: AppColors.iosTextSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -225,11 +227,11 @@ class _InstallBannerState extends State<InstallBanner> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildFeatureBadge(
-                      Icons.bolt_rounded, 'Mở tức thì', AppColors.yellow),
-                  _buildFeatureBadge(
-                      Icons.wifi_off_rounded, 'Dùng offline', AppColors.blue),
+                      Icons.bolt_rounded, 'Mở tức thì', AppColors.iosStreak),
+                  _buildFeatureBadge(Icons.wifi_off_rounded, 'Dùng offline',
+                      AppColors.iosInfo),
                   _buildFeatureBadge(Icons.fullscreen_rounded, 'Toàn màn hình',
-                      AppColors.primary),
+                      AppColors.iosPrimary),
                 ],
               ),
               const SizedBox(height: 18),
@@ -239,34 +241,34 @@ class _InstallBannerState extends State<InstallBanner> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.bgPage,
+                  color: AppColors.iosBackground,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border, width: 1),
+                  border: Border.all(color: AppColors.iosSeparator, width: 1),
                 ),
                 child: Column(
                   children: [
                     _buildStepRow(
                       stepNum: '1',
                       icon: Icons.ios_share,
-                      iconColor: AppColors.blue,
+                      iconColor: AppColors.iosInfo,
                       title: 'Nhấn nút Chia sẻ',
                       subtitle:
                           'Biểu tượng hình vuông có mũi tên lên ở thanh công cụ Safari.',
                     ),
-                    Divider(color: AppColors.border, height: 16),
+                    Divider(color: AppColors.iosSeparator, height: 16),
                     _buildStepRow(
                       stepNum: '2',
                       icon: Icons.add_box_outlined,
-                      iconColor: AppColors.primary,
+                      iconColor: AppColors.iosPrimary,
                       title: 'Chọn "Thêm vào MH chính"',
                       subtitle:
                           'Cuộn xuống danh sách tùy chọn và nhấn "Add to Home Screen".',
                     ),
-                    Divider(color: AppColors.border, height: 16),
+                    Divider(color: AppColors.iosSeparator, height: 16),
                     _buildStepRow(
                       stepNum: '3',
                       icon: Icons.check_circle_outline_rounded,
-                      iconColor: AppColors.orange,
+                      iconColor: AppColors.iosWarning,
                       title: 'Nhấn "Thêm" ở góc phải',
                       subtitle:
                           'EduPulse sẽ xuất hiện trên màn hình chính như ứng dụng gốc!',
@@ -283,7 +285,7 @@ class _InstallBannerState extends State<InstallBanner> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.iosPrimary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -323,7 +325,7 @@ class _InstallBannerState extends State<InstallBanner> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.iosTextPrimary,
             ),
           ),
         ],
@@ -360,7 +362,7 @@ class _InstallBannerState extends State<InstallBanner> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.iosTextPrimary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -368,7 +370,7 @@ class _InstallBannerState extends State<InstallBanner> {
                 subtitle,
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: AppColors.iosTextSecondary,
                   height: 1.3,
                 ),
               ),
@@ -441,12 +443,14 @@ class _OfflineBannerState extends State<OfflineBanner> {
         }
 
         final isOffline = !isOnline;
-        final bg = isOffline ? const Color(0xFFFFF7ED) : AppColors.greenSoft;
-        final border = isOffline ? const Color(0xFFFED7AA) : AppColors.primary;
+        final bg =
+            isOffline ? const Color(0xFFFFF7ED) : AppColors.iosSuccessSoft;
+        final border =
+            isOffline ? const Color(0xFFFED7AA) : AppColors.iosPrimary;
         final iconColor =
-            isOffline ? const Color(0xFFEA580C) : AppColors.primaryDark;
+            isOffline ? const Color(0xFFEA580C) : AppColors.iosPrimaryDark;
         final textColor =
-            isOffline ? const Color(0xFF9A3412) : AppColors.primaryDark;
+            isOffline ? const Color(0xFF9A3412) : AppColors.iosPrimaryDark;
         final icon =
             isOffline ? Icons.wifi_off_rounded : Icons.cloud_done_rounded;
         final text = isOffline

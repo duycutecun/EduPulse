@@ -114,9 +114,9 @@ class PostExamCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -133,13 +133,15 @@ class PostExamCard extends StatelessWidget {
             style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary),
+                color: AppColors.iosTextPrimary),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
             style: TextStyle(
-                fontSize: 12.5, color: AppColors.textSecondary, height: 1.35),
+                fontSize: 12.5,
+                color: AppColors.iosTextSecondary,
+                height: 1.35),
           ),
           if (hasResult) ...[
             const SizedBox(height: 10),
@@ -148,8 +150,8 @@ class PostExamCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: reachedTarget == true
-                    ? AppColors.greenSoft
-                    : AppColors.blueLight,
+                    ? AppColors.iosSuccessSoft
+                    : AppColors.iosInfoSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -158,8 +160,8 @@ class PostExamCard extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: reachedTarget == true
-                      ? AppColors.primaryDark
-                      : AppColors.blueDark,
+                      ? AppColors.iosPrimaryDark
+                      : AppColors.iosInfoDark,
                 ),
               ),
             ),
@@ -196,7 +198,7 @@ class PostExamCard extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.iosPrimary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                   ),

@@ -133,13 +133,13 @@ class DesktopSidebarState extends State<DesktopSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final divider = AppColors.border.withValues(alpha: 0.5);
+    final divider = AppColors.iosSeparator.withValues(alpha: 0.5);
     // Switch tức thời (không animate width) để tránh RenderFlex overflow
     // trong transition — đặc tả ưu tiên tốc độ hơn visual effect (mục 55).
     return Container(
       width: widget.collapsed ? _widthCollapsed : _widthExpanded,
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         border: Border(right: BorderSide(color: divider, width: 0.5)),
       ),
       child: SafeArea(
@@ -169,7 +169,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.primary),
+                                color: AppColors.iosPrimary),
                           ),
                         ),
                       ],
@@ -220,7 +220,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                   ? Center(
                       child: CircleAvatar(
                         radius: 16,
-                        backgroundColor: AppColors.greenSoft,
+                        backgroundColor: AppColors.iosSuccessSoft,
                         child: Text(
                           widget.userName.isNotEmpty
                               ? widget.userName[0].toUpperCase()
@@ -228,7 +228,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.primaryDark),
+                              color: AppColors.iosPrimaryDark),
                         ),
                       ),
                     )
@@ -236,7 +236,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                       children: [
                         CircleAvatar(
                           radius: 16,
-                          backgroundColor: AppColors.greenSoft,
+                          backgroundColor: AppColors.iosSuccessSoft,
                           child: Text(
                             widget.userName.isNotEmpty
                                 ? widget.userName[0].toUpperCase()
@@ -244,7 +244,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                             style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.primaryDark),
+                                color: AppColors.iosPrimaryDark),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -255,7 +255,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                               style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary)),
+                                  color: AppColors.iosTextPrimary)),
                         ),
                       ],
                     ),
@@ -278,7 +278,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
             ? Icons.chevron_right_rounded
             : Icons.chevron_left_rounded,
         size: 22,
-        color: AppColors.textMuted,
+        color: AppColors.iosTextMuted,
       ),
     );
   }
@@ -308,7 +308,7 @@ class DesktopSidebarState extends State<DesktopSidebar> {
           },
           child: Material(
             color: active
-                ? AppColors.primary.withValues(alpha: 0.10)
+                ? AppColors.iosPrimary.withValues(alpha: 0.10)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
@@ -327,7 +327,8 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                   borderRadius: BorderRadius.circular(10),
                   border: active
                       ? const Border(
-                          left: BorderSide(color: AppColors.primary, width: 3),
+                          left:
+                              BorderSide(color: AppColors.iosPrimary, width: 3),
                         )
                       : null,
                 ),
@@ -340,8 +341,9 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                   children: [
                     Icon(icon,
                         size: 22,
-                        color:
-                            active ? AppColors.primary : AppColors.textMuted),
+                        color: active
+                            ? AppColors.iosPrimary
+                            : AppColors.iosTextMuted),
                     if (!widget.collapsed) ...[
                       const SizedBox(width: 12),
                       Expanded(
@@ -354,8 +356,8 @@ class DesktopSidebarState extends State<DesktopSidebar> {
                               fontWeight:
                                   active ? FontWeight.w800 : FontWeight.w600,
                               color: active
-                                  ? AppColors.primary
-                                  : AppColors.textPrimary),
+                                  ? AppColors.iosPrimary
+                                  : AppColors.iosTextPrimary),
                         ),
                       ),
                     ],

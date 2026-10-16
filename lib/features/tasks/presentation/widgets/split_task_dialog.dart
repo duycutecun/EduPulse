@@ -65,7 +65,7 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
         right: AppTokens.space20,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.vertical(top: AppTokens.rXl),
       ),
       child: SingleChildScrollView(
@@ -78,7 +78,7 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.iosSeparator,
                   borderRadius: AppTokens.brFull,
                 ),
               ),
@@ -88,7 +88,7 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
             Row(
               children: [
                 const Icon(Icons.call_split_rounded,
-                    color: AppColors.primary, size: 22),
+                    color: AppColors.iosPrimary, size: 22),
                 const SizedBox(width: AppTokens.space8),
                 Text('Chia nhỏ nhiệm vụ', style: AppTokens.heading2),
               ],
@@ -98,14 +98,14 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
               task.title,
               style: AppTokens.body.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.iosTextPrimary,
               ),
             ),
             const SizedBox(height: AppTokens.space2),
             Text(
               '${AppSubjects.displayName(task.subject)} · ${task.estimateMinutes} phút'
               '${task.rescheduleCount >= 3 ? ' · đã dời ${task.rescheduleCount} lần' : ''}',
-              style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+              style: AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
             ),
             const SizedBox(height: AppTokens.space12),
 
@@ -142,14 +142,14 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
                       height: 22,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withValues(alpha: 0.2),
+                        color: AppColors.iosPrimarySoft.withValues(alpha: 0.2),
                         borderRadius: AppTokens.brFull,
                       ),
                       child: Text(
                         '${i + 1}',
                         style: AppTokens.caption.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDark,
+                          color: AppColors.iosPrimaryDark,
                         ),
                       ),
                     ),
@@ -166,7 +166,7 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
                       '${_minutes[i]}p',
                       style: AppTokens.caption.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textMuted,
+                        color: AppColors.iosTextMuted,
                       ),
                     ),
                   ],
@@ -177,21 +177,21 @@ class _SplitTaskDialogState extends State<SplitTaskDialog> {
             Container(
               padding: const EdgeInsets.all(AppTokens.space10),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.iosBackground,
                 borderRadius: AppTokens.brMd,
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.iosSeparator),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.info_outline_rounded,
-                      size: 15, color: AppColors.textMuted),
+                      size: 15, color: AppColors.iosTextMuted),
                   const SizedBox(width: AppTokens.space6),
                   Expanded(
                     child: Text(
                       'Nhiệm vụ cũ sẽ được thay bằng $_parts phần nhỏ. '
                       'Bạn có thể Hoàn tác ngay sau khi chia.',
                       style: AppTokens.caption
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: AppColors.iosTextSecondary),
                     ),
                   ),
                 ],
@@ -246,11 +246,11 @@ class _PartChip extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryLight.withValues(alpha: 0.15)
+              ? AppColors.iosPrimarySoft.withValues(alpha: 0.15)
               : Colors.transparent,
           borderRadius: AppTokens.brMd,
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.iosPrimary : AppColors.iosSeparator,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -258,7 +258,8 @@ class _PartChip extends StatelessWidget {
           label,
           style: AppTokens.caption.copyWith(
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-            color: selected ? AppColors.primaryDark : AppColors.textPrimary,
+            color:
+                selected ? AppColors.iosPrimaryDark : AppColors.iosTextPrimary,
           ),
         ),
       ),

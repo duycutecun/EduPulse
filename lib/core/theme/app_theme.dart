@@ -251,6 +251,235 @@ class AppTheme {
           textStyle: TextStyle(color: AppColors.textPrimary),
         ),
       ),
+
+      /// ── iOS-first (thiết kế đang triển khai) ─────────────────────────
+      /// Theme sáng theo hệ sinh thái iOS: systemBlue làm chủ đạo, bo góc
+      /// lớn hơn, spacing đồng nhất (AppTokens) nhưng màu là iOS-first.
+      /// Các màn chưa được restyle sẽ vẫn thấy giao diện cũ cho đến khi
+      /// slice tương ứng chạy — không có gì gọi đảo theme đột ngột.
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // iOS-first — hệ sinh thái iOS (Apple HIG), đang triển khai.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /// Theme sáng theo hệ sinh thái iOS (iOS-first). Dùng cho màn còn được
+  /// restyle trong slice iOS-first; theme này không thay đổi [lightTheme]
+  /// — theme đó được dùng bởi các test hiện có và các màn chưa restyle.
+  static final ThemeData iosLightTheme = _buildIos(highContrast: false);
+
+  /// Biến thể iOS-first + chế độ contrast cao.
+  static ThemeData iosLightThemeWithContrast(bool highContrast) =>
+      _buildIos(highContrast: highContrast);
+
+  static ThemeData _buildIos({required bool highContrast}) {
+    // Màu hệ sinh thái iOS.
+    final primary = AppColors.iosPrimary;
+    final secondary = AppColors.iosSecondary;
+    final error = AppColors.iosError;
+
+    final border = highContrast
+        ? AppColors.iosSeparator
+        : AppColors.iosSeparator.withValues(alpha: 0.55);
+
+    final textSecondary = AppColors.iosTextSecondary;
+    final textMuted = AppColors.iosTextMuted;
+
+    final textTheme =
+        Typography.englishLike2021.apply(fontFamily: 'Nunito').copyWith(
+              headlineLarge: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 32,
+                height: 1.2,
+                color: AppColors.iosTextPrimary,
+              ),
+              headlineMedium: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 24,
+                height: 1.25,
+                color: AppColors.iosTextPrimary,
+              ),
+              headlineSmall: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+                height: 1.3,
+                color: AppColors.iosTextPrimary,
+              ),
+              titleLarge: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                height: 1.3,
+                color: AppColors.iosTextPrimary,
+              ),
+              titleMedium: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                height: 1.35,
+                color: AppColors.iosTextPrimary,
+              ),
+              bodyLarge: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                height: 1.4,
+                color: AppColors.iosTextPrimary,
+              ),
+              bodyMedium: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                height: 1.4,
+                color: textSecondary,
+              ),
+              bodySmall: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                height: 1.4,
+                color: textSecondary,
+              ),
+              labelLarge: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                height: 1.3,
+                color: AppColors.iosTextPrimary,
+              ),
+              labelMedium: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                height: 1.35,
+                color: textSecondary,
+              ),
+              labelSmall: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+                height: 1.35,
+                color: textMuted,
+              ),
+            );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.iosBackground,
+      textTheme: textTheme,
+      colorScheme: ColorScheme.light(
+        primary: primary,
+        onPrimary: Colors.white,
+        secondary: secondary,
+        onSecondary: Colors.white,
+        error: error,
+        onError: Colors.white,
+        surface: AppColors.iosCard,
+        onSurface: AppColors.iosTextPrimary,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.iosCard,
+        foregroundColor: AppColors.iosTextPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.iosCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: border, width: highContrast ? 1.5 : 1),
+        ),
+        titleTextStyle: textTheme.titleLarge,
+        contentTextStyle: textTheme.bodyMedium,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.iosFill,
+        contentTextStyle: const TextStyle(color: AppColors.iosTextPrimary),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.iosCard,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: border, width: highContrast ? 1.5 : 1),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: border,
+        thickness: highContrast ? 1.5 : 1,
+        space: 1,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.iosFill,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        hintStyle: TextStyle(color: AppColors.iosTextMuted),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: border, width: highContrast ? 1.5 : 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: border, width: highContrast ? 1.5 : 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: error, width: 2),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.iosFill,
+        labelStyle: const TextStyle(
+          color: AppColors.iosTextPrimary,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        side: BorderSide(color: border),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primary,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        shape: CircleBorder(),
+      ),
     );
   }
 }

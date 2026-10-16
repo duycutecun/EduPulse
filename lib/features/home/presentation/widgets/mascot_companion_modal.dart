@@ -231,7 +231,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
@@ -257,7 +257,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                 width: 44,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.iosSeparator,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -276,7 +276,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: AppColors.iosTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -285,7 +285,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
+                        color: AppColors.iosTextSecondary,
                       ),
                     ),
                   ],
@@ -294,7 +294,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                   tooltip: 'Đóng',
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () => Navigator.pop(context),
-                  color: AppColors.textMuted,
+                  color: AppColors.iosTextMuted,
                 ),
               ],
             ),
@@ -313,11 +313,11 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      border: Border.all(color: AppColors.primary, width: 3),
+                      color: AppColors.iosPrimary.withValues(alpha: 0.15),
+                      border: Border.all(color: AppColors.iosPrimary, width: 3),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.25),
+                          color: AppColors.iosPrimary.withValues(alpha: 0.25),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
@@ -340,9 +340,10 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.cardWhite,
+                        color: AppColors.iosCard,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.orange, width: 2),
+                        border:
+                            Border.all(color: AppColors.iosWarning, width: 2),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.12),
@@ -370,7 +371,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: AppColors.iosPrimary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text(
@@ -392,9 +393,9 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.bgPage,
+                color: AppColors.iosBackground,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border, width: 1.5),
+                border: Border.all(color: AppColors.iosSeparator, width: 1.5),
               ),
               child: Column(
                 children: [
@@ -410,7 +411,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                              color: AppColors.iosTextPrimary,
                             ),
                           ),
                         ],
@@ -420,7 +421,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: AppColors.iosPrimary,
                         ),
                       ),
                     ],
@@ -431,15 +432,16 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                     child: LinearProgressIndicator(
                       value: progressInLevel,
                       minHeight: 8,
-                      backgroundColor: AppColors.border,
+                      backgroundColor: AppColors.iosSeparator,
                       valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primary),
+                          AppColors.iosPrimary),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Hoàn thành Pomodoro & nhiệm vụ để tăng cấp gắn kết!',
-                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
                   ),
                 ],
               ),
@@ -451,9 +453,9 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.blue.withValues(alpha: 0.08),
+                color: AppColors.iosInfo.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.blue, width: 1.5),
+                border: Border.all(color: AppColors.iosInfo, width: 1.5),
               ),
               child: Row(
                 children: [
@@ -461,7 +463,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: AppColors.blue.withValues(alpha: 0.15),
+                      color: AppColors.iosInfo.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
@@ -477,7 +479,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                            color: AppColors.iosTextPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -485,7 +487,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                           'Nghỉ 1 ngày không mất streak 🔥 • Đang giữ: ${StorageService.getStreakFreezes()}/3',
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: AppColors.textSecondary,
+                            color: AppColors.iosTextSecondary,
                           ),
                         ),
                       ],
@@ -497,7 +499,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.blue,
+                        color: AppColors.iosInfo,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text(
@@ -522,12 +524,12 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.orange.withValues(alpha: 0.12),
-                    AppColors.yellow.withValues(alpha: 0.18),
+                    AppColors.iosWarning.withValues(alpha: 0.12),
+                    AppColors.iosStreak.withValues(alpha: 0.18),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.orange, width: 1.5),
+                border: Border.all(color: AppColors.iosWarning, width: 1.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,7 +546,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                              color: AppColors.iosTextPrimary,
                             ),
                           ),
                         ],
@@ -554,7 +556,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: AppColors.iosPrimary,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
@@ -575,7 +577,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: AppColors.iosTextPrimary,
                         height: 1.4,
                       ),
                     )
@@ -587,7 +589,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                           'Mỗi ngày bốc một quẻ để nhận lời khuyên tâm lý và vận may học tập!',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: AppColors.iosTextSecondary,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -596,7 +598,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                           child: ElevatedButton.icon(
                             onPressed: _isDrawingFortune ? null : _drawFortune,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.orange,
+                              backgroundColor: AppColors.iosWarning,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -638,7 +640,7 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+                  color: AppColors.iosTextPrimary,
                 ),
               ),
             ),
@@ -665,14 +667,15 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.14)
+                          ? AppColors.iosPrimary.withValues(alpha: 0.14)
                           : (isUnlocked
-                              ? AppColors.bgPage
-                              : AppColors.border.withValues(alpha: 0.4)),
+                              ? AppColors.iosBackground
+                              : AppColors.iosSeparator.withValues(alpha: 0.4)),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color:
-                            isSelected ? AppColors.primary : AppColors.border,
+                        color: isSelected
+                            ? AppColors.iosPrimary
+                            : AppColors.iosSeparator,
                         width: isSelected ? 2.5 : 1.5,
                       ),
                     ),
@@ -715,10 +718,10 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: isSelected
-                                ? AppColors.primary
+                                ? AppColors.iosPrimary
                                 : (isUnlocked
-                                    ? AppColors.textPrimary
-                                    : AppColors.textMuted),
+                                    ? AppColors.iosTextPrimary
+                                    : AppColors.iosTextMuted),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -735,8 +738,8 @@ class _MascotCompanionModalState extends State<MascotCompanionModal> {
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: isSelected
-                                ? AppColors.primary
-                                : AppColors.textMuted,
+                                ? AppColors.iosPrimary
+                                : AppColors.iosTextMuted,
                           ),
                         ),
                       ],

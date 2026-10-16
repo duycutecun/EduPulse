@@ -39,7 +39,7 @@ class _SheetShell extends StatelessWidget {
       ),
       child: Container(
         decoration: const BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppTokens.radiusXl),
           ),
@@ -61,7 +61,7 @@ class _SheetShell extends StatelessWidget {
                   width: AppTokens.minTouchTarget,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.borderStrong,
+                    color: AppColors.iosSeparator,
                     borderRadius: BorderRadius.circular(AppTokens.radiusXs),
                   ),
                 ),

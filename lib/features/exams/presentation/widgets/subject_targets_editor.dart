@@ -119,16 +119,17 @@ class SubjectTargetsChips extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.blueSoft,
+              color: AppColors.iosInfoSoft,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.blue.withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: AppColors.iosInfo.withValues(alpha: 0.3)),
             ),
             child: Text(
               '${AppSubjects.displayName(e.key)} ${e.value.toStringAsFixed(1)}',
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppColors.blueDark,
+                color: AppColors.iosInfoDark,
               ),
             ),
           ),

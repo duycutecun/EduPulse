@@ -62,8 +62,8 @@ class DesktopAuxColumn extends StatelessWidget {
     return Container(
       width: kAuxColumnWidth,
       decoration: const BoxDecoration(
-        color: AppColors.bgPage,
-        border: Border(left: BorderSide(color: AppColors.border)),
+        color: AppColors.iosBackground,
+        border: Border(left: BorderSide(color: AppColors.iosSeparator)),
       ),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -126,7 +126,7 @@ class DesktopAuxColumn extends StatelessWidget {
           style: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+            color: AppColors.iosTextPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -137,7 +137,7 @@ class DesktopAuxColumn extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: days > 0 ? AppColors.primary : AppColors.orangeDark,
+            color: days > 0 ? AppColors.iosPrimary : AppColors.iosWarningDark,
           ),
         ),
       ],
@@ -187,7 +187,7 @@ class _Card extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.4,
-                color: AppColors.textMuted,
+                color: AppColors.iosTextMuted,
               ),
             ),
             const SizedBox(height: 10),
@@ -213,7 +213,8 @@ class _Stat extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style:
+              const TextStyle(fontSize: 12, color: AppColors.iosTextSecondary),
         ),
         const SizedBox(height: 2),
         // `FittedBox` giữ số liệu không bao giờ làm vỡ cột hẹp.
@@ -226,7 +227,7 @@ class _Stat extends StatelessWidget {
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: AppColors.iosTextPrimary,
             ),
           ),
         ),
@@ -235,7 +236,7 @@ class _Stat extends StatelessWidget {
             hint!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+            style: const TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
           ),
       ],
     );
@@ -262,11 +263,11 @@ class _ActionTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.iosSeparator),
             ),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: AppColors.primary),
+                Icon(icon, size: 18, color: AppColors.iosPrimary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -276,12 +277,12 @@ class _ActionTile extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: AppColors.iosTextPrimary,
                     ),
                   ),
                 ),
                 const Icon(Icons.chevron_right_rounded,
-                    size: 18, color: AppColors.textMuted),
+                    size: 18, color: AppColors.iosTextMuted),
               ],
             ),
           ),
@@ -312,7 +313,7 @@ class _AiCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(c.$1, size: 16, color: AppColors.purple),
+                Icon(c.$1, size: 16, color: AppColors.iosSecondary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -320,7 +321,7 @@ class _AiCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12.5,
                       height: 1.3,
-                      color: AppColors.textSecondary,
+                      color: AppColors.iosTextSecondary,
                     ),
                   ),
                 ),
@@ -368,7 +369,7 @@ class _WeekCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.orangeDark,
+              color: AppColors.iosWarningDark,
             ),
           ),
           const SizedBox(height: 6),
@@ -378,7 +379,7 @@ class _WeekCard extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(AppSubjects.iconOf(s.subject),
-                      size: 14, color: AppColors.textMuted),
+                      size: 14, color: AppColors.iosTextMuted),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -386,7 +387,7 @@ class _WeekCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 12.5, color: AppColors.textPrimary),
+                          fontSize: 12.5, color: AppColors.iosTextPrimary),
                     ),
                   ),
                   Text(
@@ -394,7 +395,7 @@ class _WeekCard extends StatelessWidget {
                         ? 'chưa học'
                         : '${DateTime.now().difference(s.lastStudied!).inDays} ngày trước',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColors.textMuted),
+                        fontSize: 11, color: AppColors.iosTextMuted),
                   ),
                 ],
               ),
@@ -423,7 +424,7 @@ class _ProfileCard extends StatelessWidget {
           style: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+            color: AppColors.iosTextPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -431,8 +432,8 @@ class _ProfileCard extends StatelessWidget {
           streak > 0
               ? '🔥 Chuỗi học: $streak ngày'
               : 'Học 1 phiên hôm nay để khởi động chuỗi',
-          style:
-              const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+          style: const TextStyle(
+              fontSize: 12.5, color: AppColors.iosTextSecondary),
         ),
       ],
     );

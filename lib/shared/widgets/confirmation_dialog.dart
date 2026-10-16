@@ -90,12 +90,12 @@ class _ConfirmationDialogState extends State<ConfirmationDialog> {
             Container(
               padding: const EdgeInsets.all(AppTokens.space8),
               decoration: const BoxDecoration(
-                color: AppColors.redLight,
+                color: AppColors.iosErrorSoft,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.warning_amber_rounded,
-                color: AppColors.red,
+                color: AppColors.iosError,
                 size: AppTokens.iconMd,
               ),
             ),
@@ -123,15 +123,17 @@ class _ConfirmationDialogState extends State<ConfirmationDialog> {
                 vertical: AppTokens.space8,
               ),
               decoration: BoxDecoration(
-                color:
-                    widget.isDestructive ? AppColors.redLight : AppColors.primaryLight,
+                color: widget.isDestructive
+                    ? AppColors.iosErrorSoft
+                    : AppColors.iosPrimarySoft,
                 borderRadius: AppTokens.brMd,
               ),
               child: Text(
                 widget.highlightedItem!,
                 style: AppTokens.heading3.copyWith(
-                  color:
-                      widget.isDestructive ? AppColors.redDark : AppColors.primaryDark,
+                  color: widget.isDestructive
+                      ? AppColors.iosErrorDark
+                      : AppColors.iosPrimaryDark,
                 ),
               ),
             ),
@@ -153,7 +155,8 @@ class _ConfirmationDialogState extends State<ConfirmationDialog> {
         PrimaryButton(
           focusNode: _confirmFocus,
           label: widget.confirmLabel,
-          backgroundColor: widget.isDestructive ? AppColors.red : AppColors.primary,
+          backgroundColor:
+              widget.isDestructive ? AppColors.iosError : AppColors.iosPrimary,
           onPressed: widget.onConfirm,
         ),
       ],

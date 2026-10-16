@@ -30,31 +30,31 @@ class AiQuickActions extends StatelessWidget {
       (
         Icons.lightbulb_outline_rounded,
         'Tôi nên học gì?',
-        AppColors.greenDark,
+        AppColors.iosSuccess,
         onRecommend
       ),
       (
         Icons.menu_book_rounded,
         'Giải thích bài này',
-        AppColors.blueDark,
+        AppColors.iosInfoDark,
         onExplain
       ),
       (
         Icons.calendar_month_rounded,
         'Lập kế hoạch',
-        AppColors.purpleDark,
+        AppColors.iosSecondaryDark,
         onPlan
       ),
       (
         Icons.insights_rounded,
         'Phân tích điểm yếu',
-        AppColors.orangeDark,
+        AppColors.iosWarningDark,
         onWeakness
       ),
       (
         Icons.balance_rounded,
         'Điều chỉnh lịch',
-        AppColors.blueDark,
+        AppColors.iosInfoDark,
         onReschedule
       ),
     ];

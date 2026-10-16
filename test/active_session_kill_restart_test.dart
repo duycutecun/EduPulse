@@ -88,7 +88,8 @@ void main() {
           reason: 'tạm dừng không trôi thêm');
     });
 
-    test('chụp RTL survival qua SharedPreferences: pausedAccumMs round-trips', () async {
+    test('chụp RTL survival qua SharedPreferences: pausedAccumMs round-trips',
+        () async {
       final clock = FocusClock(totalSeconds: 1500)..start(at(0));
       clock.pause(at(200));
 
@@ -112,7 +113,9 @@ void main() {
   });
 
   group('timestamp-based elapsed không phụ thuộc tick', () {
-    test('remainingAtAnchor = totalSeconds - pausedAccumMs (invariant preserved)', () {
+    test(
+        'remainingAtAnchor = totalSeconds - pausedAccumMs (invariant preserved)',
+        () {
       final clock = FocusClock(totalSeconds: 1200)..start(at(0));
       clock.pause(at(450));
 

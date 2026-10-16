@@ -35,13 +35,14 @@ class LeaderboardView extends StatelessWidget {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
                                 color: user.rank <= 3
-                                    ? AppColors.orange
-                                    : AppColors.textMuted))),
+                                    ? AppColors.iosWarning
+                                    : AppColors.iosTextMuted))),
                     Container(
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                          color: AppColors.bgPage, shape: BoxShape.circle),
+                          color: AppColors.iosBackground,
+                          shape: BoxShape.circle),
                       child: Center(
                           child: Text(user.emoji,
                               style: const TextStyle(fontSize: 18))),
@@ -55,10 +56,10 @@ class LeaderboardView extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary)),
+                                  color: AppColors.iosTextPrimary)),
                           Text(user.target,
                               style: TextStyle(
-                                  fontSize: 11, color: AppColors.textMuted),
+                                  fontSize: 11, color: AppColors.iosTextMuted),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),
                         ],
@@ -88,14 +89,14 @@ class LeaderboardView extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                   const SizedBox(height: 4),
                   Text(
                       'Đăng nhập & duy trì streak để xuất hiện trên bảng xếp hạng.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textMuted,
+                          color: AppColors.iosTextMuted,
                           height: 1.4)),
                 ],
               ),
@@ -110,12 +111,15 @@ class LeaderboardView extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Expanded(child: _podiumColumn(users[1], 2, 95, '🥈', AppColors.blue)),
+        Expanded(
+            child: _podiumColumn(users[1], 2, 95, '🥈', AppColors.iosInfo)),
         const SizedBox(width: 8),
         Expanded(
-            child: _podiumColumn(users[0], 1, 125, '👑', AppColors.orange)),
+            child: _podiumColumn(users[0], 1, 125, '👑', AppColors.iosWarning)),
         const SizedBox(width: 8),
-        Expanded(child: _podiumColumn(users[2], 3, 85, '🥉', AppColors.purple)),
+        Expanded(
+            child:
+                _podiumColumn(users[2], 3, 85, '🥉', AppColors.iosSecondary)),
       ],
     );
   }

@@ -32,8 +32,8 @@ class _AppearanceCardState extends State<AppearanceCard> {
     _quietSound = StorageService.getBool('quiet_mode_sound') ?? false;
   }
 
-  Widget _quietSwitch(String label, String sublabel, bool value,
-      ValueChanged<bool> onChanged) {
+  Widget _quietSwitch(
+      String label, String sublabel, bool value, ValueChanged<bool> onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.space4),
       child: Row(
@@ -47,13 +47,13 @@ class _AppearanceCardState extends State<AppearanceCard> {
                         fontSize: 13.0, fontWeight: FontWeight.w700)),
                 Text(sublabel,
                     style: TextStyle(
-                        fontSize: 11.0, color: AppColors.textMuted)),
+                        fontSize: 11.0, color: AppColors.iosTextMuted)),
               ],
             ),
           ),
           Switch(
             value: value,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: AppColors.iosPrimary,
             onChanged: onChanged,
           ),
         ],
@@ -74,8 +74,8 @@ class _AppearanceCardState extends State<AppearanceCard> {
                 Icons.format_size_rounded,
                 tileSize: 36,
                 iconSize: 18,
-                color: AppColors.blue,
-                bg: AppColors.blueSoft,
+                color: AppColors.iosInfo,
+                bg: AppColors.iosInfoSoft,
               ),
               SizedBox(width: 10),
               Expanded(
@@ -83,14 +83,14 @@ class _AppearanceCardState extends State<AppearanceCard> {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Áp dụng cho toàn app. Cỡ chữ hệ thống vẫn được tôn trọng.',
-            style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 11.5, color: AppColors.iosTextMuted),
           ),
           const SizedBox(height: 10),
           ValueListenableBuilder<double>(
@@ -119,7 +119,7 @@ class _AppearanceCardState extends State<AppearanceCard> {
               valueListenable: AppearanceService.highContrast,
               builder: (context, value, _) => Switch(
                 value: value,
-                activeThumbColor: AppColors.primary,
+                activeThumbColor: AppColors.iosPrimary,
                 onChanged: AppearanceService.setHighContrast,
               ),
             ),
@@ -137,7 +137,7 @@ class _AppearanceCardState extends State<AppearanceCard> {
           const SizedBox(height: 4),
           Text(
             'Chỉ ẩn hiển thị XP/streak/mascot/âm thanh - dữ liệu vẫn được ghi.',
-            style: TextStyle(fontSize: 11.0, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 11.0, color: AppColors.iosTextMuted),
           ),
           const SizedBox(height: 8),
           _quietSwitch(
@@ -182,10 +182,10 @@ class _AppearanceCardState extends State<AppearanceCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.blueSoft : AppColors.bgPage,
+          color: selected ? AppColors.iosInfoSoft : AppColors.iosBackground,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.blue : AppColors.border,
+            color: selected ? AppColors.iosInfo : AppColors.iosSeparator,
             width: selected ? 2 : 1,
           ),
         ),
@@ -199,15 +199,17 @@ class _AppearanceCardState extends State<AppearanceCard> {
                             ? 20
                             : 17,
                     fontWeight: FontWeight.w800,
-                    color:
-                        selected ? AppColors.blueDark : AppColors.textPrimary)),
+                    color: selected
+                        ? AppColors.iosInfoDark
+                        : AppColors.iosTextPrimary)),
             const SizedBox(height: 2),
             Text(label,
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color:
-                        selected ? AppColors.blueDark : AppColors.textMuted)),
+                    color: selected
+                        ? AppColors.iosInfoDark
+                        : AppColors.iosTextMuted)),
           ],
         ),
       ),

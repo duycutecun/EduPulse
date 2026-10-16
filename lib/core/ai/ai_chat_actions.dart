@@ -84,7 +84,7 @@ class AiChatActionParser {
           type: AiActionType.takeQuiz,
           label: '⚡ $label',
           icon: Icons.quiz_rounded,
-          color: AppColors.purple,
+          color: AppColors.iosSecondary,
           payload: {
             'subject': kv['subject'] ?? 'Toán',
             'topic': kv['topic'] ?? kv['title'] ?? 'Trắc nghiệm tổng hợp',
@@ -96,7 +96,7 @@ class AiChatActionParser {
           type: AiActionType.startFocus,
           label: '▶ $label',
           icon: Icons.play_arrow_rounded,
-          color: AppColors.primary,
+          color: AppColors.iosPrimary,
           payload: {
             'subject': kv['subject'] ?? 'Toán',
             'minutes': minutes,
@@ -107,7 +107,7 @@ class AiChatActionParser {
           type: AiActionType.saveNote,
           label: '📝 $label',
           icon: Icons.sticky_note_2_rounded,
-          color: AppColors.blue,
+          color: AppColors.iosInfo,
           payload: {
             'title': kv['title'] ?? label,
             'subject': kv['subject'] ?? 'Tổng hợp',
@@ -119,7 +119,7 @@ class AiChatActionParser {
           type: AiActionType.addTask,
           label: '+ $label',
           icon: Icons.add_task_rounded,
-          color: AppColors.orangeDark,
+          color: AppColors.iosWarningDark,
           payload: {
             'title': kv['title'] ?? label,
             'subject': kv['subject'] ?? 'Toán',
@@ -135,7 +135,7 @@ class AiChatActionParser {
           type: AiActionType.editTask,
           label: '✏️ $label',
           icon: Icons.edit_rounded,
-          color: AppColors.primary,
+          color: AppColors.iosPrimary,
           payload: {
             if (kv['title'] != null) 'title': kv['title'],
             if (kv['subject'] != null) 'subject': kv['subject'],
@@ -146,7 +146,7 @@ class AiChatActionParser {
           type: AiActionType.rescheduleTask,
           label: '📅 $label',
           icon: Icons.event_repeat_rounded,
-          color: AppColors.orangeDark,
+          color: AppColors.iosWarningDark,
           payload: {
             if (kv['title'] != null) 'title': kv['title'],
             if (kv['subject'] != null) 'subject': kv['subject'],
@@ -160,7 +160,7 @@ class AiChatActionParser {
           type: AiActionType.deleteTask,
           label: '🗑 $label',
           icon: Icons.delete_outline_rounded,
-          color: AppColors.red,
+          color: AppColors.iosError,
           payload: {
             if (kv['title'] != null) 'title': kv['title'],
             if (kv['subject'] != null) 'subject': kv['subject'],

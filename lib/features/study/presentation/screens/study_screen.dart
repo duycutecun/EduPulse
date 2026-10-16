@@ -84,8 +84,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   TodayTask? _selectedTask;
   int _activeTab = 0;
 
-  int _focusMinutes = 25;
-  int _breakMinutes = 5;
+  // V2 (`BAN_THAY_DOI_V2.md` mục A): phiên mặc định 10 phút, nghỉ 3 phút. Mốc
+  // 10/20/35 thay cho 25/50/90 vì một lượt ngồi học thật của học sinh THPT
+  // không vừa 25 phút — phiên dài là thứ người ta bấm cho có rồi tắt.
+  int _focusMinutes = kDefaultFocusSeconds ~/ 60;
+  int _breakMinutes = kDefaultBreakSeconds ~/ 60;
   late final ValueNotifier<int> _pomSecondsNotifier =
       ValueNotifier<int>(_focusMinutes * 60);
   bool _pomRunning = false;
@@ -98,7 +101,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
 
   // Đồng hồ neo theo mốc thời gian thật (FE-3.2): timer chỉ đẩy giao diện
   // cập nhật, số giây còn lại luôn tính từ `DateTime.now()`.
-  FocusClock _clock = FocusClock(totalSeconds: 25 * 60);
+  FocusClock _clock = FocusClock(totalSeconds: kDefaultFocusSeconds);
 
   // App-leaving tracking (mục 11.5): đo phút đã học trước khi rời app
   // giữa phiên; pattern phân tích khi user quay lại.
@@ -179,7 +182,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   }
 
   void _recordAppLeaving() {
-    final planned = _focusMinutes;
+    // Đồng hồ đang chạy là đồng hồ focus (hàm này chỉ được gọi khi `!_isBreak`),
+    // nên thời lượng đã xin đọc từ nó — đúng cả khi phiên đã được kéo dài.
+    final planned = (_clock.totalSeconds / 60).round();
     // Lấy từ đồng hồ chứ không tự trừ: đây là lúc app đang bị vùy, tức là lúc
     // `Timer.periodic` đã bị hệ điều hành giữ lại và số đếm không đáng tin.
     final studied =
@@ -561,8 +566,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     });
   }
 
-  /// Kết thúc một vòng: nghỉ → vòng focus mới, focus → sang nghỉ và ghi phiên.
-  void _finishRound() {
+  /// Kết thúc một vòng: nghỉ → vòng focus mới, focus → **hỏi kéo dài** rồi mới
+  /// sang nghỉ và ghi phiên.
+  Future<void> _finishRound() async {
     if (!mounted) return;
     _pomTimer?.cancel();
     // Vòng vừa kết thúc nên không còn gì để khôi phục; ảnh chụp cũ sẽ khiến
@@ -572,6 +578,25 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     // `_recordCompletedFocus()` đọc `elapsedAt` của chính nó, và nếu đổi trước
     // thì nó sẽ đo đồng hồ mới (0 giây đã học) → mọi phiên đều ghi 0 phút.
     final finishedClock = _clock;
+
+    // V2 mục C.2: hết phiên thì **hỏi** "thêm 10 phút?", không tự đẩy sang
+    // nghỉ.
+    //
+    // Chỉ hỏi ở **phiên ngắn mặc định 10 phút**: đó là phiên của người chưa
+    // chắc mình ngồi được bao lâu, và câu hỏi giúp họ tự kéo dài. Ai đã chọn
+    // mốc 20/35 — hoặc vào từ một nhiệm vụ có thời lượng riêng (30/45 phút) —
+    // thì đã tự quyết thời lượng rồi; hỏi lại chỉ là thêm một cửa sổ phải bấm
+    // trước khi tới bước phản tư.
+    final isDefaultShortRound = _focusMinutes * 60 == kFocusStepSeconds;
+    if (!_isBreak && isDefaultShortRound) {
+      final wantsMore = await _askExtendFocus(finishedClock);
+      if (!mounted) return;
+      if (wantsMore == true) {
+        _extendCurrentFocus(finishedClock);
+        return;
+      }
+    }
+
     setState(() {
       _pomRunning = false;
       if (_isBreak) {
@@ -595,6 +620,38 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     });
   }
 
+  /// Hỏi kéo dài phiên (V2 mục C.2).
+  ///
+  /// Bấm ra ngoài trả `null` — tính là "nghỉ": vòng đã hết giờ thật, coi như
+  /// chưa có gì xảy ra là mất một phiên học.
+  Future<bool?> _askExtendFocus(FocusClock finishedClock) {
+    final roundMinutes = finishedClock.totalSeconds ~/ 60;
+    return ConfirmationDialog.show(
+      context,
+      title: 'Hết $roundMinutes phút',
+      content: 'Bạn muốn học thêm ${kFocusStepSeconds ~/ 60} phút nữa không?',
+      confirmLabel: 'Thêm ${kFocusStepSeconds ~/ 60} phút',
+      cancelLabel: 'Nghỉ',
+    );
+  }
+
+  /// Chạy tiếp **cùng phiên** thêm một bước 10 phút sau khi người học đồng ý.
+  ///
+  /// Phiên chưa được ghi ở đây: chỉ khi họ dừng lại (hoặc bấm Hoàn thành) thì
+  /// phiên mới chốt, với thời lượng đã xin — không cắt về 10 phút.
+  void _extendCurrentFocus(FocusClock finishedClock) {
+    final now = widget.clock();
+    setState(() {
+      _clock = finishedClock.extended(kFocusStepSeconds, now);
+      _pomRunning = true;
+      _pomSecondsNotifier.value = _clock.remainingAt(now);
+    });
+    FeedbackService.selection();
+    AdaptivePolicy.setInFocus(true);
+    _startPomodoroTimer();
+    _persistActiveSession();
+  }
+
   /// Ghi `StudySession` cho một vòng focus vừa hoàn thành (BE-3.1).
   ///
   /// [clock] là đồng hồ của vòng vừa kết thúc, truyền vào tường minh thay vì
@@ -602,7 +659,10 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
   /// của phiên đang ghi, và mọi phép đo sẽ ra 0.
   void _recordCompletedFocus({FocusClock? clock}) {
     final focusClock = clock ?? _clock;
-    final plannedMinutes = _focusMinutes;
+    // Thời lượng đã xin của **chính đồng hồ này**, không phải `_focusMinutes`:
+    // người học đã xin thêm 10 phút thì phiên ghi ra phải là 20, nếu không thì
+    // phần đã học thêm bị cắt cụt trong mọi tổng hợp về sau.
+    final plannedMinutes = (focusClock.totalSeconds / 60).round();
     final task = _selectedTask;
     final subject = task?.subject ?? 'Pomodoro';
     // Cố ý **không** ghi `StudyLog` ở đây nữa: vòng pomodoro đã có phiên học
@@ -842,7 +902,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: const [
-            Icon(Icons.sticky_note_2_rounded, color: AppColors.purple),
+            Icon(Icons.sticky_note_2_rounded, color: AppColors.iosSecondary),
             SizedBox(width: 8),
             Text('Ghi chú nhanh AI',
                 style: TextStyle(fontWeight: FontWeight.w800)),
@@ -926,7 +986,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                 title: const Text('Focus tự do'),
                 trailing: _selectedTask == null
                     ? const Icon(Icons.check_circle_rounded,
-                        color: AppColors.primary)
+                        color: AppColors.iosPrimary)
                     : null,
                 onTap: () {
                   setState(() => _selectedTask = null);
@@ -947,13 +1007,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                 ..._tasks.map((task) => ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.checklist_rounded,
-                          color: AppColors.blue),
+                          color: AppColors.iosInfo),
                       title: Text(task.title),
                       subtitle: Text(
                           '${task.subject} · ${task.estimateMinutes} phút'),
                       trailing: _selectedTask?.id == task.id
                           ? const Icon(Icons.check_circle_rounded,
-                              color: AppColors.primary)
+                              color: AppColors.iosPrimary)
                           : null,
                       onTap: () {
                         setState(() => _selectedTask = task);
@@ -1001,9 +1061,9 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           child: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.bgPage,
+              color: AppColors.iosBackground,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border, width: 2),
+              border: Border.all(color: AppColors.iosSeparator, width: 2),
             ),
             child: Row(
               children: [
@@ -1022,11 +1082,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: GlassCard(
               padding: const EdgeInsets.all(12),
-              customColor: AppColors.blueSoft.withValues(alpha: 0.5),
+              customColor: AppColors.iosInfoSoft.withValues(alpha: 0.5),
               child: Row(
                 children: [
                   const Icon(Icons.self_improvement_rounded,
-                      size: 18, color: AppColors.blue),
+                      size: 18, color: AppColors.iosInfo),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(_leavingInsight.message!,
@@ -1036,7 +1096,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                     onTap: () => setState(
                         () => _leavingInsight = AppLeavingInsight.none),
                     child: const Icon(Icons.close_rounded,
-                        size: 16, color: AppColors.textMuted),
+                        size: 16, color: AppColors.iosTextMuted),
                   ),
                 ],
               ),
@@ -1062,10 +1122,10 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.primary : AppColors.cardLight,
+            color: isActive ? AppColors.iosPrimary : AppColors.iosFill,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isActive ? AppColors.primary : AppColors.border,
+              color: isActive ? AppColors.iosPrimary : AppColors.iosSeparator,
               width: 1.5,
             ),
           ),
@@ -1075,7 +1135,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-              color: isActive ? Colors.white : AppColors.textPrimary,
+              color: isActive ? Colors.white : AppColors.iosTextPrimary,
             ),
           ),
         ),
@@ -1085,7 +1145,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
 
   Widget _buildPomodoroTab() {
     final totalSec = _isBreak ? (_breakMinutes * 60) : (_focusMinutes * 60);
-    final activeColor = _isBreak ? AppColors.primary : AppColors.blue;
+    final activeColor = _isBreak ? AppColors.iosPrimary : AppColors.iosInfo;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -1099,13 +1159,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.cardWhite,
+                color: AppColors.iosCard,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.iosSeparator),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.checklist_rounded, color: AppColors.blue),
+                  const Icon(Icons.checklist_rounded, color: AppColors.iosInfo),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -1113,13 +1173,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                       children: [
                         const Text('Nhiệm vụ hiện tại',
                             style: TextStyle(
-                                fontSize: 11, color: AppColors.textMuted)),
+                                fontSize: 11, color: AppColors.iosTextMuted)),
                         Text(_selectedTask?.title ?? 'Focus tự do',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary)),
+                                color: AppColors.iosTextPrimary)),
                       ],
                     ),
                   ),
@@ -1127,7 +1187,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                       _pomRunning
                           ? Icons.lock_outline
                           : Icons.chevron_right_rounded,
-                      color: AppColors.textMuted),
+                      color: AppColors.iosTextMuted),
                 ],
               ),
             ),
@@ -1144,15 +1204,15 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.purpleSoft.withValues(alpha: 0.6),
+                    color: AppColors.iosSecondarySoft.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: AppColors.purple.withValues(alpha: 0.3)),
+                        color: AppColors.iosSecondary.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.auto_awesome_rounded,
-                          color: AppColors.purple, size: 18),
+                          color: AppColors.iosSecondary, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1162,7 +1222,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                            color: AppColors.iosTextPrimary,
                           ),
                         ),
                       ),
@@ -1170,14 +1230,15 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                         const SizedBox(width: 6),
                         GestureDetector(
                           onTap: () {
-                            _setPomodoroMode(25, 5);
+                            _setPomodoroMode(kDefaultFocusSeconds ~/ 60,
+                                kDefaultBreakSeconds ~/ 60);
                             _togglePomodoro();
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: AppColors.purple,
+                              color: AppColors.iosSecondary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -1202,11 +1263,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _modeChip(25, 5, '25/5'),
+              // Mốc 10/20/35 (V2 mục A): bắt đầu ở 10 phút, ai muốn dài thì
+              // chọn mốc lớn hơn — nghỉ đi kèm 3/5/10 phút.
+              _modeChip(10, 3, '10/3'),
               const SizedBox(width: 10),
-              _modeChip(50, 10, '50/10'),
+              _modeChip(20, 5, '20/5'),
               const SizedBox(width: 10),
-              _modeChip(90, 20, '90/20'),
+              _modeChip(35, 10, '35/10'),
             ],
           ),
           const SizedBox(height: 32),
@@ -1225,7 +1288,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                 return Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border, width: 1),
+                    border: Border.all(color: AppColors.iosSeparator, width: 1),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -1238,7 +1301,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                           value: progress,
                           strokeWidth: 12,
                           strokeCap: StrokeCap.round,
-                          backgroundColor: AppColors.progressBg,
+                          backgroundColor: AppColors.iosFill,
                           valueColor:
                               AlwaysStoppedAnimation<Color>(activeColor),
                         ),
@@ -1252,15 +1315,30 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                             style: const TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                              color: AppColors.iosTextPrimary,
+                            ),
+                          ),
+                          // Việc đang làm nằm ngay dưới con số đếm ngược (V2 mục
+                          // C.2): một đồng hồ trần là thứ người ta tắt đi sau 30
+                          // giây, còn "đang làm gì" mới giữ được nhịp.
+                          Text(
+                            'Đang làm: ${_selectedTask?.title ?? 'chưa chọn việc'}',
+                            key: const ValueKey('clock-current-task'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.iosTextPrimary,
                             ),
                           ),
                           Text(
                             'Phiên $_pomRound',
                             style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.iosTextMuted,
                             ),
                           ),
                         ],
@@ -1310,13 +1388,13 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             children: [
               _TactileCircleButton(
                 size: 56,
-                color: AppColors.cardWhite,
-                shadowColor: AppColors.borderStrong.withValues(alpha: 0.5),
-                border: Border.all(color: AppColors.border, width: 2),
+                color: AppColors.iosCard,
+                shadowColor: AppColors.iosSeparator.withValues(alpha: 0.5),
+                border: Border.all(color: AppColors.iosSeparator, width: 2),
                 onTap: _resetPomodoro,
                 child: const Icon(
                   Icons.refresh_rounded,
-                  color: AppColors.textSecondary,
+                  color: AppColors.iosTextSecondary,
                   size: 24,
                 ),
               ),
@@ -1324,9 +1402,10 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               _TactileCircleButton(
                 key: const ValueKey('pom-toggle'),
                 size: 76,
-                color: _pomRunning ? AppColors.red : AppColors.primary,
-                shadowColor:
-                    _pomRunning ? AppColors.redDark : AppColors.primaryDark,
+                color: _pomRunning ? AppColors.iosError : AppColors.iosPrimary,
+                shadowColor: _pomRunning
+                    ? AppColors.iosErrorDark
+                    : AppColors.iosPrimaryDark,
                 onTap: _togglePomodoro,
                 child: Icon(
                   _pomRunning
@@ -1342,7 +1421,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           const SizedBox(height: 18),
           Text(
             _pomRunning ? 'Đang trong phiên học!' : 'Bắt đầu để tính thời gian',
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+            style: const TextStyle(fontSize: 13, color: AppColors.iosTextMuted),
           ),
           // Đặc tả 5.6 / QA "complete early": xong việc thì kết thúc được,
           // không bắt ngồi đợi đồng hồ về 0. Nút chỉ có ở vòng focus — khi đang
@@ -1355,8 +1434,8 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               icon: const Icon(Icons.check_rounded, size: 18),
               label: const Text('Hoàn thành'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary, width: 1.6),
+                foregroundColor: AppColors.iosPrimary,
+                side: const BorderSide(color: AppColors.iosPrimary, width: 1.6),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
@@ -1377,14 +1456,15 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: sel ? AppColors.primary : AppColors.cardWhite,
+          color: sel ? AppColors.iosPrimary : AppColors.iosCard,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: sel ? AppColors.primary : AppColors.border, width: 1.5),
+              color: sel ? AppColors.iosPrimary : AppColors.iosSeparator,
+              width: 1.5),
           boxShadow: sel
               ? [
                   BoxShadow(
-                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    color: AppColors.iosPrimaryDark.withValues(alpha: 0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -1396,7 +1476,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
           style: TextStyle(
             fontSize: 13,
             fontWeight: sel ? FontWeight.w800 : FontWeight.w600,
-            color: sel ? Colors.white : AppColors.textPrimary,
+            color: sel ? Colors.white : AppColors.iosTextPrimary,
           ),
         ),
       ),
@@ -1438,12 +1518,12 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
             children: [
               Expanded(
                 child: _statCard('${totalHours.toStringAsFixed(1)}h',
-                    'Tổng giờ học', AppColors.blue, Icons.access_time),
+                    'Tổng giờ học', AppColors.iosInfo, Icons.access_time),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _statCard('${entries.length}', 'Buổi học',
-                    AppColors.primary, Icons.check_circle),
+                    AppColors.iosPrimary, Icons.check_circle),
               ),
             ],
           ),
@@ -1455,11 +1535,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.iosPrimary,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.4),
+                      color: AppColors.iosPrimaryDark.withValues(alpha: 0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 4)),
                 ],
@@ -1518,18 +1598,19 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
         padding: const EdgeInsets.only(right: 16),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.1),
+          color: AppColors.iosError.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
+        child: const Icon(Icons.delete_rounded,
+            color: AppColors.iosError, size: 18),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 1),
+          border: Border.all(color: AppColors.iosSeparator, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -1545,11 +1626,11 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.iosPrimary,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    color: AppColors.iosPrimaryDark.withValues(alpha: 0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -1575,19 +1656,19 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                   if (note != null && note.isNotEmpty)
                     Text(note,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColors.textMuted),
+                            fontSize: 12, color: AppColors.iosTextMuted),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
             Text('${entry.date.day}/${entry.date.month}',
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.iosTextMuted)),
           ],
         ),
       ),
@@ -1713,7 +1794,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1730,7 +1811,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
+                      color: AppColors.iosTextPrimary),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -1761,7 +1842,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,
-                            color: AppColors.textPrimary,
+                            color: AppColors.iosTextPrimary,
                           ),
                         ),
                       );
@@ -1774,7 +1855,7 @@ class _StudyScreenState extends State<StudyScreen> with WidgetsBindingObserver {
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(ctx),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.iosPrimary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

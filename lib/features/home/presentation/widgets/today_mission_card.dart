@@ -88,9 +88,9 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: AppColors.iosSeparator, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -129,7 +129,7 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                     '$done/${tasks.length}',
                     style: AppTokens.bodySubtle.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textMuted,
+                      color: AppColors.iosTextMuted,
                     ),
                   ),
                   // Nhịp học cá nhân: gợi ý thứ tự (môn khó lên trước).
@@ -145,11 +145,11 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.greenSoft,
+                          color: AppColors.iosSuccessSoft,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.low_priority_rounded,
-                            color: AppColors.primary, size: 18),
+                            color: AppColors.iosPrimary, size: 18),
                       ),
                     ),
                   ],
@@ -160,11 +160,11 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.blueSoft,
+                          color: AppColors.iosInfoSoft,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.bolt_rounded,
-                            color: AppColors.blue, size: 18),
+                            color: AppColors.iosInfo, size: 18),
                       ),
                     ),
                   ],
@@ -175,11 +175,11 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.greenSoft,
+                          color: AppColors.iosSuccessSoft,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.lightbulb_outline_rounded,
-                            color: AppColors.primary, size: 18),
+                            color: AppColors.iosPrimary, size: 18),
                       ),
                     ),
                   ],
@@ -189,11 +189,12 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: AppColors.iosPrimary,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryDark.withValues(alpha: 0.4),
+                            color:
+                                AppColors.iosPrimaryDark.withValues(alpha: 0.4),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -214,9 +215,9 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
-                backgroundColor: AppColors.progressBg,
+                backgroundColor: AppColors.iosFill,
                 valueColor:
-                    const AlwaysStoppedAnimation<Color>(AppColors.progressDone),
+                    const AlwaysStoppedAnimation<Color>(AppColors.iosSuccess),
               ),
             ),
             if (priority != null) ...[
@@ -276,7 +277,7 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         height: 1.3,
-                        color: AppColors.textPrimary,
+                        color: AppColors.iosTextPrimary,
                       ),
                     ),
                     SizedBox(height: 4),
@@ -296,8 +297,8 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                     onPressed: widget.onAddTask,
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.comfortable,
-                      side: const BorderSide(color: AppColors.primary),
-                      foregroundColor: AppColors.primaryDark,
+                      side: const BorderSide(color: AppColors.iosPrimary),
+                      foregroundColor: AppColors.iosPrimaryDark,
                     ),
                     icon: const Icon(Icons.add_rounded, size: 16),
                     label: const Text(
@@ -313,8 +314,8 @@ class _TodayMissionCardState extends State<TodayMissionCard> {
                       onPressed: widget.onOpenAiPlan,
                       style: OutlinedButton.styleFrom(
                         visualDensity: VisualDensity.comfortable,
-                        side: const BorderSide(color: AppColors.blue),
-                        foregroundColor: AppColors.blueDark,
+                        side: const BorderSide(color: AppColors.iosInfo),
+                        foregroundColor: AppColors.iosInfoDark,
                       ),
                       icon: const Icon(Icons.auto_awesome_rounded, size: 15),
                       label: const Text(
@@ -361,9 +362,9 @@ class _PriorityHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.greenSoft.withValues(alpha: 0.6),
+        color: AppColors.iosSuccessSoft.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.iosPrimary.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +384,7 @@ class _PriorityHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppTokens.labelSmall.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDark,
+                          color: AppColors.iosPrimaryDark,
                         ),
                       ),
                     ),
@@ -393,7 +394,7 @@ class _PriorityHeader extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted,
+                        color: AppColors.iosTextMuted,
                       ),
                     ),
                   ],
@@ -405,7 +406,7 @@ class _PriorityHeader extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: AppColors.iosTextSecondary,
                     ),
                   ),
                 ],

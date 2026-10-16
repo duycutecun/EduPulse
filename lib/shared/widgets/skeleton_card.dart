@@ -29,9 +29,9 @@ class SkeletonTaskCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppTokens.space12),
       padding: const EdgeInsets.all(AppTokens.space16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.iosCard,
         borderRadius: AppTokens.brMd,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

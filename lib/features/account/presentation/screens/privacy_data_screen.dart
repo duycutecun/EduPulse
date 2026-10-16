@@ -69,7 +69,7 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
                 Navigator.pop(dialogContext, true);
               }
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.iosError),
             child: const Text('Xoá vĩnh viễn'),
           ),
         ],
@@ -93,11 +93,11 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: const Text('Quyền riêng tư & dữ liệu'),
-        backgroundColor: AppColors.bgPage,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.iosBackground,
+        foregroundColor: AppColors.iosTextPrimary,
         elevation: 0,
       ),
       body: ListView(
@@ -132,13 +132,13 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
             'Bạn có thể yêu cầu xoá toàn bộ dữ liệu cá nhân đã lưu trên máy chủ '
             'bất cứ lúc nào. Dữ liệu học tập cục bộ trên thiết bị không bị ảnh hưởng.',
             style: TextStyle(
-                fontSize: 13, height: 1.4, color: AppColors.textMuted),
+                fontSize: 13, height: 1.4, color: AppColors.iosTextMuted),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _deleting ? null : _confirmDelete,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.red,
+              backgroundColor: AppColors.iosError,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -175,15 +175,15 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
                 'Lưu trên thiết bị này, chỉ ghi hành động (bật/tắt), không ghi '
                 'nội dung học tập.',
                 style: TextStyle(
-                    fontSize: 12, height: 1.4, color: AppColors.textMuted),
+                    fontSize: 12, height: 1.4, color: AppColors.iosTextMuted),
               ),
               const SizedBox(height: 10),
               if (entries.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text('Chưa có thay đổi quyền chia sẻ nào.',
-                      style:
-                          TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.iosTextMuted)),
                 )
               else
                 for (final e in entries.take(30)) _AuditTile(entry: e),
@@ -199,9 +199,9 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
                     TextButton.icon(
                       onPressed: () => ShareAuditLog.clear(),
                       icon: const Icon(Icons.delete_outline_rounded,
-                          size: 18, color: AppColors.red),
+                          size: 18, color: AppColors.iosError),
                       label: const Text('Xoá nhật ký',
-                          style: TextStyle(color: AppColors.red)),
+                          style: TextStyle(color: AppColors.iosError)),
                     ),
                   ],
                 ),
@@ -225,7 +225,7 @@ class _PrivacyDataScreenState extends State<PrivacyDataScreen> {
         style: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary),
+            color: AppColors.iosTextPrimary),
       );
 }
 
@@ -246,7 +246,7 @@ class _RetentionTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.schedule_rounded,
-              size: 18, color: AppColors.primary),
+              size: 18, color: AppColors.iosPrimary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -257,7 +257,7 @@ class _RetentionTile extends StatelessWidget {
                         fontSize: 13.5, fontWeight: FontWeight.w700)),
                 Text(value,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textMuted)),
+                        fontSize: 12, color: AppColors.iosTextMuted)),
               ],
             ),
           ),
@@ -286,32 +286,32 @@ class _AuditTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.edit_note_rounded,
-              size: 18, color: AppColors.primary),
+              size: 18, color: AppColors.iosPrimary),
           const SizedBox(width: 10),
           Expanded(
             child: Text.rich(
               TextSpan(
                 text: '[$stamp] ',
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.iosTextMuted),
                 children: [
                   TextSpan(
                     text: '$label: ',
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary),
+                        color: AppColors.iosTextPrimary),
                   ),
                   TextSpan(
                     text: entry.action,
-                    style:
-                        const TextStyle(fontSize: 13, color: AppColors.primary),
+                    style: const TextStyle(
+                        fontSize: 13, color: AppColors.iosPrimary),
                   ),
                   if (entry.detail != null)
                     TextSpan(
                       text: ' — ${entry.detail}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.textMuted),
+                          fontSize: 12, color: AppColors.iosTextMuted),
                     ),
                 ],
               ),

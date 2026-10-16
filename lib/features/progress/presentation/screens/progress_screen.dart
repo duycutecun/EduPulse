@@ -203,8 +203,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
               Text('Nhìn nhanh tuần này bạn đang tiến bộ thế nào',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 13, color: AppColors.iosTextSecondary)),
             ],
           ),
         ),
@@ -276,9 +276,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.purpleLight,
+        color: AppColors.iosSecondarySoft,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+        border:
+            Border.all(color: AppColors.iosSecondary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -294,7 +295,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 const SizedBox(height: 2),
                 Text(phaseLabel,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
+                        fontSize: 12, color: AppColors.iosTextSecondary)),
               ],
             ),
           ),
@@ -304,10 +305,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: isOver ? AppColors.textMuted : AppColors.purple)),
+                      color: isOver
+                          ? AppColors.iosTextMuted
+                          : AppColors.iosSecondary)),
               Text(isOver ? 'đã thi' : 'ngày',
                   style: const TextStyle(
-                      fontSize: 11, color: AppColors.textMuted)),
+                      fontSize: 11, color: AppColors.iosTextMuted)),
             ],
           ),
         ],
@@ -324,7 +327,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Row(
             children: const [
-              Icon(Icons.today_rounded, size: 18, color: AppColors.primary),
+              Icon(Icons.today_rounded, size: 18, color: AppColors.iosPrimary),
               SizedBox(width: 8),
               Text('Hôm nay',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
@@ -365,10 +368,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 ? '↓ ${-delta}% so với tuần trước'
                 : 'Duy trì như tuần trước';
     final deltaColor = delta == null || delta == 0
-        ? AppColors.textMuted
+        ? AppColors.iosTextMuted
         : delta > 0
-            ? AppColors.primary
-            : AppColors.orange;
+            ? AppColors.iosPrimary
+            : AppColors.iosWarning;
 
     return GlassCard(
       padding: const EdgeInsets.all(18),
@@ -378,7 +381,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Row(
             children: [
               const Icon(Icons.trending_up_rounded,
-                  size: 18, color: AppColors.blue),
+                  size: 18, color: AppColors.iosInfo),
               const SizedBox(width: 8),
               const Text('Tuần này',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
@@ -432,16 +435,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             fontWeight:
                                 isToday ? FontWeight.bold : FontWeight.w500,
                             color: isToday
-                                ? AppColors.primary
-                                : AppColors.textMuted)),
+                                ? AppColors.iosPrimary
+                                : AppColors.iosTextMuted)),
                     const SizedBox(height: 6),
                     Container(
                       width: 22,
                       height: 72 * factor,
                       decoration: BoxDecoration(
                         color: isToday
-                            ? AppColors.primary
-                            : AppColors.blue.withValues(alpha: 0.6),
+                            ? AppColors.iosPrimary
+                            : AppColors.iosInfo.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -452,8 +455,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             fontWeight:
                                 isToday ? FontWeight.bold : FontWeight.normal,
                             color: isToday
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted)),
+                                ? AppColors.iosTextPrimary
+                                : AppColors.iosTextMuted)),
                   ],
                 );
               }),
@@ -483,7 +486,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.blueSoft,
+        color: AppColors.iosInfoSoft,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -493,14 +496,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(Icons.lightbulb_outline_rounded,
-                  size: 16, color: AppColors.blue),
+                  size: 16, color: AppColors.iosInfo),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(interpretation,
                     style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
               ),
             ],
           ),
@@ -509,14 +512,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(Icons.arrow_forward_rounded,
-                  size: 16, color: AppColors.primary),
+                  size: 16, color: AppColors.iosPrimary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text('Bước tiếp theo: $nextStep',
                     style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryDark)),
+                        color: AppColors.iosPrimaryDark)),
               ),
             ],
           ),
@@ -548,7 +551,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Row(
             children: const [
-              Icon(Icons.menu_book_rounded, size: 18, color: AppColors.purple),
+              Icon(Icons.menu_book_rounded,
+                  size: 18, color: AppColors.iosSecondary),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Tiến độ theo môn',
@@ -561,7 +565,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ),
           const SizedBox(height: 6),
           const Text('Thời gian, số bài và mức độ hiểu bài trong tuần',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
           const SizedBox(height: 12),
           if (subjects.isEmpty)
             // UX mục 11 "No progress" + G4-B: không để trống — luôn nói rõ dữ
@@ -625,7 +629,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               ),
               Text('${s.hours.toStringAsFixed(1)}h • ${s.sessionCount} phiên',
                   style: const TextStyle(
-                      fontSize: 11.5, color: AppColors.textMuted)),
+                      fontSize: 11.5, color: AppColors.iosTextMuted)),
             ],
           ),
           const SizedBox(height: 6),
@@ -634,7 +638,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 8,
-              backgroundColor: AppColors.border,
+              backgroundColor: AppColors.iosSeparator,
               valueColor:
                   AlwaysStoppedAnimation<Color>(AppSubjects.colorOf(s.subject)),
             ),
@@ -646,8 +650,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 s.tasksTotal > 0
                     ? '${s.tasksCompleted}/${s.tasksTotal} bài'
                     : '${s.sessionCount} phiên',
-                style:
-                    const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.iosTextMuted),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -659,7 +663,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 11, color: AppColors.textSecondary),
+                      fontSize: 11, color: AppColors.iosTextSecondary),
                 ),
               ),
             ],
@@ -692,20 +696,20 @@ class _ProgressScreenState extends State<ProgressScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.orangeLight,
+        color: AppColors.iosWarningSoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.notifications_active_outlined,
-              size: 16, color: AppColors.orange),
+              size: 16, color: AppColors.iosWarning),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               '$names đã lâu chưa học lại. Thử xếp một phiên ngắn cho môn này nhé.',
               style: const TextStyle(
-                  fontSize: 12, color: AppColors.orangeDark, height: 1.35),
+                  fontSize: 12, color: AppColors.iosWarningDark, height: 1.35),
             ),
           ),
         ],
@@ -721,9 +725,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.purpleSoft.withValues(alpha: 0.6),
+        color: AppColors.iosSecondarySoft.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+        border:
+            Border.all(color: AppColors.iosSecondary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,7 +736,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Row(
             children: [
               const Icon(Icons.auto_awesome_rounded,
-                  size: 18, color: AppColors.purple),
+                  size: 18, color: AppColors.iosSecondary),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text('Nhận định tiến độ',
@@ -758,7 +763,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           PrimaryButton(
             label: _aiInsight != null ? 'Phân tích lại' : 'Hỏi AI phân tích',
             icon: Icons.psychology_outlined,
-            backgroundColor: AppColors.purple,
+            backgroundColor: AppColors.iosSecondary,
             isLoading: _loadingAi,
             onPressed: _loadingAi ? null : _askAi,
             width: double.infinity,
@@ -773,7 +778,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: AppColors.bgPageSoft,
+          color: AppColors.iosFill,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -785,8 +790,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
             const SizedBox(height: 2),
             Text(label,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.iosTextMuted)),
           ],
         ),
       ),

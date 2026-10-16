@@ -227,7 +227,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: _busy
           ? null
           : AppBar(
@@ -242,13 +242,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: _conversationalMode
-                              ? AppColors.purple.withValues(alpha: 0.15)
-                              : AppColors.cardLight,
+                              ? AppColors.iosSecondary.withValues(alpha: 0.15)
+                              : AppColors.iosFill,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: _conversationalMode
-                                ? AppColors.purple
-                                : AppColors.border,
+                                ? AppColors.iosSecondary
+                                : AppColors.iosSeparator,
                             width: 1.2,
                           ),
                         ),
@@ -261,8 +261,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   : Icons.auto_awesome_rounded,
                               size: 15,
                               color: _conversationalMode
-                                  ? AppColors.purple
-                                  : AppColors.textSecondary,
+                                  ? AppColors.iosSecondary
+                                  : AppColors.iosTextSecondary,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -273,8 +273,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: _conversationalMode
-                                    ? AppColors.purple
-                                    : AppColors.textSecondary,
+                                    ? AppColors.iosSecondary
+                                    : AppColors.iosTextSecondary,
                               ),
                             ),
                           ],
@@ -287,7 +287,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   onPressed: _skip,
                   child: const Text('Bỏ qua',
                       style: TextStyle(
-                          color: AppColors.textMuted,
+                          color: AppColors.iosTextMuted,
                           fontWeight: FontWeight.w700)),
                 ),
               ],
@@ -295,7 +295,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: _busy
             ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary))
+                child: CircularProgressIndicator(color: AppColors.iosPrimary))
             : _conversationalMode
                 ? _buildConversationalOnboarding()
                 : AnimatedSwitcher(
@@ -338,11 +338,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: 72,
                   height: 72,
                   decoration: const BoxDecoration(
-                    color: AppColors.greenSoft,
+                    color: AppColors.iosSuccessSoft,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.school_rounded,
-                      color: AppColors.primary, size: 36),
+                      color: AppColors.iosPrimary, size: 36),
                 ),
               ),
             ),
@@ -354,19 +354,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: const TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
           ),
           const SizedBox(height: 6),
           Text(subtitle,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
+                  fontSize: 13,
+                  color: AppColors.iosTextSecondary,
+                  height: 1.4)),
           const SizedBox(height: 4),
           Text('$emoji Bước ${_step + 1}/4',
               style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary)),
+                  color: AppColors.iosPrimary)),
         ],
       ),
     );
@@ -393,15 +395,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.purpleSoft.withValues(alpha: 0.7),
+                  color: AppColors.iosSecondarySoft.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                      color: AppColors.purple.withValues(alpha: 0.3)),
+                      color: AppColors.iosSecondary.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: const [
                     Icon(Icons.auto_awesome_rounded,
-                        color: AppColors.purple, size: 20),
+                        color: AppColors.iosSecondary, size: 20),
                     SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -411,16 +413,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               style: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.purple)),
+                                  color: AppColors.iosSecondary)),
                           Text('Để AI hỏi thăm và tự động tạo lộ trình',
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: AppColors.textSecondary)),
+                                  color: AppColors.iosTextSecondary)),
                         ],
                       ),
                     ),
                     Icon(Icons.arrow_forward_ios_rounded,
-                        size: 13, color: AppColors.purple),
+                        size: 13, color: AppColors.iosSecondary),
                   ],
                 ),
               ),
@@ -436,7 +438,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _nameCtrl,
@@ -510,7 +512,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.event_rounded,
-                                color: AppColors.blue, size: 20),
+                                color: AppColors.iosInfo, size: 20),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -518,11 +520,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary),
+                                    color: AppColors.iosTextPrimary),
                               ),
                             ),
                             const Icon(Icons.edit_rounded,
-                                size: 18, color: AppColors.textMuted),
+                                size: 18, color: AppColors.iosTextMuted),
                           ],
                         ),
                       ),
@@ -532,14 +534,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Row(
                       children: [
                         const Icon(Icons.flag_rounded,
-                            color: AppColors.orange, size: 20),
+                            color: AppColors.iosWarning, size: 20),
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text('Mục tiêu điểm (tùy chọn)',
                               style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary)),
+                                  color: AppColors.iosTextPrimary)),
                         ),
                         Switch.adaptive(
                           value: _targetScore != null,
@@ -605,10 +607,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.iosPrimary : AppColors.iosSeparator,
             width: selected ? 2 : 1.5,
           ),
         ),
@@ -618,7 +620,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               width: 46,
               height: 46,
               decoration: const BoxDecoration(
-                color: AppColors.greenSoft,
+                color: AppColors.iosSuccessSoft,
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -634,19 +636,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                   const SizedBox(height: 2),
                   Text(preset.description,
                       style: const TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: AppColors.iosTextSecondary,
                           height: 1.3)),
                 ],
               ),
             ),
             if (selected)
               const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary, size: 22),
+                  color: AppColors.iosPrimary, size: 22),
           ],
         ),
       ),
@@ -687,11 +689,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 4),
                 const Text('EduPulse sẽ xếp nhiệm vụ tuần đầu vào khoảng này.',
-                    style:
-                        TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
+                    style: TextStyle(
+                        fontSize: 12.5, color: AppColors.iosTextMuted)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -739,15 +741,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       label: Text(label),
       selected: selected,
       onSelected: (_) => setState(() => _preferredSlot = label),
-      selectedColor: AppColors.primaryLight.withValues(alpha: 0.2),
+      selectedColor: AppColors.iosPrimarySoft.withValues(alpha: 0.2),
       side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.border,
+        color: selected ? AppColors.iosPrimary : AppColors.iosSeparator,
         width: 1.5,
       ),
       labelStyle: TextStyle(
         fontSize: 12.5,
         fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-        color: selected ? AppColors.primaryDark : AppColors.textPrimary,
+        color: selected ? AppColors.iosPrimaryDark : AppColors.iosTextPrimary,
       ),
     );
   }
@@ -761,10 +763,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.iosPrimary : AppColors.iosSeparator,
             width: selected ? 2 : 1.5,
           ),
         ),
@@ -774,21 +776,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               selected
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: selected ? AppColors.primary : AppColors.textMuted,
+              color: selected ? AppColors.iosPrimary : AppColors.iosTextMuted,
             ),
             const SizedBox(width: 12),
             Text(label,
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             const Spacer(),
             if (selected)
               const Text('Mỗi ngày',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary)),
+                      color: AppColors.iosPrimary)),
           ],
         ),
       ),
@@ -826,11 +828,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary)),
+                                color: AppColors.iosTextPrimary)),
                         Text(
                           'Còn ${daysLeft > 0 ? daysLeft : 0} ngày • $_dailyMinutes phút/ngày',
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                              fontSize: 12, color: AppColors.iosTextSecondary),
                         ),
                       ],
                     ),
@@ -855,13 +857,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           children: const [
             SizedBox(height: 8),
-            CircularProgressIndicator(color: AppColors.primary),
+            CircularProgressIndicator(color: AppColors.iosPrimary),
             SizedBox(height: 12),
             Text('AI đang lập lộ trình...',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary)),
+                    color: AppColors.iosTextSecondary)),
             SizedBox(height: 8),
           ],
         ),
@@ -879,7 +881,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary),
+                  color: AppColors.iosTextPrimary),
             ),
             const SizedBox(height: 4),
             Text(
@@ -887,8 +889,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ? 'Bạn đang offline — vẫn có thể bắt đầu với nhiệm vụ mẫu.'
                   : 'Bạn vẫn có thể bắt đầu với nhiệm vụ mẫu cho tuần đầu.',
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.iosTextSecondary),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
@@ -920,11 +922,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
+                  color: AppColors.iosTextPrimary)),
           const SizedBox(height: 4),
           const Text(
             'Chạm X để bỏ nhiệm vụ bạn không muốn. Không có thay đổi nào được áp dụng cho tới khi bạn bấm "Bắt đầu".',
-            style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
           ),
           const SizedBox(height: 8),
           for (var i = 0; i < _plan.length; i++) _planRow(i),
@@ -949,7 +951,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: AppColors.blue.withValues(alpha: 0.12),
+              color: AppColors.iosInfo.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
@@ -957,7 +959,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.blue)),
+                      color: AppColors.iosInfo)),
             ),
           ),
           const SizedBox(width: 10),
@@ -969,11 +971,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 Text(
                     '⏱ ${t.estimateMinutes} phút • ${_priorityLabel(t.priority)}',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColors.textMuted)),
+                        fontSize: 11, color: AppColors.iosTextMuted)),
               ],
             ),
           ),
@@ -982,7 +984,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             visualDensity: VisualDensity.comfortable,
             onPressed: () => setState(() => _plan.removeAt(index)),
             icon: const Icon(Icons.close_rounded,
-                size: 18, color: AppColors.textMuted),
+                size: 18, color: AppColors.iosTextMuted),
           ),
         ],
       ),
@@ -1004,12 +1006,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: enabled ? AppColors.primary : AppColors.border,
+          color: enabled ? AppColors.iosPrimary : AppColors.iosSeparator,
           borderRadius: BorderRadius.circular(16),
           boxShadow: enabled
               ? const [
                   BoxShadow(
-                      color: AppColors.primaryDark,
+                      color: AppColors.iosPrimaryDark,
                       blurRadius: 0,
                       offset: Offset(0, 4))
                 ]
@@ -1018,7 +1020,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Center(
           child: Text(label,
               style: TextStyle(
-                  color: enabled ? Colors.white : AppColors.textMuted,
+                  color: enabled ? Colors.white : AppColors.iosTextMuted,
                   fontWeight: FontWeight.w800,
                   fontSize: 14)),
         ),
@@ -1117,14 +1119,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: 34,
                         height: 34,
                         decoration: BoxDecoration(
-                          color: AppColors.purpleSoft,
+                          color: AppColors.iosSecondarySoft,
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: AppColors.purple.withValues(alpha: 0.3)),
+                              color: AppColors.iosSecondary
+                                  .withValues(alpha: 0.3)),
                         ),
                         child: const Center(
                           child: Icon(Icons.school_rounded,
-                              size: 18, color: AppColors.purple),
+                              size: 18, color: AppColors.iosSecondary),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1134,7 +1137,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 11),
                         decoration: BoxDecoration(
-                          color: isAi ? AppColors.cardWhite : AppColors.primary,
+                          color:
+                              isAi ? AppColors.iosCard : AppColors.iosPrimary,
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
@@ -1142,7 +1146,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             bottomRight: Radius.circular(isAi ? 16 : 4),
                           ),
                           border: Border.all(
-                            color: isAi ? AppColors.border : AppColors.primary,
+                            color: isAi
+                                ? AppColors.iosSeparator
+                                : AppColors.iosPrimary,
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -1159,7 +1165,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             height: 1.4,
                             fontWeight:
                                 isAi ? FontWeight.w500 : FontWeight.w700,
-                            color: isAi ? AppColors.textPrimary : Colors.white,
+                            color:
+                                isAi ? AppColors.iosTextPrimary : Colors.white,
                           ),
                         ),
                       ),
@@ -1174,8 +1181,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Container(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             decoration: BoxDecoration(
-              color: AppColors.cardWhite,
-              border: Border(top: BorderSide(color: AppColors.border)),
+              color: AppColors.iosCard,
+              border: Border(top: BorderSide(color: AppColors.iosSeparator)),
             ),
             child: Row(
               children: [
@@ -1190,7 +1197,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           horizontal: 14, vertical: 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: AppColors.border),
+                        borderSide: BorderSide(color: AppColors.iosSeparator),
                       ),
                     ),
                     onSubmitted: _handleChatSubmit,
@@ -1198,7 +1205,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.send_rounded, color: AppColors.purple),
+                  icon: const Icon(Icons.send_rounded,
+                      color: AppColors.iosSecondary),
                   onPressed: () => _handleChatSubmit(_chatInputCtrl.text),
                 ),
               ],
@@ -1234,9 +1242,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         margin: const EdgeInsets.only(top: 8, bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.purpleSoft.withValues(alpha: 0.6),
+          color: AppColors.iosSecondarySoft.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+          border:
+              Border.all(color: AppColors.iosSecondary.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1244,14 +1253,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Row(
               children: [
                 const Icon(Icons.verified_rounded,
-                    color: AppColors.purple, size: 20),
+                    color: AppColors.iosSecondary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Hồ sơ học tập của ${_nameCtrl.text.isEmpty ? "bạn" : _nameCtrl.text}',
                   style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.purple),
+                      color: AppColors.iosSecondary),
                 ),
               ],
             ),
@@ -1273,7 +1282,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.purple,
+                  backgroundColor: AppColors.iosSecondary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -1300,12 +1309,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: options.map((opt) {
           return ActionChip(
             label: Text(opt),
-            backgroundColor: AppColors.cardWhite,
-            side: BorderSide(color: AppColors.purple.withValues(alpha: 0.3)),
+            backgroundColor: AppColors.iosCard,
+            side: BorderSide(
+                color: AppColors.iosSecondary.withValues(alpha: 0.3)),
             labelStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.purple,
+              color: AppColors.iosSecondary,
             ),
             onPressed: () => _handleChatSubmit(opt),
           );

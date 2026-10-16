@@ -98,7 +98,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -172,7 +172,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                       icon: const Icon(Icons.auto_awesome_rounded, size: 18),
                       label: const Text('Tạo 8 thẻ flashcard'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.purple,
+                        backgroundColor: AppColors.iosSecondary,
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -201,7 +201,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: AppColors.purple),
+            CircularProgressIndicator(color: AppColors.iosSecondary),
             SizedBox(height: 16),
             Text('AI đang soạn flashcard...'),
           ],
@@ -226,7 +226,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Đã tạo ${cards.length} thẻ — đến hạn ôn ngay'),
-        backgroundColor: AppColors.purple,
+        backgroundColor: AppColors.iosSecondary,
         behavior: SnackBarBehavior.floating,
       ));
       setState(() {
@@ -246,19 +246,19 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
   Widget build(BuildContext context) {
     final card = _current;
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: Text('Ôn flashcard 🃏',
             style: TextStyle(
-                fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-        backgroundColor: AppColors.cardWhite,
+                fontWeight: FontWeight.w800, color: AppColors.iosTextPrimary)),
+        backgroundColor: AppColors.iosCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             tooltip: 'Sinh thẻ mới bằng AI',
-            icon:
-                const Icon(Icons.auto_awesome_rounded, color: AppColors.purple),
+            icon: const Icon(Icons.auto_awesome_rounded,
+                color: AppColors.iosSecondary),
             onPressed: _generateSheet,
           ),
         ],
@@ -281,9 +281,9 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                   child: LinearProgressIndicator(
                     value: _cards.isEmpty ? 0 : _index / _cards.length,
                     minHeight: 8,
-                    backgroundColor: AppColors.border,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppColors.purple),
+                    backgroundColor: AppColors.iosSeparator,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.iosSecondary),
                   ),
                 ),
               ),
@@ -292,7 +292,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textMuted)),
+                      color: AppColors.iosTextMuted)),
             ],
           ),
           const SizedBox(height: 8),
@@ -301,14 +301,14 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.purpleSoft,
+                color: AppColors.iosSecondarySoft,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(card.subject,
                   style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.purple)),
+                      color: AppColors.iosSecondary)),
             ),
           ),
           // Mặt thẻ
@@ -326,12 +326,13 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.cardWhite,
+                      color: AppColors.iosCard,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.purple, width: 2),
+                      border:
+                          Border.all(color: AppColors.iosSecondary, width: 2),
                       boxShadow: const [
                         BoxShadow(
-                            color: AppColors.purple,
+                            color: AppColors.iosSecondary,
                             blurRadius: 0,
                             offset: Offset(0, 3)),
                       ],
@@ -344,7 +345,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textMuted,
+                              color: AppColors.iosTextMuted,
                               letterSpacing: 1.2),
                         ),
                         const SizedBox(height: 14),
@@ -355,13 +356,13 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               height: 1.5,
-                              color: AppColors.textPrimary),
+                              color: AppColors.iosTextPrimary),
                         ),
                         if (!_showBack) ...[
                           const SizedBox(height: 16),
                           Text('Chạm để lật thẻ 👆',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textMuted)),
+                                  fontSize: 12, color: AppColors.iosTextMuted)),
                         ],
                       ],
                     ),
@@ -375,19 +376,22 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _gradeBtn('Quên', AppColors.red, ReviewGrade.again),
+                  child:
+                      _gradeBtn('Quên', AppColors.iosError, ReviewGrade.again),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _gradeBtn('Khó', AppColors.orange, ReviewGrade.hard),
+                  child:
+                      _gradeBtn('Khó', AppColors.iosWarning, ReviewGrade.hard),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _gradeBtn('Được', AppColors.primary, ReviewGrade.good),
+                  child:
+                      _gradeBtn('Được', AppColors.iosPrimary, ReviewGrade.good),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _gradeBtn('Dễ', AppColors.blue, ReviewGrade.easy),
+                  child: _gradeBtn('Dễ', AppColors.iosInfo, ReviewGrade.easy),
                 ),
               ],
             )
@@ -397,7 +401,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
               child: ElevatedButton(
                 onPressed: () => setState(() => _showBack = true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.purple,
+                  backgroundColor: AppColors.iosSecondary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -444,14 +448,14 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             const SizedBox(height: 8),
             Text(
               'Quên: $_doneAgain · Khó: $_doneHard · Được: $_doneGood · Dễ: $_doneEasy\n'
               'Thẻ khó sẽ quay lại sớm hơn — lịch ôn đã được AI cập nhật.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+                  fontSize: 13, color: AppColors.iosTextSecondary, height: 1.5),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -459,7 +463,7 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.purple,
+                  backgroundColor: AppColors.iosSecondary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -516,14 +520,15 @@ class _NotePicker extends StatelessWidget {
         itemBuilder: (ctx, i) => ListTile(
           dense: true,
           leading: const Icon(Icons.sticky_note_2_rounded,
-              color: AppColors.purple, size: 20),
+              color: AppColors.iosSecondary, size: 20),
           title: Text(notes[i].$1,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style:
                   const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
           subtitle: Text(notes[i].$3,
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+              style:
+                  const TextStyle(fontSize: 11, color: AppColors.iosTextMuted)),
           onTap: () => onPicked(notes[i].$1, notes[i].$2, notes[i].$3),
         ),
       ),

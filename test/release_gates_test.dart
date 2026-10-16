@@ -130,12 +130,16 @@ void main() {
 
     testWidgets('mở chế độ học tập trung từ Hôm nay', (tester) async {
       await pumpShell(tester);
-      // Thẻ thao tác nằm dưới nội dung chính — cuộn tới rồi bấm.
+      // Thẻ thao tác nằm dưới nội dung chính — cuộn tới rồi bấm. Thanh
+      // "Bắt đầu" dán ở đáy màn che hết vùng cuối, nên sau khi ensureVisible
+      // (thẻ có thể đẩy sát đáy khung) cần cuộn thêm để thẻ nằm trên vùng trống.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -700));
       await tester.pump(const Duration(milliseconds: 400));
       final quickAction = find.text('Tập trung').first;
       await tester.ensureVisible(quickAction);
       await tester.pump(const Duration(milliseconds: 200));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(quickAction);
       for (var i = 0; i < 3; i++) {
         await tester.pump(const Duration(milliseconds: 300));

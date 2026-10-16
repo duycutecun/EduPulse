@@ -25,9 +25,9 @@ class StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: AppColors.iosSeparator, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +52,7 @@ class StatCard extends StatelessWidget {
           Text(label,
               style: const TextStyle(
                   fontSize: 12,
-                  color: AppColors.textMuted,
+                  color: AppColors.iosTextMuted,
                   fontWeight: FontWeight.w600)),
         ],
       ),

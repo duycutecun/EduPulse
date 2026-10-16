@@ -505,8 +505,9 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
         SnackBar(
           content:
               Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-          backgroundColor:
-              result.created > 0 ? AppColors.primary : AppColors.textMuted,
+          backgroundColor: result.created > 0
+              ? AppColors.iosPrimary
+              : AppColors.iosTextMuted,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
         ),
@@ -524,7 +525,7 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
       minChildSize: 0.4,
       builder: (ctx, scrollCtrl) => Container(
         decoration: const BoxDecoration(
-          color: AppColors.bgPage,
+          color: AppColors.iosBackground,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
@@ -536,7 +537,7 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                 height: 5,
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.iosSeparator,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -554,7 +555,7 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: AppColors.purple,
+                          color: AppColors.iosSecondary,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.calendar_month_rounded,
@@ -569,10 +570,11 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                                 style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary)),
+                                    color: AppColors.iosTextPrimary)),
                             Text('Xem và chỉnh sửa trước khi áp dụng',
                                 style: TextStyle(
-                                    fontSize: 12, color: AppColors.textMuted)),
+                                    fontSize: 12,
+                                    color: AppColors.iosTextMuted)),
                           ],
                         ),
                       ),
@@ -582,14 +584,14 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.purpleLight,
+                      color: AppColors.iosSecondarySoft,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       widget.plan.summary,
                       style: const TextStyle(
                           fontSize: 13,
-                          color: AppColors.purple,
+                          color: AppColors.iosSecondary,
                           fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -598,18 +600,18 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.orangeLight,
+                        color: AppColors.iosWarningSoft,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         children: [
                           const Icon(Icons.warning_amber_rounded,
-                              color: AppColors.orange, size: 16),
+                              color: AppColors.iosWarning, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(widget.plan.warning!,
                                 style: const TextStyle(
-                                    fontSize: 12, color: AppColors.orange)),
+                                    fontSize: 12, color: AppColors.iosWarning)),
                           ),
                         ],
                       ),
@@ -629,12 +631,12 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const CircularProgressIndicator(
-                              color: AppColors.purple),
+                              color: AppColors.iosSecondary),
                           const SizedBox(height: 16),
                           Text(
                             'Đang thêm $_applyProgress/${_selectedTasks.length} nhiệm vụ...',
                             style: const TextStyle(
-                                fontSize: 14, color: AppColors.textMuted),
+                                fontSize: 14, color: AppColors.iosTextMuted),
                           ),
                         ],
                       ),
@@ -686,7 +688,7 @@ class _AiPlanPreviewSheetState extends State<AiPlanPreviewSheet> {
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.purple,
+                            backgroundColor: AppColors.iosSecondary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -726,10 +728,10 @@ class _TaskPreviewCard extends StatelessWidget {
     final dateStr = '${weekdays[date.weekday]} ${date.day}/${date.month}';
 
     final priorityColor = task.priority == 'high'
-        ? AppColors.red
+        ? AppColors.iosError
         : task.priority == 'medium'
-            ? AppColors.orange
-            : AppColors.textMuted;
+            ? AppColors.iosWarning
+            : AppColors.iosTextMuted;
 
     return AnimatedOpacity(
       opacity: selected ? 1 : 0.45,
@@ -739,12 +741,12 @@ class _TaskPreviewCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: selected ? AppColors.surface : AppColors.bgPageSoft,
+            color: selected ? AppColors.iosCard : AppColors.iosFill,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected
-                  ? AppColors.purple.withValues(alpha: 0.4)
-                  : AppColors.border,
+                  ? AppColors.iosSecondary.withValues(alpha: 0.4)
+                  : AppColors.iosSeparator,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -757,10 +759,12 @@ class _TaskPreviewCard extends StatelessWidget {
                 height: 22,
                 margin: const EdgeInsets.only(top: 1),
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.purple : Colors.transparent,
+                  color: selected ? AppColors.iosSecondary : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: selected ? AppColors.purple : AppColors.border,
+                    color: selected
+                        ? AppColors.iosSecondary
+                        : AppColors.iosSeparator,
                     width: 2,
                   ),
                 ),
@@ -781,8 +785,8 @@ class _TaskPreviewCard extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: selected
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
+                              ? AppColors.iosTextPrimary
+                              : AppColors.iosTextMuted,
                           decoration:
                               selected ? null : TextDecoration.lineThrough,
                         )),
@@ -790,9 +794,10 @@ class _TaskPreviewCard extends StatelessWidget {
                     Wrap(
                       spacing: 6,
                       children: [
-                        _Chip(task.subject, AppColors.blue),
-                        _Chip(dateStr, AppColors.textMuted),
-                        _Chip('${task.estimateMinutes}ph', AppColors.primary),
+                        _Chip(task.subject, AppColors.iosInfo),
+                        _Chip(dateStr, AppColors.iosTextMuted),
+                        _Chip(
+                            '${task.estimateMinutes}ph', AppColors.iosPrimary),
                         if (task.priority != 'low')
                           _Chip(
                             task.priority == 'high' ? '🔴 Cao' : '🟡 TB',
@@ -805,7 +810,7 @@ class _TaskPreviewCard extends StatelessWidget {
                       Text(task.reason!,
                           style: const TextStyle(
                               fontSize: 11,
-                              color: AppColors.textMuted,
+                              color: AppColors.iosTextMuted,
                               fontStyle: FontStyle.italic)),
                     ],
                   ],

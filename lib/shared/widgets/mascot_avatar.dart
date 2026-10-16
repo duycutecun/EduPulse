@@ -177,12 +177,12 @@ class _MascotAvatarState extends State<MascotAvatar> {
   Color _getMoodColor() {
     switch (widget.mood) {
       case MascotMood.focus:
-        return AppColors.blue;
+        return AppColors.iosInfo;
       case MascotMood.excited:
-        return AppColors.orange;
+        return AppColors.iosWarning;
       case MascotMood.relax:
       case MascotMood.idle:
-        return AppColors.primary;
+        return AppColors.iosPrimary;
       case MascotMood.sleepy:
         return const Color(0xFF6C5CE7); // Tím mộng mơ dịu nhẹ
       case MascotMood.celebrate:
@@ -194,12 +194,12 @@ class _MascotAvatarState extends State<MascotAvatar> {
   Color _getMoodShadowColor() {
     switch (widget.mood) {
       case MascotMood.focus:
-        return AppColors.blueDark;
+        return AppColors.iosInfoDark;
       case MascotMood.excited:
-        return AppColors.orangeDark;
+        return AppColors.iosWarningDark;
       case MascotMood.relax:
       case MascotMood.idle:
-        return AppColors.primaryDark;
+        return AppColors.iosPrimaryDark;
       case MascotMood.sleepy:
         return const Color(0xFF4834D4);
       case MascotMood.celebrate:
@@ -288,7 +288,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
                 child: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: AppColors.cardWhite,
+                    color: AppColors.iosCard,
                     shape: BoxShape.circle,
                     border: Border.all(color: moodColor, width: 1.2),
                     boxShadow: [
@@ -314,7 +314,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
                   child: Container(
                     padding: const EdgeInsets.all(2.5),
                     decoration: BoxDecoration(
-                      color: AppColors.cardWhite,
+                      color: AppColors.iosCard,
                       shape: BoxShape.circle,
                       border: Border.all(color: moodColor, width: 1.5),
                       boxShadow: [
@@ -347,7 +347,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.cardWhite,
+                  color: AppColors.iosCard,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: moodColor, width: 1.5),
                   boxShadow: [
@@ -367,7 +367,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: AppColors.iosTextPrimary,
                         height: 1.3,
                       ),
                     ),

@@ -15,7 +15,12 @@ Chạy CI (`.github/workflows/ci.yml`) và cả ba bước dưới đây phải 
 - [x] `dart format --output=none --set-exit-if-changed lib test` — không có tệp
       lệch định dạng. _(2026-10-15: sạch)_
 - [x] `flutter analyze` — không cảnh báo/lỗi. _(2026-10-15: No issues found!)_
-- [x] `flutter test` — toàn bộ test pass. _(2026-10-15: 934 test pass)_
+- [x] `flutter test` — toàn bộ test pass. _(2026-10-16: 968 test pass)_
+      Đợt 2026-10-16 thêm 4 tệp gate mới: `focus_session_ten_minutes_test.dart`
+      (phiên 10 phút + "thêm 10 phút?"), `home_start_session_bar_test.dart`
+      (≤2 chạm tới phiên), `nav_screen_contract_test.dart` (hợp đồng 3 màn ×
+      3 trạng thái — bản thay golden ảnh, xem lý do ở `BAN_THAY_DOI_V2.md` mục B),
+      `rls_coverage_test.dart` (mọi bảng API truy cập đều phải bật RLS).
 - [x] `flutter build web --release` — build web/PWA thành công (smoke).
       _(2026-10-15: `√ Built build\web`)_
 
@@ -59,6 +64,10 @@ Tiêu chí định tính (chốt sau beta, không đặt KPI trên số lượt 
       `supabase/family_v4.sql` (RLS cho `family_goals`/`family_messages`/
       `family_notif_tokens`) và `supabase/email_codes.sql` (DDL + RLS bảng mã OTP).
       _(Bảo mật — phải áp **trước khi** mở beta công khai.)_
+      Phần kiểm được trong repo đã có `test/rls_coverage_test.dart`: mọi bảng API
+      đọc/ghi và mọi bảng `supabase/*.sql` tạo ra đều phải có
+      `enable row level security` — thiếu là test đỏ (đã thử bỏ một dòng RLS và
+      xác nhận đỏ). Việc **áp** lên Supabase vẫn cần người có `service_role`.
 - [x] Đặt `CRON_SECRET` trên Vercel; trần quota để mặc định trong code
       (`AI_DAILY_QUOTA` = 200/uid và `AI_DAILY_QUOTA_ANON` = 40/IP mỗi 24h).
       _(2026-10-15: biến đã thêm cho Production; đã kiểm chứng — thiếu header trả

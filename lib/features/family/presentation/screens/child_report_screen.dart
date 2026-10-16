@@ -185,9 +185,9 @@ class _ChildReportScreenState extends State<ChildReportScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.cardWhite,
+        backgroundColor: AppColors.iosCard,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Column(
@@ -200,7 +200,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               _loading && _updatedAt == null
                   ? 'Tiến độ học tập con chia sẻ'
                   : 'Tiến độ học tập con chia sẻ · ${_clock(_updatedAt)}',
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+              style:
+                  const TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
             ),
           ],
         ),
@@ -248,7 +249,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                         style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textSecondary)),
+                            color: AppColors.iosTextSecondary)),
                   ),
                   if (_reports.isNotEmpty)
                     PopupMenuButton<int>(
@@ -266,13 +267,13 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.filter_list_rounded,
-                              size: 16, color: AppColors.textSecondary),
+                              size: 16, color: AppColors.iosTextSecondary),
                           const SizedBox(width: 4),
                           Text(_rangeLabel,
                               style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textSecondary)),
+                                  color: AppColors.iosTextSecondary)),
                         ],
                       ),
                     ),
@@ -315,7 +316,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
     return GlassCard(
       key: const Key('child-live-card'),
       padding: const EdgeInsets.all(16),
-      borderColor: AppColors.primary,
+      borderColor: AppColors.iosPrimary,
       borderWidth: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,7 +326,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.greenSoft,
+                  color: AppColors.iosSuccessSoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text('CẬP NHẬT TRỰC TIẾP',
@@ -333,7 +334,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.4,
-                        color: AppColors.primaryDark)),
+                        color: AppColors.iosPrimaryDark)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -342,7 +343,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textMuted),
+                      color: AppColors.iosTextMuted),
                 ),
               ),
             ],
@@ -352,7 +353,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
             const Text(
               'Bản cập nhật này không đọc được (dữ liệu thiếu). Nhờ con mở lại '
               'Cửa sổ tin cậy nhé.',
-              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              style:
+                  TextStyle(fontSize: 12.5, color: AppColors.iosTextSecondary),
             )
           else ...[
             Text(
@@ -360,7 +362,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary),
+                  color: AppColors.iosTextSecondary),
             ),
             const SizedBox(height: 6),
             Text(
@@ -369,7 +371,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   fontSize: 13.5,
                   height: 1.45,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary),
+                  color: AppColors.iosTextPrimary),
             ),
             if (report.checkin != null) _checkinBubble(report.checkin!),
             const SizedBox(height: 12),
@@ -381,7 +383,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               'Con chưa cập nhật hôm nay — con có thể đang nghỉ, hoặc chưa mở '
               'app. Số liệu bên dưới là lần cập nhật gần nhất.',
               style: TextStyle(
-                  fontSize: 11.5, height: 1.4, color: AppColors.textMuted),
+                  fontSize: 11.5, height: 1.4, color: AppColors.iosTextMuted),
             ),
           ],
         ],
@@ -408,7 +410,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
     return GlassCard(
       key: Key('child-report-${shared.id}'),
       padding: const EdgeInsets.all(16),
-      borderColor: isLatest ? AppColors.primary : AppColors.border,
+      borderColor: isLatest ? AppColors.iosPrimary : AppColors.iosSeparator,
       borderWidth: isLatest ? 2 : 1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,14 +422,14 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.greenSoft,
+                    color: AppColors.iosSuccessSoft,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text('MỚI NHẤT',
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDark)),
+                          color: AppColors.iosPrimaryDark)),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -437,7 +439,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textMuted),
+                      color: AppColors.iosTextMuted),
                 ),
               ),
             ],
@@ -447,7 +449,8 @@ class _ChildReportScreenState extends State<ChildReportScreen>
             const Text(
               'Báo cáo này không đọc được (dữ liệu cũ hoặc thiếu). '
               'Nhờ con gửi lại báo cáo tuần này nhé.',
-              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              style:
+                  TextStyle(fontSize: 12.5, color: AppColors.iosTextSecondary),
             )
           else ...[
             Text(
@@ -455,7 +458,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
               style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary),
+                  color: AppColors.iosTextSecondary),
             ),
             const SizedBox(height: 6),
             Text(
@@ -464,7 +467,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   fontSize: 13.5,
                   height: 1.45,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary),
+                  color: AppColors.iosTextPrimary),
             ),
             if (report.checkin != null) _checkinBubble(report.checkin!),
             const SizedBox(height: 12),
@@ -483,7 +486,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
         children: [
           const Text('• ',
               style: TextStyle(
-                  fontWeight: FontWeight.w800, color: AppColors.primary)),
+                  fontWeight: FontWeight.w800, color: AppColors.iosPrimary)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,14 +495,14 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted)),
+                        color: AppColors.iosTextMuted)),
                 Text(
                   '${item.value}${item.detail == null ? '' : ' — ${item.detail}'}',
                   style: const TextStyle(
                       fontSize: 13.5,
                       height: 1.3,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
+                      color: AppColors.iosTextPrimary),
                 ),
               ],
             ),
@@ -516,13 +519,13 @@ class _ChildReportScreenState extends State<ChildReportScreen>
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.bgPage,
+        color: AppColors.iosBackground,
         borderRadius: BorderRadius.circular(12),
         border: Border(
-          left: BorderSide(color: AppColors.primary, width: 3),
-          top: const BorderSide(color: AppColors.border),
-          right: const BorderSide(color: AppColors.border),
-          bottom: const BorderSide(color: AppColors.border),
+          left: BorderSide(color: AppColors.iosPrimary, width: 3),
+          top: const BorderSide(color: AppColors.iosSeparator),
+          right: const BorderSide(color: AppColors.iosSeparator),
+          bottom: const BorderSide(color: AppColors.iosSeparator),
         ),
       ),
       child: Row(
@@ -536,7 +539,7 @@ class _ChildReportScreenState extends State<ChildReportScreen>
                   fontSize: 12.5,
                   height: 1.4,
                   fontStyle: FontStyle.italic,
-                  color: AppColors.textPrimary),
+                  color: AppColors.iosTextPrimary),
             ),
           ),
         ],
@@ -573,7 +576,7 @@ class _LiveDot extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: AppColors.greenSoft,
+          color: AppColors.iosSuccessSoft,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -583,7 +586,7 @@ class _LiveDot extends StatelessWidget {
               width: 7,
               height: 7,
               decoration: const BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.iosPrimary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -592,7 +595,7 @@ class _LiveDot extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primaryDark)),
+                    color: AppColors.iosPrimaryDark)),
           ],
         ),
       ),

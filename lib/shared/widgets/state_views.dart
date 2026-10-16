@@ -34,13 +34,13 @@ class EmptyStateView extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: AppColors.iosPrimarySoft,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: AppTokens.iconXl,
-                color: AppColors.primaryDark,
+                color: AppColors.iosPrimaryDark,
               ),
             ),
             const SizedBox(height: AppTokens.space16),
@@ -111,7 +111,7 @@ class EmptyStatePanel extends StatelessWidget {
     this.onAction,
     this.actionKey,
     this.actionIcon,
-    this.accent = AppColors.primary,
+    this.accent = AppColors.iosPrimary,
     this.compact = false,
     this.dense = false,
     this.padding = const EdgeInsets.all(AppTokens.space16),
@@ -123,9 +123,9 @@ class EmptyStatePanel extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.bgPageSoft,
+        color: AppColors.iosFill,
         borderRadius: AppTokens.brMd,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: compact
           ? _compactBody()
@@ -266,22 +266,22 @@ class ErrorStatePanel extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.redLight,
+        color: AppColors.iosErrorSoft,
         borderRadius: AppTokens.brMd,
-        border: Border.all(color: AppColors.red.withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.iosError.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.error_outline_rounded,
-              size: AppTokens.iconSm, color: AppColors.redDark),
+              size: AppTokens.iconSm, color: AppColors.iosErrorDark),
           const SizedBox(width: AppTokens.space8),
           Expanded(
             child: Text(
               message,
               style: AppTokens.bodySubtle.copyWith(
                 fontSize: 12,
-                color: AppColors.redDark,
+                color: AppColors.iosErrorDark,
               ),
             ),
           ),
@@ -298,7 +298,7 @@ class ErrorStatePanel extends StatelessWidget {
               child: Text(
                 retryLabel,
                 style: AppTokens.labelSmall.copyWith(
-                  color: AppColors.redDark,
+                  color: AppColors.iosErrorDark,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -338,20 +338,20 @@ class ErrorStateView extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: const BoxDecoration(
-                color: AppColors.redLight,
+                color: AppColors.iosErrorSoft,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.error_outline_rounded,
                 size: AppTokens.iconXl,
-                color: AppColors.red,
+                color: AppColors.iosError,
               ),
             ),
             const SizedBox(height: AppTokens.space16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: AppTokens.heading2.copyWith(color: AppColors.redDark),
+              style: AppTokens.heading2.copyWith(color: AppColors.iosErrorDark),
             ),
             const SizedBox(height: AppTokens.space8),
             Text(
@@ -431,12 +431,13 @@ class _SkeletonBoxState extends State<SkeletonBox>
   Widget build(BuildContext context) {
     // Giảm chuyển động: giữ một sắc tĩnh, không nhấp nháy.
     if (AppMotion.reduced(context)) {
-      return _box(AppColors.border);
+      return _box(AppColors.iosSeparator);
     }
     return AnimatedBuilder(
       animation: _controller,
       builder: (_, __) => _box(
-        Color.lerp(AppColors.border, AppColors.bgPageSoft, _controller.value)!,
+        Color.lerp(
+            AppColors.iosSeparator, AppColors.iosFill, _controller.value)!,
       ),
     );
   }
@@ -494,7 +495,7 @@ class LoadingStateView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.iosPrimary),
               strokeWidth: 3,
             ),
             if (message != null) ...[

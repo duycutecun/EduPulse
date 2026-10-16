@@ -70,10 +70,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: const Text('Bảng vàng kỷ lục'),
-        backgroundColor: AppColors.bgPage,
+        backgroundColor: AppColors.iosBackground,
         elevation: 0,
       ),
       body: SafeArea(
@@ -106,7 +106,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         const SizedBox(height: 4),
         Text(
           'Bảng vàng chạy hoàn toàn trên thiết bị — không gửi dữ liệu học lên mạng.',
-          style: AppTokens.caption.copyWith(color: AppColors.textSecondary),
+          style: AppTokens.caption.copyWith(color: AppColors.iosTextSecondary),
         ),
       ],
     );
@@ -126,12 +126,12 @@ class _PodiumHeader extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.yellow.withValues(alpha: 0.22),
-            AppColors.primary.withValues(alpha: 0.08),
+            AppColors.iosStreak.withValues(alpha: 0.22),
+            AppColors.iosPrimary.withValues(alpha: 0.08),
           ],
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.yellow.withValues(alpha: 0.6)),
+        border: Border.all(color: AppColors.iosStreak.withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [
@@ -146,7 +146,7 @@ class _PodiumHeader extends StatelessWidget {
                 Text(
                   '${records.totalSessions} phiên · ${formatStudyMinutes(records.totalMinutes)}',
                   style: AppTokens.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.iosTextSecondary,
                   ),
                 ),
               ],
@@ -170,10 +170,10 @@ class _RecordCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: highlight ? AppColors.yellow : AppColors.border,
+          color: highlight ? AppColors.iosStreak : AppColors.iosSeparator,
           width: highlight ? 1.6 : 1,
         ),
       ),
@@ -185,8 +185,8 @@ class _RecordCard extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: highlight
-                  ? AppColors.yellow.withValues(alpha: 0.18)
-                  : AppColors.bgPageSoft,
+                  ? AppColors.iosStreak.withValues(alpha: 0.18)
+                  : AppColors.iosFill,
               shape: BoxShape.circle,
             ),
             child: Text(record.emoji, style: const TextStyle(fontSize: 20)),
@@ -204,7 +204,7 @@ class _RecordCard extends StatelessWidget {
                   Text(
                     record.detail!,
                     style: AppTokens.caption
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: AppColors.iosTextSecondary),
                   ),
               ],
             ),
@@ -214,7 +214,7 @@ class _RecordCard extends StatelessWidget {
             record.value,
             style: AppTokens.body.copyWith(
               fontWeight: FontWeight.w800,
-              color: highlight ? AppColors.yellowDark : AppColors.primary,
+              color: highlight ? AppColors.iosStreak : AppColors.iosPrimary,
             ),
           ),
         ],

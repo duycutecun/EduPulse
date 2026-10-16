@@ -105,7 +105,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.border, width: 2),
+        side: BorderSide(color: AppColors.iosSeparator, width: 2),
       ),
       title: const Text('Thêm nhiệm vụ',
           style: TextStyle(fontWeight: FontWeight.w800)),
@@ -144,10 +144,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: sel ? color : AppColors.bgPage,
+                      color: sel ? color : AppColors.iosBackground,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: sel ? color : AppColors.border,
+                        color: sel ? color : AppColors.iosSeparator,
                         width: 2,
                       ),
                     ),
@@ -155,7 +155,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       subject.plainName,
                       style: TextStyle(
                         fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textPrimary,
+                        color: sel ? Colors.white : AppColors.iosTextPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -235,10 +235,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: sel ? AppColors.blue : AppColors.bgPage,
+                      color: sel ? AppColors.iosInfo : AppColors.iosBackground,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: sel ? AppColors.blue : AppColors.border,
+                        color: sel ? AppColors.iosInfo : AppColors.iosSeparator,
                         width: 2,
                       ),
                     ),
@@ -246,7 +246,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       '$dur phút',
                       style: TextStyle(
                         fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textPrimary,
+                        color: sel ? Colors.white : AppColors.iosTextPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -269,10 +269,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: sel ? AppColors.orange : AppColors.bgPage,
+                      color:
+                          sel ? AppColors.iosWarning : AppColors.iosBackground,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: sel ? AppColors.orange : AppColors.border,
+                        color:
+                            sel ? AppColors.iosWarning : AppColors.iosSeparator,
                         width: 2,
                       ),
                     ),
@@ -280,7 +282,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       e.value,
                       style: TextStyle(
                         fontSize: 12,
-                        color: sel ? Colors.white : AppColors.textPrimary,
+                        color: sel ? Colors.white : AppColors.iosTextPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -294,13 +296,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+          child: Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted)),
         ),
         TextButton(
           onPressed: _submit,
           child: const Text('Thêm',
               style: TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w800)),
+                  color: AppColors.iosPrimary, fontWeight: FontWeight.w800)),
         ),
       ],
     );

@@ -117,11 +117,11 @@ class _AchievementShareScreenState extends State<AchievementShareScreen> {
     final data = _data;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPageSoft,
+      backgroundColor: AppColors.iosFill,
       appBar: AppBar(
         title: const Text('Ảnh thành tựu tuần',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
-        backgroundColor: AppColors.cardWhite,
+        backgroundColor: AppColors.iosCard,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
@@ -147,7 +147,7 @@ class _AchievementShareScreenState extends State<AchievementShareScreen> {
               'Học xong một phiên tập trung hoặc hoàn thành một nhiệm vụ rồi '
               'quay lại — ảnh thành tựu sẽ có số liệu thật của bạn.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: AppColors.iosTextSecondary),
             ),
             const SizedBox(height: 18),
             SizedBox(
@@ -156,7 +156,7 @@ class _AchievementShareScreenState extends State<AchievementShareScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).maybePop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.iosPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -221,9 +221,9 @@ class _AchievementShareScreenState extends State<AchievementShareScreen> {
                     child: OutlinedButton(
                       onPressed: _busy ? null : _copyCaption,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textPrimary,
-                        side:
-                            const BorderSide(color: AppColors.border, width: 2),
+                        foregroundColor: AppColors.iosTextPrimary,
+                        side: const BorderSide(
+                            color: AppColors.iosSeparator, width: 2),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
@@ -241,7 +241,7 @@ class _AchievementShareScreenState extends State<AchievementShareScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _busy ? null : _shareImage,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.iosPrimary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(

@@ -64,8 +64,8 @@ class ActiveStudySession {
     required this.startedAt,
     this.round = 1,
     this.isBreak = false,
-  }) : pausedAccumMs =
-            pausedAccumMs ?? (totalSeconds - remainingAtAnchor).clamp(
+  }) : pausedAccumMs = pausedAccumMs ??
+            (totalSeconds - remainingAtAnchor).clamp(
               0,
               totalSeconds,
             ) {
@@ -163,7 +163,8 @@ class ActiveStudySession {
         taskTitle: json['taskTitle'],
         subject: json['subject'] ?? '',
         totalSeconds: json['totalSeconds'] ?? 0,
-        pausedAccumMs: json['pausedAccumMs'], // null ok → derive from remainingAtAnchor
+        pausedAccumMs:
+            json['pausedAccumMs'], // null ok → derive from remainingAtAnchor
         remainingAtAnchor: json['remainingAtAnchor'] ?? 0,
         anchorAt: DateTime.tryParse(json['anchorAt'] ?? ''),
         startedAt: DateTime.tryParse(json['startedAt'] ?? '') ?? DateTime.now(),

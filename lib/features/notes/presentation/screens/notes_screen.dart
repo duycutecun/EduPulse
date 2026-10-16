@@ -104,14 +104,14 @@ class _NotesScreenState extends State<NotesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.bgPage,
+        backgroundColor: AppColors.iosBackground,
         appBar: AppBar(
           title: const Text('Ghi chú',
               style: TextStyle(fontWeight: FontWeight.w800)),
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _openEditor,
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.iosPrimary,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.edit_note_rounded),
           label: const Text('Ghi chú mới'),
@@ -150,7 +150,7 @@ class _NotesScreenState extends State<NotesScreen> {
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
                             decoration: BoxDecoration(
-                                color: AppColors.red,
+                                color: AppColors.iosError,
                                 borderRadius: BorderRadius.circular(18)),
                             child: const Icon(Icons.delete_outline_rounded,
                                 color: Colors.white)),
@@ -176,7 +176,7 @@ class _NotesScreenState extends State<NotesScreen> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                          color: AppColors.textSecondary))
+                                          color: AppColors.iosTextSecondary))
                                 ],
                                 if (note.tags.isNotEmpty) ...[
                                   const SizedBox(height: 9),
@@ -195,7 +195,8 @@ class _NotesScreenState extends State<NotesScreen> {
                                   const SizedBox(height: 10),
                                   Wrap(spacing: 6, runSpacing: 5, children: [
                                     const Icon(Icons.auto_awesome_rounded,
-                                        size: 13, color: AppColors.purple),
+                                        size: 13,
+                                        color: AppColors.iosSecondary),
                                     ...related.map((link) => InkWell(
                                           onTap: () => _openEditor(link.note),
                                           borderRadius:
@@ -204,7 +205,8 @@ class _NotesScreenState extends State<NotesScreen> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 7, vertical: 4),
                                             decoration: BoxDecoration(
-                                                color: AppColors.purpleSoft,
+                                                color:
+                                                    AppColors.iosSecondarySoft,
                                                 borderRadius:
                                                     BorderRadius.circular(8)),
                                             child: Text(
@@ -213,7 +215,8 @@ class _NotesScreenState extends State<NotesScreen> {
                                                 style: const TextStyle(
                                                     fontSize: 10.5,
                                                     fontWeight: FontWeight.w700,
-                                                    color: AppColors.purple)),
+                                                    color: AppColors
+                                                        .iosSecondary)),
                                           ),
                                         )),
                                   ]),
@@ -226,15 +229,16 @@ class _NotesScreenState extends State<NotesScreen> {
                                   Wrap(spacing: 6, children: [
                                     if (note.taskId != null)
                                       const Icon(Icons.link_rounded,
-                                          size: 13, color: AppColors.blue),
+                                          size: 13, color: AppColors.iosInfo),
                                     if (note.subject != null)
                                       Text(note.subject!,
                                           style: const TextStyle(
                                               fontSize: 11,
-                                              color: AppColors.textSecondary)),
+                                              color:
+                                                  AppColors.iosTextSecondary)),
                                     if (note.imageBase64 != null)
                                       const Icon(Icons.image_rounded,
-                                          size: 13, color: AppColors.blue),
+                                          size: 13, color: AppColors.iosInfo),
                                   ]),
                                 ],
                               ]),

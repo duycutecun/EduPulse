@@ -86,7 +86,7 @@ class _MainShellScreenState extends State<MainShellScreen>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(report.userMessage ??
             'Đã khôi phục dữ liệu nguyên trạng — không có gì bị mất.'),
-        backgroundColor: AppColors.orangeDark,
+        backgroundColor: AppColors.iosWarningDark,
       ));
     });
     PwaService.onlineNotifier.addListener(_onNetworkChanged);
@@ -406,7 +406,7 @@ class _MainShellScreenState extends State<MainShellScreen>
     if (isWide) {
       final collapsed = isDesktop ? _sidebarCollapsed : !_tabletSidebarExpanded;
       return Scaffold(
-        backgroundColor: AppColors.bgPage,
+        backgroundColor: AppColors.iosBackground,
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -475,7 +475,7 @@ class _MainShellScreenState extends State<MainShellScreen>
 
     // Mobile/tablet: bottom navigation chuẩn 4 tab của EduPulse v2.
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       body: SafeArea(
         bottom: false,
         child: Column(

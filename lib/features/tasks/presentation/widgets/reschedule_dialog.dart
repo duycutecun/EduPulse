@@ -82,7 +82,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
         right: AppTokens.space20,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.vertical(top: AppTokens.rXl),
       ),
       child: SingleChildScrollView(
@@ -96,7 +96,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.iosSeparator,
                   borderRadius: AppTokens.brFull,
                 ),
               ),
@@ -111,7 +111,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
             Text(
               widget.task.title,
               style: AppTokens.bodySubtle.copyWith(
-                color: AppColors.textPrimary,
+                color: AppColors.iosTextPrimary,
                 fontWeight: FontWeight.w600,
               ),
               maxLines: 1,
@@ -124,10 +124,10 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
               Container(
                 padding: const EdgeInsets.all(AppTokens.space12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
+                  color: AppColors.iosWarning.withValues(alpha: 0.1),
                   borderRadius: AppTokens.brMd,
                   border: Border.all(
-                    color: AppColors.warning.withValues(alpha: 0.4),
+                    color: AppColors.iosWarning.withValues(alpha: 0.4),
                   ),
                 ),
                 child: Column(
@@ -137,7 +137,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                       children: [
                         const Icon(
                           Icons.info_outline_rounded,
-                          color: AppColors.warning,
+                          color: AppColors.iosWarning,
                           size: 18,
                         ),
                         const SizedBox(width: AppTokens.space8),
@@ -146,7 +146,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                             'Nhiệm vụ này đã dời ${widget.task.rescheduleCount} lần',
                             style: AppTokens.body.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.warning,
+                              color: AppColors.iosWarning,
                             ),
                           ),
                         ),
@@ -156,7 +156,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                     Text(
                       'Bài học có thể đang hơi dài (${widget.task.estimateMinutes} phút). Bạn có muốn chia nhỏ bài học thành các phần 25 phút để dễ hoàn thành hơn không?',
                       style: AppTokens.bodySubtle.copyWith(
-                        color: AppColors.textPrimary,
+                        color: AppColors.iosTextPrimary,
                       ),
                     ),
                     if (widget.onSplitWithAi != null ||
@@ -203,22 +203,22 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
               Container(
                 padding: const EdgeInsets.all(AppTokens.space10),
                 decoration: BoxDecoration(
-                  color: AppColors.red.withValues(alpha: 0.1),
+                  color: AppColors.iosError.withValues(alpha: 0.1),
                   borderRadius: AppTokens.brMd,
                   border: Border.all(
-                    color: AppColors.red.withValues(alpha: 0.3),
+                    color: AppColors.iosError.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber_rounded,
-                        color: AppColors.red, size: 18),
+                        color: AppColors.iosError, size: 18),
                     const SizedBox(width: AppTokens.space8),
                     Expanded(
                       child: Text(
                         'Ngày chọn sau hạn chót (${deadline.day}/${deadline.month}). Vui lòng cân nhắc!',
                         style: AppTokens.caption.copyWith(
-                          color: AppColors.red,
+                          color: AppColors.iosError,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -263,13 +263,13 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                   vertical: AppTokens.space10,
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: AppColors.iosSeparator),
                   borderRadius: AppTokens.brMd,
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.calendar_today_rounded,
-                        size: 16, color: AppColors.primary),
+                        size: 16, color: AppColors.iosPrimary),
                     const SizedBox(width: AppTokens.space8),
                     Expanded(
                       child: Text(
@@ -280,7 +280,7 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                     ),
                     const Text('Đổi',
                         style: TextStyle(
-                            color: AppColors.primary,
+                            color: AppColors.iosPrimary,
                             fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -307,11 +307,11 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
                     onSelected: (_) => setState(
                         () => _reason = _reason == reason ? null : reason),
                     selectedColor:
-                        AppColors.primaryLight.withValues(alpha: 0.2),
+                        AppColors.iosPrimarySoft.withValues(alpha: 0.2),
                     side: BorderSide(
                       color: _reason == reason
-                          ? AppColors.primary
-                          : AppColors.border,
+                          ? AppColors.iosPrimary
+                          : AppColors.iosSeparator,
                     ),
                   ),
               ],
@@ -369,11 +369,11 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primaryLight.withValues(alpha: 0.15)
+                ? AppColors.iosPrimarySoft.withValues(alpha: 0.15)
                 : Colors.transparent,
             borderRadius: AppTokens.brMd,
             border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.border,
+              color: isSelected ? AppColors.iosPrimary : AppColors.iosSeparator,
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -381,7 +381,9 @@ class _RescheduleDialogState extends State<RescheduleDialog> {
             label,
             style: AppTokens.caption.copyWith(
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
+              color: isSelected
+                  ? AppColors.iosPrimaryDark
+                  : AppColors.iosTextPrimary,
             ),
           ),
         ),

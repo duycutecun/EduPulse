@@ -72,11 +72,11 @@ class _CloudAiCardState extends State<CloudAiCard> {
                 tileSize: 36,
                 iconSize: 18,
                 color: cloudReady || aiReady
-                    ? AppColors.primary
-                    : AppColors.orange,
+                    ? AppColors.iosPrimary
+                    : AppColors.iosWarning,
                 bg: cloudReady || aiReady
-                    ? AppColors.greenSoft
-                    : AppColors.orangeSoft,
+                    ? AppColors.iosSuccessSoft
+                    : AppColors.iosWarningSoft,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -87,7 +87,7 @@ class _CloudAiCardState extends State<CloudAiCard> {
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: AppColors.iosTextPrimary)),
                     const SizedBox(height: 2),
                     Text(
                       'Database: ${cloudReady ? 'đã kết nối' : 'chưa cấu hình'} • '
@@ -95,8 +95,8 @@ class _CloudAiCardState extends State<CloudAiCard> {
                       style: TextStyle(
                           fontSize: 11.5,
                           color: cloudReady && aiReady
-                              ? AppColors.textSecondary
-                              : AppColors.orangeDark),
+                              ? AppColors.iosTextSecondary
+                              : AppColors.iosWarningDark),
                     ),
                   ],
                 ),
@@ -114,7 +114,7 @@ class _CloudAiCardState extends State<CloudAiCard> {
               'Dán cấu hình của bạn vào đây. Khoá AI lưu trong kho an toàn '
               'của thiết bị (Keychain/Keystore), không gửi tới server nào khác.',
               style: TextStyle(
-                  fontSize: 11.5, height: 1.35, color: AppColors.textMuted),
+                  fontSize: 11.5, height: 1.35, color: AppColors.iosTextMuted),
             ),
             const SizedBox(height: 12),
             _field(
@@ -166,8 +166,8 @@ class _CloudAiCardState extends State<CloudAiCard> {
                   key: const Key('cloud-ai-clear'),
                   onPressed: _clearAll,
                   child: const Text('Xoá khoá đã dán',
-                      style:
-                          TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.iosTextMuted)),
                 ),
               ],
             ),
@@ -179,11 +179,11 @@ class _CloudAiCardState extends State<CloudAiCard> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.iosPrimary,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: const [
                     BoxShadow(
-                        color: AppColors.primaryDark,
+                        color: AppColors.iosPrimaryDark,
                         blurRadius: 0,
                         offset: Offset(0, 3)),
                   ],
@@ -205,7 +205,7 @@ class _CloudAiCardState extends State<CloudAiCard> {
                   : 'Thiết bị này chưa kết nối được máy chủ EduPulse. Dán key '
                       'của bạn để dùng AI.',
               style: const TextStyle(
-                  fontSize: 11, height: 1.35, color: AppColors.textMuted),
+                  fontSize: 11, height: 1.35, color: AppColors.iosTextMuted),
             ),
           ],
         ],
@@ -227,7 +227,7 @@ class _CloudAiCardState extends State<CloudAiCard> {
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
+                color: AppColors.iosTextPrimary)),
         const SizedBox(height: 4),
         TextField(
           key: key,

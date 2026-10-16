@@ -6,7 +6,7 @@ import '../../../../core/utils/auth_service.dart';
 import '../../../../core/utils/storage_service.dart';
 
 /// Accent xanh lá chủ đạo từ theme app.
-const Color _kAccent = AppColors.primary;
+const Color _kAccent = AppColors.iosPrimary;
 
 /// Bảng màu theo style "Stratis UI — Login modals": card trắng bo tròn nằm
 /// giữa, tab đổi Đăng nhập / Đăng ký ở đầu modal, input nền xám nhạt, nút pill.
@@ -107,7 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
             Expanded(child: Text(msg)),
           ],
         ),
-        backgroundColor: isSuccess ? _kAccent : AppColors.red,
+        backgroundColor: isSuccess ? _kAccent : AppColors.iosError,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

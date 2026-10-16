@@ -25,8 +25,8 @@ class LearningProfileEntry extends StatelessWidget {
             Icons.person_search_rounded,
             tileSize: 36,
             iconSize: 18,
-            color: AppColors.purple,
-            bg: AppColors.purpleSoft,
+            color: AppColors.iosSecondary,
+            bg: AppColors.iosSecondarySoft,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -37,18 +37,18 @@ class LearningProfileEntry extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 2),
                 Text(
                   'Nhịp học EduPulse đã hiểu về bạn — và bạn có thể chỉnh lại.',
-                  style:
-                      TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 11.5, color: AppColors.iosTextSecondary),
                 ),
               ],
             ),
           ),
           const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textMuted, size: 20),
+              color: AppColors.iosTextMuted, size: 20),
         ],
       ),
     );
@@ -72,8 +72,8 @@ class FamilyReportEntry extends StatelessWidget {
             Icons.family_restroom_rounded,
             tileSize: 36,
             iconSize: 18,
-            color: AppColors.green,
-            bg: AppColors.greenSoft,
+            color: AppColors.iosSuccess,
+            bg: AppColors.iosSuccessSoft,
           ),
           const SizedBox(width: 10),
           const Expanded(
@@ -84,18 +84,19 @@ class FamilyReportEntry extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 SizedBox(height: 2),
                 Text(
                     'Liên kết tài khoản ba mẹ, gửi báo cáo tuần và ảnh thành tựu — con chọn gì, gia đình thấy nấy',
                     style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: AppColors.iosTextSecondary,
                         height: 1.35)),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+          const Icon(Icons.chevron_right_rounded,
+              color: AppColors.iosTextMuted),
         ],
       ),
     );
@@ -131,8 +132,8 @@ class ParentModeEntry extends StatelessWidget {
                 Icons.supervisor_account_rounded,
                 tileSize: 36,
                 iconSize: 18,
-                color: AppColors.purple,
-                bg: AppColors.purpleSoft,
+                color: AppColors.iosSecondary,
+                bg: AppColors.iosSecondarySoft,
               ),
               const SizedBox(width: 10),
               const Expanded(
@@ -143,12 +144,12 @@ class ParentModeEntry extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: AppColors.iosTextPrimary)),
                     SizedBox(height: 2),
                     Text(
                         'Bật để chuyển sang màn phụ huynh — xem tiến độ con đã gửi',
                         style: TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary)),
+                            fontSize: 12, color: AppColors.iosTextSecondary)),
                   ],
                 ),
               ),
@@ -157,7 +158,7 @@ class ParentModeEntry extends StatelessWidget {
                 // Màn này chỉ hiện ở chế độ học sinh, nên công tắc luôn TẮT —
                 // bật là chuyển vai ngay (đúng ngữ nghĩa "vào/ra").
                 value: false,
-                activeThumbColor: AppColors.purple,
+                activeThumbColor: AppColors.iosSecondary,
                 onChanged: (v) {
                   if (v) onEnterParentMode();
                 },
@@ -172,14 +173,14 @@ class ParentModeEntry extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
           ),
           Text(
             'Điểm thi thử, đếm ngược kỳ thi, thời gian tập trung và chỉ số sẵn '
             'sàng — cập nhật liên tục. Mở "Cửa sổ tin cậy" bên dưới để liên kết '
             'hoặc tạm dừng chia sẻ.',
             style: TextStyle(
-                fontSize: 11.5, height: 1.35, color: AppColors.textMuted),
+                fontSize: 11.5, height: 1.35, color: AppColors.iosTextMuted),
           ),
         ],
       ),

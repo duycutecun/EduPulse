@@ -57,7 +57,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -76,8 +76,8 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Giá trị bạn đặt sẽ được ưu tiên thay vì suy luận của AI.',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.iosTextSecondary),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -105,7 +105,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                         onPressed: () =>
                             Navigator.pop(sheetContext, controller.text.trim()),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: AppColors.iosPrimary,
                           foregroundColor: Colors.white,
                           elevation: 0,
                         ),
@@ -119,7 +119,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                   TextButton(
                     onPressed: () => Navigator.pop(sheetContext, ''),
                     style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textMuted),
+                        foregroundColor: AppColors.iosTextMuted),
                     child:
                         const Text('Xóa giá trị tự chỉnh — dùng suy luận AI'),
                   ),
@@ -144,7 +144,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
     final traits = _buildTraits();
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: const Text('Hồ sơ học tập',
             style: TextStyle(fontWeight: FontWeight.w800)),
@@ -157,7 +157,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.person_search_rounded,
-                        size: 44, color: AppColors.textMuted),
+                        size: 44, color: AppColors.iosTextMuted),
                     const SizedBox(height: 10),
                     const Text('Chưa có đủ dữ liệu để suy luận',
                         style: TextStyle(
@@ -167,7 +167,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                       'Học vài phiên Focus (kèm phản hồi) và lên kế hoạch nhiệm vụ — EduPulse sẽ dần hiểu nhịp học của bạn.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 13, color: AppColors.textSecondary),
+                          fontSize: 13, color: AppColors.iosTextSecondary),
                     ),
                   ],
                 ),
@@ -183,7 +183,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                   child: Row(
                     children: [
                       const Icon(Icons.psychology_rounded,
-                          color: AppColors.purple, size: 22),
+                          color: AppColors.iosSecondary, size: 22),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -191,7 +191,7 @@ class _LearningProfileScreenState extends State<LearningProfileScreen> {
                           style: TextStyle(
                               fontSize: 12.5,
                               height: 1.4,
-                              color: AppColors.textSecondary),
+                              color: AppColors.iosTextSecondary),
                         ),
                       ),
                     ],
@@ -225,11 +225,11 @@ class _TraitCard extends StatelessWidget {
   Color get _confidenceColor {
     switch (trait.confidence) {
       case Confidence.high:
-        return AppColors.primary;
+        return AppColors.iosPrimary;
       case Confidence.medium:
-        return AppColors.blue;
+        return AppColors.iosInfo;
       case Confidence.low:
-        return AppColors.orange;
+        return AppColors.iosWarning;
     }
   }
 
@@ -247,7 +247,7 @@ class _TraitCard extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textSecondary)),
+                        color: AppColors.iosTextSecondary)),
               ),
               // Chip confidence: phân biệt fact vs inference (mục 10.7).
               Container(
@@ -270,7 +270,7 @@ class _TraitCard extends StatelessWidget {
               GestureDetector(
                 onTap: onEdit,
                 child: const Icon(Icons.edit_rounded,
-                    size: 17, color: AppColors.textMuted),
+                    size: 17, color: AppColors.iosTextMuted),
               ),
             ],
           ),
@@ -279,11 +279,11 @@ class _TraitCard extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
+                  color: AppColors.iosTextPrimary)),
           const SizedBox(height: 4),
           Text(trait.evidence,
               style: TextStyle(
-                  fontSize: 11.5, height: 1.35, color: AppColors.textMuted)),
+                  fontSize: 11.5, height: 1.35, color: AppColors.iosTextMuted)),
         ],
       ),
     );

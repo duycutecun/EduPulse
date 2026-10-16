@@ -115,7 +115,7 @@ class _SearchScreenState extends State<SearchScreen> {
         final when = task.scheduledAt ?? task.deadline;
         hits.add(_SearchHit(
           icon: Icons.checklist_rounded,
-          color: AppColors.primary,
+          color: AppColors.iosPrimary,
           title: task.title,
           subtitle:
               '${task.subject} • ${task.estimateMinutes} phút${when != null ? ' • ${when.day}/${when.month}' : ''}',
@@ -132,7 +132,7 @@ class _SearchScreenState extends State<SearchScreen> {
       if (haystack.contains(q)) {
         hits.add(_SearchHit(
           icon: Icons.flag_rounded,
-          color: AppColors.orange,
+          color: AppColors.iosWarning,
           title: exam.name,
           subtitle:
               'Mục tiêu • ${exam.dateTime.day}/${exam.dateTime.month}${exam.targetScore != null ? ' • target ${exam.targetScore!.toStringAsFixed(1)}' : ''}',
@@ -149,7 +149,7 @@ class _SearchScreenState extends State<SearchScreen> {
       if (haystack.contains(q)) {
         hits.add(_SearchHit(
           icon: Icons.sticky_note_2_outlined,
-          color: AppColors.blue,
+          color: AppColors.iosInfo,
           title: note.title.isEmpty ? 'Chưa có tiêu đề' : note.title,
           subtitle: note.body,
           section: 'Ghi chú',
@@ -163,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> {
       if (haystack.contains(q)) {
         hits.add(_SearchHit(
           icon: Icons.timer_outlined,
-          color: AppColors.purple,
+          color: AppColors.iosSecondary,
           title: 'Focus ${s.subject}',
           subtitle:
               '${s.actualMinutes} phút • ${s.completedAt.day}/${s.completedAt.month}${s.reflectionNote != null ? ' • ${s.reflectionNote}' : ''}',
@@ -182,7 +182,7 @@ class _SearchScreenState extends State<SearchScreen> {
           _aiConversation!.substring(start, end).replaceAll('\n', ' ').trim();
       hits.add(_SearchHit(
         icon: Icons.auto_awesome_rounded,
-        color: AppColors.purple,
+        color: AppColors.iosSecondary,
         title: 'Trong hội thoại AI',
         subtitle: snippet,
         section: 'Hội thoại AI',
@@ -204,7 +204,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
           title: const Text('Tìm kiếm',
               style: TextStyle(fontWeight: FontWeight.w800))),
@@ -277,7 +277,7 @@ class _NoResults extends StatelessWidget {
         padding: const EdgeInsets.all(32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.search_off_rounded,
-              size: 44, color: AppColors.textMuted),
+              size: 44, color: AppColors.iosTextMuted),
           const SizedBox(height: 10),
           const Text('Không tìm thấy kết quả phù hợp.',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
@@ -287,7 +287,7 @@ class _NoResults extends StatelessWidget {
                 ? 'Thử chỉ tìm "$suggestion" hoặc từ khóa ngắn hơn.'
                 : 'Thử từ khóa khác, ví dụ tên môn hoặc chủ đề cụ thể hơn.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: const TextStyle(color: AppColors.iosTextSecondary),
           ),
         ]),
       ),
@@ -303,5 +303,5 @@ class _SearchSection extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8, top: 4),
       child: Text(label,
           style: const TextStyle(
-              fontWeight: FontWeight.w800, color: AppColors.textSecondary)));
+              fontWeight: FontWeight.w800, color: AppColors.iosTextSecondary)));
 }

@@ -32,8 +32,8 @@ class NativeExperienceCard extends StatelessWidget {
                 Icons.smartphone_rounded,
                 tileSize: 36,
                 iconSize: 18,
-                color: AppColors.blue,
-                bg: AppColors.blueSoft,
+                color: AppColors.iosInfo,
+                bg: AppColors.iosInfoSoft,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -44,12 +44,12 @@ class NativeExperienceCard extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: AppColors.iosTextPrimary)),
                     const SizedBox(height: 2),
                     Text(
                       'Đang chạy trên: ${PlatformCapabilities.platformLabel}',
                       style: const TextStyle(
-                          fontSize: 11.5, color: AppColors.textSecondary),
+                          fontSize: 11.5, color: AppColors.iosTextSecondary),
                     ),
                   ],
                 ),
@@ -65,14 +65,14 @@ class NativeExperienceCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.blueLight,
+                color: AppColors.iosInfoSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text(
                 'Bạn đang dùng bản web. Cài app EduPulse để có nhắc học offline, '
                 'widget màn hình chính và rung phản hồi.',
                 style: TextStyle(
-                    fontSize: 11.5, height: 1.35, color: AppColors.blueDark),
+                    fontSize: 11.5, height: 1.35, color: AppColors.iosInfoDark),
               ),
             ),
           ],
@@ -158,7 +158,7 @@ class NativeExperienceCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 11,
                           height: 1.35,
-                          color: AppColors.textMuted),
+                          color: AppColors.iosTextMuted),
                     ),
                   ),
               ],
@@ -172,13 +172,13 @@ class NativeExperienceCard extends StatelessWidget {
   static (String, Color) _statusOf(FeatureAvailability availability) {
     switch (availability) {
       case FeatureAvailability.available:
-        return ('Đang chạy', AppColors.primary);
+        return ('Đang chạy', AppColors.iosPrimary);
       case FeatureAvailability.webFallback:
-        return ('Bản web', AppColors.blue);
+        return ('Bản web', AppColors.iosInfo);
       case FeatureAvailability.comingSoon:
-        return ('Sắp có', AppColors.orange);
+        return ('Sắp có', AppColors.iosWarning);
       case FeatureAvailability.unavailable:
-        return ('Chỉ trên app', AppColors.purple);
+        return ('Chỉ trên app', AppColors.iosSecondary);
     }
   }
 
@@ -271,14 +271,14 @@ class _OutlineButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 2),
+          border: Border.all(color: AppColors.iosSeparator, width: 2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: AppColors.primary),
+            Icon(icon, size: 16, color: AppColors.iosPrimary),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -288,7 +288,7 @@ class _OutlineButton extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary),
+                    color: AppColors.iosTextPrimary),
               ),
             ),
           ],

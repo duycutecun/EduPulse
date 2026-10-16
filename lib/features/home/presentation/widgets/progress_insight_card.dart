@@ -85,9 +85,10 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.purpleSoft.withValues(alpha: 0.6),
+        color: AppColors.iosSecondarySoft.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+        border:
+            Border.all(color: AppColors.iosSecondary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,7 +96,7 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
           Row(
             children: [
               const Icon(Icons.auto_awesome_rounded,
-                  size: 18, color: AppColors.purple),
+                  size: 18, color: AppColors.iosSecondary),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
@@ -113,7 +114,7 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.purple,
+                      color: AppColors.iosSecondary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Row(
@@ -163,7 +164,7 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.psychology_outlined,
-                      size: 15, color: AppColors.purple),
+                      size: 15, color: AppColors.iosSecondary),
                   SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -173,7 +174,7 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.purple),
+                          color: AppColors.iosSecondary),
                     ),
                   ),
                 ],
@@ -190,7 +191,7 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: AppColors.bgPageSoft,
+          color: AppColors.iosFill,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -208,8 +209,8 @@ class _ProgressInsightCardState extends State<ProgressInsightCard> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style:
-                  const TextStyle(fontSize: 10.5, color: AppColors.textMuted),
+              style: const TextStyle(
+                  fontSize: 10.5, color: AppColors.iosTextMuted),
             ),
           ],
         ),

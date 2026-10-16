@@ -61,7 +61,7 @@ class ScoreTabView extends StatelessWidget {
                 child: StatCard(
                   value: '${scores.length}',
                   label: 'Lần thi thử',
-                  color: AppColors.blue,
+                  color: AppColors.iosInfo,
                   icon: Icons.assignment_rounded,
                 ),
               ),
@@ -70,7 +70,7 @@ class ScoreTabView extends StatelessWidget {
                 child: StatCard(
                   value: avg > 0 ? avg.toStringAsFixed(1) : '—',
                   label: 'Điểm TB',
-                  color: AppColors.primary,
+                  color: AppColors.iosPrimary,
                   icon: Icons.stars_rounded,
                 ),
               ),
@@ -86,11 +86,12 @@ class ScoreTabView extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: AppColors.iosPrimary,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                            color: AppColors.primaryDark.withValues(alpha: 0.4),
+                            color:
+                                AppColors.iosPrimaryDark.withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 4)),
                       ],
@@ -118,21 +119,21 @@ class ScoreTabView extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
                       color: scores.isEmpty
-                          ? AppColors.cardLight
-                          : AppColors.purple,
+                          ? AppColors.iosFill
+                          : AppColors.iosSecondary,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: scores.isEmpty
-                            ? AppColors.border
-                            : AppColors.purple,
+                            ? AppColors.iosSeparator
+                            : AppColors.iosSecondary,
                         width: 1.5,
                       ),
                       boxShadow: scores.isEmpty
                           ? null
                           : [
                               BoxShadow(
-                                  color:
-                                      AppColors.purple.withValues(alpha: 0.3),
+                                  color: AppColors.iosSecondary
+                                      .withValues(alpha: 0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4)),
                             ],
@@ -176,9 +177,9 @@ class ScoreTabView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.cardWhite,
+                  color: AppColors.iosCard,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border, width: 1),
+                  border: Border.all(color: AppColors.iosSeparator, width: 1),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.03),
@@ -194,7 +195,7 @@ class ScoreTabView extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: AppColors.iosTextPrimary)),
                     const SizedBox(height: 12),
                     ...summaries.map((s) => Padding(
                           padding: const EdgeInsets.only(bottom: 10),
@@ -208,17 +209,17 @@ class ScoreTabView extends StatelessWidget {
                                       style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary)),
+                                          color: AppColors.iosTextPrimary)),
                                   Text(
                                     '${s.average.toStringAsFixed(1)} • ${s.rating}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                       color: s.average >= 8
-                                          ? AppColors.primary
+                                          ? AppColors.iosPrimary
                                           : (s.average >= 6.5
-                                              ? AppColors.orange
-                                              : AppColors.red),
+                                              ? AppColors.iosWarning
+                                              : AppColors.iosError),
                                     ),
                                   ),
                                 ],
@@ -229,13 +230,13 @@ class ScoreTabView extends StatelessWidget {
                                 child: LinearProgressIndicator(
                                   value: (s.average / 10).clamp(0.0, 1.0),
                                   minHeight: 8,
-                                  backgroundColor: AppColors.progressBg,
+                                  backgroundColor: AppColors.iosFill,
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     s.average >= 8
-                                        ? AppColors.progressDone
+                                        ? AppColors.iosSuccess
                                         : (s.average >= 6.5
-                                            ? AppColors.orange
-                                            : AppColors.red),
+                                            ? AppColors.iosWarning
+                                            : AppColors.iosError),
                                   ),
                                 ),
                               ),
@@ -258,17 +259,20 @@ class ScoreTabView extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.purpleSoft.withValues(alpha: 0.65),
+          color: AppColors.iosSecondarySoft.withValues(alpha: 0.65),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
+          border:
+              Border.all(color: AppColors.iosSecondary.withValues(alpha: 0.3)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [
-            Icon(Icons.auto_graph_rounded, size: 17, color: AppColors.purple),
+            Icon(Icons.auto_graph_rounded,
+                size: 17, color: AppColors.iosSecondary),
             SizedBox(width: 7),
             Text('Kế hoạch bù điểm',
                 style: TextStyle(
-                    fontWeight: FontWeight.w800, color: AppColors.purple)),
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.iosSecondary)),
           ]),
           const SizedBox(height: 7),
           Text(
@@ -292,22 +296,23 @@ class ScoreTabView extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.orange.withValues(alpha: 0.08),
+          color: AppColors.iosWarning.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.orange.withValues(alpha: 0.35)),
+          border:
+              Border.all(color: AppColors.iosWarning.withValues(alpha: 0.35)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Row(children: [
             Icon(Icons.trending_down_rounded,
-                size: 17, color: AppColors.orange),
+                size: 17, color: AppColors.iosWarning),
             SizedBox(width: 7),
             Text('Chủ đề cần ôn lại',
                 style: TextStyle(
-                    fontWeight: FontWeight.w800, color: AppColors.orange)),
+                    fontWeight: FontWeight.w800, color: AppColors.iosWarning)),
           ]),
           const SizedBox(height: 4),
           const Text('Dưới 6.5 điểm — ôn sớm để bù kịp trước kỳ thi.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
           const SizedBox(height: 8),
           for (final t in topics)
             Padding(
@@ -326,7 +331,7 @@ class ScoreTabView extends StatelessWidget {
                         Text(
                           'TB ${t.average.toStringAsFixed(1)} • ${t.attempts} lần thi',
                           style: const TextStyle(
-                              fontSize: 11.5, color: AppColors.textMuted),
+                              fontSize: 11.5, color: AppColors.iosTextMuted),
                         ),
                       ],
                     ),
@@ -345,8 +350,8 @@ class ScoreTabView extends StatelessWidget {
 
   Widget _buildScoreItem(MockScore s) {
     final color = s.score >= 8
-        ? AppColors.primary
-        : (s.score >= 6.5 ? AppColors.orange : AppColors.red);
+        ? AppColors.iosPrimary
+        : (s.score >= 6.5 ? AppColors.iosWarning : AppColors.iosError);
     return Dismissible(
       key: Key(s.id),
       direction: DismissDirection.endToStart,
@@ -356,18 +361,19 @@ class ScoreTabView extends StatelessWidget {
         padding: const EdgeInsets.only(right: 16),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.1),
+          color: AppColors.iosError.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 18),
+        child: const Icon(Icons.delete_rounded,
+            color: AppColors.iosError, size: 18),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 1),
+          border: Border.all(color: AppColors.iosSeparator, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -416,19 +422,19 @@ class ScoreTabView extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                   if (s.note != null && s.note!.isNotEmpty)
                     Text(s.note!,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColors.textMuted),
+                            fontSize: 12, color: AppColors.iosTextMuted),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
             Text('${s.date.day}/${s.date.month}',
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.iosTextMuted)),
           ],
         ),
       ),

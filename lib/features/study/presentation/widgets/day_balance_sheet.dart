@@ -44,13 +44,13 @@ Future<int> showDayBalanceSheet(
                   style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary)),
+                      color: AppColors.iosTextPrimary)),
               const SizedBox(height: 4),
               Text(
                 subtitle,
                 style: const TextStyle(
                     fontSize: 12.5,
-                    color: AppColors.textSecondary,
+                    color: AppColors.iosTextSecondary,
                     height: 1.4),
               ),
               const SizedBox(height: 14),
@@ -93,7 +93,7 @@ Future<int> showDayBalanceSheet(
                         Navigator.pop(sheetContext, targets.length);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.iosPrimary,
                         foregroundColor: Colors.white,
                       ),
                       child: Text(accepted.any((a) => a)
@@ -134,11 +134,11 @@ class _ProposalRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: accepted
-            ? AppColors.greenSoft.withValues(alpha: 0.4)
-            : AppColors.bgPage,
+            ? AppColors.iosSuccessSoft.withValues(alpha: 0.4)
+            : AppColors.iosBackground,
         borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: accepted ? AppColors.primary : AppColors.border),
+        border: Border.all(
+            color: accepted ? AppColors.iosPrimary : AppColors.iosSeparator),
       ),
       child: Row(
         children: [
@@ -153,13 +153,13 @@ class _ProposalRow extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary),
+                      color: AppColors.iosTextPrimary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '→ ${d.day}/${d.month} • ${p.task.estimateMinutes} phút • ${p.reason}',
                   style: const TextStyle(
-                      fontSize: 11.5, color: AppColors.textSecondary),
+                      fontSize: 11.5, color: AppColors.iosTextSecondary),
                 ),
               ],
             ),
@@ -167,7 +167,7 @@ class _ProposalRow extends StatelessWidget {
           const SizedBox(width: 8),
           Switch(
             value: accepted,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: AppColors.iosPrimary,
             onChanged: onChanged,
           ),
         ],

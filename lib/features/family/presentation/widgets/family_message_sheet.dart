@@ -26,7 +26,7 @@ class FamilyMessageSheet {
     final result = await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -130,7 +130,7 @@ class _BodyState extends State<_Body> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: error ? AppColors.red : AppColors.primary,
+      backgroundColor: error ? AppColors.iosError : AppColors.iosPrimary,
     ));
   }
 
@@ -183,8 +183,8 @@ class _BodyState extends State<_Body> {
             Icons.chat_bubble_outline_rounded,
             tileSize: 40,
             iconSize: 20,
-            color: AppColors.purple,
-            bg: AppColors.purpleSoft,
+            color: AppColors.iosSecondary,
+            bg: AppColors.iosSecondarySoft,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -199,7 +199,7 @@ class _BodyState extends State<_Body> {
                 const SizedBox(height: 2),
                 const Text(
                   'Lời nhắn được giữ lại — đọc được lúc nào cũng được.',
-                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
                 ),
               ],
             ),
@@ -224,7 +224,7 @@ class _BodyState extends State<_Body> {
         constraints:
             BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.72),
         decoration: BoxDecoration(
-          color: mine ? AppColors.primary : AppColors.bgPageSoft,
+          color: mine ? AppColors.iosPrimary : AppColors.iosFill,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -235,7 +235,7 @@ class _BodyState extends State<_Body> {
                 style: TextStyle(
                     fontSize: 13.5,
                     height: 1.35,
-                    color: mine ? Colors.white : AppColors.textPrimary)),
+                    color: mine ? Colors.white : AppColors.iosTextPrimary)),
             const SizedBox(height: 2),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -245,7 +245,7 @@ class _BodyState extends State<_Body> {
                         fontSize: 9.5,
                         color: mine
                             ? Colors.white.withValues(alpha: 0.7)
-                            : AppColors.textMuted)),
+                            : AppColors.iosTextMuted)),
                 if (mine) ...[
                   const SizedBox(width: 4),
                   Icon(
@@ -278,15 +278,15 @@ class _BodyState extends State<_Body> {
                 onSubmitted: (_) => _send(),
                 decoration: InputDecoration(
                   hintText: 'Nhắn động viên…',
-                  hintStyle:
-                      const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  hintStyle: const TextStyle(
+                      fontSize: 13, color: AppColors.iosTextMuted),
                   filled: true,
-                  fillColor: AppColors.bgPageSoft,
+                  fillColor: AppColors.iosFill,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: AppColors.iosSeparator),
                   ),
                 ),
               ),
@@ -298,7 +298,7 @@ class _BodyState extends State<_Body> {
               child: ElevatedButton(
                 onPressed: _sending ? null : _send,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.iosPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: EdgeInsets.zero,

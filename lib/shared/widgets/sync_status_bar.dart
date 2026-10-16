@@ -128,14 +128,14 @@ class _SyncChip extends StatelessWidget {
     if (failed > 0) {
       return (
         Icons.cloud_off_rounded,
-        AppColors.orange,
+        AppColors.iosWarning,
         '$failed thay đổi chưa gửi được — chạm để thử lại',
       );
     }
     if (offline) {
       return (
         Icons.wifi_off_rounded,
-        AppColors.orange,
+        AppColors.iosWarning,
         sync.status == SyncStatus.syncing && !PwaService.isOnline
             ? 'Ngoại tuyến — thử lại sau'
             : pending > 0
@@ -147,13 +147,13 @@ class _SyncChip extends StatelessWidget {
       case SyncStatus.syncing:
         return (
           Icons.sync_rounded,
-          AppColors.blue,
+          AppColors.iosInfo,
           pending > 0 ? 'Đang đồng bộ $pending thay đổi…' : 'Đang đồng bộ…',
         );
       case SyncStatus.error:
         return (
           Icons.cloud_off_rounded,
-          AppColors.orange,
+          AppColors.iosWarning,
           'Chưa sync được — thử lại sau',
         );
       case SyncStatus.synced:
@@ -161,13 +161,13 @@ class _SyncChip extends StatelessWidget {
         if (pending > 0) {
           return (
             Icons.cloud_queue_rounded,
-            AppColors.blue,
+            AppColors.iosInfo,
             '$pending thay đổi chờ đồng bộ',
           );
         }
         final last = sync.lastSyncedAtMs;
         if (last == null) {
-          return (Icons.cloud_rounded, AppColors.textMuted, 'Chưa đồng bộ');
+          return (Icons.cloud_rounded, AppColors.iosTextMuted, 'Chưa đồng bộ');
         }
         final dt = DateTime.fromMillisecondsSinceEpoch(last);
         final diff = DateTime.now().difference(dt);
@@ -178,7 +178,7 @@ class _SyncChip extends StatelessWidget {
                 : diff.inDays < 1
                     ? 'Đã đồng bộ ${diff.inHours} giờ trước'
                     : 'Đã đồng bộ ${dt.day}/${dt.month}';
-        return (Icons.cloud_done_rounded, AppColors.primary, label);
+        return (Icons.cloud_done_rounded, AppColors.iosPrimary, label);
     }
   }
 }
@@ -242,7 +242,7 @@ class _SyncStatusCardBody extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: AppColors.iosTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -251,7 +251,7 @@ class _SyncStatusCardBody extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         height: 1.35,
-                        color: AppColors.textMuted,
+                        color: AppColors.iosTextMuted,
                       ),
                     ),
                   ],
@@ -292,7 +292,7 @@ class _SyncStatusCardBody extends StatelessWidget {
       if (SupabaseService.isLoggedIn) {
         return const _StatusView(
           icon: Icons.cloud_off_rounded,
-          color: AppColors.orange,
+          color: AppColors.iosWarning,
           title: 'Chưa kết nối được cloud',
           detail:
               'Dữ liệu vẫn an toàn trên máy. App sẽ tự kết nối lại khi sẵn sàng.',
@@ -300,7 +300,7 @@ class _SyncStatusCardBody extends StatelessWidget {
       }
       return const _StatusView(
         icon: Icons.phone_iphone_rounded,
-        color: AppColors.textMuted,
+        color: AppColors.iosTextMuted,
         title: 'Dữ liệu lưu trên máy này',
         detail: 'Đăng nhập để sao lưu và đồng bộ giữa các thiết bị.',
       );
@@ -309,7 +309,7 @@ class _SyncStatusCardBody extends StatelessWidget {
     if (failed > 0) {
       return _StatusView(
         icon: Icons.cloud_off_rounded,
-        color: AppColors.orange,
+        color: AppColors.iosWarning,
         title: '$failed thay đổi chưa gửi được',
         detail: 'Dữ liệu vẫn an toàn trên máy. Thử lại khi có mạng trở lại.',
         actionLabel: 'Thử lại',
@@ -319,7 +319,7 @@ class _SyncStatusCardBody extends StatelessWidget {
     if (offline) {
       return _StatusView(
         icon: Icons.wifi_off_rounded,
-        color: AppColors.orange,
+        color: AppColors.iosWarning,
         title: 'Ngoại tuyến — dữ liệu lưu an toàn trên máy',
         detail: pending > 0
             ? '$pending thay đổi sẽ tự gửi khi có mạng trở lại.'
@@ -330,7 +330,7 @@ class _SyncStatusCardBody extends StatelessWidget {
     if (sync.status == SyncStatus.syncing) {
       return _StatusView(
         icon: Icons.sync_rounded,
-        color: AppColors.blue,
+        color: AppColors.iosInfo,
         title: sync.label,
         detail: pending > 0
             ? 'Quá trình chạy nền — bạn cứ tiếp tục học.'
@@ -341,7 +341,7 @@ class _SyncStatusCardBody extends StatelessWidget {
     if (pending > 0) {
       return _StatusView(
         icon: Icons.cloud_queue_rounded,
-        color: AppColors.blue,
+        color: AppColors.iosInfo,
         title: '$pending thay đổi chờ đồng bộ',
         detail: 'Đồng bộ ngay để dữ liệu lên cloud và máy khác.',
         actionLabel: 'Đồng bộ ngay',
@@ -350,7 +350,7 @@ class _SyncStatusCardBody extends StatelessWidget {
 
     return _StatusView(
       icon: Icons.cloud_done_rounded,
-      color: AppColors.primary,
+      color: AppColors.iosPrimary,
       title: sync.label,
       detail: 'Dữ liệu trên máy đã khớp với cloud.',
     );

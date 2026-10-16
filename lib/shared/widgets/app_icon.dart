@@ -46,12 +46,12 @@ class AppIcon extends StatelessWidget {
       height: tileSize,
       padding: padding,
       decoration: BoxDecoration(
-        color: bg ?? AppColors.bgPage,
+        color: bg ?? AppColors.iosBackground,
         borderRadius: BorderRadius.circular(tileSize * 0.28),
         boxShadow: shadow
             ? [
                 BoxShadow(
-                  color: AppColors.borderStrong.withValues(alpha: 0.5),
+                  color: AppColors.iosSeparator.withValues(alpha: 0.5),
                   blurRadius: 0,
                   offset: Offset(0, tileSize * 0.11),
                 ),
@@ -61,7 +61,7 @@ class AppIcon extends StatelessWidget {
       child: Icon(
         icon,
         size: iconSize,
-        color: color ?? AppColors.textPrimary,
+        color: color ?? AppColors.iosTextPrimary,
       ),
     );
   }

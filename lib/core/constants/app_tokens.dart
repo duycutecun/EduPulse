@@ -91,7 +91,7 @@ abstract class AppTokens {
     fontSize: 54,
     fontWeight: FontWeight.w800,
     letterSpacing: -1.0,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
   );
 
   static const TextStyle heading1 = TextStyle(
@@ -99,7 +99,7 @@ abstract class AppTokens {
     fontSize: 24,
     fontWeight: FontWeight.w800,
     height: 1.25,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
   );
 
   static const TextStyle heading2 = TextStyle(
@@ -107,7 +107,7 @@ abstract class AppTokens {
     fontSize: 18,
     fontWeight: FontWeight.w700,
     height: 1.3,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
   );
 
   static const TextStyle heading3 = TextStyle(
@@ -115,7 +115,7 @@ abstract class AppTokens {
     fontSize: 16,
     fontWeight: FontWeight.w700,
     height: 1.35,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
   );
 
   /// Tiêu đề khối/nhóm (G4-A): nặng hơn [heading3], nhỏ hơn [heading2].
@@ -126,7 +126,7 @@ abstract class AppTokens {
     fontSize: 16,
     fontWeight: FontWeight.w800,
     height: 1.3,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
   );
 
   /// Nhãn nhỏ cho nút/chip phụ (G4-A). Dùng khi nút cần nhỏ hơn chữ thân bài
@@ -136,7 +136,7 @@ abstract class AppTokens {
     fontSize: 12,
     fontWeight: FontWeight.w600,
     height: 1.3,
-    color: AppColors.textSecondary,
+    color: AppColors.iosTextSecondary,
   );
 
   static const TextStyle body = TextStyle(
@@ -144,7 +144,7 @@ abstract class AppTokens {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.4,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
   );
 
   static const TextStyle bodySubtle = TextStyle(
@@ -152,7 +152,7 @@ abstract class AppTokens {
     fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.4,
-    color: AppColors.textSecondary,
+    color: AppColors.iosTextSecondary,
   );
 
   static const TextStyle caption = TextStyle(
@@ -160,7 +160,7 @@ abstract class AppTokens {
     fontSize: 12,
     fontWeight: FontWeight.w500,
     height: 1.3,
-    color: AppColors.textMuted,
+    color: AppColors.iosTextMuted,
   );
 
   static const TextStyle button = TextStyle(

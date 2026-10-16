@@ -37,7 +37,7 @@ abstract class AppSubjects {
       name: '📐 Toán',
       plainName: 'Toán',
       icon: Icons.functions,
-      color: AppColors.blue);
+      color: AppColors.iosInfo);
   static const AppSubject ly = AppSubject(
       name: '⚡ Lý',
       plainName: 'Lý',
@@ -87,7 +87,7 @@ abstract class AppSubjects {
       name: '💡 Khác',
       plainName: 'Khác',
       icon: Icons.lightbulb_outline,
-      color: AppColors.primary);
+      color: AppColors.iosPrimary);
 
   /// Thứ tự hiển thị trong form chọn môn.
   static const List<AppSubject> all = [
@@ -265,7 +265,7 @@ abstract class AppSubjects {
 
   /// Màu nhận diện theo môn; môn lạ → màu chủ đạo.
   static Color colorOf(String? value) =>
-      find(value)?.color ?? AppColors.primary;
+      find(value)?.color ?? AppColors.iosPrimary;
 
   /// Icon theo môn; môn lạ → icon chung.
   static IconData iconOf(String? value) =>

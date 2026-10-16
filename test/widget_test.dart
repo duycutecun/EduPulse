@@ -90,7 +90,7 @@ void main() {
     expect(find.text('Sĩ tử 2k9'), findsOneWidget);
   });
 
-  testWidgets('Pomodoro đổi chế độ 50/10 và Biểu đồ tuần có dữ liệu',
+  testWidgets('Pomodoro đổi mốc 35/10 và Biểu đồ tuần có dữ liệu',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
@@ -108,10 +108,10 @@ void main() {
     await tester.tap(find.text('Tập trung').first);
     await tester.pumpAndSettle();
 
-    // Đổi chế độ sang 50/10
-    await tester.tap(find.text('50/10'));
+    // Đổi mốc sang 35/10 (V2: mốc 10/20/35 thay cho 25/50/90).
+    await tester.tap(find.text('35/10'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('50:00'), findsOneWidget);
+    expect(find.text('35:00'), findsOneWidget);
 
     // Sang tab Biểu đồ — đã seed 1 study log hôm nay
     await tester.tap(find.text('Biểu đồ'));

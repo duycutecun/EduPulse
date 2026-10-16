@@ -122,7 +122,8 @@ void main() async {
   });
 }
 
-/// App luôn ở chế độ sáng (Duolingo-style), không hỗ trợ dark mode.
+/// App luôn ở chế độ sáng theo hệ sinh thái iOS (iOS-first), không hỗ trợ
+/// dark mode.
 class EduPulseApp extends StatelessWidget {
   const EduPulseApp({super.key});
 
@@ -135,7 +136,9 @@ class EduPulseApp extends StatelessWidget {
         title: 'EduPulse',
         debugShowCheckedModeBanner: false,
         navigatorKey: appNavigatorKey,
-        theme: AppTheme.lightWithContrast(highContrast),
+        // iOS-first (ADR-0001): toàn bộ màn hình chạy trên iosLightTheme.
+        // high contrast vẫn là một biến thể của đúng theme này.
+        theme: AppTheme.iosLightThemeWithContrast(highContrast),
         builder: (context, child) {
           // Font size adaptive toàn app (đặc tả mục 20): nhân với system
           // textScaler để tôn trọng cài đặt hệ điều hành.

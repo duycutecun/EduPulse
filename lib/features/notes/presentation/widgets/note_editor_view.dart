@@ -299,15 +299,15 @@ class _NoteEditorViewState extends State<NoteEditorView> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.bgPageSoft,
+            color: AppColors.iosFill,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.iosSeparator),
           ),
           child: Text(label,
               style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
+                  color: AppColors.iosTextPrimary)),
         ),
       ),
     );
@@ -387,7 +387,7 @@ $text
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Đã bổ sung tóm tắt từ AI vào ghi chú!'),
-          backgroundColor: AppColors.purple,
+          backgroundColor: AppColors.iosSecondary,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -455,7 +455,7 @@ $text
         _confirmLeave();
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgPage,
+        backgroundColor: AppColors.iosBackground,
         appBar: AppBar(
           title: Text(widget.note == null ? 'Ghi chú mới' : 'Chỉnh sửa ghi chú',
               style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -482,12 +482,12 @@ $text
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.blueSoft,
+                    color: AppColors.iosInfoSoft,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(children: [
                     const Icon(Icons.history_rounded,
-                        size: 16, color: AppColors.blue),
+                        size: 16, color: AppColors.iosInfo),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text('Đã khôi phục bản nháp chưa lưu lần trước.',
@@ -508,7 +508,7 @@ $text
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.blue)),
+                              color: AppColors.iosInfo)),
                     ),
                   ]),
                 ),
@@ -535,8 +535,8 @@ $text
                         : Icons.add_link_rounded,
                     size: 15,
                     color: _taskId != null
-                        ? AppColors.primary
-                        : AppColors.textMuted,
+                        ? AppColors.iosPrimary
+                        : AppColors.iosTextMuted,
                   ),
                   label: Text(
                     _taskId != null
@@ -554,8 +554,8 @@ $text
                         : Icons.add_photo_alternate_outlined,
                     size: 15,
                     color: _imageBase64 != null
-                        ? AppColors.primary
-                        : AppColors.textMuted,
+                        ? AppColors.iosPrimary
+                        : AppColors.iosTextMuted,
                   ),
                   label: Text(
                     _imageBase64 != null ? 'Đã có ảnh' : 'Ảnh',
@@ -577,7 +577,8 @@ $text
                 const Padding(
                   padding: EdgeInsets.only(top: 6),
                   child: Text('Ảnh quá lớn (> 250KB) — chọn ảnh khác nhẹ hơn.',
-                      style: TextStyle(fontSize: 12, color: AppColors.orange)),
+                      style:
+                          TextStyle(fontSize: 12, color: AppColors.iosWarning)),
                 ),
               if (_imageBase64 != null) ...[
                 const SizedBox(height: 8),

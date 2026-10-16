@@ -5,7 +5,7 @@ import '../../../../app/main_shell.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/storage_service.dart';
 
-const Color _kAccent = AppColors.primary;
+const Color _kAccent = AppColors.iosPrimary;
 const Color _kText = Color(0xFF1A1A2E);
 const Color _kMuted = Color(0xFF6B7280);
 const Color _kField = Color(0xFFF6F7F9);
@@ -55,7 +55,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             Expanded(child: Text(msg)),
           ],
         ),
-        backgroundColor: isSuccess ? _kAccent : AppColors.red,
+        backgroundColor: isSuccess ? _kAccent : AppColors.iosError,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

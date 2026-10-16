@@ -36,7 +36,8 @@ void main() {
     await StorageService.init();
   });
 
-  /// Đẩy một vòng focus tới lúc kết thúc mà không phải chờ 25 phút thật.
+  /// Đẩy một vòng focus mặc định (10 phút từ V2) tới lúc kết thúc mà không phải
+  /// chờ thật.
   ///
   /// `FocusClock` neo theo mốc thời gian thật, còn `tester.pump()` chỉ đẩy
   /// `Timer` — nên ta đưa đồng hồ giả vào `StudyScreen` và tăng nó cùng nhịp
@@ -46,17 +47,29 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   }
 
+  /// Hết **phiên mặc định** rồi chốt "Nghỉ".
+  ///
+  /// V2 (`BAN_THAY_DOI_V2.md` mục A + C.2) đổi phiên mặc định thành 10 phút và
+  /// hết vòng app **hỏi** "Thêm 10 phút?" trước khi ghi phiên. Đường đi của
+  /// người dùng tới bước đánh giá vì thế là: hết 10 phút → chọn "Nghỉ" →
+  /// phiên được ghi → sheet đánh giá mở ra.
+  Future<void> runDefaultRound(WidgetTester tester, _FakeClock clock) async {
+    // 10 phút = 600 giây; tiến từng giây như đồng hồ thật.
+    for (var i = 0; i < 601; i++) {
+      await pumpOneSecond(tester, clock);
+    }
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nghỉ'));
+    await tester.pumpAndSettle();
+  }
+
   Future<void> runToEndOfRound(WidgetTester tester) async {
     final clock = _FakeClock(DateTime(2026, 5, 1, 8));
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: StudyScreen(autoStart: true, clock: clock.now)),
     ));
     await tester.pump();
-    // 25 phút = 1500 giây; tiến từng giây như đồng hồ thật.
-    for (var i = 0; i < 1501; i++) {
-      await pumpOneSecond(tester, clock);
-    }
-    await tester.pumpAndSettle();
+    await runDefaultRound(tester, clock);
   }
 
   testWidgets('vòng focus kết thúc thì mở sheet đánh giá 1 chạm',
@@ -97,7 +110,7 @@ void main() {
       (tester) async {
     await runToEndOfRound(tester);
 
-    await tester.tap(find.text('Bỏ qua'));
+    await tester.tap(find.text('Không muốn nói gì'));
     await tester.pumpAndSettle();
 
     expect(repo.getAll(), hasLength(1),
@@ -120,10 +133,7 @@ void main() {
       ),
     ));
     await tester.pump();
-    for (var i = 0; i < 1501; i++) {
-      await pumpOneSecond(tester, clock);
-    }
-    await tester.pumpAndSettle();
+    await runDefaultRound(tester, clock);
 
     expect(completedCalls, 1,
         reason: 'màn bên ngoài cập nhật tổng giờ ngay, không chờ điều hướng');
@@ -233,8 +243,8 @@ void main() {
     /// Sheet modal chắn mọi tap vào màn hình phía dưới, nên test phải đóng nó
     /// trước khi bấm nút bật/tạm dừng — đúng như người dùng thật.
     Future<void> dismissSheetIfOpen(WidgetTester tester) async {
-      if (find.text('Bỏ qua').evaluate().isNotEmpty) {
-        await tester.tap(find.text('Bỏ qua').first);
+      if (find.text('Không muốn nói gì').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Không muốn nói gì').first);
         await tester.pumpAndSettle();
       }
     }
@@ -340,10 +350,7 @@ void main() {
         ),
       ));
       await tester.pump();
-      for (var i = 0; i < 1501; i++) {
-        await pumpOneSecond(tester, clock);
-      }
-      await tester.pumpAndSettle();
+      await runDefaultRound(tester, clock);
     }
 
     testWidgets('đánh dấu nhiệm vụ hoàn thành QUA repository', (tester) async {
@@ -362,7 +369,7 @@ void main() {
       expect(task.status, TaskStatus.completed.value);
       expect(task.isDone, isTrue);
       // Và phiên học vẫn phải được ghi — hoàn thành task không được nuốt mất
-      // 25 phút đã học.
+      // những phút đã học.
       expect(repo.getAll(), hasLength(1));
       expect(repo.getAll().single.taskId, taskId);
     });
@@ -424,10 +431,7 @@ void main() {
         ),
       ));
       await tester.pump();
-      for (var i = 0; i < 1501; i++) {
-        await pumpOneSecond(tester, clock);
-      }
-      await tester.pumpAndSettle();
+      await runDefaultRound(tester, clock);
 
       if (find
           .byKey(const ValueKey('complete-task-and-go-today'))

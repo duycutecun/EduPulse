@@ -30,14 +30,27 @@
 
 **Gate M1→M2 viết lại (DEV đo, 0đ):** ① nav + notification **0 fail** (test viết trước khi sửa); ② golden 3 màn **diff = 0**; ③ kill app giữa phiên → mở lại **đúng thời gian** (PWA + mobile); ④ RLS harness: fixture 2 thiết bị + restore xanh → **0 sync fail với RLS bật**; ⑤ Home render <150ms, ≤2 chạm tới phiên, mở app → phiên <15s; ⑥ crash-free ≥99,5%, **0 mất phiên** trên cả lớp giờ tự học. BOSS tự ký gate "không mất phiên" — ký không được thì dừng.
 
+### Trạng thái kỷ thuật sau đợt này (2026-10-16)
+
+| Gate | Cách kiểm trong repo | Trạng thái |
+|---|---|---|
+| ② golden 3 màn | `test/nav_screen_contract_test.dart` — hợp đồng 3 màn (Hôm nay / Phiên học / Phản tư) × 3 trạng thái | ✅ 9/9
+| ③ kill app giữa phiên | `test/active_session_kill_restart_test.dart` + `FocusClock` neo timestamp | ✅
+| ④ RLS bật | `test/rls_coverage_test.dart` — mọi bảng API truy cập và mọi bảng `supabase/*.sql` tạo ra đều phải có `enable row level security` | ✅ (việc **áp** `family_v4.sql`/`email_codes.sql` lên Supabase vẫn là thao tác tay — xem `CHECKLIST_PHAT_HANH.md` mục 2b) |
+| ⑤ ≤2 chạm tới phiên | thanh "Bắt đầu · 10 phút" dính đáy màn Hôm nay (`start_session_bar.dart` + `test/home_start_session_bar_test.dart`) | ✅ test; **số render <150ms và <15s cần đo trên máy thật** |
+| — | Phiên 10 phút + "thêm 10 phút?" | ✅ `test/focus_session_ten_minutes_test.dart` (8 test)
+| — | Phản tư 1 câu 2 nút + im lặng 4 giây | ✅ `test/post_focus_reflection_test.dart`
+
+**Golden ảnh: đổi cách làm, có lý do.** CI chạy `ubuntu-latest` còn máy dev là Windows; ảnh golden phụ thuộc cách hệ điều hành vẽ chữ nên baseline sinh ở một nền tảng sẽ đỏ ở nền tảng kia — baseline đỏ vì nền tảng thì sớm muộn cũng bị tắt, và lúc đó cổng coi như không tồn tại. Bản dùng trong repo khoá đúng thứ cổng cần bắt (đúng màn, đúng khối, đúng key) theo cách chạy giống nhau ở mọi nền tảng.
+
 ## C. M2 phục ban (3 tuần)
 
-1. **Onboarding 3 ngày**: kế hoạch 3 ngày + "Bắt đầu ngay", sửa được ≤3 chạm.
-2. **Phiên 10 phút**: mốc 10/20/35; hết 10 phút hỏi "thêm 10 phút?"; đồng hồ hiện việc đang làm.
-3. **Phản tư**: một màn tổng kết, một câu "Phiến 10 phút xong. Hiểu chưa?" — 2 nút to Hiểu rồi/Chưa hiểu; không bấm 4 giây → ghi "chưa rõ" rồi biến; chỉ "Chưa hiểu" mới hỏi 3 chip (quá khó/hết giờ/làm việc khác) → đề xuất chia nhỏ/đổi lịch ≤2 chạm; có nút "không muốn nói gì" to bằng nút lưu; bỏ nhật ký dài.
-4. **Chế độ yên lặng**: 3 công tắc nhỏ (màu đỏ streak/mascot/âm thanh), báo cáo phụ huynh đi riêng.
+1. **Onboarding 3 ngày** (chưa làm): kế hoạch 3 ngày + "Bắt đầu ngay", sửa được ≤3 chạm.
+2. **Phiên 10 phút** ✅: mốc 10/20/35; hết 10 phút hỏi "thêm 10 phút?"; đồng hồ hiện việc đang làm. (Gate hẹp: chỉ hỏi ở phiên ngắn mặc định — phiên 20/35 hoặc phiên vào từ một nhiệm vụ có thời lượng riêng thì kết thúc là kết thúc, không thêm một cửa sổ phải bấm trước bước phản tư.)
+3. **Phản tư** ✅: một màn tổng kết, một câu "Phiến 10 phút xong. Hiểu chưa?" — 2 nút to Hiểu rồi/Chưa hiểu; không bấm 4 giây → ghi "chưa rõ" rồi biến; chỉ "Chưa hiểu" mới hỏi 3 chip (quá khó/hết giờ/làm việc khác) → đề xuất chia nhỏ/đổi lịch ≤2 chạm; có nút "không muốn nói gì" to bằng nút lưu; bỏ nhật ký dài.
+4. **Chế độ yên lặng** ✅: 3 công tắc nhỏ (màu đỏ streak/mascot/âm thanh), báo cáo phụ huynh đi riêng.
 5. **Export JSON + xoá**: timeline phiên + lịch sử freeze + `data_schema_version`; cron dọn cloud + backup cũ; hoàn tác/thùng rác 30 ngày (nếu mục E chốt theo USER).
-6. **Báo cáo phụ huynh 3 dòng**: con mở app mấy buổi / một câu con tự viết / "tuần này bỏ qua mấy lần"; bỏ số phút, điểm, xếp hạng, bảng "hôm nay 0 phút"; xin phép con trước khi bật + nút hoàn tác; gửi tự động.
+6. **Báo cáo phụ huynh 3 dòng** (chưa làm): con mở app mấy buổi / một câu con tự viết / "tuần này bỏ qua mấy lần"; bỏ số phút, điểm, xếp hạng, bảng "hôm nay 0 phút"; xin phép con trước khi bật + nút hoàn tác; gửi tự động.
 7. **Nhắc ngủ đúng một câu** ("Hôm nay bạn đã x phiên — thế là đủ."; bản đầy đủ cho PH), đúng giờ con chọn, cron trễ thì không gửi.
 8. **Dark màn Phiên học** (điều kiện: màn Phiên trong đợt đầu M2); đo ở textScale 200%, cấm bar che việc ưu tiên.
 

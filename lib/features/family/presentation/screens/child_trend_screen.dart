@@ -31,9 +31,9 @@ class ChildTrendScreen extends StatelessWidget {
     final mock = _series(ordered, 'mock_score', _parseNumber);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.cardWhite,
+        backgroundColor: AppColors.iosCard,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Column(
@@ -42,8 +42,8 @@ class ChildTrendScreen extends StatelessWidget {
             const Text('Xu hướng & cột mốc',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             Text('Tiến độ của ${child.name}',
-                style:
-                    const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.iosTextMuted)),
           ],
         ),
       ),
@@ -56,7 +56,7 @@ class ChildTrendScreen extends StatelessWidget {
             _chartCard(
               title: 'Thời gian tập trung',
               unit: 'phút',
-              color: AppColors.primary,
+              color: AppColors.iosPrimary,
               points: focus,
               emptyHint:
                   'Chưa có dữ liệu thời gian tập trung trong các báo cáo.',
@@ -65,7 +65,7 @@ class ChildTrendScreen extends StatelessWidget {
             _chartCard(
               title: 'Chỉ số sẵn sàng thi',
               unit: '/100',
-              color: AppColors.purple,
+              color: AppColors.iosSecondary,
               points: readiness,
               emptyHint: 'Chưa có dữ liệu chỉ số sẵn sàng.',
             ),
@@ -73,7 +73,7 @@ class ChildTrendScreen extends StatelessWidget {
             _chartCard(
               title: 'Điểm thi thử',
               unit: '/10',
-              color: AppColors.orange,
+              color: AppColors.iosWarning,
               points: mock,
               emptyHint: 'Chưa có điểm thi thử trong các báo cáo.',
             ),
@@ -95,9 +95,9 @@ class ChildTrendScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,12 +106,12 @@ class ChildTrendScreen extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
+                  color: AppColors.iosTextPrimary)),
           const SizedBox(height: 12),
           if (points.length < 2)
             Text(emptyHint,
                 style: const TextStyle(
-                    fontSize: 12.5, height: 1.4, color: AppColors.textMuted))
+                    fontSize: 12.5, height: 1.4, color: AppColors.iosTextMuted))
           else ...[
             SizedBox(
               height: 140,
@@ -126,7 +126,7 @@ class ChildTrendScreen extends StatelessWidget {
               children: [
                 Text('${points.first.value.toStringAsFixed(1)}$unit',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColors.textMuted)),
+                        fontSize: 11, color: AppColors.iosTextMuted)),
                 Text('${points.last.value.toStringAsFixed(1)}$unit',
                     style: TextStyle(
                         fontSize: 12,
@@ -157,7 +157,7 @@ class ChildTrendScreen extends StatelessWidget {
               height: 8,
               margin: const EdgeInsets.only(top: 5),
               decoration: const BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.iosPrimary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -170,13 +170,13 @@ class ChildTrendScreen extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textMuted)),
+                          color: AppColors.iosTextMuted)),
                   const SizedBox(height: 2),
                   Text(headline,
                       style: const TextStyle(
                           fontSize: 12.5,
                           height: 1.4,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                 ],
               ),
             ),
@@ -188,9 +188,9 @@ class ChildTrendScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,7 +199,7 @@ class ChildTrendScreen extends StatelessWidget {
               style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
+                  color: AppColors.iosTextPrimary)),
           const SizedBox(height: 12),
           ...rows,
         ],
@@ -289,7 +289,7 @@ class _LineChartPainter extends CustomPainter {
 
     // Lưới ngang mờ.
     final gridPaint = Paint()
-      ..color = AppColors.border
+      ..color = AppColors.iosSeparator
       ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final y = size.height * i / 3;

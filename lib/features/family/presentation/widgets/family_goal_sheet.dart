@@ -23,7 +23,7 @@ class FamilyGoalSheet {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -163,7 +163,7 @@ class _GoalEditorState extends State<_GoalEditor> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: error ? AppColors.red : AppColors.primary,
+      backgroundColor: error ? AppColors.iosError : AppColors.iosPrimary,
     ));
   }
 
@@ -197,7 +197,7 @@ class _GoalEditorState extends State<_GoalEditor> {
                     style: const TextStyle(
                         fontSize: 12,
                         height: 1.4,
-                        color: AppColors.textSecondary),
+                        color: AppColors.iosTextSecondary),
                   ),
                 ],
               ),
@@ -223,16 +223,16 @@ class _GoalEditorState extends State<_GoalEditor> {
                         fontWeight: FontWeight.w700,
                         color: _metric == metric
                             ? Colors.white
-                            : AppColors.textPrimary)),
+                            : AppColors.iosTextPrimary)),
                 selected: _metric == metric,
-                selectedColor: AppColors.primary,
+                selectedColor: AppColors.iosPrimary,
                 showCheckmark: false,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: BorderSide(
                         color: _metric == metric
-                            ? AppColors.primary
-                            : AppColors.border)),
+                            ? AppColors.iosPrimary
+                            : AppColors.iosSeparator)),
                 onSelected: (_) {
                   setState(() {
                     _metric = metric;
@@ -249,7 +249,7 @@ class _GoalEditorState extends State<_GoalEditor> {
               ? 'Chọn loại rồi nhập con số: $unit'
               : 'Đang đặt: ${FamilyGoal.labelOf(existing.metric)} '
                   '${existing.displayTarget} — nhập giá trị mới để đổi.',
-          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          style: const TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
         ),
         const SizedBox(height: 10),
         TextField(
@@ -262,12 +262,12 @@ class _GoalEditorState extends State<_GoalEditor> {
           decoration: InputDecoration(
             labelText: 'Mục tiêu ($unit)',
             filled: true,
-            fillColor: AppColors.bgPageSoft,
+            fillColor: AppColors.iosFill,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.iosSeparator),
             ),
           ),
         ),
@@ -279,7 +279,7 @@ class _GoalEditorState extends State<_GoalEditor> {
                 key: Key('goal-remove-${existing.metric}'),
                 onPressed: _saving ? null : _removeCurrent,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.red,
+                  foregroundColor: AppColors.iosError,
                 ),
                 child: const Text('Bỏ mục tiêu này',
                     style:
@@ -293,7 +293,7 @@ class _GoalEditorState extends State<_GoalEditor> {
                 key: const Key('goal-save-button'),
                 onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.iosPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 22),

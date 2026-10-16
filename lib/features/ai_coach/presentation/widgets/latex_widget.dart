@@ -17,12 +17,12 @@ class LatexWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: textColor == Colors.white
             ? Colors.white.withValues(alpha: 0.15)
-            : AppColors.bgPage,
+            : AppColors.iosBackground,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: textColor == Colors.white
               ? Colors.white.withValues(alpha: 0.3)
-              : AppColors.border,
+              : AppColors.iosSeparator,
           width: 1,
         ),
       ),

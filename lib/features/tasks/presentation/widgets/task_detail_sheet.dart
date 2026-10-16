@@ -208,7 +208,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         right: AppTokens.space20,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.vertical(top: AppTokens.rXl),
       ),
       child: Column(
@@ -220,7 +220,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: AppColors.iosSeparator,
                 borderRadius: AppTokens.brFull,
               ),
             ),
@@ -264,8 +264,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                       : Icons.radio_button_unchecked_rounded,
                   size: 20,
                   color: _currentTask.isDone
-                      ? AppColors.green
-                      : AppColors.textMuted,
+                      ? AppColors.iosSuccess
+                      : AppColors.iosTextMuted,
                 ),
                 onPressed: () {
                   widget.onTaskUpdated(_currentTask);
@@ -284,7 +284,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               if (widget.onDelete != null)
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded,
-                      size: 20, color: AppColors.red),
+                      size: 20, color: AppColors.iosError),
                   onPressed: () {
                     Navigator.of(context).pop();
                     widget.onDelete!(_currentTask);
@@ -309,8 +309,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             const SizedBox(height: AppTokens.space4),
             Text(
               'Chủ đề: ${_currentTask.topic}',
-              style:
-                  AppTokens.bodySubtle.copyWith(color: AppColors.textSecondary),
+              style: AppTokens.bodySubtle
+                  .copyWith(color: AppColors.iosTextSecondary),
             ),
           ],
           const SizedBox(height: AppTokens.space16),
@@ -362,9 +362,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppTokens.space12),
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.iosBackground,
                         borderRadius: AppTokens.brMd,
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: AppColors.iosSeparator),
                       ),
                       child: Text(
                         _currentTask.note!,
@@ -384,7 +384,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                           child: Row(
                             children: [
                               const Icon(Icons.check_circle_outline_rounded,
-                                  size: 16, color: AppColors.primary),
+                                  size: 16, color: AppColors.iosPrimary),
                               const SizedBox(width: AppTokens.space8),
                               Expanded(
                                 child: Text(sub, style: AppTokens.body),
@@ -410,8 +410,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryDark,
-                              side: const BorderSide(color: AppColors.primary),
+                              foregroundColor: AppColors.iosPrimaryDark,
+                              side:
+                                  const BorderSide(color: AppColors.iosPrimary),
                               padding: const EdgeInsets.symmetric(
                                 vertical: AppTokens.space10,
                               ),
@@ -434,8 +435,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.blueDark,
-                              side: const BorderSide(color: AppColors.blue),
+                              foregroundColor: AppColors.iosInfoDark,
+                              side: const BorderSide(color: AppColors.iosInfo),
                               padding: const EdgeInsets.symmetric(
                                 vertical: AppTokens.space10,
                               ),
@@ -457,8 +458,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryDark,
-                              side: const BorderSide(color: AppColors.primary),
+                              foregroundColor: AppColors.iosPrimaryDark,
+                              side:
+                                  const BorderSide(color: AppColors.iosPrimary),
                               padding: const EdgeInsets.symmetric(
                                 vertical: AppTokens.space10,
                               ),
@@ -534,7 +536,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           ),
           Text(
             '${_attachments.length}/${TaskAttachment.maxCount}',
-            style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+            style: AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
           ),
           const SizedBox(width: AppTokens.space8),
           IconButton(
@@ -554,7 +556,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                         ? Icons.add_photo_alternate_outlined
                         : Icons.block_rounded,
                     size: 18,
-                    color: canAdd ? AppColors.primary : AppColors.textMuted,
+                    color:
+                        canAdd ? AppColors.iosPrimary : AppColors.iosTextMuted,
                   ),
           ),
         ],
@@ -565,14 +568,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           width: double.infinity,
           padding: const EdgeInsets.all(AppTokens.space12),
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.iosBackground,
             borderRadius: AppTokens.brMd,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.iosSeparator),
           ),
           child: Text(
             'Chưa có tài liệu. Gắn ảnh chụp bài để mở nhanh khi học '
             '(mỗi ảnh tối đa ${TaskAttachment.maxBytes ~/ 1024}KB).',
-            style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+            style: AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
           ),
         )
       else
@@ -588,9 +591,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     return Container(
       padding: const EdgeInsets.all(AppTokens.space10),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.iosBackground,
         borderRadius: AppTokens.brMd,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,9 +608,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               errorBuilder: (_, __, ___) => Container(
                 width: 44,
                 height: 44,
-                color: AppColors.border,
+                color: AppColors.iosSeparator,
                 child: const Icon(Icons.broken_image_outlined,
-                    size: 18, color: AppColors.textMuted),
+                    size: 18, color: AppColors.iosTextMuted),
               ),
             ),
           ),
@@ -625,7 +628,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 const SizedBox(height: 2),
                 Text(
                   '${attachment.sizeLabel} · thêm ${_dayTitle(attachment.addedAt)}',
-                  style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+                  style:
+                      AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
                 ),
               ],
             ),
@@ -635,7 +639,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             tooltip: 'Gỡ tài liệu',
             visualDensity: VisualDensity.comfortable,
             icon: const Icon(Icons.delete_outline_rounded,
-                size: 18, color: AppColors.red),
+                size: 18, color: AppColors.iosError),
           ),
         ],
       ),
@@ -655,14 +659,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           width: double.infinity,
           padding: const EdgeInsets.all(AppTokens.space12),
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.iosBackground,
             borderRadius: AppTokens.brMd,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.iosSeparator),
           ),
           child: Text(
             'Chưa có phiên học nào cho nhiệm vụ này. Bắt đầu phiên học để ghi '
             'lại thời gian và cảm nhận của bạn.',
-            style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+            style: AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
           ),
         )
       else ...[
@@ -670,20 +674,20 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           width: double.infinity,
           padding: const EdgeInsets.all(AppTokens.space12),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
+            color: AppColors.iosPrimary.withValues(alpha: 0.08),
             borderRadius: AppTokens.brMd,
           ),
           child: Row(
             children: [
               const Icon(Icons.timer_outlined,
-                  size: 16, color: AppColors.primary),
+                  size: 16, color: AppColors.iosPrimary),
               const SizedBox(width: AppTokens.space8),
               Expanded(
                 child: Text(
                   'Đã học $totalMinutes phút trong ${_sessions.length} phiên',
                   style: AppTokens.body.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primaryDark,
+                    color: AppColors.iosPrimaryDark,
                   ),
                 ),
               ),
@@ -711,9 +715,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppTokens.space10),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.iosBackground,
         borderRadius: AppTokens.brMd,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -733,7 +737,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                       ? Icons.trending_up_rounded
                       : Icons.trending_down_rounded,
                   size: 16,
-                  color: AppColors.textMuted,
+                  color: AppColors.iosTextMuted,
                 ),
             ],
           ),
@@ -741,7 +745,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             const SizedBox(height: 4),
             Text(
               ratings.join(' · '),
-              style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+              style: AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
             ),
           ],
           if (session.reflectionNote != null &&
@@ -784,21 +788,22 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     return Container(
       padding: const EdgeInsets.all(AppTokens.space10),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.iosBackground,
         borderRadius: AppTokens.brMd,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: AppColors.textMuted),
+              Icon(icon, size: 14, color: AppColors.iosTextMuted),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   title,
-                  style: AppTokens.caption.copyWith(color: AppColors.textMuted),
+                  style:
+                      AppTokens.caption.copyWith(color: AppColors.iosTextMuted),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -833,15 +838,15 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   Color _statusColor(TaskStatus status) {
     switch (status) {
       case TaskStatus.completed:
-        return AppColors.green;
+        return AppColors.iosSuccess;
       case TaskStatus.notCompleted:
-        return AppColors.textMuted;
+        return AppColors.iosTextMuted;
       case TaskStatus.rescheduled:
-        return AppColors.warning;
+        return AppColors.iosWarning;
       case TaskStatus.started:
-        return AppColors.blue;
+        return AppColors.iosInfo;
       case TaskStatus.scheduled:
-        return AppColors.primary;
+        return AppColors.iosPrimary;
     }
   }
 }

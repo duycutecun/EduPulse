@@ -51,18 +51,19 @@ class WeeklyChartWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Icon(Icons.access_time, size: 16, color: AppColors.blue),
+                      Icon(Icons.access_time,
+                          size: 16, color: AppColors.iosInfo),
                       SizedBox(width: 6),
                       Text('Tuần này',
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted)),
+                              fontSize: 12, color: AppColors.iosTextMuted)),
                     ]),
                     const SizedBox(height: 6),
                     Text('${totalWeeklyHours.toStringAsFixed(1)}h',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: AppColors.iosTextPrimary)),
                   ],
                 ),
               ),
@@ -76,18 +77,18 @@ class WeeklyChartWidget extends StatelessWidget {
                   children: [
                     Row(children: [
                       Icon(Icons.trending_up,
-                          size: 16, color: AppColors.primary),
+                          size: 16, color: AppColors.iosPrimary),
                       SizedBox(width: 6),
                       Text('Trung bình',
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted)),
+                              fontSize: 12, color: AppColors.iosTextMuted)),
                     ]),
                     const SizedBox(height: 6),
                     Text('${avgDaily.toStringAsFixed(1)}h/ngày',
                         style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary)),
+                            color: AppColors.iosPrimary)),
                   ],
                 ),
               ),
@@ -107,19 +108,19 @@ class WeeklyChartWidget extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                   if (totalWeeklyHours >= 20)
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
+                          color: AppColors.iosPrimary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10)),
                       child: const Text('Phong độ cao!',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.primary)),
+                              color: AppColors.iosPrimary)),
                     ),
                 ],
               ),
@@ -144,8 +145,8 @@ class WeeklyChartWidget extends StatelessWidget {
                               fontWeight:
                                   isToday ? FontWeight.bold : FontWeight.w500,
                               color: isToday
-                                  ? AppColors.primary
-                                  : AppColors.textMuted),
+                                  ? AppColors.iosPrimary
+                                  : AppColors.iosTextMuted),
                         ),
                         const SizedBox(height: 6),
                         Container(
@@ -153,8 +154,8 @@ class WeeklyChartWidget extends StatelessWidget {
                           height: 90 * barHeightFactor,
                           decoration: BoxDecoration(
                             color: isToday
-                                ? AppColors.primary
-                                : AppColors.blue.withValues(alpha: 0.6),
+                                ? AppColors.iosPrimary
+                                : AppColors.iosInfo.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -166,8 +167,8 @@ class WeeklyChartWidget extends StatelessWidget {
                               fontWeight:
                                   isToday ? FontWeight.bold : FontWeight.normal,
                               color: isToday
-                                  ? AppColors.textPrimary
-                                  : AppColors.textMuted),
+                                  ? AppColors.iosTextPrimary
+                                  : AppColors.iosTextMuted),
                         ),
                       ],
                     );
@@ -187,7 +188,7 @@ class WeeklyChartWidget extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary)),
+                      color: AppColors.iosTextPrimary)),
               const SizedBox(height: 16),
               ...subjectMap.entries.map((entry) {
                 final percent =
@@ -203,13 +204,13 @@ class WeeklyChartWidget extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary)),
+                                  color: AppColors.iosTextPrimary)),
                           Text(
                               '${entry.value.toStringAsFixed(1)}h (${(percent * 100).toInt()}%)',
                               style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textMuted)),
+                                  color: AppColors.iosTextMuted)),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -218,9 +219,9 @@ class WeeklyChartWidget extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: percent,
                           minHeight: 8,
-                          backgroundColor: AppColors.border,
+                          backgroundColor: AppColors.iosSeparator,
                           valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppColors.primary),
+                              AppColors.iosPrimary),
                         ),
                       ),
                     ],
@@ -243,11 +244,11 @@ class WeeklyChartWidget extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.blue.withValues(alpha: 0.12),
+              color: AppColors.iosInfo.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.bar_chart_rounded,
-                size: 22, color: AppColors.blue),
+                size: 22, color: AppColors.iosInfo),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -258,12 +259,12 @@ class WeeklyChartWidget extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 2),
                 Text(
                   'Bắt đầu một phiên Pomodoro để thống kê giờ học thực tế của bạn.',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.iosTextSecondary),
                 ),
                 if (onStartStudy != null) ...[
                   const SizedBox(height: 10),
@@ -275,7 +276,7 @@ class WeeklyChartWidget extends StatelessWidget {
                       icon: const Icon(Icons.play_arrow_rounded, size: 18),
                       label: const Text('Bắt đầu học'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.iosPrimary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                       ),

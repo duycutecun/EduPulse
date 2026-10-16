@@ -43,10 +43,10 @@ class TabChrome extends StatelessWidget {
 
   Widget _buildNav(BuildContext context) {
     // Viền ngang mảnh giữa nội dung và bottom nav.
-    final divider = AppColors.border.withValues(alpha: 0.5);
+    final divider = AppColors.iosSeparator.withValues(alpha: 0.5);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         border: Border(top: BorderSide(color: divider, width: 0.5)),
       ),
       child: SafeArea(
@@ -80,8 +80,8 @@ class TabChrome extends StatelessWidget {
                               right: 4,
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.10),
+                                  color: AppColors.iosPrimary
+                                      .withValues(alpha: 0.10),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
@@ -90,8 +90,8 @@ class TabChrome extends StatelessWidget {
                             active ? item.activeIcon : item.icon,
                             size: 24,
                             color: active
-                                ? AppColors.primary
-                                : AppColors.textMuted,
+                                ? AppColors.iosPrimary
+                                : AppColors.iosTextMuted,
                           ),
                         ],
                       ),
@@ -102,8 +102,9 @@ class TabChrome extends StatelessWidget {
                           fontSize: 11,
                           fontWeight:
                               active ? FontWeight.w800 : FontWeight.w500,
-                          color:
-                              active ? AppColors.primary : AppColors.textMuted,
+                          color: active
+                              ? AppColors.iosPrimary
+                              : AppColors.iosTextMuted,
                         ),
                       ),
                     ],

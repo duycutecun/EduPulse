@@ -218,7 +218,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -232,14 +232,14 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
               Row(
                 children: [
                   const Icon(Icons.insights_rounded,
-                      color: AppColors.purple, size: 22),
+                      color: AppColors.iosSecondary, size: 22),
                   const SizedBox(width: 8),
                   Text(
                     'Điểm yếu từ lịch sử chat',
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary),
+                        color: AppColors.iosTextPrimary),
                   ),
                 ],
               ),
@@ -260,11 +260,12 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const CircularProgressIndicator(
-                                color: AppColors.purple),
+                                color: AppColors.iosSecondary),
                             const SizedBox(height: 12),
                             Text('AI đang phân tích...',
                                 style: TextStyle(
-                                    fontSize: 13, color: AppColors.textMuted)),
+                                    fontSize: 13,
+                                    color: AppColors.iosTextMuted)),
                           ],
                         ),
                       );
@@ -280,7 +281,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                             'Kiểm tra kết nối rồi thử lại nhé.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary),
+                                fontSize: 13,
+                                color: AppColors.iosTextSecondary),
                           ),
                         ),
                       );
@@ -291,7 +293,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                         style: TextStyle(
                           fontSize: 13.5,
                           height: 1.5,
-                          color: AppColors.textPrimary,
+                          color: AppColors.iosTextPrimary,
                         ),
                       ),
                     );
@@ -304,7 +306,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.iosPrimary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -412,7 +414,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -426,20 +428,22 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
               const Row(
                 children: [
                   Icon(Icons.insights_rounded,
-                      color: AppColors.purple, size: 22),
+                      color: AppColors.iosSecondary, size: 22),
                   SizedBox(width: 8),
                   Text('Phân tích điểm yếu',
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
+                          color: AppColors.iosTextPrimary)),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
                 report.summary.replaceAll('**', ''),
                 style: const TextStyle(
-                    fontSize: 13.5, height: 1.5, color: AppColors.textPrimary),
+                    fontSize: 13.5,
+                    height: 1.5,
+                    color: AppColors.iosTextPrimary),
               ),
               if (report.suggestions.isNotEmpty) ...[
                 const SizedBox(height: 14),
@@ -447,7 +451,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 8),
                 ...report.suggestions.map((s) => Padding(
                       padding: const EdgeInsets.only(bottom: 6),
@@ -455,14 +459,14 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Icon(Icons.chevron_right_rounded,
-                              size: 18, color: AppColors.primary),
+                              size: 18, color: AppColors.iosPrimary),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(s,
                                 style: const TextStyle(
                                     fontSize: 13,
                                     height: 1.4,
-                                    color: AppColors.textSecondary)),
+                                    color: AppColors.iosTextSecondary)),
                           ),
                         ],
                       ),
@@ -474,7 +478,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.iosPrimary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -615,7 +619,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -629,22 +633,22 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
               Row(
                 children: [
                   const Icon(Icons.quiz_rounded,
-                      color: AppColors.purple, size: 22),
+                      color: AppColors.iosSecondary, size: 22),
                   const SizedBox(width: 8),
                   Text(
                     'Tạo quiz từ ảnh',
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary),
+                        color: AppColors.iosTextPrimary),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
               Text(
                 'AI sẽ đọc nội dung "$name" và tạo 5 câu hỏi trắc nghiệm để bạn luyện ngay.',
-                style:
-                    TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12.5, color: AppColors.iosTextSecondary),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -669,7 +673,8 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                             'Chưa soạn được câu hỏi lúc này. Kiểm tra kết nối rồi thử lại nhé.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary),
+                                fontSize: 13,
+                                color: AppColors.iosTextSecondary),
                           ),
                         ),
                       );
@@ -680,7 +685,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                         child: Text(
                           'AI không tạo được câu hỏi từ ảnh này. Thử ảnh khác rõ nét hơn!',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: AppColors.iosTextSecondary),
                         ),
                       );
                     }
@@ -694,7 +699,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                               style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary)),
+                                  color: AppColors.iosTextPrimary)),
                           const SizedBox(height: 16),
                           GestureDetector(
                             onTap: () {
@@ -714,11 +719,11 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 28, vertical: 12),
                               decoration: BoxDecoration(
-                                color: AppColors.purple,
+                                color: AppColors.iosSecondary,
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: const [
                                   BoxShadow(
-                                      color: AppColors.purple,
+                                      color: AppColors.iosSecondary,
                                       blurRadius: 0,
                                       offset: Offset(0, 3)),
                                 ],
@@ -1054,11 +1059,11 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary)),
+                              color: AppColors.iosTextPrimary)),
                       const SizedBox(height: 4),
                       Text('Chọn nhanh một việc, hoặc hỏi tự do bên dưới.',
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted)),
+                              fontSize: 12, color: AppColors.iosTextMuted)),
                       const SizedBox(height: 16),
                       AiQuickActions(
                         onRecommend: _quickRecommend,
@@ -1072,7 +1077,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textSecondary)),
+                              color: AppColors.iosTextSecondary)),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,

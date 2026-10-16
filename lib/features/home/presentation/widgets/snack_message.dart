@@ -10,22 +10,22 @@ import '../../../../core/constants/app_tokens.dart';
 /// Giờ mỗi loại có một icon riêng — người mù màu vẫn đọc được.
 enum SnackKind {
   /// Hành động đã thành công.
-  success(Icons.check_circle_rounded, AppColors.greenDark),
+  success(Icons.check_circle_rounded, AppColors.iosSuccess),
 
   /// Thông tin trung tính / thay đổi lịch.
-  moved(Icons.event_rounded, AppColors.orangeDark),
+  moved(Icons.event_rounded, AppColors.iosWarningDark),
 
   /// Xoá hẳn — cần nút Hoàn tác đi kèm.
-  destructive(Icons.delete_rounded, AppColors.red),
+  destructive(Icons.delete_rounded, AppColors.iosError),
 
   /// Không làm được vì lý do chủ quan (đã có dữ liệu, hết hạn…).
-  warning(Icons.warning_rounded, AppColors.orangeDark),
+  warning(Icons.warning_rounded, AppColors.iosWarningDark),
 
   /// Lỗi hệ thống / thất bại.
-  error(Icons.error_rounded, AppColors.redDark),
+  error(Icons.error_rounded, AppColors.iosErrorDark),
 
   /// Trạng thái trung tính, không có gì để ăn mừng.
-  info(Icons.info_rounded, AppColors.blueDark);
+  info(Icons.info_rounded, AppColors.iosInfoDark);
 
   const SnackKind(this.icon, this.background);
 

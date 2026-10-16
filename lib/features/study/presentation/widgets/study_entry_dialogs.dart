@@ -30,7 +30,7 @@ void showAddScoreDialog(
     builder: (ctx) => AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.border, width: 2),
+        side: BorderSide(color: AppColors.iosSeparator, width: 2),
       ),
       title: const Text('Ghi điểm thi thử',
           style: TextStyle(fontWeight: FontWeight.w800)),
@@ -55,10 +55,14 @@ void showAddScoreDialog(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: sel ? AppColors.primary : AppColors.bgPage,
+                        color: sel
+                            ? AppColors.iosPrimary
+                            : AppColors.iosBackground,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: sel ? AppColors.primary : AppColors.border,
+                          color: sel
+                              ? AppColors.iosPrimary
+                              : AppColors.iosSeparator,
                           width: 2,
                         ),
                       ),
@@ -66,7 +70,7 @@ void showAddScoreDialog(
                         sub,
                         style: TextStyle(
                           fontSize: 12,
-                          color: sel ? Colors.white : AppColors.textPrimary,
+                          color: sel ? Colors.white : AppColors.iosTextPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -103,7 +107,8 @@ void showAddScoreDialog(
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+            child:
+                Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted))),
         TextButton(
           onPressed: () {
             final score =
@@ -132,7 +137,7 @@ void showAddScoreDialog(
           },
           child: const Text('Lưu',
               style: TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w800)),
+                  color: AppColors.iosPrimary, fontWeight: FontWeight.w800)),
         ),
       ],
     ),
@@ -153,7 +158,7 @@ void showAddLogDialog(
     builder: (ctx) => AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.border, width: 2),
+        side: BorderSide(color: AppColors.iosSeparator, width: 2),
       ),
       title: const Text('Ghi nhật ký học',
           style: TextStyle(fontWeight: FontWeight.w800)),
@@ -179,7 +184,8 @@ void showAddLogDialog(
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+            child:
+                Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted))),
         TextButton(
           onPressed: () {
             if (subjectCtrl.text.isNotEmpty) {
@@ -192,7 +198,7 @@ void showAddLogDialog(
           },
           child: const Text('Lưu',
               style: TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w800)),
+                  color: AppColors.iosPrimary, fontWeight: FontWeight.w800)),
         ),
       ],
     ),

@@ -46,7 +46,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
     messenger.showSnackBar(SnackBar(
       content: Text('Đã xoá "${exam.name}"'),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.red,
+      backgroundColor: AppColors.iosError,
       action: SnackBarAction(
         label: 'Hoàn tác',
         textColor: Colors.white,
@@ -133,13 +133,13 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary),
+                            color: AppColors.iosTextPrimary),
                       ),
                       SizedBox(height: 4),
                       Text(
                         'Chọn kỳ thi để ghim lên đồng hồ đếm ngược',
                         style: TextStyle(
-                            fontSize: 13, color: AppColors.textSecondary),
+                            fontSize: 13, color: AppColors.iosTextSecondary),
                       ),
                     ],
                   ),
@@ -150,11 +150,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: AppColors.iosPrimary,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: const [
                         BoxShadow(
-                            color: AppColors.primaryDark,
+                            color: AppColors.iosPrimaryDark,
                             blurRadius: 0,
                             offset: Offset(0, 3)),
                       ],
@@ -196,10 +196,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.purpleSoft.withValues(alpha: 0.7),
+                  color: AppColors.iosSecondarySoft.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                      color: AppColors.purple.withValues(alpha: 0.35)),
+                      color: AppColors.iosSecondary.withValues(alpha: 0.35)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,7 +207,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     Row(
                       children: [
                         const Icon(Icons.auto_awesome_rounded,
-                            size: 16, color: AppColors.purple),
+                            size: 16, color: AppColors.iosSecondary),
                         const SizedBox(width: 8),
                         // Tên kỳ thi có thể rất dài → phần này phải co được.
                         Expanded(
@@ -218,7 +218,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                              color: AppColors.iosTextPrimary,
                             ),
                           ),
                         ),
@@ -227,7 +227,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.purple,
+                            color: AppColors.iosSecondary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -247,7 +247,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       'Còn ${primary.daysLeft} ngày — ưu tiên ${weakScore != null ? 'môn $weakSubject (TB ${weakScore.toStringAsFixed(1)}đ, đang thấp nhất)' : 'duy trì nhịp 3 phiên Focus/tuần'} và làm bài thi thử định kỳ.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textPrimary.withValues(alpha: 0.9),
+                        color: AppColors.iosTextPrimary.withValues(alpha: 0.9),
                         height: 1.4,
                       ),
                     ),
@@ -279,7 +279,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.purple,
+                              color: AppColors.iosSecondary,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Row(
@@ -321,24 +321,24 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.cardWhite,
+                              color: AppColors.iosCard,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color:
-                                      AppColors.purple.withValues(alpha: 0.4)),
+                                  color: AppColors.iosSecondary
+                                      .withValues(alpha: 0.4)),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.quiz_rounded,
-                                    size: 14, color: AppColors.purple),
+                                    size: 14, color: AppColors.iosSecondary),
                                 SizedBox(width: 4),
                                 Text(
                                   'Luyện 5 câu test',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.purple,
+                                    color: AppColors.iosSecondary,
                                   ),
                                 ),
                               ],
@@ -357,9 +357,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.bgPage,
+              color: AppColors.iosBackground,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border, width: 2),
+              border: Border.all(color: AppColors.iosSeparator, width: 2),
             ),
             child: Row(
               children: [
@@ -398,7 +398,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.transparent,
+            color: active ? AppColors.iosPrimary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -407,7 +407,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-              color: active ? Colors.white : AppColors.textMuted,
+              color: active ? Colors.white : AppColors.iosTextMuted,
             ),
           ),
         ),
@@ -419,10 +419,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
     final isPrimary = exam.id == ExamRepository.instance.primaryExamId;
     final days = exam.daysLeft;
     final urgencyColor = days < 30
-        ? AppColors.red
+        ? AppColors.iosError
         : days < 90
-            ? AppColors.orange
-            : AppColors.primary;
+            ? AppColors.iosWarning
+            : AppColors.iosPrimary;
 
     return Dismissible(
       key: Key(exam.id),
@@ -434,10 +434,11 @@ class _ExamsScreenState extends State<ExamsScreen> {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.red.withValues(alpha: 0.15),
+          color: AppColors.iosError.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.delete_rounded, color: AppColors.red, size: 22),
+        child: const Icon(Icons.delete_rounded,
+            color: AppColors.iosError, size: 22),
       ),
       child: GestureDetector(
         onTap: () {
@@ -447,7 +448,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
         onLongPress: () => _showEditDialog(exam),
         child: GlassCard(
           padding: const EdgeInsets.all(18),
-          borderColor: isPrimary ? AppColors.primary : AppColors.border,
+          borderColor:
+              isPrimary ? AppColors.iosPrimary : AppColors.iosSeparator,
           borderWidth: isPrimary ? 3 : 2,
           child: Row(
             children: [
@@ -455,7 +457,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
+                  color: AppColors.iosPrimary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -475,7 +477,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary),
+                                color: AppColors.iosTextPrimary),
                           ),
                         ),
                         if (isPrimary)
@@ -483,7 +485,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: AppColors.iosPrimary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -500,7 +502,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     Row(
                       children: [
                         Icon(Icons.calendar_today_rounded,
-                            size: 13, color: AppColors.textMuted),
+                            size: 13, color: AppColors.iosTextMuted),
                         const SizedBox(width: 4),
                         // Ngày là phần co được: tên kỳ thi và chip “Còn N ngày”
                         // phải giữ nguyên độ dài. Không bọc Flexible ở đây thì một
@@ -511,7 +513,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary),
+                                fontSize: 12,
+                                color: AppColors.iosTextSecondary),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -541,7 +544,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.blueDark),
+                            color: AppColors.iosInfoDark),
                       ),
                     ],
                     if (exam.subjectTargets.isNotEmpty) ...[
@@ -573,7 +576,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border, width: 2),
+            side: BorderSide(color: AppColors.iosSeparator, width: 2),
           ),
           title: const Text('Thêm kỳ thi mới',
               style: TextStyle(fontWeight: FontWeight.w800)),
@@ -590,10 +593,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: AppColors.iosPrimary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
+                          color: AppColors.iosPrimary.withValues(alpha: 0.3),
                           width: 2),
                     ),
                     child: Center(
@@ -603,7 +606,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text('Nhấn để chọn biểu tượng',
-                    style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.iosTextMuted)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameCtrl,
@@ -658,7 +662,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                           data: Theme.of(context).copyWith(
                             colorScheme: Theme.of(context)
                                 .colorScheme
-                                .copyWith(primary: AppColors.primary),
+                                .copyWith(primary: AppColors.iosPrimary),
                           ),
                           child: child!,
                         );
@@ -672,13 +676,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border, width: 2),
+                      border:
+                          Border.all(color: AppColors.iosSeparator, width: 2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.calendar_today_rounded,
-                            size: 18, color: AppColors.primary),
+                            size: 18, color: AppColors.iosPrimary),
                         const SizedBox(width: 10),
                         // Expanded thay cho Spacer: chữ ngày co lại được khi
                         // hẹp/cỡ chữ lớn, còn icon lịch luôn giữ sát mép phải.
@@ -690,12 +695,12 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary),
+                                color: AppColors.iosTextPrimary),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Icon(Icons.edit_calendar_rounded,
-                            size: 18, color: AppColors.textMuted),
+                            size: 18, color: AppColors.iosTextMuted),
                       ],
                     ),
                   ),
@@ -706,7 +711,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+              child:
+                  Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted)),
             ),
             TextButton(
               onPressed: () {
@@ -732,7 +738,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
               },
               child: const Text('Thêm',
                   style: TextStyle(
-                      color: AppColors.primary, fontWeight: FontWeight.w800)),
+                      color: AppColors.iosPrimary,
+                      fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -757,7 +764,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border, width: 2),
+            side: BorderSide(color: AppColors.iosSeparator, width: 2),
           ),
           title: const Text('Chỉnh sửa kỳ thi',
               style: TextStyle(fontWeight: FontWeight.w800)),
@@ -774,10 +781,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: AppColors.iosPrimary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
+                          color: AppColors.iosPrimary.withValues(alpha: 0.3),
                           width: 2),
                     ),
                     child: Center(
@@ -787,7 +794,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text('Nhấn để thay đổi biểu tượng',
-                    style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.iosTextMuted)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameCtrl,
@@ -840,7 +848,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                           data: Theme.of(context).copyWith(
                             colorScheme: Theme.of(context)
                                 .colorScheme
-                                .copyWith(primary: AppColors.primary),
+                                .copyWith(primary: AppColors.iosPrimary),
                           ),
                           child: child!,
                         );
@@ -854,13 +862,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border, width: 2),
+                      border:
+                          Border.all(color: AppColors.iosSeparator, width: 2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.calendar_today_rounded,
-                            size: 18, color: AppColors.primary),
+                            size: 18, color: AppColors.iosPrimary),
                         const SizedBox(width: 10),
                         // Expanded thay cho Spacer: chữ ngày co lại được khi
                         // hẹp/cỡ chữ lớn, còn icon lịch luôn giữ sát mép phải.
@@ -872,12 +881,12 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary),
+                                color: AppColors.iosTextPrimary),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Icon(Icons.edit_calendar_rounded,
-                            size: 18, color: AppColors.textMuted),
+                            size: 18, color: AppColors.iosTextMuted),
                       ],
                     ),
                   ),
@@ -888,7 +897,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+              child:
+                  Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted)),
             ),
             TextButton(
               onPressed: () {
@@ -914,7 +924,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
               },
               child: const Text('Lưu',
                   style: TextStyle(
-                      color: AppColors.primary, fontWeight: FontWeight.w800)),
+                      color: AppColors.iosPrimary,
+                      fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -925,7 +936,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
   void _showEmojiPicker(BuildContext context, Function(String) onSelected) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -957,9 +968,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppColors.bgPage,
+                        color: AppColors.iosBackground,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border, width: 1),
+                        border:
+                            Border.all(color: AppColors.iosSeparator, width: 1),
                       ),
                       child: Center(
                         child: Text(_availableEmojis[i],
@@ -984,7 +996,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
+          side: BorderSide(color: AppColors.iosSeparator, width: 2),
         ),
         title: const Text('Xóa kỳ thi?',
             style: TextStyle(fontWeight: FontWeight.w800)),
@@ -995,7 +1007,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
               result = false;
               Navigator.pop(ctx);
             },
-            child: Text('Hủy', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted)),
           ),
           TextButton(
             onPressed: () {
@@ -1004,7 +1016,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             },
             child: const Text('Xóa',
                 style: TextStyle(
-                    color: AppColors.red, fontWeight: FontWeight.w800)),
+                    color: AppColors.iosError, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

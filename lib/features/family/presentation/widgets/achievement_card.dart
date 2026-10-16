@@ -51,7 +51,7 @@ class AchievementCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryDark],
+          colors: [AppColors.iosPrimary, AppColors.iosPrimaryDark],
         ),
       ),
       child: Stack(
@@ -194,7 +194,7 @@ class AchievementCard extends StatelessWidget {
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
-              color: AppColors.textMuted,
+              color: AppColors.iosTextMuted,
             ),
           ),
           const SizedBox(height: 8),
@@ -214,7 +214,7 @@ class AchievementCard extends StatelessWidget {
                           fontFamily: 'Nunito',
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textMuted,
+                          color: AppColors.iosTextMuted,
                         ),
                       ),
                       Text(
@@ -224,7 +224,7 @@ class AchievementCard extends StatelessWidget {
                           fontSize: 15,
                           height: 1.2,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
+                          color: AppColors.iosTextPrimary,
                         ),
                       ),
                     ],

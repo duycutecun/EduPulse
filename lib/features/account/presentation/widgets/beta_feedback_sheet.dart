@@ -101,7 +101,7 @@ class _BetaFeedbackSheetState extends State<BetaFeedbackSheet> {
             const SizedBox(height: 4),
             const Text(
               'Phản hồi được lưu trên máy bạn. Bạn có thể chia sẻ cho nhóm phát triển khi cần.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted),
             ),
             const SizedBox(height: 16),
             Wrap(

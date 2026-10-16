@@ -1,3 +1,16 @@
+/// Bước kéo dài phiên mặc định (V2: hết phiên hỏi "thêm 10 phút?").
+const int kFocusStepSeconds = 10 * 60;
+
+/// Phiên focus mặc định của V2 — 10 phút, không phải 25.
+///
+/// Người dùng 18 tuổi nói thẳng lý do: "từng bấm Pomodoro cho có". Một phiên
+/// 25 phút không vừa một lượt ngồi học thật của học sinh THPT, nên app hỏi
+/// *10 phút trước*, rồi để người học tự kéo dài ([FocusClock.extended]).
+const int kDefaultFocusSeconds = kFocusStepSeconds;
+
+/// Nghỉ mặc định đi kèm phiên 10 phút.
+const int kDefaultBreakSeconds = 3 * 60;
+
 /// Đồng hồ đếm ngược neo theo mốc thời gian thật (FE-3.2).
 ///
 /// Vấn đề: `Timer.periodic` **trừ 1 mỗi giây**, nên nó đếm số lần tick chứ không
@@ -131,6 +144,29 @@ class FocusClock {
     _elapsedAtAnchor = 0;
     _startedAt = null;
     _lastStartedAt = null;
+  }
+
+  /// Kéo dài vòng thêm [extraSeconds] kể từ [now], **giữ nguyên phần đã học**.
+  ///
+  /// V2 (`docs/BAN_THAY_DOI_V2.md` mục A): hết 10 phút app hỏi "thêm 10 phút?"
+  /// và người học tự kéo dài. Kéo dài phải là *cùng một phiên*: phần đã học
+  /// được giữ, `startedAt` không trôi, và đồng hồ vẫn chạy nếu đang chạy — nếu
+  /// tạo đồng hồ mới thì `startedAt` sẽ bị đặt lại thành "bây giờ" và phiên ghi
+  /// ra sẽ sai giờ bắt đầu.
+  FocusClock extended(int extraSeconds, DateTime now) {
+    if (extraSeconds <= 0) {
+      throw ArgumentError.value(extraSeconds, 'extraSeconds', 'phải > 0');
+    }
+    final next = FocusClock(totalSeconds: totalSeconds + extraSeconds);
+    final elapsedNow = elapsedAt(now);
+    next._elapsedAtAnchor = elapsedNow;
+    next._remainingAtAnchor = next.totalSeconds - elapsedNow;
+    next._startedAt = _startedAt;
+    next._lastStartedAt = _lastStartedAt;
+    // Đang chạy thì neo lại tại `now`: nếu giữ mốc neo cũ, số giây vừa thêm sẽ
+    // bị trừ ngay theo quãng thời gian đã trôi trước đó.
+    next._anchorAt = _anchorAt == null ? null : now;
+    return next;
   }
 
   /// Đổi tổng thời lượng, giữ trạng thái chạy/dừng.

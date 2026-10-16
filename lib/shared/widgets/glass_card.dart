@@ -10,6 +10,7 @@ class GlassCard extends StatelessWidget {
   final Color? borderColor;
   final double borderWidth;
   final VoidCallback? onTap;
+
   /// Danh bóng tùy chọn. Mặc định **không có bóng** — thẻ dùng viền mỏng
   /// (phẳng như Duolingo), tránh bóng dày làm chậm render trên máy yếu và
   /// cạnh tranh với nội dung. Khi cần bóng, truyền [AppTokens.shadowSubtle].
@@ -30,8 +31,8 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = customColor ?? AppColors.cardWhite;
-    final bColor = borderColor ?? AppColors.border;
+    final bgColor = customColor ?? AppColors.iosCard;
+    final bColor = borderColor ?? AppColors.iosSeparator;
 
     // Material trong suốt để ListTile/SwitchListTile bên trong card vẽ được
     // ink splash đúng chỗ (không bị DecoratedBox nền màu che mất).

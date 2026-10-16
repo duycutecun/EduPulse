@@ -263,7 +263,7 @@ class AiCopilotService {
         details:
             'Giai đoạn vàng: Tuyệt đối không nhồi nhét lý thuyết mới. Tập trung rà soát sơ đồ công thức & luyện phản xạ đề ngắn.',
         badgeText: 'Nước rút ≤$daysLeft ngày',
-        badgeColor: AppColors.red,
+        badgeColor: AppColors.iosError,
         badgeIcon: Icons.alarm_rounded,
         weakSubject: weakestSub,
         weakSubjectScore: weakestScore,
@@ -274,14 +274,14 @@ class AiCopilotService {
             type: AiActionType.startFocus,
             label: '▶ 25p Rà soát công thức',
             icon: Icons.timer_rounded,
-            color: AppColors.primary,
+            color: AppColors.iosPrimary,
             payload: {'subject': weakestSub ?? 'Tổng hợp', 'minutes': 25},
           ),
           AiCopilotAction(
             type: AiActionType.takeQuiz,
             label: '⚡ 5 câu phản xạ đề thi',
             icon: Icons.quiz_rounded,
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
             payload: {
               'subject': weakestSub ?? 'Toán',
               'topic': 'Trắc nghiệm tổng hợp trọng tâm',
@@ -291,7 +291,7 @@ class AiCopilotService {
             type: AiActionType.addTask,
             label: '+ Nhiệm vụ: Rà soát đề cương cuối',
             icon: Icons.add_task_rounded,
-            color: AppColors.blue,
+            color: AppColors.iosInfo,
             payload: {
               'title': 'Rà soát toàn bộ đề cương trọng tâm $examName',
               'subject': weakestSub ?? 'Tổng hợp',
@@ -318,7 +318,7 @@ class AiCopilotService {
         details:
             'Kỳ thi $examName còn $daysLeft ngày. Đừng bỏ mặc lỗ hổng kiến thức này — hãy dành 25p hôm nay để bù đắp.',
         badgeText: 'Môn yếu: $weakestSub ($scoreStrđ)',
-        badgeColor: AppColors.orange,
+        badgeColor: AppColors.iosWarning,
         badgeIcon: Icons.warning_amber_rounded,
         weakSubject: weakestSub,
         weakSubjectScore: weakestScore,
@@ -329,14 +329,14 @@ class AiCopilotService {
             type: AiActionType.startFocus,
             label: '▶ Bắt đầu 25p Focus $weakestSub',
             icon: Icons.play_arrow_rounded,
-            color: AppColors.primary,
+            color: AppColors.iosPrimary,
             payload: {'subject': weakestSub, 'minutes': 25},
           ),
           AiCopilotAction(
             type: AiActionType.takeQuiz,
             label: '⚡ Test nhanh 5 câu $weakestSub',
             icon: Icons.quiz_rounded,
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
             payload: {
               'subject': weakestSub,
               'topic': 'Dạng bài cơ bản đến nâng cao môn $weakestSub',
@@ -346,7 +346,7 @@ class AiCopilotService {
             type: AiActionType.addTask,
             label: '+ Thêm task: Ôn 10 câu $weakestSub',
             icon: Icons.add_task_rounded,
-            color: AppColors.blue,
+            color: AppColors.iosInfo,
             payload: {
               'title': 'Luyện 10 câu bài tập chuyên đề $weakestSub',
               'subject': weakestSub,
@@ -372,7 +372,7 @@ class AiCopilotService {
         details:
             'Chỉ cần 1 phiên Focus 15–20 phút để giữ vững chuỗi và tiếp tục đà tiến bộ.',
         badgeText: 'Giữ chuỗi $streak ngày',
-        badgeColor: AppColors.orangeDark,
+        badgeColor: AppColors.iosWarningDark,
         badgeIcon: Icons.local_fire_department_rounded,
         weakSubject: weakestSub,
         weakSubjectScore: weakestScore,
@@ -383,7 +383,7 @@ class AiCopilotService {
             type: AiActionType.startFocus,
             label: '▶ Focus 20p giữ chuỗi ngay',
             icon: Icons.local_fire_department_rounded,
-            color: AppColors.orange,
+            color: AppColors.iosWarning,
             payload: {'subject': weakestSub ?? 'Toán', 'minutes': 20},
           ),
           if (todoTasks.isNotEmpty)
@@ -391,7 +391,7 @@ class AiCopilotService {
               type: AiActionType.startFocus,
               label: '▶ Xử lý: ${todoTasks.first.title}',
               icon: Icons.check_circle_outline_rounded,
-              color: AppColors.primary,
+              color: AppColors.iosPrimary,
               payload: {
                 'subject': todoTasks.first.subject,
                 'minutes': todoTasks.first.estimateMinutes,
@@ -403,7 +403,7 @@ class AiCopilotService {
               type: AiActionType.addTask,
               label: '+ Nhiệm vụ ôn tập nhanh 15p',
               icon: Icons.add_task_rounded,
-              color: AppColors.blue,
+              color: AppColors.iosInfo,
               payload: {
                 'title': 'Đọc lại ghi chú và giải 5 câu bài tập',
                 'subject': weakestSub ?? 'Toán',
@@ -429,7 +429,7 @@ class AiCopilotService {
         details:
             'Dự kiến ${topTask.estimateMinutes} phút môn ${topTask.subject}. Hoàn thành sớm để giải tỏa áp lực.',
         badgeText: 'Ưu tiên cao',
-        badgeColor: AppColors.primary,
+        badgeColor: AppColors.iosPrimary,
         badgeIcon: Icons.flag_rounded,
         weakSubject: weakestSub,
         weakSubjectScore: weakestScore,
@@ -440,7 +440,7 @@ class AiCopilotService {
             type: AiActionType.startFocus,
             label: '▶ Focus ngay: ${topTask.title}',
             icon: Icons.play_arrow_rounded,
-            color: AppColors.primary,
+            color: AppColors.iosPrimary,
             payload: {
               'subject': topTask.subject,
               'minutes': topTask.estimateMinutes,
@@ -451,7 +451,7 @@ class AiCopilotService {
             type: AiActionType.takeQuiz,
             label: '⚡ Làm test môn ${topTask.subject}',
             icon: Icons.quiz_rounded,
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
             payload: {
               'subject': topTask.subject,
               'topic': topTask.title,
@@ -474,7 +474,7 @@ class AiCopilotService {
           ? 'Bạn chưa có nhiệm vụ nào cho hôm nay. Hãy lên kế hoạch 2–3 việc để giữ vững nhịp độ.'
           : 'Bạn đang có ${todoTasks.length} nhiệm vụ cần giải quyết hôm nay. Bắt đầu với một phiên tập trung nhẹ nhàng nhé!',
       badgeText: 'Còn $daysLeft ngày',
-      badgeColor: AppColors.purple,
+      badgeColor: AppColors.iosSecondary,
       badgeIcon: Icons.auto_awesome_rounded,
       weakSubject: weakestSub,
       weakSubjectScore: weakestScore,
@@ -485,14 +485,14 @@ class AiCopilotService {
           type: AiActionType.startFocus,
           label: '▶ Bắt đầu 25p Pomodoro',
           icon: Icons.timer_rounded,
-          color: AppColors.primary,
+          color: AppColors.iosPrimary,
           payload: {'subject': weakestSub ?? 'Toán', 'minutes': 25},
         ),
         AiCopilotAction(
           type: AiActionType.addTask,
           label: '+ Thêm nhiệm vụ trọng tâm',
           icon: Icons.add_task_rounded,
-          color: AppColors.blue,
+          color: AppColors.iosInfo,
           payload: {
             'title': 'Luyện đề và củng cố kiến thức $examName',
             'subject': weakestSub ?? 'Toán',
@@ -505,7 +505,7 @@ class AiCopilotService {
             type: AiActionType.takeQuiz,
             label: '⚡ Luyện 5 câu $weakestSub',
             icon: Icons.quiz_rounded,
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
             payload: {
               'subject': weakestSub,
               'topic': 'Trọng tâm môn $weakestSub',
@@ -572,7 +572,7 @@ class AiCopilotService {
               messenger,
               message: result.error ?? 'Nhiệm vụ này đã có trong kế hoạch',
               icon: Icons.info_outline_rounded,
-              color: AppColors.textMuted,
+              color: AppColors.iosTextMuted,
             );
           }
           break;
@@ -583,7 +583,7 @@ class AiCopilotService {
               messenger,
               message: result.error ?? 'Không thêm được nhiệm vụ',
               icon: Icons.error_outline_rounded,
-              color: AppColors.red,
+              color: AppColors.iosError,
             );
           }
           break;
@@ -598,7 +598,7 @@ class AiCopilotService {
             messenger,
             message: 'Đã thêm: "$title"',
             icon: Icons.check_circle_rounded,
-            color: AppColors.primary,
+            color: AppColors.iosPrimary,
             onUndo: () async {
               await TaskRepository.instance.restoreTask(ref);
               onTasksChanged?.call();
@@ -677,7 +677,7 @@ class AiCopilotService {
                   ),
                 ],
               ),
-              backgroundColor: AppColors.purple,
+              backgroundColor: AppColors.iosSecondary,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
@@ -737,7 +737,8 @@ class AiCopilotService {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 8),
-                  const CircularProgressIndicator(color: AppColors.purple),
+                  const CircularProgressIndicator(
+                      color: AppColors.iosSecondary),
                   const SizedBox(height: 18),
                   Text('AI đang soạn 5 câu hỏi môn $subject...',
                       textAlign: TextAlign.center,
@@ -747,7 +748,7 @@ class AiCopilotService {
                   Text('Chủ đề: "$topic"',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.textMuted)),
+                          fontSize: 12, color: AppColors.iosTextMuted)),
                 ],
               ),
             ),
@@ -863,7 +864,7 @@ class AiCopilotService {
         messenger,
         message: 'Không tìm thấy nhiệm vụ "$title" trong kế hoạch',
         icon: Icons.search_off_rounded,
-        color: AppColors.textMuted,
+        color: AppColors.iosTextMuted,
       );
       return;
     }
@@ -897,7 +898,7 @@ class AiCopilotService {
           icon: result.failed
               ? Icons.error_outline_rounded
               : Icons.check_circle_rounded,
-          color: result.failed ? AppColors.red : AppColors.primary,
+          color: result.failed ? AppColors.iosError : AppColors.iosPrimary,
           onUndo: result.failed
               ? null
               : () async {
@@ -917,7 +918,7 @@ class AiCopilotService {
             messenger,
             message: '"${match.title}" đã hoàn thành nên không dời lịch được',
             icon: Icons.info_outline_rounded,
-            color: AppColors.textMuted,
+            color: AppColors.iosTextMuted,
           );
           return;
         }
@@ -933,7 +934,7 @@ class AiCopilotService {
           icon: result.failed
               ? Icons.error_outline_rounded
               : Icons.event_available_rounded,
-          color: result.failed ? AppColors.red : AppColors.primary,
+          color: result.failed ? AppColors.iosError : AppColors.iosPrimary,
           onUndo: result.failed
               ? null
               : () async {
@@ -954,7 +955,7 @@ class AiCopilotService {
             messenger,
             message: 'Đã xoá "${match.title}"',
             icon: Icons.delete_outline_rounded,
-            color: AppColors.red,
+            color: AppColors.iosError,
             onUndo: () async {
               await repo.restoreTask(ref);
               onTasksChanged?.call();
@@ -965,7 +966,7 @@ class AiCopilotService {
             messenger,
             message: 'Không xoá được nhiệm vụ',
             icon: Icons.error_outline_rounded,
-            color: AppColors.red,
+            color: AppColors.iosError,
           );
         }
 

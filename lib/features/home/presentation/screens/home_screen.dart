@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/subject_catalog.dart';
 import '../../../../core/gamification/achievement_service.dart';
 import '../../../../features/study/domain/distribute_day.dart';
+import '../../../../features/study/domain/focus_clock.dart';
 import '../../../study/presentation/widgets/day_balance_sheet.dart';
 import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_bottom_sheet.dart';
@@ -39,6 +40,7 @@ import '../widgets/yesterday_open_tasks_banner.dart';
 import '../widgets/post_exam_card.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/snack_message.dart';
+import '../widgets/start_session_bar.dart';
 import '../../../gamification/presentation/sheets/achievements_sheet.dart';
 import '../../domain/services/today_service.dart';
 import '../../../study/presentation/screens/study_page.dart';
@@ -224,7 +226,40 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _startStudyForTask(TodayTask task) {
+  void _startStudyForTask(TodayTask task) =>
+      _openStudySession(task: task, minutes: task.estimateMinutes);
+
+  /// Bắt đầu phiên từ thanh dưới cùng (V2 M1' mục 4): 10 phút, gắn việc ưu tiên
+  /// nếu còn.
+  ///
+  /// Cố ý **không** dùng `task.estimateMinutes`: người học bấm "Bắt đầu · 10
+  /// phút" thì phải được đúng 10 phút. Ước lượng cả bài (45 phút) là con số của
+  /// kế hoạch, không phải của lượt ngồi học này — và chính vì bị ép 45 phút nên
+  /// họ mới bấm Pomodoro cho có.
+  void _startQuickSession() => _openStudySession(
+        task: _priorityTask,
+        minutes: kDefaultFocusSeconds ~/ 60,
+      );
+
+  /// Việc ưu tiên còn lại hôm nay.
+  ///
+  /// Dùng đúng thứ tự đã sắp của `TodayService` (cùng quy tắc với thẻ "việc
+  /// quan trọng nhất") để thanh Bắt đầu và thẻ không bao giờ chỉ hai việc khác
+  /// nhau — hai CTA nói khác nhau là cách chắc chắn nhất để người học mất tin.
+  TodayTask? get _priorityTask {
+    for (final task in _tasks) {
+      if (!task.isDone) return task;
+    }
+    return null;
+  }
+
+  /// Phiên bỏ dở còn hiệu lực — lúc đó CTA đúng là "tiếp tục", không phải
+  /// "bắt đầu việc mới".
+  bool get _hasActiveSession =>
+      _activeSession != null && !_activeSession!.isExpiredAt(widget.clock());
+
+  /// Mở màn Tập trung với việc và thời lượng đã chọn.
+  void _openStudySession({TodayTask? task, required int minutes}) {
     // G3-B: bắt đầu học = rung nhẹ, báo hiệu "sẵn sàng" mà không giật.
     FeedbackService.light();
     ProductAnalytics.instance.track(ProductEvents.priorityTaskStarted);
@@ -234,8 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
         fullscreenDialog: true,
         builder: (_) => StudyPage(
           initialTask: task,
-          initialSubject: task.subject,
-          initialMinutes: task.estimateMinutes,
+          initialSubject: task?.subject,
+          initialMinutes: minutes,
           autoStart: true,
           clock: widget.clock,
           onStreakChanged: _notifyStreakChanged,
@@ -299,14 +334,15 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.orangeLight,
+          color: AppColors.iosWarningSoft,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+          border:
+              Border.all(color: AppColors.iosWarning.withValues(alpha: 0.4)),
         ),
         child: Row(
           children: [
             const Icon(Icons.balance_rounded,
-                size: 20, color: AppColors.orangeDark),
+                size: 20, color: AppColors.iosWarningDark),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -314,12 +350,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.orangeDark,
+                    color: AppColors.iosWarningDark,
                     height: 1.35),
               ),
             ),
             const Icon(Icons.chevron_right_rounded,
-                color: AppColors.orangeDark),
+                color: AppColors.iosWarningDark),
           ],
         ),
       ),
@@ -519,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.border, width: 2),
+          side: BorderSide(color: AppColors.iosSeparator, width: 2),
         ),
         title: const Text('Bài này có vẻ hơi lớn',
             style: TextStyle(fontWeight: FontWeight.w800)),
@@ -539,7 +575,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Giữ nguyên',
-                style: TextStyle(color: AppColors.textMuted)),
+                style: TextStyle(color: AppColors.iosTextMuted)),
           ),
         ],
       ),
@@ -752,116 +788,143 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final userName = StorageService.getUserName();
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header 1 hàng (~48px): lời chào không được đẩy nhiệm vụ xuống fold.
-          HomeHeader(
-            userName: userName,
-            streak: widget.streak,
-            mascotVisible: (StorageService.getBool('mascot_enabled') ?? true) &&
-                !(StorageService.getBool('quiet_mode_mascot') ?? false),
-            streakVisible:
-                !(StorageService.getBool('quiet_mode_streak') ?? false),
-            onOpenAchievements: () => showAchievementsSheet(context),
-          ),
-          const SizedBox(height: 12),
-          // Đặc tả 5.2: thứ tự nội dung là (1) việc quan trọng nhất + (2) các
-          // việc kế tiếp TRƯỚC, rồi mới tới (3) phiên đang dở/CTA focus và
-          // (4) tiến độ + đếm ngược. "Mở app là biết mình phải làm gì" — việc
-          // cần làm phải ở trên, không bị thẻ tóm tắt đẩy xuống.
-          if (_isLoadingTasks)
-            const SkeletonTaskList()
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // V2-M1': banner trung tính 1 việc cho việc mở từ hôm qua -
-                // «còn N việc mở từ hôm qua», không nói «trễ 7 việc».
-                YesterdayOpenTasksBanner(
-                  count: TaskRepository.instance
-                      .getTasksForDay(
-                        DateTime.now().subtract(const Duration(days: 1)),
-                      )
-                      .length,
+    // Slice iOS-first: màn là một Stack — vùng cuộn chiếm hết, thanh
+    // "Bắt đầu" dính đáy (V2 M1' mục 4). Một `Column` không được chứa
+    // `Expanded` trước một widget khác (Flutter assert), nên thanh được
+    // tách ra ngoài Column bằng `Positioned`.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header 1 hàng (~48px): lời chào không được đẩy nhiệm vụ xuống fold.
+              HomeHeader(
+                userName: userName,
+                streak: widget.streak,
+                mascotVisible:
+                    (StorageService.getBool('mascot_enabled') ?? true) &&
+                        !(StorageService.getBool('quiet_mode_mascot') ?? false),
+                streakVisible:
+                    !(StorageService.getBool('quiet_mode_streak') ?? false),
+                onOpenAchievements: () => showAchievementsSheet(context),
+              ),
+              const SizedBox(height: 12),
+              // Đặc tả 5.2: thứ tự nội dung là (1) việc quan trọng nhất + (2) các
+              // việc kế tiếp TRƯỚC, rồi mới tới (3) phiên đang dở/CTA focus và
+              // (4) tiến độ + đếm ngược. "Mở app là biết mình phải làm gì" — việc
+              // cần làm phải ở trên, không bị thẻ tóm tắt đẩy xuống.
+              if (_isLoadingTasks)
+                const SkeletonTaskList()
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // V2-M1': banner trung tính 1 việc cho việc mở từ hôm qua -
+                    // «còn N việc mở từ hôm qua», không nói «trễ 7 việc».
+                    YesterdayOpenTasksBanner(
+                      count: TaskRepository.instance
+                          .getTasksForDay(
+                            DateTime.now().subtract(const Duration(days: 1)),
+                          )
+                          .length,
+                    ),
+                    const SizedBox(height: 8),
+                    TodayMissionCard(
+                      tasks: _tasks,
+                      onAddTask: _showAddTaskDialog,
+                      onToggle: _toggleTask,
+                      onDelete: _deleteTask,
+                      onSkip: _showSkipSheet,
+                      onReschedule: _rescheduleTask,
+                      onSplit: _splitTask,
+                      onAddSample: _showSampleTasksSheet,
+                      onOpenAiPlan: _openAiPlanScreen,
+                      onQuickAdd: _showQuickAddSheet,
+                      onSuggestOrder: _applySuggestedOrder,
+                      onStartStudy: _startStudyForTask,
+                      onEdit: _editTask,
+                      onOpenDetail: _openTaskDetail,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                TodayMissionCard(
-                  tasks: _tasks,
-                  onAddTask: _showAddTaskDialog,
-                  onToggle: _toggleTask,
-                  onDelete: _deleteTask,
-                  onSkip: _showSkipSheet,
-                  onReschedule: _rescheduleTask,
-                  onSplit: _splitTask,
-                  onAddSample: _showSampleTasksSheet,
-                  onOpenAiPlan: _openAiPlanScreen,
-                  onQuickAdd: _showQuickAddSheet,
-                  onSuggestOrder: _applySuggestedOrder,
-                  onStartStudy: _startStudyForTask,
-                  onEdit: _editTask,
-                  onOpenDetail: _openTaskDetail,
+              const SizedBox(height: 14),
+              // Phiên đang dở (nếu có): quãng thời gian đã học đang chờ được nối
+              // lại — ngay sau danh sách việc, đúng vị trí "phiên học đang chạy".
+              if (_activeSession != null &&
+                  !_activeSession!.isExpiredAt(widget.clock())) ...[
+                ActiveSessionResumeCard(
+                  session: _activeSession!,
+                  clock: widget.clock,
+                  onResume: _resumeActiveSession,
                 ),
+                const SizedBox(height: 14),
               ],
+              // Tiến độ hôm nay + đếm ngược kỳ thi (đặc tả 5.2 mục 4).
+              DailySummaryCard(
+                summary: TodayService.getDailySummary(),
+                primaryExam: widget.primaryExam,
+                onExamTap: widget.onExamTap,
+                // Đồng hồ đếm ngược tự chạy mỗi giây qua notifier, không rebuild
+                // cả cây widget Home.
+                remainingListenable: _remainingNotifier,
+              ),
+              const SizedBox(height: 14),
+              // Nhận định tiến độ tuần (AI-5.1): số liệu thật, offline-safe.
+              // Đặt SAU nhiệm vụ — nó là thông tin bổ sung, không phải việc cần làm.
+              ProgressInsightCard(
+                onOpenProgress: widget.onOpenProgress,
+                onAskAi: widget.onOpenAiCoachWith,
+              ),
+              const SizedBox(height: 14),
+              // Gộp 3 block AI cũ (Copilot hub / Quick action / Readiness) thành
+              // **một** hàng hành động: 3 card AI riêng biệt cạnh tranh chỗ dưới
+              // fold và làm loãng điểm nhấn (U-03).
+              AiActionsRow(
+                onOpenStudy: widget.onOpenStudy,
+                onOpenAiChat: widget.onOpenAiCoach,
+                onOpenAiChatWith: widget.onOpenAiCoachWith,
+                onOpenAiPlan: _openAiPlanScreen,
+                onOpenCalendar: widget.onOpenCalendar,
+                onTasksChanged: _loadTasks,
+                onStreakChanged: _notifyStreakChanged,
+                onOpenFlashcards: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        fullscreenDialog: true,
+                        builder: (_) => const FlashcardReviewScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
+              // Exam Mode (đặc tả mục 39–40): revision ≤7 ngày, exam day và post-exam.
+              ..._examModeWidgets(),
+              const SizedBox(height: 14),
+              _buildDayBalanceBanner(),
+            ],
+          ),
+        ),
+        // Gate M1' ⑤: một chạm từ lúc mở app tới phiên học. Chỉ ẩn khi chưa có
+        // dữ liệu (khung xương) hoặc khi đã có phiên bỏ dở — lúc đó thẻ phiên
+        // đang dở mới là hành động đúng.
+        if (!_isLoadingTasks && !_hasActiveSession)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: StartSessionBar(
+              task: _priorityTask,
+              minutes: kDefaultFocusSeconds ~/ 60,
+              onStart: _startQuickSession,
+              onDefer: _priorityTask == null
+                  ? null
+                  : () => _rescheduleTask(_priorityTask!),
             ),
-          const SizedBox(height: 14),
-          // Phiên đang dở (nếu có): quãng thời gian đã học đang chờ được nối
-          // lại — ngay sau danh sách việc, đúng vị trí "phiên học đang chạy".
-          if (_activeSession != null &&
-              !_activeSession!.isExpiredAt(widget.clock())) ...[
-            ActiveSessionResumeCard(
-              session: _activeSession!,
-              clock: widget.clock,
-              onResume: _resumeActiveSession,
-            ),
-            const SizedBox(height: 14),
-          ],
-          // Tiến độ hôm nay + đếm ngược kỳ thi (đặc tả 5.2 mục 4).
-          DailySummaryCard(
-            summary: TodayService.getDailySummary(),
-            primaryExam: widget.primaryExam,
-            onExamTap: widget.onExamTap,
-            // Đồng hồ đếm ngược tự chạy mỗi giây qua notifier, không rebuild
-            // cả cây widget Home.
-            remainingListenable: _remainingNotifier,
           ),
-          const SizedBox(height: 14),
-          // Nhận định tiến độ tuần (AI-5.1): số liệu thật, offline-safe.
-          // Đặt SAU nhiệm vụ — nó là thông tin bổ sung, không phải việc cần làm.
-          ProgressInsightCard(
-            onOpenProgress: widget.onOpenProgress,
-            onAskAi: widget.onOpenAiCoachWith,
-          ),
-          const SizedBox(height: 14),
-          // Gộp 3 block AI cũ (Copilot hub / Quick action / Readiness) thành
-          // **một** hàng hành động: 3 card AI riêng biệt cạnh tranh chỗ dưới
-          // fold và làm loãng điểm nhấn (U-03).
-          AiActionsRow(
-            onOpenStudy: widget.onOpenStudy,
-            onOpenAiChat: widget.onOpenAiCoach,
-            onOpenAiChatWith: widget.onOpenAiCoachWith,
-            onOpenAiPlan: _openAiPlanScreen,
-            onOpenCalendar: widget.onOpenCalendar,
-            onTasksChanged: _loadTasks,
-            onStreakChanged: _notifyStreakChanged,
-            onOpenFlashcards: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    fullscreenDialog: true,
-                    builder: (_) => const FlashcardReviewScreen()),
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-          // Exam Mode (đặc tả mục 39–40): revision ≤7 ngày, exam day và post-exam.
-          ..._examModeWidgets(),
-          const SizedBox(height: 14),
-          _buildDayBalanceBanner(),
-        ],
-      ),
+      ],
     );
   }
 
@@ -928,7 +991,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 const Text('VD: "Mai 19h học toán hàm số 45 phút"',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
@@ -945,7 +1009,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.blueSoft,
+                      color: AppColors.iosInfoSoft,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -956,7 +1020,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary),
+                              color: AppColors.iosTextPrimary),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -965,7 +1029,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ' • ⏱ ${result.minutes} phút'
                           ' • ${result.priority == 'high' ? '🔥 Quan trọng' : result.priority == 'low' ? '🌱 Nhẹ' : '⭐ Vừa'}',
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                              fontSize: 12, color: AppColors.iosTextSecondary),
                         ),
                       ],
                     ),
@@ -984,7 +1048,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pop(sheetContext);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.iosPrimary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -998,8 +1062,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: EdgeInsets.only(bottom: 8),
                     child: Text(
                       'Chưa nhận ra đủ dữ kiện — thêm giờ hoặc thời lượng nhé.',
-                      style:
-                          TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.iosTextMuted),
                     ),
                   ),
               ],
@@ -1052,7 +1116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+                  color: AppColors.iosTextPrimary,
                 ),
               ),
             ),
@@ -1060,7 +1124,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 'Chạm để thêm vào nhiệm vụ hôm nay',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted),
               ),
             ),
             const SizedBox(height: 8),
@@ -1080,9 +1144,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.bgPage,
+                    color: AppColors.iosBackground,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border, width: 1.5),
+                    border:
+                        Border.all(color: AppColors.iosSeparator, width: 1.5),
                   ),
                   child: Row(
                     children: [
@@ -1091,7 +1156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? Icons.check_circle_rounded
                             : Icons.add_circle_outline_rounded,
                         size: 18,
-                        color: added ? AppColors.primary : AppColors.blue,
+                        color: added ? AppColors.iosPrimary : AppColors.iosInfo,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -1104,15 +1169,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: added
-                                    ? AppColors.textMuted
-                                    : AppColors.textPrimary,
+                                    ? AppColors.iosTextMuted
+                                    : AppColors.iosTextPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '⏱ ${t.minutes} phút',
                               style: TextStyle(
-                                  fontSize: 11, color: AppColors.textMuted),
+                                  fontSize: 11, color: AppColors.iosTextMuted),
                             ),
                           ],
                         ),
@@ -1122,7 +1187,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: added ? AppColors.primary : AppColors.blue,
+                          color:
+                              added ? AppColors.iosPrimary : AppColors.iosInfo,
                         ),
                       ),
                     ],

@@ -116,7 +116,11 @@ void main() {
 
       // Đừng có khẳng định "không tràn" bằng cách nuốt lỗi: framework tự đỏ
       // test khi có overflow — ở đây chỉ cần chắc nội dung vẫn hiện được.
-      expect(find.textContaining('Ôn tập rất nhiều'), findsOneWidget);
+      //
+      // `findsWidgets` (không phải `findsOneWidget`): từ V2, tên việc ưu tiên
+      // còn xuất hiện thêm một lần ở thanh "Bắt đầu" dưới cùng — cùng một việc,
+      // hai chỗ nhắc, nên tìm thấy hai là đúng.
+      expect(find.textContaining('Ôn tập rất nhiều'), findsWidgets);
     });
   });
 

@@ -45,13 +45,13 @@ class ChatBubble extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(Icons.cloud_off_rounded,
-                      size: 18, color: AppColors.orange),
+                      size: 18, color: AppColors.iosWarning),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       msg.text,
                       style: const TextStyle(
-                          fontSize: 13, color: AppColors.textPrimary),
+                          fontSize: 13, color: AppColors.iosTextPrimary),
                     ),
                   ),
                 ],
@@ -102,7 +102,7 @@ class ChatBubble extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   'AI đang soạn...',
-                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 13, color: AppColors.iosTextMuted),
                 ),
               ],
             ),
@@ -121,7 +121,7 @@ class ChatBubble extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: AppColors.iosPrimary,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(18),
               topRight: Radius.circular(18),
@@ -130,7 +130,7 @@ class ChatBubble extends StatelessWidget {
             ),
             boxShadow: const [
               BoxShadow(
-                  color: AppColors.primaryDark,
+                  color: AppColors.iosPrimaryDark,
                   blurRadius: 0,
                   offset: Offset(0, 3)),
             ],
@@ -204,14 +204,14 @@ class ChatBubble extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.blueSoft.withValues(alpha: 0.6),
+                    color: AppColors.iosInfoSoft.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppColors.blue.withValues(alpha: 0.4)),
+                        color: AppColors.iosInfo.withValues(alpha: 0.4)),
                   ),
                   child: Row(children: [
                     const Icon(Icons.public_rounded,
-                        size: 14, color: AppColors.blue),
+                        size: 14, color: AppColors.iosInfo),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -221,18 +221,18 @@ class ChatBubble extends StatelessWidget {
                                 style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.blue)),
+                                    color: AppColors.iosInfo)),
                             Text(msg.sourceTitle!,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary)),
+                                    color: AppColors.iosTextPrimary)),
                           ]),
                     ),
                     const Icon(Icons.open_in_new_rounded,
-                        size: 13, color: AppColors.blue),
+                        size: 13, color: AppColors.iosInfo),
                   ]),
                 ),
               ),
@@ -256,7 +256,7 @@ class ChatBubble extends StatelessWidget {
   }
 
   TextSpan _buildRichText(String text, {required bool isUser}) {
-    final textColor = isUser ? Colors.white : AppColors.textPrimary;
+    final textColor = isUser ? Colors.white : AppColors.iosTextPrimary;
     final regex = RegExp(r'\$\$(.*?)\$\$|(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)');
     final matches = regex.allMatches(text).toList();
 
@@ -383,7 +383,8 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
           onPressed: voted == 'up' ? null : () => _save('up'),
           icon: Icon(
             voted == 'up' ? Icons.thumb_up : Icons.thumb_up_outlined,
-            color: voted == 'up' ? AppColors.primary : AppColors.textMuted,
+            color:
+                voted == 'up' ? AppColors.iosPrimary : AppColors.iosTextMuted,
           ),
         ),
         IconButton(
@@ -401,7 +402,8 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
                 },
           icon: Icon(
             voted == 'down' ? Icons.thumb_down : Icons.thumb_down_outlined,
-            color: voted == 'down' ? AppColors.red : AppColors.textMuted,
+            color:
+                voted == 'down' ? AppColors.iosError : AppColors.iosTextMuted,
           ),
         ),
         if (widget.onRegenerate != null)
@@ -410,14 +412,15 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
             visualDensity: VisualDensity.comfortable,
             iconSize: 15,
             onPressed: widget.onRegenerate,
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textMuted),
+            icon: const Icon(Icons.refresh_rounded,
+                color: AppColors.iosTextMuted),
           ),
         IconButton(
           tooltip: 'Báo câu trả lời có vấn đề',
           visualDensity: VisualDensity.comfortable,
           iconSize: 15,
           onPressed: _report,
-          icon: const Icon(Icons.flag_outlined, color: AppColors.textMuted),
+          icon: const Icon(Icons.flag_outlined, color: AppColors.iosTextMuted),
         ),
         const Spacer(),
         // Copy giữ nguyên từ bản cũ.
@@ -431,7 +434,7 @@ class _AiFeedbackRowState extends State<_AiFeedbackRow> {
               const SnackBar(content: Text('Đã sao chép')),
             );
           },
-          icon: const Icon(Icons.copy, color: AppColors.textMuted),
+          icon: const Icon(Icons.copy, color: AppColors.iosTextMuted),
         ),
       ],
     );
@@ -459,11 +462,11 @@ class _AiActionRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color:
-                    (action.color ?? AppColors.primary).withValues(alpha: 0.10),
+                color: (action.color ?? AppColors.iosPrimary)
+                    .withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: (action.color ?? AppColors.primary)
+                  color: (action.color ?? AppColors.iosPrimary)
                       .withValues(alpha: 0.35),
                   width: 1,
                 ),
@@ -472,14 +475,14 @@ class _AiActionRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(action.icon,
-                      size: 13, color: action.color ?? AppColors.primary),
+                      size: 13, color: action.color ?? AppColors.iosPrimary),
                   const SizedBox(width: 5),
                   Text(
                     action.label,
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w800,
-                      color: action.color ?? AppColors.primary,
+                      color: action.color ?? AppColors.iosPrimary,
                     ),
                   ),
                 ],
@@ -571,7 +574,7 @@ class _MessageActionChips extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: AppColors.border.withValues(alpha: 0.5),
+            color: AppColors.iosSeparator.withValues(alpha: 0.5),
             width: 0.8,
           ),
         ),
@@ -585,7 +588,7 @@ class _MessageActionChips extends StatelessWidget {
             context,
             icon: Icons.add_task_rounded,
             label: '+ Nhiệm vụ',
-            color: AppColors.blue,
+            color: AppColors.iosInfo,
             action: AiCopilotAction(
               type: AiActionType.addTask,
               label: '+ Nhiệm vụ',
@@ -604,7 +607,7 @@ class _MessageActionChips extends StatelessWidget {
             context,
             icon: Icons.play_arrow_rounded,
             label: 'Focus $subject',
-            color: AppColors.primary,
+            color: AppColors.iosPrimary,
             action: AiCopilotAction(
               type: AiActionType.startFocus,
               label: 'Focus $subject',
@@ -621,7 +624,7 @@ class _MessageActionChips extends StatelessWidget {
             context,
             icon: Icons.sticky_note_2_rounded,
             label: 'Lưu Ghi chú',
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
             action: AiCopilotAction(
               type: AiActionType.saveNote,
               label: 'Lưu Ghi chú',
@@ -639,7 +642,7 @@ class _MessageActionChips extends StatelessWidget {
             context,
             icon: Icons.quiz_rounded,
             label: 'Test 5 câu',
-            color: AppColors.orange,
+            color: AppColors.iosWarning,
             action: AiCopilotAction(
               type: AiActionType.takeQuiz,
               label: 'Test 5 câu',

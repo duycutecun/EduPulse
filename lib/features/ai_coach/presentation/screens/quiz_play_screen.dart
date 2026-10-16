@@ -188,8 +188,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     final total = widget.questions.length;
     final percent = total == 0 ? 0.0 : _correctCount / total;
     final color = percent >= 0.8
-        ? AppColors.primary
-        : (percent >= 0.5 ? AppColors.orange : AppColors.red);
+        ? AppColors.iosPrimary
+        : (percent >= 0.5 ? AppColors.iosWarning : AppColors.iosError);
     final title = percent >= 0.8
         ? 'Xuất sắc! 🎉'
         : (percent >= 0.5 ? 'Khá lắm! 💪' : 'Cần ôn thêm 📚');
@@ -224,11 +224,11 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             const SizedBox(height: 6),
             Text(
               'Đúng ${(percent * 100).round()}% — đã lưu ${score10.toStringAsFixed(1)}đ vào biểu đồ điểm thi thử.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: AppColors.iosTextSecondary),
               textAlign: TextAlign.center,
             ),
             if (wrong.isNotEmpty) ...[
@@ -237,7 +237,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.purpleSoft,
+                  color: AppColors.iosSecondarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -245,7 +245,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                   style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.purple),
+                      color: AppColors.iosSecondary),
                 ),
               ),
             ],
@@ -272,9 +272,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 label: const Text('Hỏi AI cách khắc phục',
                     style: TextStyle(fontWeight: FontWeight.w800)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.purple,
+                  foregroundColor: AppColors.iosSecondary,
                   side: BorderSide(
-                      color: AppColors.purple.withValues(alpha: 0.5)),
+                      color: AppColors.iosSecondary.withValues(alpha: 0.5)),
                 ),
               ),
             ),
@@ -284,7 +284,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.iosPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -367,7 +367,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         content: Text(latestBody != null
             ? 'Đã tạo task ôn lại, kèm tóm tắt ${wrong.length} câu sai'
             : 'Đã tạo task ôn lại phần yếu'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.iosPrimary,
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
           label: 'Mở ghi chú',
@@ -379,7 +379,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
-              backgroundColor: AppColors.cardWhite,
+              backgroundColor: AppColors.iosCard,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
@@ -462,7 +462,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -475,13 +475,13 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             children: [
               Row(children: [
                 const Icon(Icons.auto_awesome_rounded,
-                    size: 20, color: AppColors.purple),
+                    size: 20, color: AppColors.iosSecondary),
                 const SizedBox(width: 8),
                 Text('AI phân tích lỗi sai',
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
               ]),
               const SizedBox(height: 12),
               SizedBox(
@@ -500,11 +500,12 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const CircularProgressIndicator(
-                                color: AppColors.purple),
+                                color: AppColors.iosSecondary),
                             const SizedBox(height: 12),
                             Text('AI đang phân tích...',
                                 style: TextStyle(
-                                    fontSize: 13, color: AppColors.textMuted)),
+                                    fontSize: 13,
+                                    color: AppColors.iosTextMuted)),
                           ],
                         ),
                       );
@@ -512,7 +513,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                     if (snap.hasError) {
                       return Center(
                         child: Text('Lỗi: ${snap.error}',
-                            style: const TextStyle(color: AppColors.red)),
+                            style: const TextStyle(color: AppColors.iosError)),
                       );
                     }
                     return SingleChildScrollView(
@@ -528,7 +529,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(sheetCtx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.purple,
+                    backgroundColor: AppColors.iosSecondary,
                     foregroundColor: Colors.white,
                   ),
                   child: const Text('Đã hiểu',
@@ -545,12 +546,12 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: Text('Luyện quiz 📝',
             style: TextStyle(
-                fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-        backgroundColor: AppColors.cardWhite,
+                fontWeight: FontWeight.w800, color: AppColors.iosTextPrimary)),
+        backgroundColor: AppColors.iosCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
@@ -573,9 +574,9 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                   child: LinearProgressIndicator(
                     value: (_index + 1) / widget.questions.length,
                     minHeight: 8,
-                    backgroundColor: AppColors.border,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    backgroundColor: AppColors.iosSeparator,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.iosPrimary),
                   ),
                 ),
               ),
@@ -585,7 +586,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textMuted),
+                    color: AppColors.iosTextMuted),
               ),
             ],
           ),
@@ -595,16 +596,16 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: AppColors.cardWhite,
+              color: AppColors.iosCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border, width: 2),
+              border: Border.all(color: AppColors.iosSeparator, width: 2),
             ),
             child: Text(
               _q.question,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: AppColors.iosTextPrimary,
                 height: 1.4,
               ),
             ),
@@ -614,21 +615,21 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
           ...List.generate(_q.options.length, (i) {
             final isCorrect = i == _q.correctIndex;
             final isSelected = _selected == i;
-            Color bg = AppColors.cardWhite;
-            Color border = AppColors.border;
-            Color textColor = AppColors.textPrimary;
+            Color bg = AppColors.iosCard;
+            Color border = AppColors.iosSeparator;
+            Color textColor = AppColors.iosTextPrimary;
             IconData? icon;
 
             if (_selected != null) {
               if (isCorrect) {
-                bg = AppColors.greenSoft;
-                border = AppColors.primary;
-                textColor = AppColors.primaryDark;
+                bg = AppColors.iosSuccessSoft;
+                border = AppColors.iosPrimary;
+                textColor = AppColors.iosPrimaryDark;
                 icon = Icons.check_circle_rounded;
               } else if (isSelected) {
-                bg = AppColors.redSoft;
-                border = AppColors.red;
-                textColor = AppColors.redDark;
+                bg = AppColors.iosErrorSoft;
+                border = AppColors.iosError;
+                textColor = AppColors.iosErrorDark;
                 icon = Icons.cancel_rounded;
               }
             }
@@ -668,16 +669,18 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.blue.withValues(alpha: 0.08),
+                color: AppColors.iosInfo.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.blue, width: 1.5),
+                border: Border.all(color: AppColors.iosInfo, width: 1.5),
               ),
               child: Text(
                 _q.explanation.isEmpty
                     ? 'Đáp án: ${String.fromCharCode(65 + _q.correctIndex)}'
                     : '💡 ${_q.explanation}',
                 style: TextStyle(
-                    fontSize: 12.5, color: AppColors.textPrimary, height: 1.4),
+                    fontSize: 12.5,
+                    color: AppColors.iosTextPrimary,
+                    height: 1.4),
               ),
             ),
             const SizedBox(height: 12),
@@ -687,11 +690,11 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.iosPrimary,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: const [
                     BoxShadow(
-                        color: AppColors.primaryDark,
+                        color: AppColors.iosPrimaryDark,
                         blurRadius: 0,
                         offset: Offset(0, 4))
                   ],

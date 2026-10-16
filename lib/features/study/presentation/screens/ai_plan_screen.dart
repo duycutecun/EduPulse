@@ -128,7 +128,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
     final generating = _started && _plans.value.isLoading;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: const Text('Lộ trình AI',
             style: TextStyle(fontWeight: FontWeight.w800)),
@@ -147,7 +147,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                     width: 46,
                     height: 46,
                     decoration: const BoxDecoration(
-                      color: AppColors.greenSoft,
+                      color: AppColors.iosSuccessSoft,
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
@@ -163,7 +163,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                            color: AppColors.iosTextPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -172,7 +172,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                               ? 'Còn ${exam.daysLeft > 0 ? exam.daysLeft : 0} ngày nữa'
                               : 'Thêm kỳ thi ở tab Mục tiêu để AI tối ưu lộ trình',
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                              fontSize: 12, color: AppColors.iosTextSecondary),
                         ),
                       ],
                     ),
@@ -187,7 +187,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -205,7 +205,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -223,11 +223,11 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.iosPrimary,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: const [
                     BoxShadow(
-                        color: AppColors.primaryDark,
+                        color: AppColors.iosPrimaryDark,
                         blurRadius: 0,
                         offset: Offset(0, 4))
                   ],
@@ -309,7 +309,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                   style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
+                      color: AppColors.iosTextPrimary),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -319,7 +319,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                   style: TextStyle(
                       fontSize: 12,
                       height: 1.35,
-                      color: AppColors.textSecondary),
+                      color: AppColors.iosTextSecondary),
                 ),
               ],
             ),
@@ -340,14 +340,14 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             GestureDetector(
               onTap: _openPreview,
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.blue,
+                  color: AppColors.iosInfo,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text('Chấp nhận',
@@ -364,12 +364,13 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.purpleLight,
+            color: AppColors.iosSecondarySoft,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'Trước: giữ nguyên kế hoạch hiện tại.\nSau khi chấp nhận: thêm ${plan.tasks.length} nhiệm vụ vào từng ngày trong lộ trình. AI không tự áp dụng thay đổi.',
-            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.iosTextPrimary),
           ),
         ),
         const SizedBox(height: 10),
@@ -378,7 +379,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
           child: Column(
             children: [
               for (var i = 0; i < plan.tasks.length; i++) ...[
-                if (i > 0) Divider(color: AppColors.border, height: 14),
+                if (i > 0) Divider(color: AppColors.iosSeparator, height: 14),
                 _planRow(plan.tasks[i], i + 1),
               ],
             ],
@@ -390,7 +391,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
             onPressed: _reject,
             icon: const Icon(Icons.close_rounded, size: 18),
             label: const Text('Từ chối đề xuất'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.iosError),
           ),
         ),
       ],
@@ -408,7 +409,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
           width: 30,
           height: 30,
           decoration: BoxDecoration(
-            color: AppColors.blue.withValues(alpha: 0.12),
+            color: AppColors.iosInfo.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(9),
           ),
           child: Center(
@@ -416,7 +417,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.blue)),
+                    color: AppColors.iosInfo)),
           ),
         ),
         const SizedBox(width: 10),
@@ -429,12 +430,12 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary),
+                    color: AppColors.iosTextPrimary),
               ),
               const SizedBox(height: 2),
               Text(
                 'Ngày ${task.day} • ⏱ ${task.estimateMinutes} phút • $priorityLabel',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
               ),
             ],
           ),
@@ -451,10 +452,11 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: sel ? AppColors.primary : AppColors.cardWhite,
+            color: sel ? AppColors.iosPrimary : AppColors.iosCard,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-                color: sel ? AppColors.primary : AppColors.border, width: 2),
+                color: sel ? AppColors.iosPrimary : AppColors.iosSeparator,
+                width: 2),
           ),
           child: Text(
             label,
@@ -462,7 +464,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w800,
-              color: sel ? Colors.white : AppColors.textPrimary,
+              color: sel ? Colors.white : AppColors.iosTextPrimary,
             ),
           ),
         ),
@@ -478,10 +480,11 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: sel ? AppColors.blue : AppColors.cardWhite,
+            color: sel ? AppColors.iosInfo : AppColors.iosCard,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-                color: sel ? AppColors.blue : AppColors.border, width: 2),
+                color: sel ? AppColors.iosInfo : AppColors.iosSeparator,
+                width: 2),
           ),
           child: Text(
             label,
@@ -489,7 +492,7 @@ class _AiPlanScreenState extends State<AiPlanScreen> {
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w800,
-              color: sel ? Colors.white : AppColors.textPrimary,
+              color: sel ? Colors.white : AppColors.iosTextPrimary,
             ),
           ),
         ),

@@ -77,9 +77,9 @@ class _AiActionsRowState extends State<AiActionsRow> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: AppColors.iosSeparator, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +106,7 @@ class _AiActionsRowState extends State<AiActionsRow> {
                           overflow: TextOverflow.ellipsis,
                           style: AppTokens.bodySubtle.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: AppColors.iosTextPrimary,
                           ),
                         ),
                       ),
@@ -148,32 +148,32 @@ class _AiActionsRowState extends State<AiActionsRow> {
                 _ActionChip(
                   icon: Icons.timer_outlined,
                   label: 'Tập trung',
-                  color: AppColors.primary,
+                  color: AppColors.iosPrimary,
                   onTap: widget.onOpenStudy,
                 ),
                 _ActionChip(
                   icon: Icons.route_outlined,
                   label: 'Lộ trình AI',
-                  color: AppColors.purple,
+                  color: AppColors.iosSecondary,
                   onTap: widget.onOpenAiPlan,
                 ),
                 _ActionChip(
                   icon: Icons.auto_awesome_outlined,
                   label: 'Hỏi AI',
-                  color: AppColors.blue,
+                  color: AppColors.iosInfo,
                   onTap: widget.onOpenAiChat,
                 ),
                 _ActionChip(
                   icon: Icons.calendar_month_outlined,
                   label: 'Lịch',
-                  color: AppColors.orangeDark,
+                  color: AppColors.iosWarningDark,
                   onTap: widget.onOpenCalendar,
                 ),
                 if (widget.onOpenFlashcards != null)
                   _ActionChip(
                     icon: Icons.style_outlined,
                     label: 'Flashcard',
-                    color: AppColors.redDark,
+                    color: AppColors.iosErrorDark,
                     onTap: widget.onOpenFlashcards!,
                   ),
               ],
@@ -207,21 +207,22 @@ class _ReadinessChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.blueLight,
+        color: AppColors.iosInfoSoft,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.blue.withValues(alpha: 0.4)),
+        border: Border.all(color: AppColors.iosInfo.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.flag_rounded, size: 11, color: AppColors.blueDark),
+          const Icon(Icons.flag_rounded,
+              size: 11, color: AppColors.iosInfoDark),
           const SizedBox(width: 4),
           Text(
             '$score',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: AppColors.blueDark,
+              color: AppColors.iosInfoDark,
             ),
           ),
           const SizedBox(width: 3),
@@ -270,12 +271,12 @@ class _InlineAiAction extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: AppTokens.bodySubtle.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.iosTextPrimary,
                 ),
               ),
             ),
             const Icon(Icons.chevron_right_rounded,
-                size: 18, color: AppColors.textMuted),
+                size: 18, color: AppColors.iosTextMuted),
           ],
         ),
       ),
@@ -326,7 +327,7 @@ class _ActionChip extends StatelessWidget {
                 label,
                 style: AppTokens.bodySubtle.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.iosTextPrimary,
                 ),
               ),
             ],

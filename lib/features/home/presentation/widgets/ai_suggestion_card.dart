@@ -126,15 +126,15 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.yellow, AppColors.orange],
+          colors: [AppColors.iosStreak, AppColors.iosWarning],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.yellow, width: 1.5),
+        border: Border.all(color: AppColors.iosStreak, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.yellow.withValues(alpha: 0.2),
+            color: AppColors.iosStreak.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -146,7 +146,7 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
           Row(
             children: [
               const Icon(Icons.auto_awesome_rounded,
-                  size: 16, color: AppColors.purple),
+                  size: 16, color: AppColors.iosSecondary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -165,7 +165,7 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
+                color: AppColors.iosTextPrimary,
                 height: 1.4,
               ),
             )
@@ -183,7 +183,7 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.purple)),
+                        color: AppColors.iosSecondary)),
               ),
               if (items.isNotEmpty) ...[
                 const SizedBox(width: 10),
@@ -191,7 +191,7 @@ class _AiSuggestionCardState extends State<AiSuggestionCard> {
                   'Bấm gợi ý để hỏi tiếp',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                    color: AppColors.iosTextSecondary.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -224,7 +224,7 @@ class _InsightRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.iosTextPrimary,
                 height: 1.35,
               ),
             ),
@@ -234,13 +234,13 @@ class _InsightRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(Icons.insights_rounded,
-                      size: 11, color: AppColors.textSecondary),
+                      size: 11, color: AppColors.iosTextSecondary),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       insight.evidence!,
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary),
+                          fontSize: 11, color: AppColors.iosTextSecondary),
                     ),
                   ),
                 ],
@@ -269,7 +269,7 @@ class _RefreshButton extends StatelessWidget {
           height: 14,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
           ),
         ),
       );
@@ -281,8 +281,8 @@ class _RefreshButton extends StatelessWidget {
           minHeight: AppTokens.minTouchTarget),
       padding: EdgeInsets.zero,
       tooltip: 'Phân tích lại',
-      icon:
-          const Icon(Icons.refresh_rounded, size: 17, color: AppColors.purple),
+      icon: const Icon(Icons.refresh_rounded,
+          size: 17, color: AppColors.iosSecondary),
     );
   }
 }

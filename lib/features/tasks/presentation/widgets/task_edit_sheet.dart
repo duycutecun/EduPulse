@@ -184,7 +184,7 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
       ),
       padding: EdgeInsets.only(bottom: bottomInset + AppTokens.space8),
       decoration: const BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.vertical(top: AppTokens.rXl),
       ),
       child: Column(
@@ -228,8 +228,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
               AppTokens.space20,
             ),
             decoration: const BoxDecoration(
-              color: AppColors.cardWhite,
-              border: Border(top: BorderSide(color: AppColors.border)),
+              color: AppColors.iosCard,
+              border: Border(top: BorderSide(color: AppColors.iosSeparator)),
             ),
             child: Row(
               children: [
@@ -278,7 +278,7 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
         IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close_rounded, size: 20),
-          color: AppColors.textMuted,
+          color: AppColors.iosTextMuted,
           tooltip: 'Đóng',
         ),
       ],
@@ -301,7 +301,7 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
             errorText: _titleError,
             border: OutlineInputBorder(
               borderRadius: AppTokens.brMd,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.iosSeparator),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppTokens.space12,
@@ -333,18 +333,18 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
               avatar: Icon(
                 subject.icon,
                 size: 15,
-                color: isSelected ? color : AppColors.textMuted,
+                color: isSelected ? color : AppColors.iosTextMuted,
               ),
               label: Text(subject.plainName),
               labelStyle: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? color : AppColors.textSecondary,
+                color: isSelected ? color : AppColors.iosTextSecondary,
               ),
               selectedColor: color.withValues(alpha: 0.14),
-              backgroundColor: AppColors.cardLight,
+              backgroundColor: AppColors.iosFill,
               side: BorderSide(
-                color: isSelected ? color : AppColors.border,
+                color: isSelected ? color : AppColors.iosSeparator,
                 width: isSelected ? 1.5 : 1,
               ),
               showCheckmark: false,
@@ -376,13 +376,14 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected
-                    ? AppColors.primaryDark
-                    : AppColors.textSecondary,
+                    ? AppColors.iosPrimaryDark
+                    : AppColors.iosTextSecondary,
               ),
-              selectedColor: AppColors.primaryLight,
-              backgroundColor: AppColors.cardLight,
+              selectedColor: AppColors.iosPrimarySoft,
+              backgroundColor: AppColors.iosFill,
               side: BorderSide(
-                color: isSelected ? AppColors.primary : AppColors.border,
+                color:
+                    isSelected ? AppColors.iosPrimary : AppColors.iosSeparator,
                 width: isSelected ? 1.5 : 1,
               ),
               showCheckmark: false,
@@ -398,9 +399,9 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
 
   Widget _prioritySection() {
     const options = [
-      ('low', '🌱 Nhẹ', AppColors.textMuted),
-      ('medium', '⭐ Vừa', AppColors.blue),
-      ('high', '🔥 Quan trọng', AppColors.red),
+      ('low', '🌱 Nhẹ', AppColors.iosTextMuted),
+      ('medium', '⭐ Vừa', AppColors.iosInfo),
+      ('high', '🔥 Quan trọng', AppColors.iosError),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,12 +420,12 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
               labelStyle: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? color : AppColors.textSecondary,
+                color: isSelected ? color : AppColors.iosTextSecondary,
               ),
               selectedColor: color.withValues(alpha: 0.14),
-              backgroundColor: AppColors.cardLight,
+              backgroundColor: AppColors.iosFill,
               side: BorderSide(
-                color: isSelected ? color : AppColors.border,
+                color: isSelected ? color : AppColors.iosSeparator,
                 width: isSelected ? 1.5 : 1,
               ),
               showCheckmark: false,
@@ -470,13 +471,13 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
             child: Row(
               children: [
                 const Icon(Icons.info_outline_rounded,
-                    size: 14, color: AppColors.warning),
+                    size: 14, color: AppColors.iosWarning),
                 const SizedBox(width: AppTokens.space6),
                 Expanded(
                   child: Text(
                     'Hạn chót sớm hơn ngày học — nhiệm vụ có thể không kịp.',
                     style: AppTokens.caption
-                        .copyWith(color: AppColors.warningDark),
+                        .copyWith(color: AppColors.iosWarningDark),
                   ),
                 ),
               ],
@@ -506,7 +507,7 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
         ),
         decoration: BoxDecoration(
           border: Border.all(
-            color: highlight ? AppColors.primary : AppColors.border,
+            color: highlight ? AppColors.iosPrimary : AppColors.iosSeparator,
           ),
           borderRadius: AppTokens.brMd,
         ),
@@ -514,7 +515,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
           children: [
             Icon(icon,
                 size: 18,
-                color: highlight ? AppColors.primary : AppColors.textMuted),
+                color:
+                    highlight ? AppColors.iosPrimary : AppColors.iosTextMuted),
             const SizedBox(width: AppTokens.space10),
             Expanded(
               child: Column(
@@ -527,8 +529,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
                     style: AppTokens.body.copyWith(
                       fontWeight: FontWeight.w700,
                       color: highlight
-                          ? AppColors.primaryDark
-                          : AppColors.textPrimary,
+                          ? AppColors.iosPrimaryDark
+                          : AppColors.iosTextPrimary,
                     ),
                   ),
                 ],
@@ -540,7 +542,7 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
                 child: const Padding(
                   padding: EdgeInsets.all(AppTokens.space4),
                   child: Icon(Icons.close_rounded,
-                      size: 16, color: AppColors.textMuted),
+                      size: 16, color: AppColors.iosTextMuted),
                 ),
               ),
           ],
@@ -564,7 +566,7 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
             hintText: 'Nội dung cần chú ý, tài liệu tham khảo…',
             border: OutlineInputBorder(
               borderRadius: AppTokens.brMd,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.iosSeparator),
             ),
             contentPadding: const EdgeInsets.all(AppTokens.space12),
           ),
@@ -578,7 +580,8 @@ class _TaskEditSheetState extends State<TaskEditSheet> {
       children: [
         Text(text, style: AppTokens.heading3),
         if (required)
-          Text(' *', style: AppTokens.heading3.copyWith(color: AppColors.red)),
+          Text(' *',
+              style: AppTokens.heading3.copyWith(color: AppColors.iosError)),
       ],
     );
   }
@@ -668,7 +671,7 @@ class _DragHandle extends StatelessWidget {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: AppColors.borderStrong,
+            color: AppColors.iosSeparator,
             borderRadius: AppTokens.brFull,
           ),
         ),

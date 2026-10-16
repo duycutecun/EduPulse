@@ -24,15 +24,15 @@ class SmartNudgeCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.yellow, AppColors.orange],
+          colors: [AppColors.iosStreak, AppColors.iosWarning],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.yellow, width: 1.5),
+        border: Border.all(color: AppColors.iosStreak, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.yellow.withValues(alpha: 0.2),
+            color: AppColors.iosStreak.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -55,7 +55,7 @@ class SmartNudgeCard extends StatelessWidget {
               ],
             ),
             child: const Icon(Icons.auto_awesome_rounded,
-                size: 16, color: AppColors.purple),
+                size: 16, color: AppColors.iosSecondary),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -71,7 +71,7 @@ class SmartNudgeCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+                    color: AppColors.iosTextPrimary,
                     height: 1.4,
                   ),
                 ),
@@ -79,7 +79,7 @@ class SmartNudgeCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(recommendation.evidence!,
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary)),
+                          fontSize: 11, color: AppColors.iosTextSecondary)),
                 ],
                 if (onAskAi != null) ...[
                   const SizedBox(height: 6),
@@ -89,7 +89,7 @@ class SmartNudgeCard extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.purple)),
+                            color: AppColors.iosSecondary)),
                   ),
                 ],
               ],

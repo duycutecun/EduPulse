@@ -113,7 +113,7 @@ class _AccountScreenState extends State<AccountScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border, width: 2)),
+            side: BorderSide(color: AppColors.iosSeparator, width: 2)),
         title: const Text('Đăng xuất?',
             style: TextStyle(fontWeight: FontWeight.w800)),
         content: const Text(
@@ -121,7 +121,8 @@ class _AccountScreenState extends State<AccountScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+              child:
+                  Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted))),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -134,7 +135,7 @@ class _AccountScreenState extends State<AccountScreen> {
             },
             child: const Text('Đăng xuất',
                 style: TextStyle(
-                    color: AppColors.red, fontWeight: FontWeight.w800)),
+                    color: AppColors.iosError, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -171,8 +172,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   Icons.cloud_done_rounded,
                   tileSize: 44,
                   iconSize: 24,
-                  color: AppColors.primary,
-                  bg: AppColors.greenSoft,
+                  color: AppColors.iosPrimary,
+                  bg: AppColors.iosSuccessSoft,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -183,18 +184,18 @@ class _AccountScreenState extends State<AccountScreen> {
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary)),
+                              color: AppColors.iosTextPrimary)),
                       Text('Đã đăng nhập · dữ liệu lưu trên máy',
                           style: TextStyle(
-                              fontSize: 11, color: AppColors.textMuted)),
+                              fontSize: 11, color: AppColors.iosTextMuted)),
                     ],
                   ),
                 ),
                 IconButton(
                   tooltip: 'Đăng xuất',
                   onPressed: _handleSignOut,
-                  icon:
-                      const Icon(Icons.logout, color: AppColors.red, size: 22),
+                  icon: const Icon(Icons.logout,
+                      color: AppColors.iosError, size: 22),
                 ),
               ],
             ),
@@ -204,7 +205,7 @@ class _AccountScreenState extends State<AccountScreen> {
             onTap: _openAuthScreen,
             child: GlassCard(
               padding: const EdgeInsets.all(18),
-              borderColor: AppColors.primary,
+              borderColor: AppColors.iosPrimary,
               borderWidth: 3,
               child: Row(
                 children: [
@@ -212,8 +213,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     Icons.person_add_rounded,
                     tileSize: 44,
                     iconSize: 24,
-                    color: AppColors.primary,
-                    bg: AppColors.greenSoft,
+                    color: AppColors.iosPrimary,
+                    bg: AppColors.iosSuccessSoft,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -224,16 +225,16 @@ class _AccountScreenState extends State<AccountScreen> {
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary)),
+                                color: AppColors.iosTextPrimary)),
                         SizedBox(height: 2),
                         Text('Quản lý hồ sơ và cài đặt trên thiết bị này',
                             style: TextStyle(
-                                fontSize: 12, color: AppColors.textMuted)),
+                                fontSize: 12, color: AppColors.iosTextMuted)),
                       ],
                     ),
                   ),
                   const Icon(Icons.chevron_right,
-                      color: AppColors.primary, size: 18),
+                      color: AppColors.iosPrimary, size: 18),
                 ],
               ),
             ),
@@ -255,8 +256,8 @@ class _AccountScreenState extends State<AccountScreen> {
         _collapsible(
           id: 'profile',
           icon: Icons.school_rounded,
-          color: AppColors.purple,
-          bg: AppColors.purpleSoft,
+          color: AppColors.iosSecondary,
+          bg: AppColors.iosSecondarySoft,
           title: 'Hồ sơ & Gia đình',
           subtitle: 'Hồ sơ học tập, báo cáo gửi ba mẹ',
           children: [
@@ -277,8 +278,8 @@ class _AccountScreenState extends State<AccountScreen> {
         _collapsible(
           id: 'display',
           icon: Icons.visibility_rounded,
-          color: AppColors.blue,
-          bg: AppColors.blueSoft,
+          color: AppColors.iosInfo,
+          bg: AppColors.iosInfoSoft,
           title: 'Hiển thị & Nhắc học',
           subtitle: 'Cỡ chữ, tương phản, nhắc học hằng ngày',
           children: [
@@ -291,8 +292,8 @@ class _AccountScreenState extends State<AccountScreen> {
         _collapsible(
           id: 'personal',
           icon: Icons.shield_rounded,
-          color: AppColors.primary,
-          bg: AppColors.greenSoft,
+          color: AppColors.iosPrimary,
+          bg: AppColors.iosSuccessSoft,
           title: 'Cá nhân hóa & Dữ liệu',
           subtitle: 'Quyền AI, rung/âm thanh, xuất nhập dữ liệu',
           children: [_buildPreferencesCard()],
@@ -355,12 +356,12 @@ class _AccountScreenState extends State<AccountScreen> {
                             style: const TextStyle(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary)),
+                                color: AppColors.iosTextPrimary)),
                         const SizedBox(height: 2),
                         Text(subtitle,
                             style: const TextStyle(
                                 fontSize: 11.5,
-                                color: AppColors.textSecondary)),
+                                color: AppColors.iosTextSecondary)),
                       ],
                     ),
                   ),
@@ -368,7 +369,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
                     child: const Icon(Icons.expand_more_rounded,
-                        color: AppColors.textMuted),
+                        color: AppColors.iosTextMuted),
                   ),
                 ],
               ),
@@ -399,9 +400,9 @@ class _AccountScreenState extends State<AccountScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: AppColors.iosSeparator, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -416,11 +417,11 @@ class _AccountScreenState extends State<AccountScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.iosPrimary,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryDark.withValues(alpha: 0.4),
+                  color: AppColors.iosPrimaryDark.withValues(alpha: 0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -438,14 +439,14 @@ class _AccountScreenState extends State<AccountScreen> {
                     style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 2),
                 Text(
                   _userTarget.isNotEmpty
                       ? 'Mục tiêu: $_userTarget'
                       : 'Chưa đặt mục tiêu',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.iosTextSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -454,15 +455,15 @@ class _AccountScreenState extends State<AccountScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
+                    color: AppColors.iosPrimarySoft,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.primary, width: 1),
+                    border: Border.all(color: AppColors.iosPrimary, width: 1),
                   ),
                   child: const Text('⚡ Sĩ tử 2026',
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primary)),
+                          color: AppColors.iosPrimary)),
                 ),
               ],
             ),
@@ -472,12 +473,12 @@ class _AccountScreenState extends State<AccountScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.cardLight,
+                color: AppColors.iosFill,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border, width: 1),
+                border: Border.all(color: AppColors.iosSeparator, width: 1),
               ),
               child: const Icon(Icons.edit_rounded,
-                  color: AppColors.blue, size: 18),
+                  color: AppColors.iosInfo, size: 18),
             ),
           ),
         ],
@@ -495,7 +496,7 @@ class _AccountScreenState extends State<AccountScreen> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           const Text('AI chỉ sử dụng dữ liệu khi bạn cho phép.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
           const SizedBox(height: 8),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
@@ -567,7 +568,8 @@ class _AccountScreenState extends State<AccountScreen> {
           const Divider(),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.tune_rounded, color: AppColors.purple),
+            leading:
+                const Icon(Icons.tune_rounded, color: AppColors.iosSecondary),
             title: const Text('AI nâng cao'),
             subtitle: const Text('Chọn model, quyền AI, lịch sử hội thoại',
                 style: TextStyle(fontSize: 11)),
@@ -575,7 +577,8 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.ios_share_rounded, color: AppColors.blue),
+            leading:
+                const Icon(Icons.ios_share_rounded, color: AppColors.iosInfo),
             title: const Text('Xuất / nhập dữ liệu'),
             subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú',
                 style: TextStyle(fontSize: 11)),
@@ -584,7 +587,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.emoji_events_outlined,
-                color: AppColors.orange),
+                color: AppColors.iosWarning),
             title: const Text('Thành tích & huy hiệu'),
             subtitle: const Text('Cấp độ, chuỗi ngày và bộ huy hiệu đã đạt',
                 style: TextStyle(fontSize: 11)),
@@ -593,7 +596,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.emoji_events_rounded,
-                color: AppColors.yellowDark),
+                color: AppColors.iosStreak),
             title: const Text('Bảng vàng kỷ lục'),
             subtitle: const Text(
                 'Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
@@ -605,7 +608,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading:
-                const Icon(Icons.insights_rounded, color: AppColors.greenDark),
+                const Icon(Icons.insights_rounded, color: AppColors.iosSuccess),
             title: const Text('Báo cáo học tập sâu'),
             subtitle: const Text(
                 'Xu hướng điểm, năng lực chủ đề, thời gian học',
@@ -616,8 +619,8 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading:
-                const Icon(Icons.feedback_outlined, color: AppColors.purple),
+            leading: const Icon(Icons.feedback_outlined,
+                color: AppColors.iosSecondary),
             title: const Text('Gửi phản hồi beta'),
             subtitle: Text(
                 BetaFeedbackService.instance.count > 0
@@ -628,15 +631,15 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading:
-                const Icon(Icons.delete_sweep_outlined, color: AppColors.red),
+            leading: const Icon(Icons.delete_sweep_outlined,
+                color: AppColors.iosError),
             title: const Text('Xóa lịch sử trò chuyện AI'),
             onTap: _clearAiHistory,
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.privacy_tip_outlined,
-                color: AppColors.greenDark),
+                color: AppColors.iosSuccess),
             title: const Text('Quyền riêng tư & dữ liệu'),
             subtitle: const Text('Thời hạn lưu, xoá dữ liệu cá nhân',
                 style: TextStyle(fontSize: 11)),
@@ -667,7 +670,7 @@ class _AccountScreenState extends State<AccountScreen> {
         dense: true,
         leading: Icon(
           isAuto ? Icons.auto_awesome_rounded : aiModelIcon(model!.slug),
-          color: selected ? AppColors.primary : AppColors.textMuted,
+          color: selected ? AppColors.iosPrimary : AppColors.iosTextMuted,
           size: 20,
         ),
         title: Text(
@@ -681,11 +684,11 @@ class _AccountScreenState extends State<AccountScreen> {
           isAuto
               ? 'Tự chuyển model theo độ khó câu hỏi.'
               : (model!.description.isEmpty ? model.slug : model.description),
-          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          style: const TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
         ),
         trailing: selected
             ? const Icon(Icons.check_circle_rounded,
-                color: AppColors.primary, size: 20)
+                color: AppColors.iosPrimary, size: 20)
             : null,
         onTap: () {
           StorageService.setAiModel(slug);
@@ -705,7 +708,7 @@ class _AccountScreenState extends State<AccountScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -726,7 +729,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 const Text(
                   'EduPulse tự chọn model phù hợp với từng câu hỏi. Bạn có thể '
                   'ghin một model nếu muốn.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted),
                 ),
                 const SizedBox(height: 10),
                 modelRow(null, isAuto: true),
@@ -751,9 +754,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.delete_sweep_outlined,
-                      color: AppColors.red),
+                      color: AppColors.iosError),
                   title: const Text('Xóa lịch sử trò chuyện AI',
-                      style: TextStyle(color: AppColors.red)),
+                      style: TextStyle(color: AppColors.iosError)),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _clearAiHistory();
@@ -773,7 +776,7 @@ class _AccountScreenState extends State<AccountScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -789,14 +792,14 @@ class _AccountScreenState extends State<AccountScreen> {
               const SizedBox(height: 4),
               Text(
                 '${c.tasks} nhiệm vụ • ${c.notes} ghi chú • ${c.sessions} phiên focus • ${c.exams} kỳ thi • ${c.logs} nhật ký',
-                style:
-                    const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.iosTextMuted),
               ),
               const SizedBox(height: 14),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.data_object_rounded,
-                    color: AppColors.blue),
+                    color: AppColors.iosInfo),
                 title: const Text('Xuất JSON (đầy đủ — dùng để nhập lại)'),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -811,7 +814,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.table_chart_rounded,
-                    color: AppColors.primary),
+                    color: AppColors.iosPrimary),
                 title: const Text('Xuất nhật ký học (CSV)'),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -826,7 +829,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.description_rounded,
-                    color: AppColors.orange),
+                    color: AppColors.iosWarning),
                 title: const Text('Xuất ghi chú (Markdown)'),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -840,8 +843,8 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading:
-                    const Icon(Icons.download_rounded, color: AppColors.purple),
+                leading: const Icon(Icons.download_rounded,
+                    color: AppColors.iosSecondary),
                 title: const Text('Nhập từ JSON'),
                 subtitle: const Text(
                     'Chỉ thêm bản ghi mới, không ghi đè dữ liệu hiện có.',
@@ -869,9 +872,9 @@ class _AccountScreenState extends State<AccountScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.delete_forever_rounded,
-                    color: AppColors.red),
+                    color: AppColors.iosError),
                 title: const Text('Xóa dữ liệu học cục bộ',
-                    style: TextStyle(color: AppColors.red)),
+                    style: TextStyle(color: AppColors.iosError)),
                 subtitle: const Text(
                     'Nhiệm vụ, ghi chú, phiên, kỳ thi, nhật ký. Cài đặt và lịch sử AI giữ nguyên.',
                     style: TextStyle(fontSize: 11)),
@@ -913,7 +916,7 @@ class _AccountScreenState extends State<AccountScreen> {
           TextButton(
             onPressed: () => Navigator.pop(
                 dialogContext, controller.text.trim().toUpperCase() == 'XÓA'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.iosError),
             child: const Text('Xóa vĩnh viễn'),
           ),
         ],
@@ -947,7 +950,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     onPressed: () => Navigator.pop(ctx, true),
                     child: const Text('Xóa',
                         style: TextStyle(
-                            color: AppColors.red, fontWeight: FontWeight.w800)))
+                            color: AppColors.iosError,
+                            fontWeight: FontWeight.w800)))
               ],
             ));
     if (accepted != true) return;
@@ -1034,15 +1038,15 @@ class _AccountScreenState extends State<AccountScreen> {
               Icons.notifications_active_rounded,
               tileSize: 36,
               iconSize: 18,
-              color: AppColors.orange,
-              bg: AppColors.orangeSoft,
+              color: AppColors.iosWarning,
+              bg: AppColors.iosWarningSoft,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Nhắc học hằng ngày chỉ khả dụng trên ứng dụng Android/iOS.',
-                style:
-                    TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12.5, color: AppColors.iosTextSecondary),
               ),
             ),
           ],
@@ -1064,8 +1068,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 Icons.notifications_active_rounded,
                 tileSize: 36,
                 iconSize: 18,
-                color: AppColors.orange,
-                bg: AppColors.orangeSoft,
+                color: AppColors.iosWarning,
+                bg: AppColors.iosWarningSoft,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1073,11 +1077,11 @@ class _AccountScreenState extends State<AccountScreen> {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
               ),
               Switch(
                 value: _reminderEnabled,
-                activeTrackColor: AppColors.primary,
+                activeTrackColor: AppColors.iosPrimary,
                 onChanged: (v) => _setReminderEnabled(v),
               ),
             ],
@@ -1093,25 +1097,26 @@ class _AccountScreenState extends State<AccountScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.bgPage,
+                        color: AppColors.iosBackground,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border, width: 2),
+                        border:
+                            Border.all(color: AppColors.iosSeparator, width: 2),
                       ),
                       child: Row(
                         children: [
                           const Icon(Icons.schedule_rounded,
-                              size: 18, color: AppColors.orange),
+                              size: 18, color: AppColors.iosWarning),
                           const SizedBox(width: 10),
                           Text(
                             'Nhắc lúc: $timeLabel',
                             style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary),
+                                color: AppColors.iosTextPrimary),
                           ),
                           const Spacer(),
                           Icon(Icons.edit_calendar_rounded,
-                              size: 18, color: AppColors.textMuted),
+                              size: 18, color: AppColors.iosTextMuted),
                         ],
                       ),
                     ),
@@ -1126,11 +1131,11 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.12),
+                      color: AppColors.iosError.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.delete_outline_rounded,
-                        color: AppColors.red, size: 20),
+                        color: AppColors.iosError, size: 20),
                   ),
                 ),
               ],
@@ -1138,7 +1143,7 @@ class _AccountScreenState extends State<AccountScreen> {
             const SizedBox(height: 6),
             Text(
               'Giữ vững thói quen — nhắc nhẹ nhàng mỗi ngày, thưa dần nếu bạn ít mở app. Không dùng để tạo áp lực.',
-              style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 11.5, color: AppColors.iosTextMuted),
             ),
             const Divider(height: 18),
             SwitchListTile.adaptive(
@@ -1277,8 +1282,9 @@ class _AccountScreenState extends State<AccountScreen> {
       initialTime: TimeOfDay(hour: _reminderHour, minute: _reminderMinute),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme:
-              Theme.of(context).colorScheme.copyWith(primary: AppColors.orange),
+          colorScheme: Theme.of(context)
+              .colorScheme
+              .copyWith(primary: AppColors.iosWarning),
         ),
         child: child!,
       ),
@@ -1304,7 +1310,7 @@ class _AccountScreenState extends State<AccountScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border, width: 2)),
+            side: BorderSide(color: AppColors.iosSeparator, width: 2)),
         title: const Text('Chỉnh sửa hồ sơ',
             style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
@@ -1322,7 +1328,8 @@ class _AccountScreenState extends State<AccountScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textMuted))),
+              child:
+                  Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted))),
           TextButton(
             onPressed: () {
               if (nameCtrl.text.trim().isNotEmpty) {
@@ -1332,7 +1339,7 @@ class _AccountScreenState extends State<AccountScreen> {
             },
             child: const Text('Lưu',
                 style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
+                    color: AppColors.iosPrimary, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

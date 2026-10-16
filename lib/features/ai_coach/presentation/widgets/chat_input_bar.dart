@@ -36,7 +36,7 @@ class ChatInputBar extends StatelessWidget {
           GlassCard(
             margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            borderColor: AppColors.primary,
+            borderColor: AppColors.iosPrimary,
             shadows: const [],
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -57,7 +57,7 @@ class ChatInputBar extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary),
+                        color: AppColors.iosTextPrimary),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -68,11 +68,11 @@ class ChatInputBar extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.12),
+                      color: AppColors.iosError.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child:
-                        const Icon(Icons.close, size: 14, color: AppColors.red),
+                    child: const Icon(Icons.close,
+                        size: 14, color: AppColors.iosError),
                   ),
                 ),
               ],
@@ -82,12 +82,12 @@ class ChatInputBar extends StatelessWidget {
           margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.cardWhite,
+            color: AppColors.iosCard,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.border, width: 2),
+            border: Border.all(color: AppColors.iosSeparator, width: 2),
             boxShadow: [
               BoxShadow(
-                  color: AppColors.borderStrong,
+                  color: AppColors.iosSeparator,
                   blurRadius: 0,
                   offset: const Offset(0, 3)),
             ],
@@ -100,7 +100,7 @@ class ChatInputBar extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.blue,
+                    color: AppColors.iosInfo,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.photo_camera_rounded,
@@ -114,7 +114,7 @@ class ChatInputBar extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.purple,
+                    color: AppColors.iosSecondary,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.quiz_rounded,
@@ -130,13 +130,13 @@ class ChatInputBar extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary),
+                      color: AppColors.iosTextPrimary),
                   decoration: InputDecoration(
                     hintText: selectedImageBytes != null
                         ? 'Ghi chú cho ảnh...'
                         : 'Hỏi AI bài tập...',
                     hintStyle:
-                        TextStyle(color: AppColors.textMuted, fontSize: 13),
+                        TextStyle(color: AppColors.iosTextMuted, fontSize: 13),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding:
@@ -155,7 +155,9 @@ class ChatInputBar extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isLoading ? AppColors.border : AppColors.primary,
+                    color: isLoading
+                        ? AppColors.iosSeparator
+                        : AppColors.iosPrimary,
                     shape: BoxShape.circle,
                   ),
                   child: isLoading

@@ -21,9 +21,9 @@ class RevisionModeCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.orangeLight,
+        color: AppColors.iosWarningSoft,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.orange, width: 1.2),
+        border: Border.all(color: AppColors.iosWarning, width: 1.2),
       ),
       child: Row(
         children: [
@@ -31,7 +31,7 @@ class RevisionModeCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: const BoxDecoration(
-              color: AppColors.orangeSoft,
+              color: AppColors.iosWarningSoft,
               shape: BoxShape.circle,
             ),
             child:
@@ -47,14 +47,14 @@ class RevisionModeCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
+                      color: AppColors.iosTextPrimary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Ưu tiên ôn điểm yếu và nội dung quan trọng. Giảm bớt nhiệm vụ mới không cần thiết.',
                   style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.iosTextSecondary,
                       height: 1.3),
                 ),
               ],
@@ -83,12 +83,12 @@ class ExamDayCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.orange, width: 2),
+        border: Border.all(color: AppColors.iosWarning, width: 2),
         boxShadow: [
           BoxShadow(
-            color: AppColors.orange.withValues(alpha: 0.12),
+            color: AppColors.iosWarning.withValues(alpha: 0.12),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -106,14 +106,14 @@ class ExamDayCard extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary),
+                    color: AppColors.iosTextPrimary),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Chỉ cần tập trung ôn nhẹ và chuẩn bị. EduPulse tạm ẩn danh sách nhiệm vụ dài.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 12, color: AppColors.iosTextSecondary),
           ),
           const SizedBox(height: 10),
           ...checklist.map((item) => Padding(
@@ -122,12 +122,12 @@ class ExamDayCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.check_circle_outline_rounded,
-                        size: 16, color: AppColors.primary),
+                        size: 16, color: AppColors.iosPrimary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(item,
                           style: const TextStyle(
-                              fontSize: 13, color: AppColors.textPrimary)),
+                              fontSize: 13, color: AppColors.iosTextPrimary)),
                     ),
                   ],
                 ),
@@ -156,9 +156,9 @@ class TodayMissionCardCompact extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +168,7 @@ class TodayMissionCardCompact extends StatelessWidget {
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary),
+                color: AppColors.iosTextPrimary),
           ),
           const SizedBox(height: 8),
           ...tasks.map(
@@ -184,7 +184,9 @@ class TodayMissionCardCompact extends StatelessWidget {
                           ? Icons.check_circle_rounded
                           : Icons.radio_button_unchecked_rounded,
                       size: 20,
-                      color: task.isDone ? AppColors.primary : AppColors.blue,
+                      color: task.isDone
+                          ? AppColors.iosPrimary
+                          : AppColors.iosInfo,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -197,14 +199,14 @@ class TodayMissionCardCompact extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           decoration:
                               task.isDone ? TextDecoration.lineThrough : null,
-                          color: AppColors.textPrimary,
+                          color: AppColors.iosTextPrimary,
                         ),
                       ),
                     ),
                     Text(
                       '⏱ ${task.estimateMinutes}p',
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.textMuted),
+                          fontSize: 11, color: AppColors.iosTextMuted),
                     ),
                   ],
                 ),

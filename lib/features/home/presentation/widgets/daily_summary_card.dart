@@ -41,9 +41,9 @@ class DailySummaryCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppTokens.space16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: AppTokens.brXl,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
         boxShadow: AppTokens.shadowSubtle,
       ),
       child: Column(
@@ -62,16 +62,16 @@ class DailySummaryCard extends StatelessWidget {
                       vertical: AppTokens.space4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.blueSoft,
+                      color: AppColors.iosInfoSoft,
                       borderRadius: AppTokens.brFull,
                       border: Border.all(
-                          color: AppColors.blue.withValues(alpha: 0.3)),
+                          color: AppColors.iosInfo.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.flag_rounded,
-                            size: 14, color: AppColors.blueDark),
+                            size: 14, color: AppColors.iosInfoDark),
                         const SizedBox(width: AppTokens.space4),
                         Flexible(
                           child: Text(
@@ -82,13 +82,13 @@ class DailySummaryCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: AppTokens.caption.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.blueDark,
+                              color: AppColors.iosInfoDark,
                             ),
                           ),
                         ),
                         const SizedBox(width: AppTokens.space2),
                         const Icon(Icons.chevron_right_rounded,
-                            size: 14, color: AppColors.blueDark),
+                            size: 14, color: AppColors.iosInfoDark),
                       ],
                     ),
                   ),
@@ -102,20 +102,20 @@ class DailySummaryCard extends StatelessWidget {
                   vertical: AppTokens.space4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.greenLight,
+                  color: AppColors.iosSuccessSoft,
                   borderRadius: AppTokens.brSm,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.timer_outlined,
-                        size: 14, color: AppColors.primaryDark),
+                        size: 14, color: AppColors.iosPrimaryDark),
                     const SizedBox(width: AppTokens.space4),
                     Text(
                       summary.studyDurationFormatted,
                       style: AppTokens.caption.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primaryDark,
+                        color: AppColors.iosPrimaryDark,
                       ),
                     ),
                   ],
@@ -150,7 +150,7 @@ class DailySummaryCard extends StatelessWidget {
         Row(
           children: [
             const Icon(Icons.hourglass_bottom_rounded,
-                size: AppTokens.iconSm, color: AppColors.primary),
+                size: AppTokens.iconSm, color: AppColors.iosPrimary),
             const SizedBox(width: AppTokens.space6),
             Expanded(
               child: Text(
@@ -215,9 +215,9 @@ class _CountdownTiles extends StatelessWidget {
             height: 56,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.cardLight,
+              color: AppColors.iosFill,
               borderRadius: AppTokens.brMd,
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.iosSeparator),
             ),
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -226,7 +226,7 @@ class _CountdownTiles extends StatelessWidget {
                 maxLines: 1,
                 style: AppTokens.heading1.copyWith(
                   height: 1.1,
-                  color: AppColors.textPrimary,
+                  color: AppColors.iosTextPrimary,
                 ),
               ),
             ),

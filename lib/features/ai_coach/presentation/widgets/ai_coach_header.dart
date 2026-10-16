@@ -33,8 +33,9 @@ class AICoachHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 2)),
+        color: AppColors.iosCard,
+        border:
+            Border(bottom: BorderSide(color: AppColors.iosSeparator, width: 2)),
       ),
       child: Row(
         children: [
@@ -42,11 +43,11 @@ class AICoachHeader extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: const BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.iosPrimary,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                    color: AppColors.primaryDark,
+                    color: AppColors.iosPrimaryDark,
                     blurRadius: 0,
                     offset: Offset(0, 3))
               ],
@@ -74,7 +75,7 @@ class AICoachHeader extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: AppColors.iosTextPrimary)),
                     // UX 5.11: "Normal users should not need to understand…
                     // model names, provider details." Nên header chỉ nói
                     // "AI tự động" / "AI đã ghim", KHÔNG lộ tên model/nhà
@@ -85,23 +86,24 @@ class AICoachHeader extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
+                          color: AppColors.iosPrimary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.3),
+                              color:
+                                  AppColors.iosPrimary.withValues(alpha: 0.3),
                               width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.auto_awesome_rounded,
-                                size: 11, color: AppColors.primary),
+                                size: 11, color: AppColors.iosPrimary),
                             const SizedBox(width: 4),
                             Text(pinned ? 'AI đã ghim' : 'AI tự động',
                                 style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.primary)),
+                                    color: AppColors.iosPrimary)),
                           ],
                         ),
                       ),
@@ -110,22 +112,23 @@ class AICoachHeader extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.blue.withValues(alpha: 0.12),
+                        color: AppColors.iosInfo.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: AppColors.blue.withValues(alpha: 0.3),
+                            color: AppColors.iosInfo.withValues(alpha: 0.3),
                             width: 1),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.public, size: 11, color: AppColors.blue),
+                          Icon(Icons.public,
+                              size: 11, color: AppColors.iosInfo),
                           SizedBox(width: 4),
                           Text('Web',
                               style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.blue)),
+                                  color: AppColors.iosInfo)),
                         ],
                       ),
                     ),
@@ -138,8 +141,8 @@ class AICoachHeader extends StatelessWidget {
                       : 'EduPulse tự chọn model phù hợp câu hỏi.',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.iosTextMuted),
                 ),
               ],
             ),
@@ -151,12 +154,12 @@ class AICoachHeader extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.purple.withValues(alpha: 0.12),
+                  color: AppColors.iosSecondary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.purple, width: 2),
+                  border: Border.all(color: AppColors.iosSecondary, width: 2),
                 ),
                 child: const Icon(Icons.insights_rounded,
-                    size: 18, color: AppColors.purple),
+                    size: 18, color: AppColors.iosSecondary),
               ),
             ),
           if (showAnalyze) const SizedBox(width: 8),
@@ -167,12 +170,12 @@ class AICoachHeader extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.bgPage,
+                  color: AppColors.iosBackground,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.border, width: 2),
+                  border: Border.all(color: AppColors.iosSeparator, width: 2),
                 ),
-                child:
-                    Icon(Icons.refresh, size: 18, color: AppColors.textMuted),
+                child: Icon(Icons.refresh,
+                    size: 18, color: AppColors.iosTextMuted),
               ),
             ),
           if (onClose != null) ...[
@@ -183,12 +186,12 @@ class AICoachHeader extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.bgPage,
+                  color: AppColors.iosBackground,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.border, width: 2),
+                  border: Border.all(color: AppColors.iosSeparator, width: 2),
                 ),
                 child: const Icon(Icons.close_rounded,
-                    size: 20, color: AppColors.textPrimary),
+                    size: 20, color: AppColors.iosTextPrimary),
               ),
             ),
           ],

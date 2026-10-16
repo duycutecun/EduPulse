@@ -40,14 +40,14 @@ class ActiveSessionResumeCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.orangeLight,
+        color: AppColors.iosWarningSoft,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.orange.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.iosWarning.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           const Icon(Icons.timer_outlined,
-              size: 22, color: AppColors.orangeDark),
+              size: 22, color: AppColors.iosWarningDark),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -58,7 +58,7 @@ class ActiveSessionResumeCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.orangeDark,
+                    color: AppColors.iosWarningDark,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -71,7 +71,7 @@ class ActiveSessionResumeCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    color: AppColors.iosTextSecondary,
                   ),
                 ),
               ],
@@ -84,7 +84,7 @@ class ActiveSessionResumeCard extends StatelessWidget {
               onResume();
             },
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.orangeDark,
+              backgroundColor: AppColors.iosWarningDark,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               visualDensity: VisualDensity.compact,

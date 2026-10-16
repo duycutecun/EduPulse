@@ -134,13 +134,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.purpleSoft.withValues(alpha: 0.6),
+                    color: AppColors.iosSecondarySoft.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: const [
                       Icon(Icons.auto_awesome_rounded,
-                          color: AppColors.purple, size: 14),
+                          color: AppColors.iosSecondary, size: 14),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -148,7 +148,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.purple,
+                            color: AppColors.iosSecondary,
                           ),
                         ),
                       ),
@@ -173,13 +173,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: accepted[i]
-                              ? AppColors.blueSoft.withValues(alpha: 0.5)
-                              : AppColors.cardLight,
+                              ? AppColors.iosInfoSoft.withValues(alpha: 0.5)
+                              : AppColors.iosFill,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: accepted[i]
-                                ? AppColors.blue.withValues(alpha: 0.4)
-                                : AppColors.border,
+                                ? AppColors.iosInfo.withValues(alpha: 0.4)
+                                : AppColors.iosSeparator,
                           ),
                         ),
                         child: Column(
@@ -195,8 +195,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w800,
                                         color: accepted[i]
-                                            ? AppColors.textPrimary
-                                            : AppColors.textMuted,
+                                            ? AppColors.iosTextPrimary
+                                            : AppColors.iosTextMuted,
                                         decoration: accepted[i]
                                             ? null
                                             : TextDecoration.lineThrough,
@@ -216,8 +216,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                         : Icons.remove_circle_outline_rounded,
                                     size: 20,
                                     color: accepted[i]
-                                        ? AppColors.primary
-                                        : AppColors.textMuted,
+                                        ? AppColors.iosPrimary
+                                        : AppColors.iosTextMuted,
                                   ),
                                 ),
                               ],
@@ -228,13 +228,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.blue),
+                                  color: AppColors.iosInfo),
                             ),
                             const SizedBox(height: 2),
                             Text('Vì sao: ${p.reason}',
                                 style: const TextStyle(
                                     fontSize: 11.5,
-                                    color: AppColors.textSecondary)),
+                                    color: AppColors.iosTextSecondary)),
                             // Edit từng dòng: chọn ngày khác trong tuần.
                             if (accepted[i])
                               Align(
@@ -337,7 +337,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: const [
-            Icon(Icons.auto_awesome_rounded, color: AppColors.purple),
+            Icon(Icons.auto_awesome_rounded, color: AppColors.iosSecondary),
             SizedBox(width: 8),
             Text('AI Lập lịch tuần ôn thi',
                 style: TextStyle(fontWeight: FontWeight.w800)),
@@ -354,7 +354,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.purple,
+              backgroundColor: AppColors.iosSecondary,
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.bolt_rounded, size: 18),
@@ -480,7 +480,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final minutes = _daySessions.fold<int>(
         0, (total, session) => total + session.actualMinutes);
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
         title: const Text('Lịch học',
             style: TextStyle(fontWeight: FontWeight.w800)),
@@ -530,17 +530,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         width: 58,
                         decoration: BoxDecoration(
                           color: selected
-                              ? AppColors.primary
+                              ? AppColors.iosPrimary
                               : (candidate.isNotEmpty
-                                  ? AppColors.blueSoft
-                                  : AppColors.cardWhite),
+                                  ? AppColors.iosInfoSoft
+                                  : AppColors.iosCard),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: selected
-                                ? AppColors.primary
+                                ? AppColors.iosPrimary
                                 : (candidate.isNotEmpty
-                                    ? AppColors.blue
-                                    : AppColors.border),
+                                    ? AppColors.iosInfo
+                                    : AppColors.iosSeparator),
                             width: candidate.isNotEmpty ? 2 : 1,
                           ),
                         ),
@@ -552,7 +552,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       fontSize: 11,
                                       color: selected
                                           ? Colors.white
-                                          : AppColors.textMuted)),
+                                          : AppColors.iosTextMuted)),
                               const SizedBox(height: 5),
                               Text('${day.day}',
                                   style: TextStyle(
@@ -560,7 +560,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       fontWeight: FontWeight.w800,
                                       color: selected
                                           ? Colors.white
-                                          : AppColors.textPrimary)),
+                                          : AppColors.iosTextPrimary)),
                             ]),
                       ),
                     ),
@@ -572,7 +572,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             GlassCard(
               padding: const EdgeInsets.all(14),
               child: Row(children: [
-                const Icon(Icons.insights_rounded, color: AppColors.blue),
+                const Icon(Icons.insights_rounded, color: AppColors.iosInfo),
                 const SizedBox(width: 10),
                 Expanded(
                     child: Text(
@@ -649,7 +649,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [
-          Icon(Icons.warning_amber_rounded, color: AppColors.orange),
+          Icon(Icons.warning_amber_rounded, color: AppColors.iosWarning),
           SizedBox(width: 8),
           Text('Vượt deadline', style: TextStyle(fontWeight: FontWeight.w800)),
         ]),
@@ -721,7 +721,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (_isSameDay(examDate, day)) {
       rows.add(_ExamAgendaRow(
         icon: Icons.event_rounded,
-        color: AppColors.red,
+        color: AppColors.iosError,
         title: '📅 ${exam.name} — NGÀY THI',
         subtitle:
             'Giờ thi: ${exam.dateTime.hour.toString().padLeft(2, '0')}:${exam.dateTime.minute.toString().padLeft(2, '0')}',
@@ -730,7 +730,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (_isSameDay(revisionDate, day)) {
       rows.add(const _ExamAgendaRow(
         icon: Icons.flag_rounded,
-        color: AppColors.orange,
+        color: AppColors.iosWarning,
         title: '🏁 Bắt đầu giai đoạn tổng ôn',
         subtitle: '7 ngày trước thi — ưu tiên ôn thay vì học mới',
       ));
@@ -748,7 +748,7 @@ class _EmptyAgenda extends StatelessWidget {
         padding: const EdgeInsets.all(22),
         child: Column(children: [
           const Icon(Icons.event_available_rounded,
-              size: 36, color: AppColors.textMuted),
+              size: 36, color: AppColors.iosTextMuted),
           const SizedBox(height: 8),
           const Text('Ngày này đang trống',
               style: TextStyle(fontWeight: FontWeight.w800)),
@@ -764,8 +764,8 @@ class _EmptyAgenda extends StatelessWidget {
                 onPressed: onOptimize,
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.comfortable,
-                  side: const BorderSide(color: AppColors.primary),
-                  foregroundColor: AppColors.primaryDark,
+                  side: const BorderSide(color: AppColors.iosPrimary),
+                  foregroundColor: AppColors.iosPrimaryDark,
                 ),
                 icon: const Icon(Icons.auto_awesome_rounded, size: 15),
                 label:
@@ -789,7 +789,7 @@ class _TaskAgendaRow extends StatelessWidget {
               task.isDone
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: task.isDone ? AppColors.primary : AppColors.blue),
+              color: task.isDone ? AppColors.iosPrimary : AppColors.iosInfo),
           const SizedBox(width: 10),
           Expanded(
               child: Column(
@@ -802,14 +802,14 @@ class _TaskAgendaRow extends StatelessWidget {
                             task.isDone ? TextDecoration.lineThrough : null)),
                 Text('${task.subject} • ${task.estimateMinutes} phút',
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textMuted)),
+                        fontSize: 12, color: AppColors.iosTextMuted)),
               ])),
           // Task-linked note (mục 14): chụp nhanh kiến thức sau khi học xong.
           IconButton(
             tooltip: 'Ghi chú cho nhiệm vụ này',
             visualDensity: VisualDensity.comfortable,
             icon: const Icon(Icons.add_link_rounded,
-                size: 18, color: AppColors.textMuted),
+                size: 18, color: AppColors.iosTextMuted),
             onPressed: () => NoteEditor.openLinked(
               context,
               task: task,
@@ -827,7 +827,7 @@ class _SessionAgendaRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         child: Row(children: [
-          const Icon(Icons.timer_outlined, color: AppColors.orange),
+          const Icon(Icons.timer_outlined, color: AppColors.iosWarning),
           const SizedBox(width: 10),
           Expanded(
               child: Text(
@@ -870,7 +870,7 @@ class _ExamAgendaRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(subtitle,
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary)),
+                      fontSize: 12, color: AppColors.iosTextSecondary)),
             ]),
           ),
         ]),

@@ -100,4 +100,83 @@ class AppColors {
   /// Vàng streak.
   static const Color streakGold = Color(0xFFFFC800);
   static const Color streakBg = Color(0xFFFFF9E0);
+
+  // ─── iOS-first palette (thiết kế iOS-first, đang triển khai) ────────────
+  //
+  // Màu lấy từ hệ sinh thái iOS (SF Symbols/SF Pro, Apple HIG):
+  // systemBlue #007AFF, systemPurple #AF52DE, systemGreen #30D158,
+  // systemOrange #FF9500, systemRed #FF3B30.
+  // Đây là nhóm token *dành cho* theme iOS-first; token cũ (phong cách
+  // Duolingo) được giữ nguyên để các màn chưa được restyle lần nữa.
+  //
+  // Mục ADR-0001: toàn bộ UI mới dùng nhóm này; các slice sau sẽ chạy tiếp
+  // trên nền token này cho đến khi mọi màn được restyle xong.
+
+  /// Chính chủ đạo (systemBlue) — nút CTA chính, hành động ưu tiên.
+  static const Color iosPrimary = Color(0xFF007AFF);
+
+  /// Vàng tươi cho streak (chip lửa trên header).
+  static const Color iosStreak = Color(0xFFFFC800);
+
+  /// Nền/border nặng hơn khi contrast cao (systemBlue dark).
+  static const Color iosPrimaryDark = Color(0xFF0066D6);
+
+  /// Tint nhạt cho chip/badge tạm (systemBlue với độ mật độ thấp).
+  static const Color iosPrimarySoft = Color(0xFFCCE5FF);
+
+  /// Hành động AI (systemPurple) — nhãn "Hỏi AI", dải trạng thái AI.
+  static const Color iosSecondary = Color(0xFFAF52DE);
+
+  static const Color iosSecondaryDark = Color(0xFF3634A5);
+
+  static const Color iosSecondarySoft = Color(0xFFE3E4FC);
+
+  /// Thành tựu/tập trung — systemGreen.
+  static const Color iosSuccess = Color(0xFF30D158);
+
+  /// Nền thành tựu rất nhạt cho chip "đã xong" (progress done).
+  static const Color iosSuccessSoft = Color(0xFFC8F5CC);
+
+  /// Thông tin nền tảng — systemIndigo.
+  static const Color iosInfo = Color(0xFF5856D6);
+
+  static const Color iosInfoDark = Color(0xFF3634A5);
+
+  static const Color iosInfoSoft = Color(0xFFDFDCFF);
+
+  /// Cảnh báo / chú ý quan trọng — systemOrange.
+  static const Color iosWarning = Color(0xFFFF9500);
+
+  static const Color iosWarningDark = Color(0xFFCC6E00);
+
+  static const Color iosWarningSoft = Color(0xFFFFE4C7);
+
+  /// Lỗi / xoá — systemRed.
+  static const Color iosError = Color(0xFFFF3B30);
+
+  static const Color iosErrorDark = Color(0xFFCC2F24);
+
+  static const Color iosErrorSoft = Color(0xFFFFDAD6);
+
+  // ─── Nền/tấm cho theme iOS-first ────────────────────────────────────────
+  /// Nền trang chính theo hệ sinh thái iOS.
+  static const Color iosBackground = Color(0xFFFFFFFF);
+
+  /// Thẻ/card theo hệ sinh thái iOS (thường là trắng trong light mode).
+  static const Color iosCard = Color(0xFFFFFFFF);
+
+  /// Nền phụ cho ô con (systemFill).
+  static const Color iosFill = Color(0xFFE9E9EB);
+
+  /// Viền mỏng theo hệ sinh thái iOS.
+  static const Color iosSeparator = Color(0xFFC7C7CC);
+
+  /// Text chính theo hệ sinh thái iOS.
+  static const Color iosTextPrimary = Color(0xFF000000);
+
+  /// Text phụ theo hệ sinh thái iOS.
+  static const Color iosTextSecondary = Color(0xFF3A3A3C);
+
+  /// Text mờ (disabled / caption) theo hệ sinh thái iOS.
+  static const Color iosTextMuted = Color(0xFF8E8E93);
 }

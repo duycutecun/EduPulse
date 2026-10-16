@@ -150,7 +150,7 @@ Widget _heading(String text, int level) {
   return Text.rich(
     _buildInlineSpan(text, baseSize: sizes[level - 1], bold: true),
     style: const TextStyle(
-        fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+        fontWeight: FontWeight.w800, color: AppColors.iosTextPrimary),
   );
 }
 
@@ -162,7 +162,7 @@ Widget _bulletRow(IconData icon, double size, String text) {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 7, right: 8),
-          child: Icon(icon, size: size, color: AppColors.blue),
+          child: Icon(icon, size: size, color: AppColors.iosInfo),
         ),
         Expanded(child: _inlineText(text)),
       ],
@@ -181,7 +181,7 @@ Widget _orderedRow(String index, String text) {
           height: 22,
           margin: const EdgeInsets.only(right: 8, top: 2),
           decoration: BoxDecoration(
-            color: AppColors.blue.withValues(alpha: 0.12),
+            color: AppColors.iosInfo.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Center(
@@ -189,7 +189,7 @@ Widget _orderedRow(String index, String text) {
                 style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.blueDark)),
+                    color: AppColors.iosInfoDark)),
           ),
         ),
         Expanded(child: _inlineText(text)),
@@ -211,7 +211,7 @@ Widget _checklistRow(String text, {required bool done}) {
                 ? Icons.check_box_rounded
                 : Icons.check_box_outline_blank_rounded,
             size: 19,
-            color: done ? AppColors.primary : AppColors.textMuted,
+            color: done ? AppColors.iosPrimary : AppColors.iosTextMuted,
           ),
         ),
         Expanded(
@@ -230,14 +230,14 @@ Widget _blockquote(String text) {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
-      color: AppColors.bgPageSoft,
+      color: AppColors.iosFill,
       border: const Border(
-        left: BorderSide(color: AppColors.blue, width: 3),
+        left: BorderSide(color: AppColors.iosInfo, width: 3),
       ),
       borderRadius: BorderRadius.circular(6),
     ),
     child: DefaultTextStyle.merge(
-      style: const TextStyle(color: AppColors.textSecondary),
+      style: const TextStyle(color: AppColors.iosTextSecondary),
       child: _inlineText(text),
     ),
   );
@@ -248,9 +248,9 @@ Widget _codeBlock(String code) {
     width: double.infinity,
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.cardLight,
+      color: AppColors.iosFill,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: AppColors.iosSeparator),
     ),
     child: SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -260,7 +260,7 @@ Widget _codeBlock(String code) {
           fontSize: 12.5,
           height: 1.45,
           fontFamily: 'monospace',
-          color: AppColors.textPrimary,
+          color: AppColors.iosTextPrimary,
         ),
       ),
     ),
@@ -292,7 +292,7 @@ InlineSpan _buildInlineSpan(
   final style = TextStyle(
     fontSize: baseSize ?? 14.5,
     height: 1.45,
-    color: AppColors.textPrimary,
+    color: AppColors.iosTextPrimary,
     fontWeight:
         bold != null ? (bold ? FontWeight.w800 : FontWeight.w400) : null,
     decoration: strike ? TextDecoration.lineThrough : null,
@@ -323,7 +323,8 @@ InlineSpan _buildInlineSpan(
       spans.add(TextSpan(
         text: match.group(3),
         style: const TextStyle(
-            decoration: TextDecoration.lineThrough, color: AppColors.textMuted),
+            decoration: TextDecoration.lineThrough,
+            color: AppColors.iosTextMuted),
       ));
     } else if (match.group(4) != null) {
       spans.add(WidgetSpan(
@@ -331,16 +332,16 @@ InlineSpan _buildInlineSpan(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
           decoration: BoxDecoration(
-            color: AppColors.cardLight,
+            color: AppColors.iosFill,
             borderRadius: BorderRadius.circular(5),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.iosSeparator),
           ),
           child: Text(
             match.group(4)!,
             style: const TextStyle(
               fontSize: 12.5,
               fontFamily: 'monospace',
-              color: AppColors.textPrimary,
+              color: AppColors.iosTextPrimary,
             ),
           ),
         ),
@@ -351,13 +352,14 @@ InlineSpan _buildInlineSpan(
         child: Math.tex(
           match.group(5)!,
           textStyle: TextStyle(
-              fontSize: (baseSize ?? 14.5) - 0.5, color: AppColors.textPrimary),
+              fontSize: (baseSize ?? 14.5) - 0.5,
+              color: AppColors.iosTextPrimary),
           onErrorFallback: (_) => Text(
             '\$${match.group(5)}\$',
             style: TextStyle(
                 fontSize: baseSize ?? 14.5,
                 fontStyle: FontStyle.italic,
-                color: AppColors.textPrimary),
+                color: AppColors.iosTextPrimary),
           ),
         ),
       ));

@@ -240,7 +240,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.border, width: 2)),
+            side: const BorderSide(color: AppColors.iosSeparator, width: 2)),
         title: const Text('Ngắt liên kết?',
             style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
@@ -252,13 +252,13 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Giữ liên kết',
-                style: TextStyle(color: AppColors.textMuted)),
+                style: TextStyle(color: AppColors.iosTextMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Ngắt liên kết',
                 style: TextStyle(
-                    color: AppColors.red, fontWeight: FontWeight.w800)),
+                    color: AppColors.iosError, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -275,7 +275,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: error ? AppColors.red : AppColors.primary,
+      backgroundColor: error ? AppColors.iosError : AppColors.iosPrimary,
     ));
   }
 
@@ -290,7 +290,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
   void _openParentSettings() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -305,7 +305,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               const SizedBox(height: 4),
               const Text(
                 'Ba mẹ thấy toàn bộ tiến độ học tập con cập nhật. Thay đổi ở đây áp dụng ngay.',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted),
               ),
               const SizedBox(height: 10),
               SwitchListTile.adaptive(
@@ -315,7 +315,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                 subtitle: const Text('Báo ngay khi con chia sẻ tiến độ mới.',
                     style: TextStyle(fontSize: 11)),
                 value: _notifyOn,
-                activeThumbColor: AppColors.primary,
+                activeThumbColor: AppColors.iosPrimary,
                 onChanged: (value) async {
                   setSheetState(() {});
                   await _toggleNotify(value);
@@ -333,7 +333,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                           : 'Nhận thông báo kể cả khi không mở EduPulse.',
                       style: const TextStyle(fontSize: 11)),
                   value: _pushOn,
-                  activeThumbColor: AppColors.primary,
+                  activeThumbColor: AppColors.iosPrimary,
                   onChanged: _pushBusy
                       ? null
                       : (value) async {
@@ -346,8 +346,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               ListTile(
                 key: const Key('parent-settings-exit'),
                 contentPadding: EdgeInsets.zero,
-                leading:
-                    const Icon(Icons.school_rounded, color: AppColors.purple),
+                leading: const Icon(Icons.school_rounded,
+                    color: AppColors.iosSecondary),
                 title: const Text('Trở về chế độ học sinh'),
                 subtitle: const Text(
                     'Quay lại màn học tập — liên kết với con vẫn được giữ.',
@@ -381,9 +381,9 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.cardWhite,
+        backgroundColor: AppColors.iosCard,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: const Text('Cửa sổ tin cậy',
@@ -435,13 +435,13 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.purpleSoft,
+        color: AppColors.iosSecondarySoft,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           const Icon(Icons.family_restroom_rounded,
-              color: AppColors.purple, size: 20),
+              color: AppColors.iosSecondary, size: 20),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
@@ -450,7 +450,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                   fontSize: 12,
                   height: 1.35,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.purpleDark),
+                  color: AppColors.iosSecondaryDark),
             ),
           ),
           TextButton(
@@ -463,7 +463,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                 style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.purpleDark)),
+                    color: AppColors.iosSecondaryDark)),
           ),
         ],
       ),
@@ -482,8 +482,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               AppIcon(Icons.login_rounded,
                   tileSize: 36,
                   iconSize: 18,
-                  color: AppColors.blue,
-                  bg: AppColors.blueSoft),
+                  color: AppColors.iosInfo,
+                  bg: AppColors.iosInfoSoft),
               SizedBox(width: 10),
               Expanded(
                 child: Text('Cần đăng nhập',
@@ -497,8 +497,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
             _authReady
                 ? 'Đăng nhập tài khoản phụ huynh để liên kết và nhận báo cáo học tập của con.'
                 : 'Đang chuẩn bị đăng nhập…',
-            style:
-                const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+            style: const TextStyle(
+                fontSize: 12.5, color: AppColors.iosTextSecondary),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -507,7 +507,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
             child: ElevatedButton(
               onPressed: _authReady ? _openAuth : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.iosPrimary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -534,8 +534,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               AppIcon(Icons.vpn_key_rounded,
                   tileSize: 36,
                   iconSize: 18,
-                  color: AppColors.primary,
-                  bg: AppColors.greenSoft),
+                  color: AppColors.iosPrimary,
+                  bg: AppColors.iosSuccessSoft),
               SizedBox(width: 10),
               Expanded(
                 child: Text('Nhập mã mời của con',
@@ -548,7 +548,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           const Text(
             'Nhờ con mở EduPulse → Cửa sổ tin cậy → “Tạo mã mời” rồi đọc 8 chữ số cho bạn.',
             style: TextStyle(
-                fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+                fontSize: 12, height: 1.4, color: AppColors.iosTextSecondary),
           ),
           const SizedBox(height: 12),
           Row(
@@ -565,14 +565,15 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                     counterText: '',
                     hintText: '12345678',
                     hintStyle: const TextStyle(
-                        letterSpacing: 4, color: AppColors.textMuted),
+                        letterSpacing: 4, color: AppColors.iosTextMuted),
                     filled: true,
-                    fillColor: AppColors.bgPageSoft,
+                    fillColor: AppColors.iosFill,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
+                      borderSide:
+                          const BorderSide(color: AppColors.iosSeparator),
                     ),
                   ),
                   style: const TextStyle(
@@ -588,7 +589,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                   key: const Key('parent-link-button'),
                   onPressed: _linking ? null : _link,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.iosPrimary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -624,8 +625,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           const AppIcon(Icons.notifications_active_rounded,
               tileSize: 36,
               iconSize: 18,
-              color: AppColors.blue,
-              bg: AppColors.blueSoft),
+              color: AppColors.iosInfo,
+              bg: AppColors.iosInfoSoft),
           const SizedBox(width: 10),
           const Expanded(
             child: Column(
@@ -641,7 +642,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                   style: TextStyle(
                       fontSize: 11.5,
                       height: 1.35,
-                      color: AppColors.textSecondary),
+                      color: AppColors.iosTextSecondary),
                 ),
               ],
             ),
@@ -649,7 +650,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           Switch(
             key: const Key('parent-notify-switch'),
             value: _notifyOn,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: AppColors.iosPrimary,
             onChanged: _toggleNotify,
           ),
         ],
@@ -721,8 +722,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
               const AppIcon(Icons.face_rounded,
                   tileSize: 40,
                   iconSize: 22,
-                  color: AppColors.primary,
-                  bg: AppColors.primaryLight),
+                  color: AppColors.iosPrimary,
+                  bg: AppColors.iosPrimarySoft),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -744,7 +745,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.only(left: 4),
                           icon: const Icon(Icons.edit_rounded,
-                              size: 15, color: AppColors.textMuted),
+                              size: 15, color: AppColors.iosTextMuted),
                           onPressed: () => _renameChild(child),
                         ),
                       ],
@@ -758,8 +759,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                                 ? FontWeight.w700
                                 : FontWeight.w400,
                             color: child.hasReport
-                                ? AppColors.primary
-                                : AppColors.textMuted)),
+                                ? AppColors.iosPrimary
+                                : AppColors.iosTextMuted)),
                   ],
                 ),
               ),
@@ -774,7 +775,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                         tooltip: 'Nhắn với ${child.name}',
                         onPressed: () => _openMessages(child),
                         icon: const Icon(Icons.chat_bubble_outline_rounded,
-                            size: 20, color: AppColors.primary),
+                            size: 20, color: AppColors.iosPrimary),
                       ),
                       if (child.unread > 0)
                         Positioned(
@@ -796,15 +797,15 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                           : Icons.notifications_off_rounded,
                       size: 20,
                       color: child.notifyOn
-                          ? AppColors.primary
-                          : AppColors.textMuted,
+                          ? AppColors.iosPrimary
+                          : AppColors.iosTextMuted,
                     ),
                   ),
                   IconButton(
                     tooltip: 'Ngắt liên kết',
                     onPressed: () => _unlink(child),
                     icon: const Icon(Icons.link_off_rounded,
-                        size: 20, color: AppColors.textMuted),
+                        size: 20, color: AppColors.iosTextMuted),
                   ),
                 ],
               ),
@@ -832,7 +833,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                       await _load();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.iosPrimary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -857,7 +858,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 32),
-                  foregroundColor: AppColors.primary,
+                  foregroundColor: AppColors.iosPrimary,
                 ),
                 icon: const Icon(Icons.mail_outline_rounded, size: 15),
                 label: const Text('Gửi email tổng kết',
@@ -888,7 +889,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
       chips.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.bgPageSoft,
+          color: AppColors.iosFill,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -900,13 +901,13 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                     fontSize: 9.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
-                    color: AppColors.textMuted)),
+                    color: AppColors.iosTextMuted)),
             const SizedBox(height: 1),
             Text(value,
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
           ],
         ),
       ));
@@ -919,7 +920,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.greenSoft,
+        color: AppColors.iosSuccessSoft,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -932,7 +933,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                     fontSize: 11.5,
                     height: 1.35,
                     fontStyle: FontStyle.italic,
-                    color: AppColors.primaryDark)),
+                    color: AppColors.iosPrimaryDark)),
           ),
         ],
       ),
@@ -947,7 +948,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.border, width: 2)),
+            side: const BorderSide(color: AppColors.iosSeparator, width: 2)),
         title: const Text('Đổi tên hiển thị',
             style: TextStyle(fontWeight: FontWeight.w800)),
         content: TextField(
@@ -962,14 +963,14 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:
-                const Text('Huỷ', style: TextStyle(color: AppColors.textMuted)),
+            child: const Text('Huỷ',
+                style: TextStyle(color: AppColors.iosTextMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text),
             child: const Text('Lưu',
                 style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
+                    color: AppColors.iosPrimary, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -1027,7 +1028,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             minimumSize: const Size(0, 30),
-            foregroundColor: AppColors.primary,
+            foregroundColor: AppColors.iosPrimary,
           ),
           icon: const Icon(Icons.add_circle_outline_rounded, size: 15),
           label: const Text('Đặt mục tiêu',
@@ -1051,14 +1052,14 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.blueSoft,
+                      color: AppColors.iosInfoSoft,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text('🎯 ${goal.label}: ${goal.displayTarget}',
                         style: const TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primaryDark)),
+                            color: AppColors.iosPrimaryDark)),
                   ),
                 ),
             ],
@@ -1069,7 +1070,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
           visualDensity: VisualDensity.comfortable,
           onPressed: () => _editGoals(child),
           icon: const Icon(Icons.edit_rounded,
-              size: 15, color: AppColors.textMuted),
+              size: 15, color: AppColors.iosTextMuted),
         ),
       ],
     );
@@ -1080,7 +1081,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
       decoration: BoxDecoration(
-        color: AppColors.red,
+        color: AppColors.iosError,
         borderRadius: BorderRadius.circular(9),
       ),
       child: Text('$count',
@@ -1108,7 +1109,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.greenSoft,
+        color: AppColors.iosSuccessSoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Text(
@@ -1116,7 +1117,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
         'cập nhật (điểm thi thử, đếm ngược kỳ thi, thời gian tập trung, chỉ số '
         'sẵn sàng). App không đọc dữ liệu riêng tư khác của con.',
         style: TextStyle(
-            fontSize: 11.5, height: 1.4, color: AppColors.primaryDark),
+            fontSize: 11.5, height: 1.4, color: AppColors.iosPrimaryDark),
       ),
     );
   }
@@ -1133,7 +1134,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
             width: 7,
             height: 7,
             decoration: const BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.iosPrimary,
               shape: BoxShape.circle,
             ),
           ),
@@ -1145,7 +1146,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
                 style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primaryDark)),
+                    color: AppColors.iosPrimaryDark)),
           ),
         ],
       ),

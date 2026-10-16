@@ -69,15 +69,15 @@ class TaskCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: AppTokens.space8),
         decoration: BoxDecoration(
           color: task.isDone
-              ? AppColors.cardWhite.withValues(alpha: 0.7)
-              : AppColors.cardWhite,
+              ? AppColors.iosCard.withValues(alpha: 0.7)
+              : AppColors.iosCard,
           borderRadius: AppTokens.brLg,
           border: Border.all(
             color: isFrequentReschedule
-                ? AppColors.warning.withValues(alpha: 0.6)
+                ? AppColors.iosWarning.withValues(alpha: 0.6)
                 : (task.isDone
-                    ? AppColors.border.withValues(alpha: 0.5)
-                    : AppColors.border),
+                    ? AppColors.iosSeparator.withValues(alpha: 0.5)
+                    : AppColors.iosSeparator),
           ),
           boxShadow: task.isDone ? null : AppTokens.shadowSubtle,
         ),
@@ -119,14 +119,14 @@ class TaskCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: task.isDone
-                                      ? AppColors.progressDone
+                                      ? AppColors.iosSuccess
                                       : (isSkipped
-                                          ? AppColors.textMuted
+                                          ? AppColors.iosTextMuted
                                           : Colors.transparent),
                                   border: Border.all(
                                     color: task.isDone || isSkipped
                                         ? Colors.transparent
-                                        : AppColors.border,
+                                        : AppColors.iosSeparator,
                                     width: 1.5,
                                   ),
                                 ),
@@ -188,8 +188,8 @@ class TaskCard extends StatelessWidget {
                                     style: AppTokens.heading3.copyWith(
                                       fontSize: 15,
                                       color: task.isDone || isSkipped
-                                          ? AppColors.textMuted
-                                          : AppColors.textPrimary,
+                                          ? AppColors.iosTextMuted
+                                          : AppColors.iosTextPrimary,
                                       decoration: task.isDone
                                           ? TextDecoration.lineThrough
                                           : null,
@@ -209,7 +209,7 @@ class TaskCard extends StatelessWidget {
                                 task.topic!,
                                 style: AppTokens.bodySubtle.copyWith(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.iosTextSecondary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -227,7 +227,7 @@ class TaskCard extends StatelessWidget {
                                     : 'Đã bỏ qua: ${task.skipReason}',
                                 style: AppTokens.bodySubtle.copyWith(
                                   fontSize: 11,
-                                  color: AppColors.textMuted,
+                                  color: AppColors.iosTextMuted,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -255,13 +255,13 @@ class TaskCard extends StatelessWidget {
                                       const Icon(
                                         Icons.schedule_rounded,
                                         size: 13,
-                                        color: AppColors.textMuted,
+                                        color: AppColors.iosTextMuted,
                                       ),
                                       const SizedBox(width: AppTokens.space4),
                                       Text(
                                         '${task.scheduledAt!.hour.toString().padLeft(2, '0')}:${task.scheduledAt!.minute.toString().padLeft(2, '0')}',
                                         style: AppTokens.caption.copyWith(
-                                          color: AppColors.textMuted,
+                                          color: AppColors.iosTextMuted,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -275,13 +275,13 @@ class TaskCard extends StatelessWidget {
                                     const Icon(
                                       Icons.access_time_rounded,
                                       size: 13,
-                                      color: AppColors.textMuted,
+                                      color: AppColors.iosTextMuted,
                                     ),
                                     const SizedBox(width: AppTokens.space4),
                                     Text(
                                       '${task.estimateMinutes}p',
                                       style: AppTokens.caption.copyWith(
-                                        color: AppColors.textMuted,
+                                        color: AppColors.iosTextMuted,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -299,8 +299,8 @@ class TaskCard extends StatelessWidget {
                                             : Icons.event_outlined,
                                         size: 13,
                                         color: isOverdue
-                                            ? AppColors.red
-                                            : AppColors.textMuted,
+                                            ? AppColors.iosError
+                                            : AppColors.iosTextMuted,
                                       ),
                                       const SizedBox(width: AppTokens.space4),
                                       Text(
@@ -312,8 +312,8 @@ class TaskCard extends StatelessWidget {
                                               ? FontWeight.w800
                                               : FontWeight.w600,
                                           color: isOverdue
-                                              ? AppColors.red
-                                              : AppColors.textMuted,
+                                              ? AppColors.iosError
+                                              : AppColors.iosTextMuted,
                                         ),
                                       ),
                                     ],
@@ -328,8 +328,8 @@ class TaskCard extends StatelessWidget {
                                       vertical: 1,
                                     ),
                                     decoration: BoxDecoration(
-                                      color:
-                                          AppColors.red.withValues(alpha: 0.1),
+                                      color: AppColors.iosError
+                                          .withValues(alpha: 0.1),
                                       borderRadius: AppTokens.brSm,
                                     ),
                                     child: Text(
@@ -337,7 +337,7 @@ class TaskCard extends StatelessWidget {
                                       style: AppTokens.caption.copyWith(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w800,
-                                        color: AppColors.red,
+                                        color: AppColors.iosError,
                                       ),
                                     ),
                                   ),
@@ -351,7 +351,7 @@ class TaskCard extends StatelessWidget {
                                       vertical: 1,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.warning
+                                      color: AppColors.iosWarning
                                           .withValues(alpha: 0.12),
                                       borderRadius: AppTokens.brSm,
                                     ),
@@ -361,7 +361,7 @@ class TaskCard extends StatelessWidget {
                                         const Icon(
                                           Icons.sync_problem_rounded,
                                           size: 11,
-                                          color: AppColors.warning,
+                                          color: AppColors.iosWarning,
                                         ),
                                         const SizedBox(width: AppTokens.space2),
                                         Text(
@@ -369,7 +369,7 @@ class TaskCard extends StatelessWidget {
                                           style: AppTokens.caption.copyWith(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w800,
-                                            color: AppColors.warning,
+                                            color: AppColors.iosWarning,
                                           ),
                                         ),
                                       ],
@@ -394,7 +394,7 @@ class TaskCard extends StatelessWidget {
                               },
                               icon:
                                   const Icon(Icons.play_circle_filled_rounded),
-                              color: AppColors.primary,
+                              color: AppColors.iosPrimary,
                               iconSize: 32,
                               tooltip: 'Bắt đầu học ngay',
                               padding: EdgeInsets.zero,
@@ -409,7 +409,7 @@ class TaskCard extends StatelessWidget {
                             icon: const Icon(
                               Icons.more_vert_rounded,
                               size: 18,
-                              color: AppColors.textMuted,
+                              color: AppColors.iosTextMuted,
                             ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
@@ -501,11 +501,11 @@ class TaskCard extends StatelessWidget {
                                   child: Row(
                                     children: [
                                       Icon(Icons.delete_outline_rounded,
-                                          size: 16, color: AppColors.red),
+                                          size: 16, color: AppColors.iosError),
                                       SizedBox(width: 8),
                                       Text('Xóa nhiệm vụ',
-                                          style:
-                                              TextStyle(color: AppColors.red)),
+                                          style: TextStyle(
+                                              color: AppColors.iosError)),
                                     ],
                                   ),
                                 ),
@@ -569,9 +569,9 @@ extension on _TaskUrgency {
       };
 
   Color get color => switch (this) {
-        _TaskUrgency.overdue => AppColors.redDark,
-        _TaskUrgency.today => AppColors.red,
-        _TaskUrgency.tomorrow => AppColors.orangeDark,
+        _TaskUrgency.overdue => AppColors.iosErrorDark,
+        _TaskUrgency.today => AppColors.iosError,
+        _TaskUrgency.tomorrow => AppColors.iosWarningDark,
       };
 }
 
@@ -716,9 +716,9 @@ class _SwipeToRescheduleState extends State<_SwipeToReschedule>
                 child: Container(
                   margin: const EdgeInsets.only(bottom: AppTokens.space8),
                   decoration: BoxDecoration(
-                    color: AppColors.orangeSoft,
+                    color: AppColors.iosWarningSoft,
                     borderRadius: AppTokens.brLg,
-                    border: Border.all(color: AppColors.orangeDark),
+                    border: Border.all(color: AppColors.iosWarningDark),
                   ),
                   alignment:
                       _dx >= 0 ? Alignment.centerLeft : Alignment.centerRight,
@@ -729,7 +729,7 @@ class _SwipeToRescheduleState extends State<_SwipeToReschedule>
                     children: [
                       if (_dx < 0) const SizedBox(width: AppTokens.space8),
                       const Icon(Icons.event_rounded,
-                          size: 20, color: AppColors.orangeDark),
+                          size: 20, color: AppColors.iosWarningDark),
                       const SizedBox(width: AppTokens.space8),
                       // Nhãn riêng cho thao tác VUỐT, không trùng “Dời lịch”
                       // của menu — cả hai cùng xuất hiện khi người học đang mở
@@ -744,7 +744,7 @@ class _SwipeToRescheduleState extends State<_SwipeToReschedule>
                             fontFamily: 'Nunito',
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.orangeDark,
+                            color: AppColors.iosWarningDark,
                           ),
                         ),
                       if (_dx >= 0) const SizedBox(width: AppTokens.space8),

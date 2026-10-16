@@ -68,21 +68,21 @@ class ScoreChartWidget extends StatelessWidget {
           Row(
             children: [
               const Icon(Icons.show_chart_rounded,
-                  size: 18, color: AppColors.primary),
+                  size: 18, color: AppColors.iosPrimary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text('Tiến bộ điểm thi thử',
                     style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
               ),
               _trendChip(trend),
             ],
           ),
           const SizedBox(height: 4),
           Text('Môn $mainSubject • ${mainScores.length} lần thi',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
           const SizedBox(height: 16),
           _buildLineChart(mainScores),
           if (insight != null) ...[
@@ -91,13 +91,13 @@ class ScoreChartWidget extends StatelessWidget {
           ],
           if (subjects.length >= 2) ...[
             const SizedBox(height: 14),
-            const Divider(height: 1, color: AppColors.border),
+            const Divider(height: 1, color: AppColors.iosSeparator),
             const SizedBox(height: 12),
             Text('So sánh giữa các môn',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
             const SizedBox(height: 10),
             ...subjects.take(4).map(_buildSubjectRow),
           ],
@@ -109,8 +109,9 @@ class ScoreChartWidget extends StatelessWidget {
   Widget _trendChip(ScoreTrend trend) {
     final isUp = trend.trend == 'up';
     final isDown = trend.trend == 'down';
-    final color =
-        isUp ? AppColors.green : (isDown ? AppColors.orange : AppColors.blue);
+    final color = isUp
+        ? AppColors.iosSuccess
+        : (isDown ? AppColors.iosWarning : AppColors.iosInfo);
     final icon = isUp
         ? Icons.trending_up_rounded
         : (isDown ? Icons.trending_down_rounded : Icons.trending_flat_rounded);
@@ -162,24 +163,26 @@ class ScoreChartWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('10',
-                    style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                    style:
+                        TextStyle(fontSize: 10, color: AppColors.iosTextMuted)),
                 Text(mainScores.last.score.toStringAsFixed(1),
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary)),
+                        color: AppColors.iosPrimary)),
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(_fmtDate(mainScores.first.date),
-                    style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                    style:
+                        TextStyle(fontSize: 10, color: AppColors.iosTextMuted)),
                 Text(_fmtDate(mainScores.last.date),
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
               ],
             ),
           ],
@@ -193,19 +196,21 @@ class ScoreChartWidget extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
+        color: AppColors.iosPrimary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.insights_rounded,
-              size: 16, color: AppColors.primary),
+              size: 16, color: AppColors.iosPrimary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(insight,
                 style: TextStyle(
-                    fontSize: 12.5, height: 1.4, color: AppColors.textPrimary)),
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: AppColors.iosTextPrimary)),
           ),
         ],
       ),
@@ -213,7 +218,7 @@ class ScoreChartWidget extends StatelessWidget {
   }
 
   Widget _buildSubjectRow(SubjectScore s) {
-    final color = s.declining ? AppColors.orange : AppColors.primary;
+    final color = s.declining ? AppColors.iosWarning : AppColors.iosPrimary;
     final deltaLabel = s.delta >= 0
         ? '+${s.delta.toStringAsFixed(1)}'
         : s.delta.toStringAsFixed(1);
@@ -226,10 +231,10 @@ class ScoreChartWidget extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
           ),
           Text('TB ${s.avg.toStringAsFixed(1)}',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -255,11 +260,11 @@ class ScoreChartWidget extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.blue.withValues(alpha: 0.12),
+              color: AppColors.iosInfo.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.show_chart_rounded,
-                size: 20, color: AppColors.blue),
+                size: 20, color: AppColors.iosInfo),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -270,14 +275,14 @@ class ScoreChartWidget extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 2),
                 Text(
                   subject == null
                       ? 'Ghi 2 điểm thi thử cùng môn để EduPulse vẽ tiến bộ của bạn.'
                       : 'Môn "$subject" mới có 1 điểm — thi thử thêm 1 lần nữa để thấy xu hướng.',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.iosTextSecondary),
                 ),
               ],
             ),
@@ -296,11 +301,11 @@ class ScoreChartWidget extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.blue.withValues(alpha: 0.12),
+              color: AppColors.iosInfo.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.show_chart_rounded,
-                size: 20, color: AppColors.blue),
+                size: 20, color: AppColors.iosInfo),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -311,12 +316,12 @@ class ScoreChartWidget extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
+                        color: AppColors.iosTextPrimary)),
                 const SizedBox(height: 2),
                 Text(
                   'Ghi điểm sau mỗi lần thi thử để EduPulse theo dõi tiến bộ và đề xuất điều chỉnh.',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.iosTextSecondary),
                 ),
               ],
             ),
@@ -370,7 +375,7 @@ class _ScoreLinePainter extends CustomPainter {
 
     // Lưới ngang mờ.
     final gridPaint = Paint()
-      ..color = AppColors.border
+      ..color = AppColors.iosSeparator
       ..strokeWidth = 1;
     for (var g = 0; g <= 3; g++) {
       final y = padTop + chartH * g / 3;
@@ -381,7 +386,7 @@ class _ScoreLinePainter extends CustomPainter {
     if (targetScore != null && targetScore! >= lo && targetScore! <= hi) {
       final y = pointAt(0, targetScore!).dy;
       final dashPaint = Paint()
-        ..color = AppColors.orange.withValues(alpha: 0.7)
+        ..color = AppColors.iosWarning.withValues(alpha: 0.7)
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       const dashLen = 6.0;
@@ -397,9 +402,9 @@ class _ScoreLinePainter extends CustomPainter {
       }
     }
 
-    // Đường điểm — gradient dọc từ primary sang blue.
+    // Đường điểm — gradient tối → trong suốt theo chủ đạo iOS (systemBlue).
     final linePaint = Paint()
-      ..color = AppColors.primary
+      ..color = AppColors.iosPrimary
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -408,8 +413,8 @@ class _ScoreLinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AppColors.primary.withValues(alpha: 0.18),
-          AppColors.primary.withValues(alpha: 0.0),
+          AppColors.iosPrimary.withValues(alpha: 0.18),
+          AppColors.iosPrimary.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, padTop, chartW, chartH));
 
@@ -437,7 +442,7 @@ class _ScoreLinePainter extends CustomPainter {
       canvas.drawCircle(
         p,
         i == scores.length - 1 ? 4.5 : 3.5,
-        Paint()..color = AppColors.primary,
+        Paint()..color = AppColors.iosPrimary,
       );
       canvas.drawCircle(
         p,

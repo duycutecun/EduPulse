@@ -85,7 +85,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
     final report = _report;
     if (report == null) {
       return Scaffold(
-        backgroundColor: AppColors.bgPage,
+        backgroundColor: AppColors.iosBackground,
         appBar: AppBar(title: const Text('Báo cáo học tập')),
         body: const LoadingStateView(message: 'Đang tổng hợp số liệu…'),
       );
@@ -93,7 +93,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
 
     if (!report.hasScores && !report.hasSessions) {
       return Scaffold(
-        backgroundColor: AppColors.bgPage,
+        backgroundColor: AppColors.iosBackground,
         appBar: AppBar(title: const Text('Báo cáo học tập')),
         body: EmptyStateView(
           icon: Icons.insights_outlined,
@@ -107,7 +107,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(title: const Text('Báo cáo học tập')),
       body: RefreshIndicator(
         onRefresh: () async => _reload(),
@@ -161,7 +161,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                         ? 'Xu hướng điểm và năng lực theo chủ đề'
                         : 'Thời gian học và hiệu quả phiên',
                 style: const TextStyle(
-                    fontSize: 13, color: AppColors.textSecondary),
+                    fontSize: 13, color: AppColors.iosTextSecondary),
               ),
             ],
           ),
@@ -179,19 +179,20 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.greenSoft,
+        color: AppColors.iosSuccessSoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           const Text('Tuần này',
-              style: TextStyle(fontSize: 9.5, color: AppColors.textSecondary)),
+              style:
+                  TextStyle(fontSize: 9.5, color: AppColors.iosTextSecondary)),
           Text(text,
               style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.greenDark)),
+                  color: AppColors.iosSuccess)),
         ],
       ),
     );
@@ -207,13 +208,15 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                 ? report.overallAverage.toStringAsFixed(1)
                 : '—',
             label: 'Điểm TB các môn',
-            color: report.hasScores ? AppColors.primary : AppColors.textMuted,
+            color: report.hasScores
+                ? AppColors.iosPrimary
+                : AppColors.iosTextMuted,
           ),
           _statDivider(),
           _statCell(
             value: '$_scoreCount',
             label: 'Lần thi thử',
-            color: AppColors.textPrimary,
+            color: AppColors.iosTextPrimary,
           ),
           _statDivider(),
           _statCell(
@@ -240,8 +243,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
+              style: const TextStyle(
+                  fontSize: 10.5, color: AppColors.iosTextMuted)),
         ],
       ),
     );
@@ -250,7 +253,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
   Widget _statDivider() => Container(
         width: 1,
         height: 28,
-        color: AppColors.divider,
+        color: AppColors.iosSeparator,
       );
 
   /// "+45%" / "−12%" / "0%" — `null` khi tuần trước chưa có giờ (không mốc).
@@ -261,8 +264,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
   }
 
   Color _deltaColor(int? percent) {
-    if (percent == null || percent == 0) return AppColors.textPrimary;
-    return percent > 0 ? AppColors.greenDark : AppColors.orangeDark;
+    if (percent == null || percent == 0) return AppColors.iosTextPrimary;
+    return percent > 0 ? AppColors.iosSuccess : AppColors.iosWarningDark;
   }
 
   // ------------------------------------------------------------------
@@ -278,7 +281,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           const _SectionTitle(
             icon: Icons.stacked_line_chart_rounded,
             title: 'Xu hướng điểm theo tuần',
-            color: AppColors.purple,
+            color: AppColors.iosSecondary,
           ),
           const SizedBox(height: 12),
           _trendChart(report),
@@ -326,7 +329,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 8.5, color: AppColors.textMuted)),
+                        fontSize: 8.5, color: AppColors.iosTextMuted)),
               ],
             ),
           ),
@@ -335,9 +338,9 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
   }
 
   Color _scoreColor(double value) {
-    if (value >= 8) return AppColors.greenDark;
-    if (value >= 6.5) return AppColors.orangeDark;
-    return AppColors.red;
+    if (value >= 8) return AppColors.iosSuccess;
+    if (value >= 6.5) return AppColors.iosWarningDark;
+    return AppColors.iosError;
   }
 
   Widget _trendMessage(DeepReport report) {
@@ -347,19 +350,19 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
     if (trend.trend == 'up') {
       text =
           'Điểm đang tăng +${trend.delta!.toStringAsFixed(1)} so với lần trước.';
-      color = AppColors.greenDark;
+      color = AppColors.iosSuccess;
     } else if (trend.trend == 'down') {
       text =
           'Điểm đang giảm nhẹ. Xem phần chủ đề yếu bên dưới để ưu tiên ôn lại.';
-      color = AppColors.orangeDark;
+      color = AppColors.iosWarningDark;
     } else if (trend.trend == 'flat') {
       text = 'Điểm đang ổn định. Giữ nhịp thi thử định kỳ nhé!';
-      color = AppColors.textSecondary;
+      color = AppColors.iosTextSecondary;
     } else {
       text = report.weeklyBuckets.length >= 2
           ? 'Cần nhiều điểm hơn để nhận định xu hướng.'
           : 'Thi thử 1 lần nữa để thấy rõ xu hướng.';
-      color = AppColors.textMuted;
+      color = AppColors.iosTextMuted;
     }
     return Row(
       children: [
@@ -372,7 +375,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
         Expanded(
           child: Text(text,
               style: const TextStyle(
-                  fontSize: 12.5, color: AppColors.textSecondary)),
+                  fontSize: 12.5, color: AppColors.iosTextSecondary)),
         ),
       ],
     );
@@ -388,15 +391,15 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           const _SectionTitle(
             icon: Icons.rule_rounded,
             title: 'Điểm theo môn',
-            color: AppColors.blue,
+            color: AppColors.iosInfo,
           ),
           const SizedBox(height: 4),
           const Text('Trung bình từng môn + chiều hướng thay đổi',
-              style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 11.5, color: AppColors.iosTextMuted)),
           const SizedBox(height: 12),
           if (subjects.isEmpty)
             const Text('Cần đủ 2 điểm một môn để so sánh xu hướng.',
-                style: TextStyle(fontSize: 12.5, color: AppColors.textMuted))
+                style: TextStyle(fontSize: 12.5, color: AppColors.iosTextMuted))
           else
             for (final subject in subjects) ...[
               _subjectRow(subject),
@@ -430,14 +433,15 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                   : Icons.trending_flat_rounded,
           size: 16,
           color: subject.improving
-              ? AppColors.greenDark
+              ? AppColors.iosSuccess
               : subject.declining
-                  ? AppColors.orangeDark
-                  : AppColors.textMuted,
+                  ? AppColors.iosWarningDark
+                  : AppColors.iosTextMuted,
         ),
         const SizedBox(width: 6),
         Text('×${subject.count}',
-            style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            style:
+                const TextStyle(fontSize: 11, color: AppColors.iosTextMuted)),
       ],
     );
   }
@@ -452,16 +456,16 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           const _SectionTitle(
             icon: Icons.priority_high_rounded,
             title: 'Chủ đề cần ưu tiên ôn',
-            color: AppColors.orange,
+            color: AppColors.iosWarning,
           ),
           const SizedBox(height: 4),
           const Text('Chủ đề trung bình dưới 6.5 điểm',
-              style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 11.5, color: AppColors.iosTextMuted)),
           const SizedBox(height: 12),
           if (topics.isEmpty)
             const Text(
                 'Chưa có chủ đề nào dưới ngưỡng 6.5 — giữ nhịp ôn tập nhé! Nếu chưa từng ghi chủ đề khi nhập điểm, hãy ghi để báo cáo chi tiết hơn.',
-                style: TextStyle(fontSize: 12.5, color: AppColors.textMuted))
+                style: TextStyle(fontSize: 12.5, color: AppColors.iosTextMuted))
           else
             for (final topic in topics) ...[
               _topicRow(topic),
@@ -484,7 +488,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                       fontSize: 13, fontWeight: FontWeight.w800)),
               Text(topic.subject,
                   style: const TextStyle(
-                      fontSize: 10.5, color: AppColors.textMuted)),
+                      fontSize: 10.5, color: AppColors.iosTextMuted)),
             ],
           ),
         ),
@@ -496,7 +500,8 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                 color: _scoreColor(topic.average))),
         const SizedBox(width: 6),
         Text('×${topic.attempts}',
-            style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            style:
+                const TextStyle(fontSize: 11, color: AppColors.iosTextMuted)),
       ],
     );
   }
@@ -507,13 +512,13 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
       child: Row(
         children: [
           const Icon(Icons.stacked_line_chart_rounded,
-              size: 20, color: AppColors.orangeDark),
+              size: 20, color: AppColors.iosWarningDark),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
                 'Chưa có điểm thi thử — thêm điểm ở màn Điểm thi để báo cáo có thêm phần xu hướng và năng lực chủ đề.',
-                style:
-                    TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+                style: TextStyle(
+                    fontSize: 12.5, color: AppColors.iosTextSecondary)),
           ),
         ],
       ),
@@ -534,13 +539,13 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           const _SectionTitle(
             icon: Icons.schedule_rounded,
             title: 'Thời gian học tuần này',
-            color: AppColors.greenDark,
+            color: AppColors.iosSuccess,
           ),
           const SizedBox(height: 12),
           if (comparison != null)
             Text(comparison,
                 style: const TextStyle(
-                    fontSize: 12.5, color: AppColors.textSecondary)),
+                    fontSize: 12.5, color: AppColors.iosTextSecondary)),
           if (report.efficiencyReport != null) ...[
             const SizedBox(height: 10),
             _efficiencyRow(report.efficiencyReport!),
@@ -566,14 +571,14 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
           height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.greenSoft,
+            color: AppColors.iosSuccessSoft,
           ),
           child: Center(
             child: Text('${efficiency.score}',
                 style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.greenDark)),
+                    color: AppColors.iosSuccess)),
           ),
         ),
         const SizedBox(width: 12),
@@ -586,7 +591,7 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
                       TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
               Text(efficiency.description,
                   style: const TextStyle(
-                      fontSize: 11.5, color: AppColors.textSecondary)),
+                      fontSize: 11.5, color: AppColors.iosTextSecondary)),
             ],
           ),
         ),
@@ -598,12 +603,12 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: AppColors.blueDark),
+        Icon(icon, size: 18, color: AppColors.iosInfoDark),
         const SizedBox(width: 10),
         Expanded(
           child: Text(tip,
               style: const TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary)),
+                  fontSize: 12, color: AppColors.iosTextSecondary)),
         ),
       ],
     );
@@ -615,12 +620,14 @@ class _DeepReportScreenState extends State<DeepReportScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.offline_pin_rounded, size: 14, color: AppColors.textMuted),
+          Icon(Icons.offline_pin_rounded,
+              size: 14, color: AppColors.iosTextMuted),
           SizedBox(width: 6),
           Expanded(
             child: Text(
                 'Báo cáo này chạy hoàn toàn trên thiết bị — không gửi dữ liệu lên mạng.',
-                style: TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
+                style:
+                    TextStyle(fontSize: 10.5, color: AppColors.iosTextMuted)),
           ),
         ],
       ),

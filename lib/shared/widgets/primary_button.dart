@@ -32,7 +32,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBg = backgroundColor ?? AppColors.primary;
+    final effectiveBg = backgroundColor ?? AppColors.iosPrimary;
     final effectiveText = textColor ?? Colors.white;
 
     Widget button = SizedBox(
@@ -121,8 +121,8 @@ class SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBorder = borderColor ?? AppColors.border;
-    final effectiveText = textColor ?? AppColors.textPrimary;
+    final effectiveBorder = borderColor ?? AppColors.iosSeparator;
+    final effectiveText = textColor ?? AppColors.iosTextPrimary;
 
     return SizedBox(
       width: width,
@@ -208,7 +208,7 @@ class AppIconButton extends StatelessWidget {
             child: Icon(
               icon,
               size: AppTokens.iconMd,
-              color: iconColor ?? AppColors.textSecondary,
+              color: iconColor ?? AppColors.iosTextSecondary,
             ),
           ),
         ),

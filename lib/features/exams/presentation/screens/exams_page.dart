@@ -23,10 +23,10 @@ class ExamsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPage,
+      backgroundColor: AppColors.iosBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.bgPage,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.iosBackground,
+        foregroundColor: AppColors.iosTextPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,

@@ -29,7 +29,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
     final phase = primaryExam?.examPhase ?? ExamPhase.normal;
     final urgencyColor = primaryExam != null
         ? _urgencyColor(primaryExam.daysLeft)
-        : AppColors.textMuted;
+        : AppColors.iosTextMuted;
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -37,12 +37,12 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.cardWhite,
+          color: AppColors.iosCard,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: phase == ExamPhase.examDay
-                ? AppColors.orange
-                : AppColors.border,
+                ? AppColors.iosWarning
+                : AppColors.iosSeparator,
             width: phase == ExamPhase.examDay ? 2 : 1,
           ),
           boxShadow: [
@@ -70,7 +70,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: AppColors.iosTextPrimary,
                       height: 1.3,
                     ),
                     maxLines: 1,
@@ -105,14 +105,14 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
               Row(
                 children: [
                   const Icon(Icons.schedule_rounded,
-                      color: AppColors.orange, size: 18),
+                      color: AppColors.iosWarning, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     'Giờ thi: ${AppDate.formatDateTime(primaryExam!.dateTime)}',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: AppColors.iosTextPrimary,
                     ),
                   ),
                 ],
@@ -124,13 +124,13 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
               Row(
                 children: [
                   const Icon(Icons.calendar_today_rounded,
-                      color: AppColors.textMuted, size: 14),
+                      color: AppColors.iosTextMuted, size: 14),
                   const SizedBox(width: 6),
                   Text(
                     AppDate.formatDateTime(primaryExam.dateTime),
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.iosTextSecondary,
                     ),
                   ),
                 ],
@@ -142,7 +142,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.orangeLight,
+                    color: AppColors.iosWarningSoft,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -152,7 +152,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.orangeDark),
+                        color: AppColors.iosWarningDark),
                   ),
                 ),
               ],
@@ -163,7 +163,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.blueLight,
+                    color: AppColors.iosInfoSoft,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -173,7 +173,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.blueDark),
+                        color: AppColors.iosInfoDark),
                   ),
                 ),
               ],
@@ -184,7 +184,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
                   'Chạm để chọn kỳ thi →',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors.textMuted,
+                    color: AppColors.iosTextMuted,
                   ),
                 ),
               ),
@@ -229,9 +229,9 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            color: AppColors.cardLight,
+            color: AppColors.iosFill,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(color: AppColors.iosSeparator, width: 1),
           ),
           child: Center(
             child: Text(
@@ -239,7 +239,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: AppColors.iosTextPrimary,
                 height: 1.1,
               ),
             ),
@@ -251,7 +251,7 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: AppColors.textMuted,
+            color: AppColors.iosTextMuted,
           ),
         ),
       ],
@@ -259,8 +259,8 @@ class _HeroCountdownCardState extends State<HeroCountdownCard> {
   }
 
   Color _urgencyColor(int days) {
-    if (days < 30) return AppColors.red;
-    if (days < 90) return AppColors.orange;
-    return AppColors.primary;
+    if (days < 30) return AppColors.iosError;
+    if (days < 90) return AppColors.iosWarning;
+    return AppColors.iosPrimary;
   }
 }

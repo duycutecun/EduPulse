@@ -28,7 +28,7 @@ class FamilyReportSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.iosCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -95,7 +95,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
       decoration: BoxDecoration(
-        color: AppColors.red,
+        color: AppColors.iosError,
         borderRadius: BorderRadius.circular(9),
       ),
       child: Text('$count',
@@ -213,7 +213,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: error ? AppColors.red : AppColors.primary,
+      backgroundColor: error ? AppColors.iosError : AppColors.iosPrimary,
     ));
   }
 
@@ -241,7 +241,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderStrong,
+                  color: AppColors.iosSeparator,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -252,14 +252,14 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                   style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary)),
+                      color: AppColors.iosTextPrimary)),
             ),
             const SizedBox(height: 4),
             const Center(
               child: Text(
                 'Ba mẹ đã liên kết sẽ thấy tiến độ học tập của con.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted),
               ),
             ),
             const SizedBox(height: 18),
@@ -272,7 +272,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary)),
+                    color: AppColors.iosTextSecondary)),
             const SizedBox(height: 8),
             TextField(
               key: const Key('family-checkin-field'),
@@ -284,20 +284,20 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                 hintText: 'Ví dụ: “Tuần này con hơi mệt, ba mẹ đừng lo nhé.”',
                 hintStyle: const TextStyle(fontSize: 12.5),
                 filled: true,
-                fillColor: AppColors.bgPage,
+                fillColor: AppColors.iosBackground,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: const BorderSide(color: AppColors.iosSeparator),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: const BorderSide(color: AppColors.iosSeparator),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderSide: const BorderSide(color: AppColors.iosPrimary),
                 ),
               ),
             ),
@@ -308,21 +308,21 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary)),
+                    color: AppColors.iosTextSecondary)),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.bgPage,
+                color: AppColors.iosBackground,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.iosSeparator),
               ),
               child: report == null
                   ? const Text(
                       'Con chưa có dữ liệu học tập để tạo báo cáo tuần này.',
-                      style:
-                          TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                      style: TextStyle(
+                          fontSize: 12.5, color: AppColors.iosTextMuted),
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +332,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                 fontSize: 13,
                                 height: 1.5,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary)),
+                                color: AppColors.iosTextPrimary)),
                         const SizedBox(height: 10),
                         ...report.items.map((item) => Padding(
                               padding: const EdgeInsets.only(bottom: 5),
@@ -342,7 +342,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                   const Text('• ',
                                       style: TextStyle(
                                           fontWeight: FontWeight.w800,
-                                          color: AppColors.primary)),
+                                          color: AppColors.iosPrimary)),
                                   Expanded(
                                     child: Text(
                                       '${item.title}: ${item.value}'
@@ -350,7 +350,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                       style: const TextStyle(
                                           fontSize: 12.5,
                                           height: 1.45,
-                                          color: AppColors.textPrimary),
+                                          color: AppColors.iosTextPrimary),
                                     ),
                                   ),
                                 ],
@@ -372,7 +372,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                         ? null
                         : () => _sendToFamily(report),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.iosPrimary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
@@ -394,7 +394,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               const SizedBox(height: 6),
               const Text(
                 'Đăng nhập (tab Tôi) rồi tạo mã mời để ba mẹ nhận được báo cáo.',
-                style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 11.5, color: AppColors.iosTextMuted),
               ),
             ],
             const SizedBox(height: 10),
@@ -407,13 +407,13 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                 key: const Key('family-share-achievement'),
                 onPressed: () => AchievementShareScreen.open(context),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.primary, width: 2),
+                  foregroundColor: AppColors.iosTextPrimary,
+                  side: const BorderSide(color: AppColors.iosPrimary, width: 2),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(Icons.auto_awesome_rounded,
-                    size: 18, color: AppColors.primary),
+                    size: 18, color: AppColors.iosPrimary),
                 label: const Text('Tạo ảnh thành tựu tuần',
                     style:
                         TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
@@ -437,17 +437,17 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                             content: Text(
                                 'Đã sao chép báo cáo — dán vào Zalo/SMS gửi ba mẹ nhé!'),
                             behavior: SnackBarBehavior.floating,
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: AppColors.iosPrimary,
                           ),
                         );
                       },
                 icon: const Icon(Icons.copy_rounded,
-                    size: 17, color: AppColors.textSecondary),
+                    size: 17, color: AppColors.iosTextSecondary),
                 label: const Text('Sao chép báo cáo dạng chữ',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13.5,
-                        color: AppColors.textSecondary)),
+                        color: AppColors.iosTextSecondary)),
               ),
             ),
           ],
@@ -472,14 +472,16 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Icon(Icons.family_restroom_rounded,
-                size: 20, color: AppColors.primary),
+                size: 20, color: AppColors.iosPrimary),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Tài khoản phụ huynh: đăng nhập (tab Tôi) để tạo mã mời 8 chữ số '
                 'cho ba mẹ. Sau khi liên kết, ba mẹ thấy tiến độ học tập của con.',
                 style: TextStyle(
-                    fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+                    fontSize: 12,
+                    height: 1.4,
+                    color: AppColors.iosTextSecondary),
               ),
             ),
           ],
@@ -494,7 +496,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
           Row(
             children: [
               const Icon(Icons.family_restroom_rounded,
-                  size: 20, color: AppColors.primary),
+                  size: 20, color: AppColors.iosPrimary),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text('Tài khoản phụ huynh',
@@ -517,7 +519,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               'Ba mẹ đăng nhập rồi vào Cửa sổ tin cậy sẽ thấy tiến độ học tập '
               'của con 💚',
               style: TextStyle(
-                  fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+                  fontSize: 12, height: 1.4, color: AppColors.iosTextSecondary),
             )
           else
             ...parents.map((p) => Padding(
@@ -528,7 +530,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                       Row(
                         children: [
                           const Icon(Icons.verified_user_rounded,
-                              size: 16, color: AppColors.primary),
+                              size: 16, color: AppColors.iosPrimary),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(p.name,
@@ -552,7 +554,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                 icon: const Icon(
                                     Icons.chat_bubble_outline_rounded,
                                     size: 17,
-                                    color: AppColors.primary),
+                                    color: AppColors.iosPrimary),
                               ),
                               if (p.unread > 0)
                                 Positioned(
@@ -573,7 +575,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                 style: TextStyle(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.red)),
+                                    color: AppColors.iosError)),
                           ),
                         ],
                       ),
@@ -589,7 +591,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                 fontSize: 10.5,
                                 height: 1.4,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.primaryDark),
+                                color: AppColors.iosPrimaryDark),
                           ),
                         ),
                     ],
@@ -603,7 +605,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.greenSoft,
+                color: AppColors.iosSuccessSoft,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -617,14 +619,14 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.6,
-                                color: AppColors.primaryDark)),
+                                color: AppColors.iosPrimaryDark)),
                         const SizedBox(height: 2),
                         Text(_spacedCode(invite.code),
                             style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 2,
-                                color: AppColors.textPrimary)),
+                                color: AppColors.iosTextPrimary)),
                       ],
                     ),
                   ),
@@ -632,7 +634,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                     tooltip: 'Sao chép mã',
                     onPressed: () => _copyCode(invite.code),
                     icon: const Icon(Icons.copy_rounded,
-                        size: 20, color: AppColors.primaryDark),
+                        size: 20, color: AppColors.iosPrimaryDark),
                   ),
                 ],
               ),
@@ -640,7 +642,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             const SizedBox(height: 4),
             const Text(
               'Mã có hiệu lực 2 ngày. Nhập lại mã cũ sẽ không dùng được — mỗi lần tạo mới là mã cũ hết hiệu lực.',
-              style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
             ),
             const SizedBox(height: 8),
           ],
@@ -652,8 +654,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               key: const Key('family-create-invite'),
               onPressed: _familyLoading ? null : _createInvite,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.greenSoft,
-                foregroundColor: AppColors.primaryDark,
+                backgroundColor: AppColors.iosSuccessSoft,
+                foregroundColor: AppColors.iosPrimaryDark,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
@@ -690,10 +692,10 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 4, 6, 8),
       decoration: BoxDecoration(
-        color: _liveOn ? AppColors.greenSoft : AppColors.bgPageSoft,
+        color: _liveOn ? AppColors.iosSuccessSoft : AppColors.iosFill,
         borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: _liveOn ? AppColors.primary : AppColors.border),
+        border: Border.all(
+            color: _liveOn ? AppColors.iosPrimary : AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -702,7 +704,9 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
             children: [
               Icon(_liveOn ? Icons.podcasts_rounded : Icons.podcasts_outlined,
                   size: 18,
-                  color: _liveOn ? AppColors.primaryDark : AppColors.textMuted),
+                  color: _liveOn
+                      ? AppColors.iosPrimaryDark
+                      : AppColors.iosTextMuted),
               const SizedBox(width: 8),
               Expanded(
                 child: Text('Cập nhật trực tiếp cho ba mẹ',
@@ -710,8 +714,8 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: _liveOn
-                          ? AppColors.primaryDark
-                          : AppColors.textPrimary,
+                          ? AppColors.iosPrimaryDark
+                          : AppColors.iosTextPrimary,
                     )),
               ),
               if (_liveSaving)
@@ -726,7 +730,7 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
                 Switch(
                   key: const Key('family-live-switch'),
                   value: _liveOn,
-                  activeThumbColor: AppColors.primary,
+                  activeThumbColor: AppColors.iosPrimary,
                   onChanged: linked ? _toggleLive : null,
                 ),
             ],
@@ -738,8 +742,9 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
               style: TextStyle(
                 fontSize: 11.5,
                 height: 1.4,
-                color:
-                    _liveOn ? AppColors.primaryDark : AppColors.textSecondary,
+                color: _liveOn
+                    ? AppColors.iosPrimaryDark
+                    : AppColors.iosTextSecondary,
               ),
             ),
           ),
@@ -753,9 +758,9 @@ class _FamilyReportSheetState extends State<FamilyReportSheet> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bgPage,
+        color: AppColors.iosBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: child,
     );

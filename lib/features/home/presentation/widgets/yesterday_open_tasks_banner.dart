@@ -26,7 +26,7 @@ class YesterdayOpenTasksBanner extends StatelessWidget {
         vertical: AppTokens.space4,
       ),
       child: Material(
-        color: AppColors.cardLight,
+        color: AppColors.iosFill,
         borderRadius: AppTokens.brMd,
         child: Container(
           padding: const EdgeInsets.symmetric(
@@ -35,14 +35,14 @@ class YesterdayOpenTasksBanner extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             borderRadius: AppTokens.brMd,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.iosSeparator),
           ),
           child: Row(
             children: [
               const Icon(
                 Icons.history_rounded,
                 size: AppTokens.iconSm,
-                color: AppColors.textSecondary,
+                color: AppColors.iosTextSecondary,
               ),
               const SizedBox(width: AppTokens.space8),
               Expanded(

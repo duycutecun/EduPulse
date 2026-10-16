@@ -68,9 +68,9 @@ class StudyAnalyticsView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,13 +81,13 @@ class StudyAnalyticsView extends StatelessWidget {
           if (comparison.message != null)
             _analyticsRow(
               icon: Icons.compare_arrows_rounded,
-              color: AppColors.blue,
+              color: AppColors.iosInfo,
               text: comparison.message!,
             ),
           if (efficiencyReport != null) ...[
             _analyticsRow(
               icon: Icons.speed_rounded,
-              color: AppColors.primary,
+              color: AppColors.iosPrimary,
               text:
                   'Efficiency ${efficiencyReport.score}%${efficiencyReport.deltaVsLastWeek == null ? '' : ' (${efficiencyReport.deltaVsLastWeek! >= 0 ? '+' : ''}${efficiencyReport.deltaVsLastWeek}% vs tuần trước)'} — dựa trên ${efficiencyReport.sampleCount} phiên có phản hồi.',
             ),
@@ -95,19 +95,19 @@ class StudyAnalyticsView extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6, left: 30),
               child: Text(efficiencyReport.description,
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary)),
+                      fontSize: 12, color: AppColors.iosTextSecondary)),
             ),
           ],
           if (focusTip != null)
             _analyticsRow(
               icon: Icons.timer_outlined,
-              color: AppColors.orange,
+              color: AppColors.iosWarning,
               text: focusTip,
             ),
           if (timeTip != null)
             _analyticsRow(
               icon: Icons.schedule_rounded,
-              color: AppColors.purple,
+              color: AppColors.iosSecondary,
               text: timeTip,
             ),
         ],
@@ -140,7 +140,7 @@ class StudyAnalyticsView extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 12.5,
                     height: 1.35,
-                    color: AppColors.textPrimary)),
+                    color: AppColors.iosTextPrimary)),
           ),
         ],
       ),
@@ -184,9 +184,9 @@ class StudyAnalyticsView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
+        color: AppColors.iosCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.iosSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,18 +211,18 @@ class StudyAnalyticsView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.purpleLight,
+                color: AppColors.iosSecondarySoft,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.auto_awesome_rounded,
-                      size: 18, color: AppColors.purple),
+                      size: 18, color: AppColors.iosSecondary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(insight,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColors.textPrimary)),
+                            fontSize: 12, color: AppColors.iosTextPrimary)),
                   ),
                 ],
               ),
@@ -252,7 +252,7 @@ class StudyAnalyticsView extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: AppColors.bgPageSoft,
+          color: AppColors.iosFill,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -263,8 +263,8 @@ class StudyAnalyticsView extends StatelessWidget {
             const SizedBox(height: 2),
             Text(label,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                style: const TextStyle(
+                    fontSize: 10, color: AppColors.iosTextMuted)),
           ],
         ),
       ),

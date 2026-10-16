@@ -85,9 +85,9 @@ class _StreakChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.streakBg,
+        color: AppColors.iosWarningSoft,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.yellow, width: 1.5),
+        border: Border.all(color: AppColors.iosStreak, width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -100,7 +100,7 @@ class _StreakChip extends StatelessWidget {
             '$streak',
             style: AppTokens.body.copyWith(
               fontWeight: FontWeight.w800,
-              color: AppColors.yellow,
+              color: AppColors.iosStreak,
             ),
           ),
           const SizedBox(width: 2),
