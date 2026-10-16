@@ -12,6 +12,7 @@ import '../../../../shared/widgets/mascot_avatar.dart';
 class HomeHeader extends StatelessWidget {
   final String userName;
   final int streak;
+  final bool streakVisible;
   final int? daysLeft;
   final int? remainingTasks;
   final bool? isAllTasksCompleted;
@@ -22,6 +23,7 @@ class HomeHeader extends StatelessWidget {
     super.key,
     required this.userName,
     required this.streak,
+    this.streakVisible = true,
     this.daysLeft,
     this.remainingTasks,
     this.isAllTasksCompleted,
@@ -48,7 +50,7 @@ class HomeHeader extends StatelessWidget {
               style: AppTokens.heading2,
             ),
           ),
-          if (streak > 0) ...[
+          if (streakVisible && streak > 0) ...[
             const SizedBox(width: 8),
             _StreakChip(streak: streak),
           ],

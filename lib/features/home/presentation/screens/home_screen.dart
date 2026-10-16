@@ -762,7 +762,10 @@ class _HomeScreenState extends State<HomeScreen> {
           HomeHeader(
             userName: userName,
             streak: widget.streak,
-            mascotVisible: StorageService.getBool('mascot_enabled') ?? true,
+            mascotVisible: (StorageService.getBool('mascot_enabled') ?? true) &&
+                !(StorageService.getBool('quiet_mode_mascot') ?? false),
+            streakVisible:
+                !(StorageService.getBool('quiet_mode_streak') ?? false),
             onOpenAchievements: () => showAchievementsSheet(context),
           ),
           const SizedBox(height: 12),
