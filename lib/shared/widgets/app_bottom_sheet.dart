@@ -56,11 +56,13 @@ class _SheetShell extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(
                     vertical: AppTokens.space12,
                   ),
+                  // Handle mảnh: 44×5 — khích thước này là phần trực quan; vùng chạm
+                  // được giữ ≥44px nhờ padding và GestureDetector opaque.
                   width: AppTokens.minTouchTarget,
-                  height: AppTokens.space4,
+                  height: 5,
                   decoration: BoxDecoration(
                     color: AppColors.borderStrong,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusFull),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusXs),
                   ),
                 ),
               ),
