@@ -26,9 +26,14 @@ class TabChrome extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: IndexedStack(
-            index: index,
-            children: children,
+          // Giới hạn phạm vi phím Tab trong vùng nội dung của tab, tránh rò rỉ
+          // focus sang bottom nav.
+          child: FocusTraversalGroup(
+            policy: ReadingOrderTraversalPolicy(),
+            child: IndexedStack(
+              index: index,
+              children: children,
+            ),
           ),
         ),
         _buildNav(context),

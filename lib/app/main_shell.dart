@@ -390,9 +390,14 @@ class _MainShellScreenState extends State<MainShellScreen>
           : const SizedBox.shrink(),
     ];
 
-    final content = IndexedStack(
-      index: _currentIndex,
-      children: tabChildren,
+    // FocusTraversalGroup giới hạn phạm vi phím Tab cho vùng nội dung, tránh bị
+    // nhảy focus sang sidebar / bottom nav khi dùng bàn phím (web/desktop).
+    final content = FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: IndexedStack(
+        index: _currentIndex,
+        children: tabChildren,
+      ),
     );
 
     // Tablet (≥768) + Desktop (≥1024): sidebar trái + nội dung — 4 tabs chính
