@@ -30,6 +30,14 @@ class ActiveStudySession {
   /// Tổng thời lượng vòng, tính bằng giây.
   final int totalSeconds;
 
+  /// Số giây đã học **trước thời điểm neo gần nhất**, bao gồm cả các đoạn đã
+  /// tạm dừng (timestamp-based). Dùng để tính thời gian đã học khi vòng đang
+  /// dừng, không phụ thuộc tick của `Timer.periodic` (FE-3.2/V2).
+  ///
+  /// `pausedAccumMs` luôn ≤ [totalSeconds]. Khi vòng đang chạy, phần thời gian
+  /// trôi thêm được tính từ [anchorAt].
+  final int pausedAccumMs;
+
   /// Số giây còn lại tại [anchorAt].
   final int remainingAtAnchor;
 
@@ -50,12 +58,21 @@ class ActiveStudySession {
     this.taskTitle,
     required this.subject,
     required this.totalSeconds,
+    int? pausedAccumMs,
     required this.remainingAtAnchor,
     required this.anchorAt,
     required this.startedAt,
     this.round = 1,
     this.isBreak = false,
-  });
+  }) : pausedAccumMs =
+            pausedAccumMs ?? (totalSeconds - remainingAtAnchor).clamp(
+              0,
+              totalSeconds,
+            ) {
+    if (totalSeconds < 0) {
+      throw ArgumentError.value(totalSeconds, 'totalSeconds', 'phải ≥ 0');
+    }
+  }
 
   /// Chụp trạng thái hiện tại của [clock] để lưu xuống storage.
   factory ActiveStudySession.fromClock({
@@ -65,15 +82,17 @@ class ActiveStudySession {
     required String subject,
     int round = 1,
     bool isBreak = false,
+    DateTime? now,
   }) =>
       ActiveStudySession(
         taskId: taskId,
         taskTitle: taskTitle,
         subject: subject,
         totalSeconds: clock.totalSeconds,
+        pausedAccumMs: clock.elapsedAt(now ?? DateTime.now()),
         remainingAtAnchor: clock.remainingSecondsAtAnchor,
         anchorAt: clock.anchorAt,
-        startedAt: clock.startedAt ?? DateTime.now(),
+        startedAt: clock.startedAt ?? (now ?? DateTime.now()),
         round: round,
         isBreak: isBreak,
       );
@@ -128,6 +147,7 @@ class ActiveStudySession {
         'taskTitle': taskTitle,
         'subject': subject,
         'totalSeconds': totalSeconds,
+        'pausedAccumMs': pausedAccumMs,
         'remainingAtAnchor': remainingAtAnchor,
         'anchorAt': anchorAt?.toIso8601String(),
         'startedAt': startedAt.toIso8601String(),
@@ -143,6 +163,7 @@ class ActiveStudySession {
         taskTitle: json['taskTitle'],
         subject: json['subject'] ?? '',
         totalSeconds: json['totalSeconds'] ?? 0,
+        pausedAccumMs: json['pausedAccumMs'], // null ok → derive from remainingAtAnchor
         remainingAtAnchor: json['remainingAtAnchor'] ?? 0,
         anchorAt: DateTime.tryParse(json['anchorAt'] ?? ''),
         startedAt: DateTime.tryParse(json['startedAt'] ?? '') ?? DateTime.now(),
