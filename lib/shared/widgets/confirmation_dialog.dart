@@ -4,7 +4,10 @@ import '../../core/constants/app_tokens.dart';
 import 'primary_button.dart';
 
 /// Hộp thoại xác nhận an toàn cho các hành động quan trọng/phá hủy (FE-0.3, AI-0.1, FE-2.5).
-class ConfirmationDialog extends StatelessWidget {
+///
+/// Khi mở, focus tự chuyển vào nút chính để phím nhảy theo dialog (accessibility
+/// + tránh focus bị "mất" phía sau barrier).
+class ConfirmationDialog extends StatefulWidget {
   final String title;
   final String content;
   final String? highlightedItem;
@@ -53,6 +56,29 @@ class ConfirmationDialog extends StatelessWidget {
   }
 
   @override
+  State<ConfirmationDialog> createState() => _ConfirmationDialogState();
+}
+
+class _ConfirmationDialogState extends State<ConfirmationDialog> {
+  late final FocusNode _confirmFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Đợi frame đầu rồi nhảy focus vào nút Xác nhận — tránh focus bị "mất" phía
+    // sau barrier khi dialog mở (accessibility bắt buộc).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _confirmFocus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _confirmFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: const RoundedRectangleBorder(borderRadius: AppTokens.brXl),
@@ -60,7 +86,7 @@ class ConfirmationDialog extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       title: Row(
         children: [
-          if (isDestructive) ...[
+          if (widget.isDestructive) ...[
             Container(
               padding: const EdgeInsets.all(AppTokens.space8),
               decoration: const BoxDecoration(
@@ -77,7 +103,7 @@ class ConfirmationDialog extends StatelessWidget {
           ],
           Expanded(
             child: Text(
-              title,
+              widget.title,
               style: AppTokens.heading2,
             ),
           ),
@@ -87,8 +113,8 @@ class ConfirmationDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(content, style: AppTokens.body),
-          if (highlightedItem != null) ...[
+          Text(widget.content, style: AppTokens.body),
+          if (widget.highlightedItem != null) ...[
             const SizedBox(height: AppTokens.space12),
             Container(
               width: double.infinity,
@@ -98,14 +124,14 @@ class ConfirmationDialog extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color:
-                    isDestructive ? AppColors.redLight : AppColors.primaryLight,
+                    widget.isDestructive ? AppColors.redLight : AppColors.primaryLight,
                 borderRadius: AppTokens.brMd,
               ),
               child: Text(
-                highlightedItem!,
+                widget.highlightedItem!,
                 style: AppTokens.heading3.copyWith(
                   color:
-                      isDestructive ? AppColors.redDark : AppColors.primaryDark,
+                      widget.isDestructive ? AppColors.redDark : AppColors.primaryDark,
                 ),
               ),
             ),
@@ -115,19 +141,20 @@ class ConfirmationDialog extends StatelessWidget {
       actionsPadding: const EdgeInsets.all(AppTokens.space16),
       actions: [
         SecondaryButton(
-          label: cancelLabel,
+          label: widget.cancelLabel,
           onPressed: () {
-            if (onCancel != null) {
-              onCancel!();
+            if (widget.onCancel != null) {
+              widget.onCancel!();
             } else {
               Navigator.of(context).pop(false);
             }
           },
         ),
         PrimaryButton(
-          label: confirmLabel,
-          backgroundColor: isDestructive ? AppColors.red : AppColors.primary,
-          onPressed: onConfirm,
+          focusNode: _confirmFocus,
+          label: widget.confirmLabel,
+          backgroundColor: widget.isDestructive ? AppColors.red : AppColors.primary,
+          onPressed: widget.onConfirm,
         ),
       ],
     );

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_tokens.dart';
 
 /// Bottom sheet chuẩn của app (đặc tả mục 30):
 /// - **Drag handle** thanh ngang mờ trên cùng — kéo xuống để đóng.
 /// - **Contextual height**: thấp vừa nội dung, max 85% màn hình.
 /// - Kết hợp `DraggableScrollableSheet` cho nội dung dài — kéo list
 ///   đến đỉnh thì expand, kéo xuống thì thu về/đóng.
+/// - Khi mở, focus tự chuyển vào sheet (accessibility).
 ///
 /// Dùng cho: Task detail, Add task, Contextual actions, AI actions.
 Future<T?> showAppBottomSheet<T>({
@@ -17,7 +19,11 @@ Future<T?> showAppBottomSheet<T>({
     context: context,
     isScrollControlled: isScrollControlled,
     backgroundColor: Colors.transparent,
-    builder: (sheetContext) => _SheetShell(child: builder(sheetContext)),
+    builder: (sheetContext) => FocusScope(
+      // Khi sheet hiện, chuyển focus vào nội dung sheet để phím nhảy theo
+      // (quan trọng trên mobile và khi dùng bàn phím ngoài).
+      child: _SheetShell(child: builder(sheetContext)),
+    ),
   );
 }
 
@@ -34,7 +40,9 @@ class _SheetShell extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           color: AppColors.cardWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppTokens.radiusXl),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -45,12 +53,14 @@ class _SheetShell extends StatelessWidget {
               onTap: () => Navigator.of(context).pop(),
               child: Center(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  width: 44,
-                  height: 5,
+                  margin: const EdgeInsets.symmetric(
+                    vertical: AppTokens.space12,
+                  ),
+                  width: AppTokens.minTouchTarget,
+                  height: AppTokens.space4,
                   decoration: BoxDecoration(
                     color: AppColors.borderStrong,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusFull),
                   ),
                 ),
               ),

@@ -14,6 +14,7 @@ class PrimaryButton extends StatelessWidget {
   final double? width;
   final double height;
   final String? tooltip;
+  final FocusNode? focusNode;
 
   const PrimaryButton({
     super.key,
@@ -26,6 +27,7 @@ class PrimaryButton extends StatelessWidget {
     this.width,
     this.height = AppTokens.standardTouchTarget,
     this.tooltip,
+    this.focusNode,
   });
 
   @override
@@ -37,6 +39,7 @@ class PrimaryButton extends StatelessWidget {
       width: width,
       height: height,
       child: ElevatedButton(
+        focusNode: focusNode,
         onPressed: (isLoading || onPressed == null)
             ? null
             : () {

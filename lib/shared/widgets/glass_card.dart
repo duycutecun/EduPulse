@@ -10,19 +10,22 @@ class GlassCard extends StatelessWidget {
   final Color? borderColor;
   final double borderWidth;
   final VoidCallback? onTap;
+  /// Danh bóng tùy chọn. Mặc định **không có bóng** — thẻ dùng viền mỏng
+  /// (phẳng như Duolingo), tránh bóng dày làm chậm render trên máy yếu và
+  /// cạnh tranh với nội dung. Khi cần bóng, truyền [AppTokens.shadowSubtle].
   final List<BoxShadow>? shadows;
 
   const GlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
+    this.padding = const EdgeInsets.all(16),
     this.margin,
-    this.borderRadius = 20,
+    this.borderRadius = 16,
     this.customColor,
     this.borderColor,
     this.borderWidth = 1,
     this.onTap,
-    this.shadows,
+    this.shadows = const [],
   });
 
   @override
@@ -39,14 +42,7 @@ class GlassCard extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: bColor, width: borderWidth),
-        boxShadow: shadows ??
-            [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        boxShadow: shadows,
       ),
       child: Material(type: MaterialType.transparency, child: child),
     );
