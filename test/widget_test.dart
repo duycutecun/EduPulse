@@ -139,7 +139,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sĩ tử 2k9'), findsOneWidget);
     expect(find.text('Bảng vàng'), findsNothing);
-    expect(find.text('Hồ sơ & Gia đình'), findsOneWidget);
+    // Nhóm GIA ĐÌNH (tiêu đề nhóm iOS Settings) — thay cho accordion cũ
+    // "Hồ sơ & Gia đình" sau khi tab Tôi được tổ chức lại thành các nhóm phẳng.
+    expect(find.text('GIA ĐÌNH'), findsOneWidget);
 
     // Storage round-trip TodayTask
     final task = TodayTask(
@@ -2045,10 +2047,8 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
-    // Các nhóm cài đặt mặc định thu gọn — mở "Hiển thị & Nhắc học" mới thấy cỡ chữ.
-    expect(find.text('Cỡ chữ'), findsNothing);
-    await tester.tap(find.byKey(const Key('account-section-display')));
-    await tester.pump(const Duration(milliseconds: 300));
+    // Tab Tôi là các nhóm phẳng kiểu iOS Settings (không còn accordion gập/mở)
+    // — thẻ Cỡ chữ hiện ngay khi vào tab, không cần bấm mở nhóm.
     expect(find.text('Cỡ chữ'), findsOneWidget);
 
     // Chọn L — fontScale tăng ngay.

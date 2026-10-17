@@ -58,10 +58,6 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _mascotEnabled = true;
   bool _reduceMotion = false;
 
-  /// Nhóm cài đặt nào đang mở (accordion tab "Tôi"). Mặc định rỗng = tất cả
-  /// thu gọn; người dùng bấm tiêu đề mới xổ phần chi tiết bên trong.
-  final Set<String> _expandedSections = <String>{};
-
   @override
   void initState() {
     super.initState();
@@ -246,148 +242,280 @@ class _AccountScreenState extends State<AccountScreen> {
         // bộ lại ngay khi còn thay đổi chưa gửi (kế hoạch 7.2).
         const SyncStatusCard(),
         const SizedBox(height: 16),
-        // Danh tính luôn hiện — không nằm trong nhóm gập, để mở tab "Tôi" là
-        // thấy ngay mình là ai và mục tiêu gì.
+        // Danh tính luôn hiện — khối hồ sơ đầu tab "Tôi" (nhóm 1 trong bố cục
+        // kiểu iOS Settings): thấy ngay mình là ai và mục tiêu gì.
         _buildProfileSummary(),
-        const SizedBox(height: 16),
-        // Ba nhóm cài đặt dạng accordion: mặc định thu gọn, bấm tiêu đề mới
-        // xổ chi tiết (tab "Tôi" chia từng phần, không đổ hết ra một trang
-        // dài).
-        _collapsible(
-          id: 'profile',
-          icon: Icons.school_rounded,
-          color: AppColors.iosSecondary,
-          bg: AppColors.iosSecondarySoft,
-          title: 'Hồ sơ & Gia đình',
-          subtitle: 'Hồ sơ học tập, báo cáo gửi ba mẹ',
-          children: [
-            LearningProfileEntry(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const LearningProfileScreen(),
-              )),
-            ),
-            const SizedBox(height: 10),
-            FamilyReportEntry(
-              onTap: () => FamilyReportSheet.show(context),
-            ),
-            const SizedBox(height: 10),
-            ParentModeEntry(onEnterParentMode: _openParentMode),
-          ],
+
+        // ══════════════ Nhóm HỌC TẬP ══════════════
+        const SizedBox(height: 28),
+        _buildSectionHeader('HỌC TẬP'),
+        // Hồ sơ học tập — mục quan trọng nhất của nhóm (đặc tả mục 17).
+        LearningProfileEntry(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const LearningProfileScreen(),
+          )),
         ),
-        const SizedBox(height: 12),
-        _collapsible(
-          id: 'display',
-          icon: Icons.visibility_rounded,
-          color: AppColors.iosInfo,
-          bg: AppColors.iosInfoSoft,
-          title: 'Hiển thị & Nhắc học',
-          subtitle: 'Cỡ chữ, tương phản, nhắc học hằng ngày',
-          children: [
-            const AppearanceCard(),
-            const SizedBox(height: 10),
-            _buildReminderCard(),
-          ],
+        const SizedBox(height: 10),
+        _buildSectionRow(
+          ListTile(
+            contentPadding: _tilePadding,
+            leading:
+                const Icon(Icons.insights_rounded, color: AppColors.iosSuccess),
+            title: const Text('Báo cáo học tập sâu'),
+            subtitle: const Text(
+                'Xu hướng điểm, năng lực chủ đề, thời gian học',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const DeepReportScreen(),
+            )),
+          ),
         ),
-        const SizedBox(height: 12),
-        _collapsible(
-          id: 'personal',
-          icon: Icons.shield_rounded,
-          color: AppColors.iosPrimary,
-          bg: AppColors.iosSuccessSoft,
-          title: 'Cá nhân hóa & Dữ liệu',
-          subtitle: 'Quyền AI, rung/âm thanh, xuất nhập dữ liệu',
-          children: [_buildPreferencesCard()],
+        const SizedBox(height: 10),
+        _buildSectionRow(
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.emoji_events_rounded,
+                color: AppColors.iosStreak),
+            title: const Text('Bảng vàng kỷ lục'),
+            subtitle: const Text(
+                'Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const LeaderboardScreen(),
+            )),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildSectionRow(
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.emoji_events_outlined,
+                color: AppColors.iosWarning),
+            title: const Text('Thành tích & huy hiệu'),
+            subtitle: const Text('Cấp độ, chuỗi ngày và bộ huy hiệu đã đạt',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => showAchievementsSheet(context),
+          ),
+        ),
+
+        // ══════════════ Nhóm CẢNH BÁO & NHẮC ══════════════
+        const SizedBox(height: 28),
+        _buildSectionHeader('CẢNH BÁO & NHẮC'),
+        // Nhắc học + digest 20:30 + thông báo nâng cao (báo cáo tuần Chủ nhật,
+        // streak guard) — giữ nguyên logic của ReminderCard.
+        _buildReminderCard(),
+
+        // ══════════════ Nhóm GIAO DIỆN & ÂM THANH ══════════════
+        const SizedBox(height: 28),
+        _buildSectionHeader('GIAO DIỆN & ÂM THANH'),
+        const AppearanceCard(),
+        const SizedBox(height: 10),
+        _buildDisplayPrefsCard(),
+
+        // ══════════════ Nhóm DỮ LIỆU & RIÊNG TƯ ══════════════
+        const SizedBox(height: 28),
+        _buildSectionHeader('DỮ LIỆU & RIÊNG TƯ',
+            subtitle: 'AI chỉ sử dụng dữ liệu khi bạn cho phép.'),
+        _buildDataPrefsCard(),
+
+        // ══════════════ Nhóm GIA ĐÌNH ══════════════
+        const SizedBox(height: 28),
+        _buildSectionHeader('GIA ĐÌNH'),
+        FamilyReportEntry(
+          onTap: () => FamilyReportSheet.show(context),
+        ),
+        const SizedBox(height: 10),
+        ParentModeEntry(onEnterParentMode: _openParentMode),
+
+        // ══════════════ Nhóm TRỢ GIÚP & GIỚI THIỆU ══════════════
+        const SizedBox(height: 28),
+        _buildSectionHeader('TRỢ GIÚP & GIỚI THIỆU'),
+        _buildSectionRow(
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.feedback_outlined,
+                color: AppColors.iosSecondary),
+            title: const Text('Gửi phản hồi beta'),
+            subtitle: Text(
+                BetaFeedbackService.instance.count > 0
+                    ? '${BetaFeedbackService.instance.count} phản hồi đã lưu trên máy này'
+                    : 'Báo lỗi, góp ý trải nghiệm cho nhóm phát triển',
+                style: const TextStyle(fontSize: 11)),
+            onTap: () => showBetaFeedbackSheet(context),
+          ),
         ),
       ],
     );
   }
 
-  /// Một nhóm cài đặt dạng accordion: mặc định thu gọn, bấm tiêu đề mới xổ nội
-  /// dung bên trong.
-  ///
-  /// Khi thu gọn, phần nội dung **không được dựng** (khác `AnimatedCrossFade`)
-  /// để màn Tôi gọn thật sự và không tốn build cho phần chưa mở; `AnimatedSize`
-  /// lo phần mở/đóng mượt.
-  Widget _collapsible({
-    required String id,
-    required IconData icon,
-    required Color color,
-    required Color bg,
-    required String title,
-    required String subtitle,
-    required List<Widget> children,
-  }) {
-    final expanded = _expandedSections.contains(id);
-    return GlassCard(
-      padding: EdgeInsets.zero,
+  /// Cách lề chuẩn của hàng List trong nhóm (iOS inset grouped): 16 trái/phải.
+  static const EdgeInsets _tilePadding = EdgeInsets.symmetric(horizontal: 16);
+
+  /// Tiêu đề nhóm kiểu iOS Settings: nhãn chữ nhỏ, màu muted — chỉ là nhãn
+  /// tĩnh, KHÔNG nhấn được và không đóng/mở gì cả (khác accordion cũ).
+  Widget _buildSectionHeader(String title, {String? subtitle}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            key: Key('account-section-$id'),
-            borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              FeedbackService.selection();
-              setState(() {
-                if (expanded) {
-                  _expandedSections.remove(id);
-                } else {
-                  _expandedSections.add(id);
-                }
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  AppIcon(
-                    icon,
-                    tileSize: 36,
-                    iconSize: 18,
-                    color: color,
-                    bg: bg,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title,
-                            style: const TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.iosTextPrimary)),
-                        const SizedBox(height: 2),
-                        Text(subtitle,
-                            style: const TextStyle(
-                                fontSize: 11.5,
-                                color: AppColors.iosTextSecondary)),
-                      ],
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.expand_more_rounded,
-                        color: AppColors.iosTextMuted),
-                  ),
-                ],
-              ),
-            ),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                  color: AppColors.iosTextMuted)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(subtitle,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.iosTextMuted)),
+          ],
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  /// Một hàng List bọc trong thẻ inset — cùng ngôn ngữ GlassCard của app.
+  /// Tile tự cách hai lề 16 như các ListTile cũ.
+  Widget _buildSectionRow(Widget child) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: child,
+    );
+  }
+
+  /// Thẻ công tắc trải nghiệm hiển thị/âm thanh.
+  ///
+  /// Đặc tả 5.14 — hai mục rung/âm thanh phải tắt được thật, nên mọi rung /
+  /// âm thanh đều đi qua FeedbackService thay vì gọi thẳng platform.
+  Widget _buildDisplayPrefsCard() {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Column(
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: _tilePadding,
+            title: const Text('Hiện linh vật'),
+            value: _mascotEnabled,
+            onChanged: (value) => setState(() {
+              _mascotEnabled = value;
+              StorageService.setBool('mascot_enabled', value);
+            }),
           ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: expanded
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: children,
-                    ),
-                  )
-                : const SizedBox(width: double.infinity, height: 0),
+          const Divider(height: 1, indent: 16),
+          SwitchListTile.adaptive(
+            contentPadding: _tilePadding,
+            title: const Text('Giảm chuyển động'),
+            value: _reduceMotion,
+            onChanged: (value) => setState(() {
+              _reduceMotion = value;
+              StorageService.setBool('reduce_motion', value);
+            }),
+          ),
+          const Divider(height: 1, indent: 16),
+          SwitchListTile.adaptive(
+            contentPadding: _tilePadding,
+            title: const Text('Rung'),
+            subtitle: const Text('Rung nhẹ khi bấm nút, tick nhiệm vụ, hết giờ',
+                style: TextStyle(fontSize: 11)),
+            value: FeedbackService.hapticsEnabled,
+            onChanged: (value) =>
+                setState(() => FeedbackService.setHaptics(value)),
+          ),
+          const Divider(height: 1, indent: 16),
+          SwitchListTile.adaptive(
+            contentPadding: _tilePadding,
+            title: const Text('Âm thanh'),
+            subtitle: const Text(
+                'Âm báo hoàn thành phiên và tương tác linh vật',
+                style: TextStyle(fontSize: 11)),
+            value: FeedbackService.soundEnabled,
+            onChanged: (value) =>
+                setState(() => FeedbackService.setSound(value)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Thẻ nhóm DỮ LIỆU & RIÊNG TƯ: quyền AI, AI nâng cao, xuất nhập dữ liệu,
+  /// quyền riêng tư và xóa dữ liệu AI. Thứ tự từ đọc-hiểu đến hành động phá
+  /// hủy (xóa lịch sử AI) — mục phá hủy luôn nằm cùng.
+  Widget _buildDataPrefsCard() {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Column(
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: _tilePadding,
+            title: const Text('AI đọc nhiệm vụ và phiên học'),
+            subtitle: const Text('Dùng để trả lời theo ngữ cảnh',
+                style: TextStyle(fontSize: 11)),
+            value: _aiMayRead,
+            onChanged: (value) => setState(() {
+              _aiMayRead = value;
+              StorageService.setBool('ai_permission_read', value);
+              ShareAuditLog.log(ShareAuditKinds.aiRead, value ? 'bật' : 'tắt');
+            }),
+          ),
+          const Divider(height: 1, indent: 16),
+          SwitchListTile.adaptive(
+            contentPadding: _tilePadding,
+            title: const Text('AI phân tích tiến độ'),
+            subtitle: const Text(
+                'Tạo insight và đề xuất, không tự sửa kế hoạch',
+                style: TextStyle(fontSize: 11)),
+            value: _aiMayAnalyze,
+            onChanged: _aiMayRead
+                ? (value) => setState(() {
+                      _aiMayAnalyze = value;
+                      StorageService.setBool('ai_permission_analyze', value);
+                      ShareAuditLog.log(
+                          ShareAuditKinds.aiAnalyze, value ? 'bật' : 'tắt');
+                    })
+                : null,
+          ),
+          const Divider(height: 1, indent: 16),
+          ListTile(
+            contentPadding: _tilePadding,
+            leading:
+                const Icon(Icons.tune_rounded, color: AppColors.iosSecondary),
+            title: const Text('AI nâng cao'),
+            subtitle: const Text('Chọn model, quyền AI, lịch sử hội thoại',
+                style: TextStyle(fontSize: 11)),
+            onTap: _openAiAdvancedSheet,
+          ),
+          const Divider(height: 1, indent: 16),
+          ListTile(
+            contentPadding: _tilePadding,
+            leading:
+                const Icon(Icons.ios_share_rounded, color: AppColors.iosInfo),
+            title: const Text('Xuất / nhập dữ liệu'),
+            subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú',
+                style: TextStyle(fontSize: 11)),
+            onTap: _openDataSheet,
+          ),
+          const Divider(height: 1, indent: 16),
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.privacy_tip_outlined,
+                color: AppColors.iosSuccess),
+            title: const Text('Quyền riêng tư & dữ liệu'),
+            subtitle: const Text('Thời hạn lưu, xoá dữ liệu cá nhân',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PrivacyDataScreen(),
+            )),
+          ),
+          const Divider(height: 1, indent: 16),
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.delete_sweep_outlined,
+                color: AppColors.iosError),
+            title: const Text('Xóa lịch sử trò chuyện AI'),
+            onTap: _clearAiHistory,
           ),
         ],
       ),
@@ -480,172 +608,6 @@ class _AccountScreenState extends State<AccountScreen> {
               child: const Icon(Icons.edit_rounded,
                   color: AppColors.iosInfo, size: 18),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreferencesCard() {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Quyền riêng tư & trải nghiệm',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          const Text('AI chỉ sử dụng dữ liệu khi bạn cho phép.',
-              style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted)),
-          const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('AI đọc nhiệm vụ và phiên học'),
-            subtitle: const Text('Dùng để trả lời theo ngữ cảnh',
-                style: TextStyle(fontSize: 11)),
-            value: _aiMayRead,
-            onChanged: (value) => setState(() {
-              _aiMayRead = value;
-              StorageService.setBool('ai_permission_read', value);
-              ShareAuditLog.log(ShareAuditKinds.aiRead, value ? 'bật' : 'tắt');
-            }),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('AI phân tích tiến độ'),
-            subtitle: const Text(
-                'Tạo insight và đề xuất, không tự sửa kế hoạch',
-                style: TextStyle(fontSize: 11)),
-            value: _aiMayAnalyze,
-            onChanged: _aiMayRead
-                ? (value) => setState(() {
-                      _aiMayAnalyze = value;
-                      StorageService.setBool('ai_permission_analyze', value);
-                      ShareAuditLog.log(
-                          ShareAuditKinds.aiAnalyze, value ? 'bật' : 'tắt');
-                    })
-                : null,
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Hiện linh vật'),
-            value: _mascotEnabled,
-            onChanged: (value) => setState(() {
-              _mascotEnabled = value;
-              StorageService.setBool('mascot_enabled', value);
-            }),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Giảm chuyển động'),
-            value: _reduceMotion,
-            onChanged: (value) => setState(() {
-              _reduceMotion = value;
-              StorageService.setBool('reduce_motion', value);
-            }),
-          ),
-          // Đặc tả 5.14 — hai mục cài đặt này phải tắt được thật, nên mọi rung /
-          // âm thanh đều đi qua FeedbackService thay vì gọi thẳng platform.
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Rung'),
-            subtitle: const Text('Rung nhẹ khi bấm nút, tick nhiệm vụ, hết giờ',
-                style: TextStyle(fontSize: 11)),
-            value: FeedbackService.hapticsEnabled,
-            onChanged: (value) =>
-                setState(() => FeedbackService.setHaptics(value)),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Âm thanh'),
-            subtitle: const Text(
-                'Âm báo hoàn thành phiên và tương tác linh vật',
-                style: TextStyle(fontSize: 11)),
-            value: FeedbackService.soundEnabled,
-            onChanged: (value) =>
-                setState(() => FeedbackService.setSound(value)),
-          ),
-          const Divider(),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading:
-                const Icon(Icons.tune_rounded, color: AppColors.iosSecondary),
-            title: const Text('AI nâng cao'),
-            subtitle: const Text('Chọn model, quyền AI, lịch sử hội thoại',
-                style: TextStyle(fontSize: 11)),
-            onTap: _openAiAdvancedSheet,
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading:
-                const Icon(Icons.ios_share_rounded, color: AppColors.iosInfo),
-            title: const Text('Xuất / nhập dữ liệu'),
-            subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú',
-                style: TextStyle(fontSize: 11)),
-            onTap: _openDataSheet,
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.emoji_events_outlined,
-                color: AppColors.iosWarning),
-            title: const Text('Thành tích & huy hiệu'),
-            subtitle: const Text('Cấp độ, chuỗi ngày và bộ huy hiệu đã đạt',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => showAchievementsSheet(context),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.emoji_events_rounded,
-                color: AppColors.iosStreak),
-            title: const Text('Bảng vàng kỷ lục'),
-            subtitle: const Text(
-                'Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const LeaderboardScreen(),
-            )),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading:
-                const Icon(Icons.insights_rounded, color: AppColors.iosSuccess),
-            title: const Text('Báo cáo học tập sâu'),
-            subtitle: const Text(
-                'Xu hướng điểm, năng lực chủ đề, thời gian học',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const DeepReportScreen(),
-            )),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.feedback_outlined,
-                color: AppColors.iosSecondary),
-            title: const Text('Gửi phản hồi beta'),
-            subtitle: Text(
-                BetaFeedbackService.instance.count > 0
-                    ? '${BetaFeedbackService.instance.count} phản hồi đã lưu trên máy này'
-                    : 'Báo lỗi, góp ý trải nghiệm cho nhóm phát triển',
-                style: const TextStyle(fontSize: 11)),
-            onTap: () => showBetaFeedbackSheet(context),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.delete_sweep_outlined,
-                color: AppColors.iosError),
-            title: const Text('Xóa lịch sử trò chuyện AI'),
-            onTap: _clearAiHistory,
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.privacy_tip_outlined,
-                color: AppColors.iosSuccess),
-            title: const Text('Quyền riêng tư & dữ liệu'),
-            subtitle: const Text('Thời hạn lưu, xoá dữ liệu cá nhân',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const PrivacyDataScreen(),
-            )),
           ),
         ],
       ),

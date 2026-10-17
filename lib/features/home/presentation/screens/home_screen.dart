@@ -792,12 +792,22 @@ class _HomeScreenState extends State<HomeScreen> {
     // "Bắt đầu" dính đáy (V2 M1' mục 4). Một `Column` không được chứa
     // `Expanded` trước một widget khác (Flutter assert), nên thanh được
     // tách ra ngoài Column bằng `Positioned`.
+    // Clearance đáy danh sách cuộn: thanh "Bắt đầu" là Positioned đè lên
+    // vùng cuộn nên đáy danh sách phải chừa **đủ cao thanh + quãng thở**,
+    // thì item cuối (thẻ "CẢNH BÁO MÔN YẾU"/AiActionsRow, banner cân bằng
+    // ngày…) mới luôn trượt qua trọn thanh khi cuộn hết và CTA của thẻ bấm
+    // được. Trước đây đệm đáy chỉ là 28px cứng — khoảng ~65px đuôi thanh
+    // phủ lên phần dưới các thẻ sát đáy. Con số bẻ từ token trong
+    // [StartSessionBar.listEndClearance] (theo cả cỡ chữ hệ thống), không
+    // magic số. Inset SafeArea đáy không cộng: TabChrome đã tiêu trước.
+    final double startBarClearance = StartSessionBar.listEndClearance(
+        textScaler: MediaQuery.textScalerOf(context));
     return Stack(
       fit: StackFit.expand,
       children: [
         SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, startBarClearance),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

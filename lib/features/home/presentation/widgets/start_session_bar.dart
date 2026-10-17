@@ -33,6 +33,41 @@ class StartSessionBar extends StatelessWidget {
   /// Dời việc ưu tiên sang ngày khác; `null` thì không hiện nút Hoãn.
   final VoidCallback? onDefer;
 
+  /// Chiều cao tối đa thực của thanh, bẻ trực tiếp từ đúng các số liệu mà
+  /// [build] dùng (viền trên 1px, padding dọc space10×2, dòng nhãn việc
+  /// caption 12×1.3, kẽ space8, thân nút chuẩn standardTouchTarget) — không
+  /// ghi sẵn một con số "đo tay".
+  ///
+  /// Vì sao cần công khai số này: thanh nằm trên danh sách cuộn bằng
+  /// `Positioned` (đè lên nội dung), nên phía chứa danh sách buộc phải chừa
+  /// đáy đủ cao để thẻ cuối cùng luôn **trượt qua trọn thân thanh** khi cuộn
+  /// hết. Thiếu cái này, khoảng đuôi thanh ngang đỉnh của thẻ sát đáy (vd.
+  /// thẻ "CẢNH BÁO MÔN YẾU" tạo bởi `AiActionsRow`) che mất phần dưới thẻ —
+  /// CTA bấm không được vì đã rơi vào vùng bị thanh vẽ đè.
+  static double maxBarHeight({TextScaler? textScaler}) {
+    // Dòng nhãn việc: caption 12px × height 1.3, scale theo cỡ chữ hệ thống
+    // (cỡ chữ lớn làm dòng nhãn cao hơn — clearance phải theo).
+    final double captionLine =
+        AppTokens.caption.fontSize! * AppTokens.caption.height!;
+    final double scaledLine =
+        textScaler == null ? captionLine : textScaler.scale(captionLine);
+    return const BorderSide().width + // viền trên của BoxDecoration
+        AppTokens.space10 * 2 + // padding dọc của Container
+        scaledLine + // dòng "Việc tiếp theo: …"
+        AppTokens.space8 + // kẽ giữa nhãn và hàng nút
+        AppTokens.standardTouchTarget; // thân nút CTA / hàng nút
+  }
+
+  /// Khoảng đệm đáy tối thiểu cần chừa cho danh sách cuộn của tab Hôm nay:
+  /// toàn bộ chiều cao thanh [maxBarHeight] cộng một quãng thở space12 để
+  /// thẻ cuối không dính sát mép thanh.
+  ///
+  /// Không cộng `MediaQuery.padding.bottom`: khoảng inset hệ thống phía đáy
+  /// đã được thanh điều hướng `TabChrome` tiêu trước (SafeArea top:false),
+  /// cộng thêm sẽ đúp đệm.
+  static double listEndClearance({TextScaler? textScaler}) =>
+      maxBarHeight(textScaler: textScaler) + AppTokens.space12;
+
   const StartSessionBar({
     super.key,
     required this.task,
