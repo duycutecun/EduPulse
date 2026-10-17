@@ -108,8 +108,13 @@ void main() {
   }
 
   group('AiStudyContext', () {
-    test('không có dữ liệu → trả chuỗi rỗng', () {
-      expect(AiStudyContext.build(), '');
+    test('không có dữ liệu → vẫn trả mốc "Hôm nay" để AI tính ngày tương đối',
+        () {
+      final ctx = AiStudyContext.build();
+      // Bug "ngày mai → hôm nay": AI cần mốc ngày kể cả khi học sinh mới.
+      expect(ctx, startsWith('Hôm nay:'));
+      // Nhưng không kèm rác dữ liệu học tập nào.
+      expect(ctx, isNot(contains('THPTQG')));
     });
 
     test('gom được kỳ thi, nhiệm vụ, điểm và ghi chú', () {

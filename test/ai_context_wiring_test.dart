@@ -107,15 +107,19 @@ void main() {
       // StorageService giữ cache instance của SharedPreferences.
       SharedPreferences.setMockInitialValues({});
       await StorageService.init();
-      final empty = AiStudyContext.build(now: now);
-      expect(empty, '');
+      final todayCtx = AiStudyContext.build(now: now);
+      // Mốc "Hôm nay" luôn có — AI phải tính được "ngày mai" từ nó.
+      expect(todayCtx, startsWith('Hôm nay:'));
 
       final messages = OpenRouterService.buildMessages(
         history: const [],
         userMessage: 'Xin chào',
-        studyContext: empty,
+        studyContext: todayCtx,
       );
-      expect(messages.where((m) => m['role'] == 'system'), hasLength(1));
+      // Persona + khối mốc "Hôm nay" (khối ngữ cảnh học sinh rỗng ngoài mốc).
+      expect(messages.where((m) => m['role'] == 'system'), hasLength(2));
+      expect((messages[1]['content'] as String),
+          startsWith("Bạn được cấp ngữ cảnh"));
       expect(messages.last['content'], contains('Xin chào'));
     });
   });

@@ -69,6 +69,10 @@ class AiStudyContext {
       if (line.trim().isNotEmpty) lines.add(line);
     }
 
+    // Dòng đầu tiên: cho AI biết chính xác hôm nay là ngày nào (nguyên nhân
+    // bug "thêm nhiệm vụ cho ngày mai mà AI xếp vào hôm nay" — AI không giải
+    // được ngày tương đối khi mốc thời gian bị mờ trong dữ liệu).
+    _todayLine(add, t);
     _profile(add);
     _exam(add, t);
     _momentum(add);
@@ -192,20 +196,11 @@ class AiStudyContext {
     int? availableMinutes,
   ) {
     _profile(add);
-    const weekdays = [
-      '',
-      'thứ 2',
-      'thứ 3',
-      'thứ 4',
-      'thứ 5',
-      'thứ 6',
-      'thứ 7',
-      'chủ nhật',
-    ];
     final hh = now.hour.toString().padLeft(2, '0');
     final mm = now.minute.toString().padLeft(2, '0');
-    add('THỜI ĐIỂM HIỆN TẠI: ${weekdays[now.weekday]} $hh:$mm, '
-        'ngày ${now.day}/${now.month}');
+    // Mốc thời gian đầy đủ (kèm năm) — dùng chung bộ tên thứ của _todayLine.
+    add('THỜI ĐIỂM HIỆN TẠI: ${_weekdays[now.weekday]} $hh:$mm, '
+        'ngày ${now.day}/${now.month}/${now.year}');
     if (availableMinutes != null && availableMinutes > 0) {
       add('THỜI GIAN RẢNH HÔM NAY: khoảng $availableMinutes phút');
     }
@@ -258,6 +253,25 @@ class AiStudyContext {
   }
 
   // --- Từng phần ---------------------------------------------------------
+
+  /// Tên thứ bằng tiếng Việt (không phụ thuộc package intl).
+  static const _weekdays = [
+    '',
+    'thứ 2',
+    'thứ 3',
+    'thứ 4',
+    'thứ 5',
+    'thứ 6',
+    'thứ 7',
+    'chủ nhật',
+  ];
+
+  /// Dòng mốc "Hôm nay" — AI dùng để tính mọi ngày tương đối ("ngày mai",
+  /// "mốt", "thứ N tới") thành ngày tuyệt đối ISO của scheduledAt.
+  static void _todayLine(void Function(String) add, DateTime now) {
+    add('Hôm nay: ${_weekdays[now.weekday]}, '
+        '${now.day}/${now.month}/${now.year}');
+  }
 
   static void _profile(void Function(String) add) {
     final parts = <String>[];

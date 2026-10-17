@@ -10,6 +10,7 @@ import '../../features/exams/presentation/screens/exams_page.dart';
 import '../../features/notes/presentation/screens/notes_screen.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../features/study/presentation/screens/study_page.dart';
+import '../../features/tasks/domain/models/task_state.dart';
 import '../../features/tasks/presentation/widgets/delete_task_dialog.dart';
 import '../../features/tasks/presentation/widgets/task_edit_sheet.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
@@ -58,6 +59,32 @@ class AiSituationReport {
     required this.daysUntilExam,
     this.examName,
   });
+}
+
+/// Kết quả duyệt tên nhiệm vụ của AI — phân biệt được "không tìm thấy" với
+/// "trùng tên không rõ bản nào" (mơ hồ), để executor không chọn thầm giúp
+/// người học.
+class _TaskLookup {
+  /// Tất cả bản khớp ở tầng khớp cao nhất (exact / prefix / substring).
+  final List<TodayTask> tierMatches;
+
+  const _TaskLookup(this.tierMatches);
+
+  /// Các bản **chưa làm** trong tầng khớp — nền của quyết định mơ hồ.
+  List<TodayTask> get pending =>
+      tierMatches.where((t) => !t.isDone && t.status != 'skipped').toList();
+
+  /// Bản picked khi khớp không mơ hồ: đúng 1 bản chưa làm (ưu tiên), hoặc khi
+  /// có duy nhất 1 bản khớp (kể cả đã làm — xử lý được bản record).
+  TodayTask? get picked {
+    final p = pending;
+    if (p.length == 1) return p.first;
+    if (p.isEmpty && tierMatches.length == 1) return tierMatches.first;
+    return null;
+  }
+
+  /// Có nhiều hơn 1 bản chưa làm cùng khớp — AI KHÔNG ĐƯỢC CHỌN GIÙM.
+  bool get ambiguous => pending.length > 1;
 }
 
 /// Dịch vụ Trợ lý Học tập AI (EduPulse AI Copilot)
@@ -524,6 +551,11 @@ class AiCopilotService {
             (action.payload['subject'] ?? 'Toán').toString());
         final minutes = (action.payload['minutes'] as num?)?.toInt() ?? 30;
         final priority = (action.payload['priority'] ?? 'medium').toString();
+        // Bug "ngày mai → hôm nay": đây là đường bấm chip trong bubble lại đã
+        // nạp từ lịch sử — payload vẫn còn scheduledAt do AI tính sẵn. Bỏ qua
+        // nó là task luôn rơi vào DateTime.now() bất kể AI hẹn ngày nào.
+        final when = parseAiWhen(
+            action.payload['scheduledAt'] ?? action.payload['when']);
 
         final task = TodayTask(
           id: _uuid.v4(),
@@ -531,7 +563,7 @@ class AiCopilotService {
           subject: subject,
           priority: priority,
           estimateMinutes: minutes,
-          scheduledAt: DateTime.now(),
+          scheduledAt: when ?? DateTime.now(),
         );
 
         // Mọi ghi của AI đi qua TaskRepository — và bị chặn nếu trùng.
@@ -834,7 +866,19 @@ class AiCopilotService {
     final subjectRaw = action.payload['subject']?.toString();
     final messenger = ScaffoldMessenger.of(context);
 
-    final match = _findTaskByTitle(title, subjectRaw);
+    // Dùng duyệt đầy đủ (phân tầng + kiểm soát mơ hồ) — luồng thủ công cũng
+    // không được xoá/sửa nhầm bản trùng tên.
+    final look = _lookupTask(title, subjectRaw);
+    if (look.ambiguous) {
+      _showAiSnackBar(
+        messenger,
+        message: _ambiguousMessage(look, title),
+        icon: Icons.info_outline_rounded,
+        color: AppColors.iosTextMuted,
+      );
+      return;
+    }
+    final match = look.picked;
     if (match == null) {
       _showAiSnackBar(
         messenger,
@@ -922,25 +966,41 @@ class AiCopilotService {
       case AiActionType.deleteTask:
         if (!context.mounted) return;
         // Bắt buộc xác nhận — dùng chung hộp thoại của người dùng (FE-2.5).
-        final confirmed = await showConfirmDelete(context, match);
-        if (confirmed != true || !context.mounted) return;
+        // Với nhiệm vụ lặp, hộp thoại cho thêm lựa chọn dứt cả chuỗi.
+        final choice = await showConfirmDeleteChoice(context, match);
+        if (choice == DeleteConfirmChoice.cancel || !context.mounted) return;
         try {
-          final ref = await repo.deleteTask(match.id);
+          final refs = <DeletedTaskRef>[];
+          if (choice == DeleteConfirmChoice.wholeSeries) {
+            // "Cả chuỗi": quét và xoá mọi lượt lặp cùng series (xem
+            // [_deleteRecurringSeries]).
+            refs.addAll(await _deleteRecurringSeries(match));
+          } else {
+            refs.add(await repo.deleteTask(match.id));
+          }
+          final label = choice == DeleteConfirmChoice.wholeSeries
+              ? 'Đã xoá cả chuỗi lặp của "${match.title}" (${refs.length} lượt)'
+              : 'Đã xoá "${match.title}"';
           onTasksChanged?.call();
           _showAiSnackBar(
             messenger,
-            message: 'Đã xoá "${match.title}"',
+            message: label,
             icon: Icons.delete_outline_rounded,
             color: AppColors.iosError,
             onUndo: () async {
-              await repo.restoreTask(ref);
+              // Hoàn tác khôi phục đúng các lượt vừa xoá theo thứ tự ngược.
+              for (final ref in refs.reversed) {
+                try {
+                  await repo.restoreTask(ref);
+                } catch (_) {}
+              }
               onTasksChanged?.call();
             },
           );
         } catch (_) {
           _showAiSnackBar(
             messenger,
-            message: 'Không xoá được nhiệm vụ',
+            message: 'Đã xảy ra lỗi khi xoá — thử lại',
             icon: Icons.error_outline_rounded,
             color: AppColors.iosError,
           );
@@ -1074,7 +1134,20 @@ class AiCopilotService {
         AppSubjects.normalize((payload['subject'] ?? 'Toán').toString());
     final minutes = (payload['minutes'] as num?)?.toInt() ?? 25;
     final priority = (payload['priority'] ?? 'medium').toString();
-    final when = parseAiWhen(payload['scheduledAt'] ?? payload['when']);
+    // Bug "ngày mai → hôm nay": scheduledAt được AI đưa ra nhưng không đọc
+    // được (dạng tự do, sai ISO) thì PHẢI báo lỗi thay vì im lặng rơi về
+    // DateTime.now() — xếp sai ngày mà người dùng không hề biết là mất điểm.
+    // ScheduledAt thiếu hẳn (user không nhắc ngày nào) → giữ mặc định hôm nay.
+    final rawWhen = payload['scheduledAt'] ?? payload['when'];
+    final finalWhenText = rawWhen?.toString().trim() ?? '';
+    final when = parseAiWhen(finalWhenText.isEmpty ? null : finalWhenText);
+    if (finalWhenText.isNotEmpty && when == null) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        'AI gửi ngày học "$finalWhenText" không đọc được — hãy thử lại hoặc '
+        'thêm nhiệm vụ bằng tay',
+      );
+    }
 
     final task = TodayTask(
       id: _uuid.v4(),
@@ -1161,7 +1234,16 @@ class AiCopilotService {
         'AI chưa nói rõ nhiệm vụ cần sửa',
       );
     }
-    final match = _findTaskByTitle(title, payload['subject']?.toString());
+    // Mơ hồ là chặn, không phải "chọn bản đầu": cùng tên nhiều bản thì AI
+    // phải nhắc người học nói rõ ngày, nếu không sẽ sửa nhầm instance.
+    final look = _lookupTask(title, payload['subject']?.toString());
+    if (look.ambiguous) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        _ambiguousMessage(look, title),
+      );
+    }
+    final match = look.picked;
     if (match == null) {
       return AiMutationOutcome(
         AiActionResultKind.failed,
@@ -1226,7 +1308,15 @@ class AiCopilotService {
         'AI chưa nói rõ nhiệm vụ cần dời',
       );
     }
-    final match = _findTaskByTitle(title, payload['subject']?.toString());
+    // Mơ hồ cũng chặn: dời lịch nhầm instance của chuỗi lặp là hỏng cả tuần.
+    final look = _lookupTask(title, payload['subject']?.toString());
+    if (look.ambiguous) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        _ambiguousMessage(look, title),
+      );
+    }
+    final match = look.picked;
     if (match == null) {
       return AiMutationOutcome(
         AiActionResultKind.failed,
@@ -1268,6 +1358,15 @@ class AiCopilotService {
   /// **deleteTask**: AI chỉ được *đề nghị*; thật sự xoá phải đi qua hộp thoại
   /// của người dùng (FE-2.5). Chốt "Xóa" mới ghi dữ liệu và vẫn luôn có đường
   /// hoàn tác (`restoreTask`).
+  ///
+  /// Ba lớp chặn để không lặp lại bug "user accept AI xoá task nhưng task vẫn
+  /// còn trong danh sách":
+  /// 1. Match đúng **instance**: có hẹn ngày → quét task đúng ngày đó; nhiều
+  ///    bản trùng tên chưa làm → hỏi lại người học thay vì xoá bản đầu tiên.
+  /// 2. Hộp thoại nói rõ ngày + môn bản sắp xoá; task lặp cho lựa chọn
+  ///    "chỉ lượt này" / "cả chuỗi".
+  /// 3. Xoá có try/catch — task biến mất giữa hai lần tra là báo lỗi chip,
+  ///    không kẹt conversation.
   static Future<AiActionResult> _deleteWithConfirm(
     BuildContext? context,
     AiCopilotAction action,
@@ -1288,8 +1387,24 @@ class AiCopilotService {
         message: 'AI chưa nói rõ nhiệm vụ cần xoá',
       );
     }
-    final match =
-        _findTaskByTitle(title, action.payload['subject']?.toString());
+
+    // AI hẹn ngày cụ thể (todayISO / mai / ngày khác) → match ưu tiên đúng
+    // ngày mà người học nói tới, không bị bó hẹp trong "hôm nay".
+    final when = parseAiWhen(
+      action.payload['scheduledAt'] ??
+          action.payload['when'] ??
+          action.payload['date'],
+    );
+    final look = _lookupTask(title, action.payload['subject']?.toString(),
+        whenDay: when);
+    if (look.ambiguous) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: _ambiguousMessage(look, title),
+      );
+    }
+    final match = look.picked;
     if (match == null) {
       return AiActionResult(
         actionIndex: actionIndex,
@@ -1298,25 +1413,155 @@ class AiCopilotService {
       );
     }
 
-    final confirmed = await showConfirmDelete(context, match);
-    if (confirmed != true || !context.mounted) {
+    final confirmed = await showConfirmDeleteChoice(context, match);
+    if (confirmed != DeleteConfirmChoice.onlyThis &&
+        confirmed != DeleteConfirmChoice.wholeSeries) {
       return AiActionResult(
         actionIndex: actionIndex,
         kind: AiActionResultKind.rejected,
         message: 'Đã giữ lại "${match.title}"',
       );
     }
-    final ref = await TaskRepository.instance.deleteTask(match.id);
-    return AiActionResult(
-      actionIndex: actionIndex,
-      kind: AiActionResultKind.done,
-      message: 'Đã xoá "${match.title}"',
-      undo: () async {
-        try {
-          await TaskRepository.instance.restoreTask(ref);
-        } catch (_) {}
-      },
-    );
+
+    try {
+      final refs = <DeletedTaskRef>[];
+      if (confirmed == DeleteConfirmChoice.wholeSeries) {
+        // "Cả chuỗi": quét và xoá mọi lượt lặp cùng series — xem
+        // [_deleteRecurringSeries]; chuỗi dừng tự nhiên khi không còn lượt
+        // chưa hoàn thành nào để sinh tiếp.
+        refs.addAll(await _deleteRecurringSeries(match));
+      } else {
+        refs.add(await TaskRepository.instance.deleteTask(match.id));
+      }
+
+      // Chip kết quả nói thật: bản đã hoàn thành cùng tên (màn "Hôm nay"
+      // vẫn hiển thị dạng record) phải được ghi nhận, nếu không người học
+      // tưởng xoá nhòe mà vẫn thấy nó cuộn cuối danh sách.
+      String message;
+      if (confirmed == DeleteConfirmChoice.wholeSeries) {
+        message = refs.length > 1
+            ? 'Đã xoá cả chuỗi lặp của "${match.title}" (${refs.length} lượt)'
+            : 'Đã xoá "${match.title}"';
+      } else {
+        final leftoverCopies = _completedCopiesToday(match);
+        message = leftoverCopies > 0
+            ? 'Đã xoá lượt này; còn '
+                '${leftoverCopies == 1 ? '1 bản' : '$leftoverCopies bản'} '
+                'đã hoàn thành cùng tên trong danh sách.'
+            : 'Đã xoá "${match.title}"';
+      }
+
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.done,
+        message: message,
+        // Hoàn tác khôi phục đúng các lượt vừa xoá (1 lượt hoặc cả chuỗi),
+        // theo thứ tự ngược để lượt nào cũng về đúng chỗ cũ.
+        undo: () async {
+          for (final ref in refs.reversed) {
+            try {
+              await TaskRepository.instance.restoreTask(ref);
+            } catch (_) {}
+          }
+        },
+      );
+    } catch (_) {
+      // deleteTask có thể nỗ lực ném lỗi (StateError khi task biến mất giữa
+      // hai lần tra) — sự cố này không được kẹt conversation.
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Đã xảy ra lỗi khi xoá — thử lại',
+      );
+    }
+  }
+
+  /// Xoá **cả chuỗi lặp** của một nhiệm vụ: trả về danh sách lượt đã xoá để
+  /// Hoàn tác khôi phục được trọn vẹn (mỗi lượt là document riêng, xoá 1 lượt
+  /// không tắt được chuỗi).
+  ///
+  /// Tiêu chí series: tên chuẩn hoá (bỏ dấu/viết thường) + môn chuẩn hoá +
+  /// thuộc tính `recurrence` khác null. Phạm vi: lượt đang xoá + mọi lượt
+  /// xếp lịch **từ hôm nay tới tối đa 30 ngày** — đúng nghĩa "từ bây giờ trở
+  /// đi" mà người học hiểu, tránh quét cả lịch sử cũ của tuần trước.
+  ///
+  /// Chuỗi dừng **tự nhiên**: lượt kế sinh chỉ sinh khi người dùng HOÀN THÀNH
+  /// một lượt (`_createNextRecurringTask` gọi lúc toggle done). Xoá hết lượt
+  /// chưa xong nghĩa là không còn lượt nào để sinh tiếp; bản đã hoàn thành
+  /// chỉ còn là record hiển thị, không sinh lượt — không cần cơ chế chặn gì
+  /// thêm ở store sinh lượt.
+  static Future<List<DeletedTaskRef>> _deleteRecurringSeries(
+    TodayTask anchor,
+  ) async {
+    final repo = TaskRepository.instance;
+    final refs = <DeletedTaskRef>[];
+
+    Future<void> deleteOne(String id) async {
+      try {
+        refs.add(await repo.deleteTask(id));
+      } catch (_) {
+        // Bản này bị xoá song song (race) — bỏ qua, tiếp tục các lượt khác.
+      }
+    }
+
+    // Lượt gốc luôn xoá trước (là lượt người học chỉ đích danh).
+    await deleteOne(anchor.id);
+
+    final titleKey = _foldText(anchor.title);
+    final subjectKey = AppSubjects.normalize(anchor.subject).toLowerCase();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (titleKey.isEmpty) return refs;
+
+    final anchorAt = anchor.scheduledAt ?? anchor.deadline ?? today;
+    final windowEnd = DateTime(anchorAt.year, anchorAt.month, anchorAt.day)
+        .add(const Duration(days: 30));
+
+    final victims = repo
+        .getAllTasks()
+        .where((t) {
+          if (t.id == anchor.id) return false;
+          final recurrence = t.recurrence?.trim();
+          if (recurrence == null || recurrence.isEmpty) return false;
+          if (_foldText(t.title) != titleKey) return false;
+          if (AppSubjects.normalize(t.subject).toLowerCase() != subjectKey) {
+            return false;
+          }
+          final at = t.scheduledAt ?? t.deadline;
+          if (at == null) return false;
+          final day = DateTime(at.year, at.month, at.day);
+          if (day.isBefore(today) || day.isAfter(windowEnd)) return false;
+          return true;
+        })
+        .map((t) => t.id)
+        .toList();
+
+    for (final id in victims) {
+      await deleteOne(id);
+    }
+    return refs;
+  }
+
+  /// Số bản **đã hoàn thành cùng tên** vẫn hiển thị trong danh sách Hôm nay
+  /// ( theo logic của `TodayService._completedToday`: task terminal có dấu
+  /// thời gian trong hôm nay được giữ lại cuối danh sách để thấy tiến độ).
+  /// AI xoá lượt chưa làm xong nhưng không đụng bản record này — chỉ báo cáo.
+  static int _completedCopiesToday(TodayTask deleted) {
+    final titleKey = _foldText(deleted.title);
+    if (titleKey.isEmpty) return 0;
+    final subjectKey = AppSubjects.normalize(deleted.subject).toLowerCase();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return TaskRepository.instance.getAllTasks().where((t) {
+      if (!TaskStatus.fromString(t.status).isTerminal) return false;
+      if (_foldText(t.title) != titleKey) return false;
+      if (AppSubjects.normalize(t.subject).toLowerCase() != subjectKey) {
+        return false;
+      }
+      final stamp = t.updatedAt ?? t.scheduledAt ?? t.createdAt;
+      if (stamp == null) return false;
+      return DateTime(stamp.year, stamp.month, stamp.day) == today;
+    }).length;
   }
 
   /// editTask mà AI **không** đưa giá trị mới → mở form sửa (như luồng cũ)
@@ -1333,10 +1578,19 @@ class AiCopilotService {
         message: 'Không tìm thấy nhiệm vụ để sửa',
       );
     }
-    final match = _findTaskByTitle(
+    final look = _lookupTask(
       (action.payload['title'] ?? '').toString(),
       action.payload['subject']?.toString(),
     );
+    if (look.ambiguous) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message:
+            _ambiguousMessage(look, (action.payload['title'] ?? '').toString()),
+      );
+    }
+    final match = look.picked;
     if (match == null) {
       return AiActionResult(
         actionIndex: actionIndex,
@@ -1547,29 +1801,91 @@ class AiCopilotService {
     );
   }
 
-  /// Tìm task theo tên mà AI đưa ra — so khớp "chứa" sau khi bỏ dấu/emoji.
-  /// Trả `null` nếu không chắc chắn, để AI không sửa nhầm task.
-  static TodayTask? _findTaskByTitle(String title, String? subject) {
+  /// Duyệt tên với **đầy đủ ngữ cảnh**:
+  /// 1. Phân tầng khớp: exact (tên chuẩn hoá bằng nhau) > prefix > substring
+  ///    2 chiều — chỉ hạ xuống substring khi hai tầng trên rỗng.
+  /// 2. Phạm vi quét: action có hẹn ngày cụ thể (`whenDay`) → ưu tiên pool
+  ///    task **đúng ngày đó** (dù là mai, tuần sau — không bị bó hẹp hôm
+  ///    nay); không có ngày → giữ hành vi cũ là task của hôm nay.
+  /// 3. Đảm bảo "mơ hồ không chọn giùm": nhiều bản chưa làm cùng tầng thì
+  ///    caller phải hỏi lại người học, không tự tay chọn bản đầu.
+  static _TaskLookup _lookupTask(String title, String? subject,
+      {DateTime? whenDay}) {
     final needle = _foldText(title);
-    if (needle.isEmpty) return null;
+    if (needle.isEmpty) return const _TaskLookup([]);
 
     final subjectKey =
         subject == null ? null : AppSubjects.normalize(subject).toLowerCase();
 
-    TodayTask? fallback;
-    for (final task in TaskRepository.instance.getTasksForDay()) {
-      final name = _foldText(task.title);
-      if (!name.contains(needle) && !needle.contains(name)) continue;
-      if (subjectKey != null &&
-          AppSubjects.normalize(task.subject).toLowerCase() != subjectKey) {
-        continue;
-      }
-      // Ưu tiên task chưa xong và khớp chính xác.
-      if (name == needle && !task.isDone) return task;
-      if (!task.isDone) fallback ??= task;
-      fallback ??= task;
+    var tier = _tierMatches(_scanPoolFor(whenDay), needle, subjectKey);
+    // Ngày AI hẹn không khớp bản nào → lùi về pool hôm nay để không gây lỗi
+    // "không tìm thấy" với một nhiệm vụ mà trước đây vẫn xử lý được.
+    if (tier.isEmpty && whenDay != null) {
+      tier = _tierMatches(_scanPoolFor(null), needle, subjectKey);
     }
-    return fallback;
+    return _TaskLookup(tier);
+  }
+
+  /// Pool task trong phạm vi của một yêu cầu: `null` nghĩa là "hôm nay" (bộ
+  /// lọc ngày chuẩn của repository); còn khi AI trỏ ngày cụ thể thì quét
+  /// **toàn kho** lấy task xếp lịch đúng ngày đó — kể cả bản đã hoàn thành
+  /// trong ngày (chống trùng vẫn phải thấy bản đã xong).
+  static List<TodayTask> _scanPoolFor(DateTime? whenDay) {
+    final repo = TaskRepository.instance;
+    if (whenDay == null) return repo.getTasksForDay();
+    final target = DateTime(whenDay.year, whenDay.month, whenDay.day);
+    return repo.getAllTasks().where((task) {
+      final at = task.scheduledAt ?? task.deadline;
+      if (at == null) return false;
+      final day = DateTime(at.year, at.month, at.day);
+      return day == target;
+    }).toList();
+  }
+
+  /// Tầng bậc khớp: exact > prefix > substring (2 chiều). Chỉ lấy **tầng cao
+  /// nhất có kết quả** — "Toán ch5" không được nhảy thành "Toán ch5 nâng cao"
+  /// khi vẫn còn bản trúng exact.
+  static List<TodayTask> _tierMatches(
+    List<TodayTask> pool,
+    String needle,
+    String? subjectKey,
+  ) {
+    bool subjectEqual(TodayTask task) =>
+        subjectKey == null ||
+        AppSubjects.normalize(task.subject).toLowerCase() == subjectKey;
+
+    final exact = <TodayTask>[];
+    final prefix = <TodayTask>[];
+    final substring = <TodayTask>[];
+    for (final task in pool) {
+      if (!subjectEqual(task)) continue;
+      final name = _foldText(task.title);
+      if (name.isEmpty) continue;
+      if (name == needle) {
+        exact.add(task);
+      } else if (name.startsWith(needle)) {
+        prefix.add(task);
+      } else if (name.contains(needle) || needle.contains(name)) {
+        substring.add(task);
+      }
+    }
+    if (exact.isNotEmpty) return exact;
+    if (prefix.isNotEmpty) return prefix;
+    return substring;
+  }
+
+  /// Thông báo mơ hồ ngắn gọn tiếng Việt: liệt kê ngày từng bản để AI nhắn
+  /// lại người học hỏi rõ ngày, thay vì xoá luôn bản đầu tiên.
+  static String _ambiguousMessage(_TaskLookup look, String title) {
+    final days = look.pending
+        .map((t) => t.scheduledAt != null
+            ? describeWhenVi(t.scheduledAt!)
+            : 'chưa lên lịch')
+        .toSet()
+        .toList()
+        .join(', ');
+    return '"$title" có ${look.pending.length} bản trùng tên ($days) — yêu '
+        'cầu ngày rõ hơn (ví dụ "xoá ôn Toán mai")';
   }
 
   static String _foldText(String value) => AppSubjects.foldDiacritics(value)

@@ -11,6 +11,10 @@ class ConfirmationDialog extends StatefulWidget {
   final String title;
   final String content;
   final String? highlightedItem;
+
+  /// Dòng phụ đề mô tả thêm bản ghi (ngày học, môn học…) — đặt **trước**
+  /// mục được tô đậm để người dùng nhìn đúng đối tượng bị tác động.
+  final String? detailText;
   final String confirmLabel;
   final String cancelLabel;
   final bool isDestructive;
@@ -22,6 +26,7 @@ class ConfirmationDialog extends StatefulWidget {
     required this.title,
     required this.content,
     this.highlightedItem,
+    this.detailText,
     this.confirmLabel = 'Xác nhận',
     this.cancelLabel = 'Hủy',
     this.isDestructive = false,
@@ -35,6 +40,7 @@ class ConfirmationDialog extends StatefulWidget {
     required String title,
     required String content,
     String? highlightedItem,
+    String? detailText,
     String confirmLabel = 'Xác nhận',
     String cancelLabel = 'Hủy',
     bool isDestructive = false,
@@ -46,6 +52,7 @@ class ConfirmationDialog extends StatefulWidget {
         title: title,
         content: content,
         highlightedItem: highlightedItem,
+        detailText: detailText,
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
         isDestructive: isDestructive,
@@ -114,6 +121,15 @@ class _ConfirmationDialogState extends State<ConfirmationDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.content, style: AppTokens.body),
+          if (widget.detailText != null) ...[
+            const SizedBox(height: AppTokens.space8),
+            Text(
+              widget.detailText!,
+              style: AppTokens.caption.copyWith(
+                color: AppColors.iosTextMuted,
+              ),
+            ),
+          ],
           if (widget.highlightedItem != null) ...[
             const SizedBox(height: AppTokens.space12),
             Container(
