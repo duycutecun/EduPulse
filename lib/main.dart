@@ -45,11 +45,15 @@ void main() async {
   ChangeOutbox.deviceIdProvider = () => BackupService.deviceId;
   runApp(const EduPulseApp());
 
-  // Firebase (auth) + Supabase (data) + notification không chặn frame đầu
-  // tiên: khởi tạo ngay sau khi UI render xong để app mở nhanh hơn.
+  // Supabase (data + auth) + notification không chặn frame đầu tiên: khởi tạo
+  // ngay sau khi UI render xong để app mở nhanh hơn.
+  //
+  // Thứ tự quan trọng: SupabaseService.init() tạo client trước, rồi
+  // AuthService.init() mới khôi phục được phiên đăng nhập (phiên nằm trong
+  // Supabase client — tài khoản chính là UUID Supabase dùng cho database/RLS).
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await AuthService.init();
     await SupabaseService.init();
+    await AuthService.init();
     await NotificationService.init();
     // Làm mới danh sách model AI miễn phí (OpenRouter) ở nền — cache 24h.
     FreeModelsCatalog.ensureLoaded();
@@ -73,7 +77,7 @@ void main() async {
     SyncStateService.startAutoSync();
     // Sao lưu toàn diện + đồng bộ gần như thời gian thực giữa mọi thiết bị.
     // Chạy sau `AuthService.init()` vì danh tính liên kết dữ liệu giữa các máy
-    // chính là Firebase UID — chưa đăng nhập thì mỗi máy một tài khoản riêng.
+    // chính là UUID Supabase — chưa đăng nhập thì mỗi máy một tài khoản riêng.
     // Lần chạy đầu sẽ kéo bản sao lưu gần nhất về nếu cloud đã có (đúng yêu
     // cầu "mở app luôn thấy bản mới nhất"), rồi bắt đầu hỏi/lưu định kỳ.
     BackupService.start();
@@ -173,20 +177,18 @@ class EduPulseApp extends StatelessWidget {
   }
 
   /// Màn hình khởi đầu:
-  /// - Nếu URL có `oobCode` + `mode=resetPassword` (bấm link reset từ email)
-  ///   → mở màn đặt mật khẩu mới.
+  /// - Nếu URL là link reset mật khẩu kiểu cũ của Firebase (`mode=resetPassword`
+  ///   + `oobCode`) → KHÔNG crash: hệ thống reset mới dùng mã 8 chữ số, nên
+  ///   mở màn đặt mã + mật khẩu mới ([ResetPasswordScreen], oobCode bị bỏ qua).
   /// - Nếu URL là deep link `task/<id>` → xử lý mở chi tiết task.
   /// - Ngược lại: onboarding (lần đầu) hoặc [AccountRoleGate] — nơi quyết
   ///   định app học sinh hay màn phụ huynh theo vai trò tài khoản.
   Widget _buildHome() {
     final params = Uri.base.queryParameters;
-    final oobCode = params['oobCode'];
-    final mode = params['mode'];
-    if (mode == 'resetPassword' && oobCode != null && oobCode.isNotEmpty) {
-      return ResetPasswordScreen(
-        oobCode: oobCode,
-        email: params['email'] ?? '',
-      );
+    // Link reset kiểu cũ của Firebase: oobCode không còn hợp lệ — chỉ cần app
+    // mở đúng màn phục hồi (nhập mã 8 chữ số + mật khẩu mới), không crash.
+    if (params['mode'] == 'resetPassword') {
+      return ResetPasswordScreen(email: params['email'] ?? '');
     }
 
     // Deep link task:

@@ -291,8 +291,8 @@ class StorageService {
   }
 
   // Trạng thái xác minh email (dùng cho tài khoản đăng ký bằng email/password).
-  // Firebase email verification mặc định là link — app dùng mã 8 chữ số tự phát
-  // qua serverless API, nên đánh dấu ở local + user_profiles thay vì Firebase.
+  // App dùng mã 8 chữ số tự phát qua serverless API (không phải email link);
+  // flag này đánh dấu ở local + user_profiles sau khi /api/verify_email đúng.
   static bool getEmailVerified() => _prefs?.getBool('email_verified') ?? false;
   static void setEmailVerified(bool v) => _prefs?.setBool('email_verified', v);
 

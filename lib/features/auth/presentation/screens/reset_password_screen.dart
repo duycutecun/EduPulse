@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../app/main_shell.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/storage_service.dart';
+import '../../../../core/utils/auth_service.dart';
 
 const Color _kAccent = AppColors.iosPrimary;
 const Color _kText = Color(0xFF1A1A2E);
@@ -11,27 +11,29 @@ const Color _kMuted = Color(0xFF6B7280);
 const Color _kField = Color(0xFFF6F7F9);
 const Color _kBorder = Color(0xFFE8EAED);
 
-/// Màn hình đặt mật khẩu mới — mở khi người dùng bấm link reset từ email.
+/// Màn hình đặt lại mật khẩu — hệ thống reset hiện dùng MÃ 8 CHỮ SỐ.
 ///
-/// Link từ Firebase (PASSWORD_RESET) chuyển hướng về app kèm `oobCode` và
-/// `mode=resetPassword` trong URL. Màn này nhận oobCode rồi dùng
-/// `FirebaseAuth.confirmPasswordReset` để đặt mật khẩu mới, sau đó tự đăng
-/// nhập bằng mật khẩu vừa đặt — KHÔNG cần service account Firebase.
+/// Luồng (hợp đồng mới với `/api/reset_password`): bước 1 màn "Quên mật
+/// khẩu" gửi mã về email (không còn email link/oobCode kiểu Firebase);
+/// màn này là bước 2 — nhập mã + mật khẩu mới, server xác thực mã và đặt
+/// mật khẩu thẳng qua admin API Supabase, app tự đăng nhập lại bằng mật
+/// khẩu vừa đặt và vào thẳng Home.
+///
+/// Link reset kiểu cũ của Firebase (`?mode=resetPassword&oobCode=...`) vẫn
+/// có thể được bấm: main.dart chuyển sang màn này với email có sẵn — người
+/// dùng (oobCode bị bỏ qua) — người dùng nhập mã 8 chữ số như màn đăng nhập,
 class ResetPasswordScreen extends StatefulWidget {
-  final String oobCode;
   final String email;
 
-  const ResetPasswordScreen({
-    super.key,
-    required this.oobCode,
-    required this.email,
-  });
+  const ResetPasswordScreen({super.key, required this.email});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  final _emailCtrl = TextEditingController();
+  final _codeCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _obscurePw = true;
@@ -39,7 +41,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _emailCtrl.text = widget.email;
+  }
+
+  @override
   void dispose() {
+    _emailCtrl.dispose();
+    _codeCtrl.dispose();
     _pwCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
@@ -63,8 +73,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   Future<void> _doSetPassword() async {
+    final email = _emailCtrl.text.trim();
+    final code = _codeCtrl.text.trim();
     final pw = _pwCtrl.text;
     final confirm = _confirmCtrl.text;
+    if (email.isEmpty || !email.contains('@')) {
+      _showMessage('Vui lòng nhập email đã đăng ký.', false);
+      return;
+    }
+    if (code.length != 8) {
+      _showMessage('Vui lòng nhập đủ mã 8 chữ số.', false);
+      return;
+    }
     if (pw.length < 6) {
       _showMessage('Mật khẩu phải có ít nhất 6 ký tự.', false);
       return;
@@ -74,50 +94,26 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
     setState(() => _loading = true);
-    try {
-      await FirebaseAuth.instance
-          .confirmPasswordReset(code: widget.oobCode, newPassword: pw);
-      if (widget.email.isNotEmpty) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: widget.email,
-          password: pw,
-        );
-      }
-      // Đã chứng minh quyền sở hữu email qua link reset → coi như đã xác minh.
-      StorageService.setEmailVerified(true);
+    final result = await AuthService.resetPasswordByCode(
+      email: email,
+      code: code,
+      newPassword: pw,
+    );
+    if (!mounted) return;
+    if (result.success) {
+      // AuthService đã tự đăng nhập lại bằng mật khẩu mới — vào thẳng Home.
+      setState(() => _loading = false);
+      _showMessage(result.message, true);
+      await Future.delayed(const Duration(milliseconds: 600));
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShellScreen()),
         (route) => false,
       );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      _showMessage(_mapError(e), false);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      _showMessage(
-          'Không đặt lại được mật khẩu. Kiểm tra mạng và thử lại.', false);
+      return;
     }
-  }
-
-  String _mapError(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'weak-password':
-        return 'Mật khẩu phải có ít nhất 6 ký tự.';
-      case 'expired-action-code':
-        return 'Link đặt lại mật khẩu đã hết hạn. Hãy làm lại từ đầu.';
-      case 'invalid-action-code':
-        return 'Link đặt lại mật khẩu không hợp lệ hoặc đã dùng rồi.';
-      case 'user-disabled':
-        return 'Tài khoản đã bị khoá. Liên hệ hỗ trợ.';
-      case 'user-not-found':
-        return 'Tài khoản không tồn tại.';
-      default:
-        final msg = e.message;
-        return (msg != null && msg.isNotEmpty) ? 'Lỗi: $msg' : 'Có lỗi xảy ra.';
-    }
+    setState(() => _loading = false);
+    _showMessage(result.message, false);
   }
 
   // ---------------------------------------------------------------------------
@@ -192,17 +188,32 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Chào ${widget.email.trim().isEmpty ? 'bạn' : widget.email.trim()}\n'
-                        'Liên kết đã xác thực. Nhập mật khẩu mới để tiếp tục.',
+                      const Text(
+                        'Nhập mã 8 chữ số đã gửi qua email của bạn để đặt mật khẩu mới.\n'
+                        'Chưa có mã? Quay lại màn đăng nhập, chọn "Quên mật khẩu".',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13.5,
                           height: 1.5,
                           color: _kMuted,
                         ),
                       ),
                       const SizedBox(height: 24),
+                      _field(
+                        label: 'Email',
+                        ctrl: _emailCtrl,
+                        hint: 'ban@email.com',
+                        keyboard: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Mã đặt lại',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: _kText)),
+                      const SizedBox(height: 8),
+                      _OtpBoxes(controller: _codeCtrl, length: 8),
+                      const SizedBox(height: 16),
                       _field(
                         label: 'Mật khẩu mới',
                         ctrl: _pwCtrl,
@@ -274,9 +285,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     required String label,
     required TextEditingController ctrl,
     required String hint,
-    required bool obscure,
-    required VoidCallback onToggle,
+    bool obscure = false,
+    VoidCallback? onToggle,
+    TextInputType keyboard = TextInputType.text,
   }) {
+    final suffix = onToggle == null
+        ? null
+        : GestureDetector(
+            onTap: onToggle,
+            child: Icon(
+              obscure
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 19,
+              color: _kMuted,
+            ),
+          );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -286,22 +310,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: ctrl,
+          keyboardType: keyboard,
           obscureText: obscure,
           style: const TextStyle(fontSize: 14.5, color: _kText),
           cursorColor: _kAccent,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(fontSize: 14, color: _kMuted),
-            suffixIcon: GestureDetector(
-              onTap: onToggle,
-              child: Icon(
-                obscure
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                size: 19,
-                color: _kMuted,
-              ),
-            ),
+            suffixIcon: suffix,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             filled: true,
@@ -323,6 +339,148 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 8 ô vuông nhập mã (giống màn Auth): ô nền xám nhạt bo 12, khi focus viền
+/// xanh lá; input thật trong suốt đè lên để bắt mọi thao tác chạm/bàn phím.
+class _OtpBoxes extends StatefulWidget {
+  final TextEditingController controller;
+  final int length;
+
+  const _OtpBoxes({required this.controller, this.length = 8});
+
+  @override
+  State<_OtpBoxes> createState() => _OtpBoxesState();
+}
+
+class _OtpBoxesState extends State<_OtpBoxes> {
+  final _focusNode = FocusNode();
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onCtrl);
+    _focusNode.addListener(_onFocus);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onCtrl);
+    _focusNode
+      ..removeListener(_onFocus)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onCtrl() {
+    if (mounted) setState(() {});
+  }
+
+  void _onFocus() {
+    if (mounted) setState(() => _focused = _focusNode.hasFocus);
+  }
+
+  /// Giữ nội dung chỉ là chữ số, tối đa [widget.length].
+  void _sanitize(String raw) {
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    final trimmed = digits.length > widget.length
+        ? digits.substring(0, widget.length)
+        : digits;
+    if (trimmed != widget.controller.text) {
+      widget.controller.text = trimmed;
+      widget.controller.selection =
+          TextSelection.collapsed(offset: trimmed.length);
+    }
+  }
+
+  String get _text => widget.controller.text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Row(
+          children: [
+            for (var i = 0; i < widget.length; i++)
+              Expanded(
+                child: Padding(
+                  padding:
+                      EdgeInsets.only(right: i == widget.length - 1 ? 0 : 8),
+                  child: _box(
+                    digit: i < _text.length ? _text[i] : '',
+                    active: _focused && i >= _text.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        // Input thật đè lên toàn bộ nhưng hoàn toàn trong suốt — mọi thao tác
+        // chạm/keyboard đều rơi vào đây, nội dung hiển thị qua các ô phía dưới.
+        Positioned.fill(
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(widget.length),
+            ],
+            onChanged: _sanitize,
+            enableInteractiveSelection: false,
+            showCursor: false,
+            cursorColor: Colors.transparent,
+            obscureText: false,
+            style: const TextStyle(fontSize: 16, color: Colors.transparent),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              filled: true,
+              fillColor: Colors.transparent,
+              contentPadding: EdgeInsets.zero,
+              isCollapsed: true,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _box({required String digit, required bool active}) {
+    const boxHeight = 52.0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      height: boxHeight,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: active ? Colors.white : _kField,
+        borderRadius: BorderRadius.circular(12),
+        // Chỉ gạch DƯỚI ở ô đang nhập (không viền trên — tránh "gạch ngang").
+        border: Border(
+          bottom: BorderSide(
+            color: active ? _kAccent : Colors.transparent,
+            width: 2.5,
+          ),
+        ),
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: _kAccent.withValues(alpha: 0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      child: Text(
+        digit,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: _kText,
+        ),
+      ),
     );
   }
 }

@@ -24,9 +24,8 @@ class FamilyActionException implements Exception {
 
 /// Cầu nối tới `/api/family.js` — "Cửa sổ tin cậy" giữa học sinh và phụ huynh.
 ///
-/// Vì sao đi qua API chứ không gọi thẳng Supabase: app đăng nhập bằng FIREBASE
-/// còn RLS của Supabase so với `auth.uid()` (Supabase Auth), nên client không
-/// đọc/ghi được gì. Server xác thực Firebase ID token rồi tự kiểm quyền —
+/// Vì sao đi qua API chứ không gọi thẳng Supabase: danh tính + kiểm quyền.
+/// Server xác thực access token Supabase rồi tự kiểm quyền —
 /// xem `api/family.js`.
 ///
 /// Quy tắc chung của service:
@@ -519,14 +518,8 @@ class FamilyService {
   /// mạng, hoặc phản hồi không đọc được — người gọi phân biệt null với
   /// `{ok:false}` (lỗi nghiệp vụ có thông báo cụ thể từ server).
   static Future<Map<String, dynamic>?> _post(Map<String, dynamic> body) async {
-    final user = AuthService.currentUser;
-    if (user == null) return null;
-    String? token;
-    try {
-      token = await user.getIdToken();
-    } catch (_) {
-      return null;
-    }
+    // access token Supabase (ngắn hạn, tự refresh) — server tự xác thực JWT.
+    final token = await AuthService.idToken();
     if (token == null || token.isEmpty) return null;
 
     try {

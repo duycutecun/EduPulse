@@ -1,15 +1,14 @@
 // API sao lưu toàn bộ dữ liệu EduPulse (snapshot) — nguồn linking giữa bản gốc
 // trên máy và bản sao lưu trên cloud, dùng chung cho MỌI thiết bị.
 //
-// VÌ SAO CẦN ENDPOINT RIÊNG (không gọi thẳng Supabase từ app):
-//  - App đăng nhập bằng FIREBASE, còn policy RLS trong schema.sql lại so sánh
-//    `user_id = auth.uid()` (Supabase Auth). Không có session Supabase thì
-//    auth.uid() = NULL → mọi select rỗng, mọi upsert bị từ chối, lỗi bị try/catch
-//    nuốt nên app "đồng bộ" xong nhưng không có gì được lưu. Đây chính là lý do
-//    bản gốc và bản sao lưu không có linking.
-//  - Ở đây server xác thực ID token bằng Firebase REST (getFirebaseUser) rồi dùng
+// (Lịch sử: trước đây app đăng nhập bằng Firebase, trong khi policy RLS của
+// Supabase so sánh `auth.uid()` — không có session Supabase nên RLS trở nên
+// vô dụng. App đã chuyển sang Supabase Auth.)
+//  - Ở đây server xác thực access token bằng Supabase (getSupabaseUser) rồi dùng
 //    SUPABASE_SERVICE_ROLE_KEY — bỏ qua RLS, tự kiểm soát quyền: mỗi người chỉ
-//    chạm được đúng dòng `user_id` = uid của chính họ.
+//    chạm được đúng dòng `user_id` = uid của chính họ. Giữ nguyên cơ chế này vì
+//    backup vẫn nhận token trong body `{ idToken }` (shape cũ); dòng dữ liệu cũ
+//    keyed theo UID Firebase không thuộc uid mới — không bị xoá nhầm.
 //
 // CƠ CHẾ "BẢN MỚI NHẤT THẮNG" (last-write-wins) — server là đồng hồ chuẩn:
 //  - Mỗi lần ghi, server đóng dấu `updated_at = now()` (không tin đồng hồ máy
@@ -26,14 +25,14 @@
 // ẢNH ĐÍNH KÈM: base64 nặng nên nằm bảng riêng `user_blobs`, chỉ gửi khi
 // checksum đổi — snapshot không bị phình theo dung lượng ảnh.
 //
-// Route (tất cả đều cần header/Firebase ID token trong body):
+// Route (tất cả đều cần header/Supabase access token trong body):
 //   GET  /api/backup            → toàn bộ snapshot + chỉ mục ảnh đính kèm
 //   GET  /api/backup?meta=1     → chỉ { exists, updatedAt, revision } (nhẹ, để
 //                                 client hỏi "cloud có mới hơn máy không?")
 //   GET  /api/backup?blob=KEY   → tải một ảnh đính kèm (base64)
 //   POST /api/backup            → đẩy snapshot + ảnh mới/đã đổi + xoá ảnh
 const {
-  getFirebaseUser,
+  getSupabaseUser,
   getSupabase,
   readJson,
   ok,
@@ -77,9 +76,9 @@ function toMillis(value) {
 // phải chờ hết chu kỳ poll.
 //
 // VÌ SAO ĐI QUA REST BROADCAST MÀ KHÔNG DÙNG `postgres_changes`:
-//   `postgres_changes` lọc theo RLS của Supabase và cần một Supabase session.
-//   App đăng nhập bằng FIREBASE nên không có session đó, `user_snapshots` lại
-//   bật RLO không policy — tức là `postgres_changes` sẽ âm thầm không gửi gì,
+//   `postgres_changes` lọc theo RLS của Supabase và cần một Supabase session có
+//   quyền tương ứng. `user_snapshots` lại
+//   bật RLS không policy — tức là `postgres_changes` sẽ âm thầm không gửi gì,
 //   y hệt lỗi đã làm hỏng luồng sync cũ.
 //
 //   REST broadcast thì khác: nó đi thẳng ra máy chủ Realtime bằng HTTP, không
@@ -91,8 +90,10 @@ function toMillis(value) {
 // KÊNH CÓ CẦN GIẤU KHÔNG:
 //   Topic đặt bằng hash(uid + service_role_key) → người ngoài không đoán được
 //   (phải biết uid VÀ key), và topic chỉ được trả cho chính người đó sau khi
-//   xác thực Firebase. Client dùng kênh public vì không có Supabase session;
-//   nhưng kênh public + topic không đoán được = an toàn tương đương private.
+//   xác thực token Supabase. Client dùng kênh public vì không có WebSocket
+//   server-side; nhưng kênh public + topic không đoán được = an toàn tương đương
+//   private. Lưu ý: uid giờ là UUID Supabase, khác UID Firebase cũ — client của
+//   uid mới tự nghe đúng topic của mình.
 
 function topicFor(uid) {
   return crypto
@@ -189,7 +190,7 @@ module.exports = async function handler(req, res) {
 
   let user;
   try {
-    user = await getFirebaseUser(idToken);
+    user = await getSupabaseUser(idToken);
   } catch (e) {
     return fail(res, 401, e.message || 'Phiên đăng nhập đã hết hạn.');
   }

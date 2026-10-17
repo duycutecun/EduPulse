@@ -40,7 +40,7 @@ class DeleteDataResult {
 }
 
 /// Cầu nối tới `/api/account` — chính sách lưu trữ + xoá dữ liệu cá nhân
-/// (đặc tả mục 8, dòng 214). Server xác thực Firebase ID token; client không
+/// (đặc tả mục 8, dòng 214). Server xác thực Supabase access token; client không
 /// bao giờ gọi thẳng Supabase.
 class AccountService {
   AccountService._();
@@ -70,23 +70,12 @@ class AccountService {
   ///
   /// Cần đăng nhập; trả `ok:false` kèm thông báo nếu chưa đăng nhập/mất mạng.
   static Future<DeleteDataResult> deleteMyData() async {
-    final user = AuthService.currentUser;
-    if (user == null) {
-      return const DeleteDataResult(
-        ok: false,
-        message: 'Bạn cần đăng nhập để xoá dữ liệu trên máy chủ.',
-      );
-    }
-    String? token;
-    try {
-      token = await user.getIdToken();
-    } catch (_) {
-      token = null;
-    }
+    // access token Supabase (ngắn hạn, tự refresh) — server tự xác thực JWT.
+    final token = await AuthService.idToken();
     if (token == null || token.isEmpty) {
       return const DeleteDataResult(
         ok: false,
-        message: 'Không lấy được phiên đăng nhập. Hãy đăng nhập lại.',
+        message: 'Bạn cần đăng nhập để xoá dữ liệu trên máy chủ.',
       );
     }
 

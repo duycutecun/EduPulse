@@ -2,8 +2,8 @@
 // Bước 1 quên mật khẩu: gửi email chứa mã 8 chữ số tới hộp thư.
 // Body: { email } — KHÔNG cần đăng nhập (người quên mật khẩu thì không có token).
 // Dùng SMTP Gmail, lưu mã vào bảng email_codes với purpose='reset'.
-// Kiểm tra email tồn tại được thực hiện ở bước 2 (reset_password) vì Firebase
-// REST không phân biệt "sai email" và "sai mật khẩu" để bảo mật thông tin.
+// Kiểm tra email tồn tại được thực hiện ở bước 2 (reset_password — Supabase
+// Auth admin) để không tiết lộ email nào đã đăng ký.
 const { getSupabase, getTransporter, newCode, CODE_TTL_MS, readJson, ok, fail } = require('./_lib');
 const { guard } = require('./_guard');
 
@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
       html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px">
         <h2 style="color:#58CC02;margin:0 0 8px">EduPulse</h2>
         <p>Chào bạn,</p>
-        <p>Dùng mã bên dưới để nhận liên kết đặt lại mật khẩu EduPulse:</p>
+        <p>Dùng mã bên dưới để đặt lại mật khẩu EduPulse:</p>
         <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#58CC02;text-align:center;margin:20px 0">${code}</p>
         <p style="color:#737373;font-size:13px">Mã có hiệu lực trong <b>15 phút</b>. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
       </div>`,

@@ -1,4 +1,4 @@
-// Test cho `_guard_logic.js` — chạy bằng `node --test` (không cần Firebase).
+// Test cho `_guard_logic.js` — chạy bằng `node --test` (không cần mạng/Supabase).
 // Bao phủ quota theo ngày: khoá, trần mặc định, tăng/đếm, chặn và reset cửa sổ.
 const test = require('node:test');
 const assert = require('node:assert/strict');

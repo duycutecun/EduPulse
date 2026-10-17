@@ -12,27 +12,6 @@ on:
       SUPABASE_ANON_KEY:
         description: 'Supabase anon key (xem .env)'
         required: false
-      FIREBASE_API_KEY:
-        description: 'Firebase API key (xem .env)'
-        required: false
-      FIREBASE_AUTH_DOMAIN:
-        description: 'Firebase authDomain (xem .env)'
-        required: false
-      FIREBASE_PROJECT_ID:
-        description: 'Firebase projectId (xem .env)'
-        required: false
-      FIREBASE_STORAGE_BUCKET:
-        description: 'Firebase storageBucket (xem .env)'
-        required: false
-      FIREBASE_MESSAGING_SENDER_ID:
-        description: 'Firebase messagingSenderId (xem .env)'
-        required: false
-      FIREBASE_APP_ID:
-        description: 'Firebase web appId (xem .env)'
-        required: false
-      FIREBASE_IOS_APP_ID:
-        description: 'Firebase iOS appId (xem .env)'
-        required: false
 
 concurrency:
   group: ios-ipa-${{ github.ref }}
@@ -83,10 +62,11 @@ jobs:
 
       # ────────────────────────────────────────────────────────────────────
       # Build-time config: KHÔNG truyền = IPA "rỗng cấu hình" (không Supabase
-      # → không database, không Firebase → không đăng nhập). Khoá AI (OpenRouter/
-      # Gemini/Tavily) KHÔNG còn nhúng vào app: AI managed đi qua backend
-      # serverless (bản deploy trong AppConfig.apiBaseUrl) — bản cài chỉ cần có
-      # mạng; người dùng vẫn có thể tự dán key BYOK trong Tôi → Cloud & AI.
+      # → không database, không đăng nhập — xác thực giờ chỉ cần Supabase).
+      # Khoá AI (OpenRouter/Gemini/Tavily) KHÔNG còn nhúng vào app: AI managed
+      # đi qua backend serverless (bản deploy trong AppConfig.apiBaseUrl) —
+      # bản cài chỉ cần có mạng; người dùng vẫn có thể tự dán key BYOK trong
+      # Tôi → Cloud & AI.
       #
       # Thiếu key nào thì bước này BÁO CẢNH WARNING (không làm hỏng build) và liệt
       # kê tên key còn thiếu ngay trong log + Summary.
@@ -95,13 +75,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ inputs.SUPABASE_URL || secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ inputs.SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
-          FIREBASE_API_KEY: ${{ inputs.FIREBASE_API_KEY || secrets.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN: ${{ inputs.FIREBASE_AUTH_DOMAIN || secrets.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_PROJECT_ID: ${{ inputs.FIREBASE_PROJECT_ID || secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_STORAGE_BUCKET: ${{ inputs.FIREBASE_STORAGE_BUCKET || secrets.FIREBASE_STORAGE_BUCKET }}
-          FIREBASE_MESSAGING_SENDER_ID: ${{ inputs.FIREBASE_MESSAGING_SENDER_ID || secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          FIREBASE_APP_ID: ${{ inputs.FIREBASE_APP_ID || secrets.FIREBASE_APP_ID }}
-          FIREBASE_IOS_APP_ID: ${{ inputs.FIREBASE_IOS_APP_ID || secrets.FIREBASE_IOS_APP_ID }}
         run: |
           set -euo pipefail
 
@@ -119,20 +92,13 @@ jobs:
 
           add SUPABASE_URL "${SUPABASE_URL-}"
           add SUPABASE_ANON_KEY "${SUPABASE_ANON_KEY-}"
-          add FIREBASE_API_KEY "${FIREBASE_API_KEY-}"
-          add FIREBASE_AUTH_DOMAIN "${FIREBASE_AUTH_DOMAIN-}"
-          add FIREBASE_PROJECT_ID "${FIREBASE_PROJECT_ID-}"
-          add FIREBASE_STORAGE_BUCKET "${FIREBASE_STORAGE_BUCKET-}"
-          add FIREBASE_MESSAGING_SENDER_ID "${FIREBASE_MESSAGING_SENDER_ID-}"
-          add FIREBASE_APP_ID "${FIREBASE_APP_ID-}"
-          add FIREBASE_IOS_APP_ID "${FIREBASE_IOS_APP_ID-}"
 
           # Chỉ in TÊN, không bao giờ in giá trị secret.
-          echo "Đã nạp ${#DEFINES[@]}/9 cấu hình build cho bản iOS."
+          echo "Đã nạp ${#DEFINES[@]}/2 cấu hình build cho bản iOS."
           {
             echo "### Cấu hình build của IPA"
             echo ""
-            echo "- Đã nạp: ${#DEFINES[@]}/9"
+            echo "- Đã nạp: ${#DEFINES[@]}/2"
             if [ ${#MISSING[@]} -gt 0 ]; then
               echo "- ⚠️ Còn thiếu (tính năng tương ứng sẽ trống): ${MISSING[*]}"
             else

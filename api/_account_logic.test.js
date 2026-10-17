@@ -1,4 +1,4 @@
-// Test cho `_account_logic.js` — chạy bằng `node --test` (không cần Firebase).
+// Test cho `_account_logic.js` — chạy bằng `node --test` (không cần mạng/DB).
 // Bao phủ: danh sách bảng cần xoá theo uid, thứ tự xoá con-trước-cha, chính
 // sách lưu trữ và hàm kiểm tra hết hạn.
 const test = require('node:test');

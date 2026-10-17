@@ -1,7 +1,7 @@
 // POST /api/verify_email
 // Kiểm tra mã 8 chữ số rồi đánh dấu email đã xác minh trong user_profiles.
-// Body: { idToken, code } — Google tự xác thực token, không cần service account.
-const { getFirebaseUser, getSupabase, readJson, ok, fail } = require('./_lib');
+// Body: { idToken, code } — idToken là access token Supabase (shape body cũ).
+const { getSupabaseUser, getSupabase, readJson, ok, fail } = require('./_lib');
 const { guard } = require('./_guard');
 
 module.exports = async function handler(req, res) {
@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
     const idToken = String(body.idToken || '');
     if (!idToken) return fail(res, 400, 'Thiếu token đăng nhập.');
 
-    const user = await getFirebaseUser(idToken);
+    const user = await getSupabaseUser(idToken);
     const email = user.email;
     if (!email) return fail(res, 400, 'Tài khoản này không có email để xác minh.');
 
@@ -52,7 +52,8 @@ module.exports = async function handler(req, res) {
       return fail(res, 400, 'Mã xác minh không thuộc tài khoản này. Gửi lại mã nhé!');
     }
 
-    // Đánh dấu đã xác minh trong user_profiles (không đụng Firebase emailVerified).
+    // Đánh dấu đã xác minh trong user_profiles (is_email_verified là cờ client
+    // tin — Supabase `email_confirmed_at` cũng phản ánh ở `getSupabaseUser`).
     const { data: updated } = await supabase
       .from('user_profiles')
       .update({ is_email_verified: true })

@@ -74,7 +74,7 @@ class OpenRouterService {
   /// khoá chủ app: AI managed đi qua backend với xác thực + hạn mức.
   static bool get _useProxy => _onWeb || AiConfig.openRouterApiKey.isEmpty;
 
-  /// Header xác thực Firebase cho proxy cùng origin — rỗng khi chưa đăng nhập.
+  /// Header xác thực Supabase cho proxy cùng origin — rỗng khi chưa đăng nhập.
   ///
   /// Proxy (`api/_guard.js`) xác thực token khi có để tính hạn mức theo `uid`;
   /// người dùng ẩn danh vẫn gọi được (chỉ bị giới hạn theo IP).

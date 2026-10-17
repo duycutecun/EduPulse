@@ -69,8 +69,8 @@ class WebSearchService {
     final base = AppConfig.apiBase().resolve('/api/search');
     final url = base.replace(queryParameters: {'q': query});
     try {
-      // Gửi kèm token Firebase khi đã đăng nhập — proxy (`api/_guard.js`) tính
-      // hạn mức theo `uid` thay vì chỉ theo IP.
+      // Gửi kèm access token Supabase khi đã đăng nhập — proxy
+      // (`api/_guard.js`) tính hạn mức theo `sub` (UUID) thay vì chỉ theo IP.
       final headers = <String, String>{};
       final token = await AuthService.idToken();
       if (token != null && token.isNotEmpty) {

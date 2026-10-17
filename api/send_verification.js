@@ -1,8 +1,8 @@
 // POST /api/send_verification
 // Gửi email xác minh mới chứa mã 8 chữ số cho người dùng đang đăng nhập.
-// Body: { idToken: "<Firebase ID token>" } — Google tự xác thực token, không cần
-// service account (org policy của project chặn tạo service account key).
-const { requireFirebaseUser, getSupabase, getTransporter, newCode, CODE_TTL_MS, ok, fail } = require('./_lib');
+// Body: { idToken: "<Supabase access token>" } — máy chủ GoTrue của Supabase
+// tự xác thực token (qua `auth.getUser`), không cần secret thêm.
+const { requireSupabaseUser, getSupabase, getTransporter, newCode, CODE_TTL_MS, ok, fail } = require('./_lib');
 const { guard } = require('./_guard');
 
 module.exports = async function handler(req, res) {
@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
     return;
   }
   try {
-    const user = await requireFirebaseUser(req);
+    const user = await requireSupabaseUser(req);
     const email = user.email;
     if (!email) return fail(res, 400, 'Tài khoản này không có email để gửi mã.');
 

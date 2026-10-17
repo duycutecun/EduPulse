@@ -50,46 +50,10 @@ class AppConfig {
     defaultValue: '',
   );
 
-  // Firebase Auth — web app config (các giá trị này vốn "công khai" ở phía
-  // client của Firebase, không phải bí mật). Truyền lúc build qua
-  // `--dart-define=FIREBASE_*` (Vercel đọc từ biến môi trường `Firebase*`),
-  // giống Supabase bên trên.
-  static const String firebaseApiKey = String.fromEnvironment(
-    'FIREBASE_API_KEY',
-    defaultValue: '',
-  );
-  static const String firebaseAuthDomain = String.fromEnvironment(
-    'FIREBASE_AUTH_DOMAIN',
-    defaultValue: '',
-  );
-  static const String firebaseProjectId = String.fromEnvironment(
-    'FIREBASE_PROJECT_ID',
-    defaultValue: '',
-  );
-  static const String firebaseStorageBucket = String.fromEnvironment(
-    'FIREBASE_STORAGE_BUCKET',
-    defaultValue: '',
-  );
-  static const String firebaseMessagingSenderId = String.fromEnvironment(
-    'FIREBASE_MESSAGING_SENDER_ID',
-    defaultValue: '',
-  );
-  static const String firebaseAppId = String.fromEnvironment(
-    'FIREBASE_APP_ID',
-    defaultValue: '',
-  );
-
-  // Firebase Auth iOS — app ID dành riêng cho nền tảng iOS (định dạng
-  // `1:<projectNo>:ios:<hex>`), tạo bằng cách thêm app iOS trong Firebase
-  // console với bundle id `com.edu.edupulse`. Truyền lúc build iOS qua
-  // `--dart-define=FIREBASE_IOS_APP_ID=...` (xem .github/workflows/ios-ipa.yml).
-  // Nếu trống, app dùng `FIREBASE_APP_ID` (web `:web:`) và AuthService sẽ BỎ
-  // QUA đăng nhập Firebase trên iOS (không crash) vì app ID web không hợp lệ
-  // cho iOS.
-  static const String firebaseIosAppId = String.fromEnvironment(
-    'FIREBASE_IOS_APP_ID',
-    defaultValue: '',
-  );
+  // Lưu ý: cấu hình Firebase Auth (7 hằng FIREBASE_* trước đây) đã được XOÁ
+  // sau khi xác thực chuyển về Supabase Auth (xem `core/utils/auth_service.dart`).
+  // Việc truyền `--dart-define=FIREBASE_*=...` thừa lúc build là vô hại vì
+  // Dart không yêu cầu khai báo tĩnh các define không dùng.
 
   // Máy chủ API serverless (`.js` hàm Vercel: `/api/family`, `/api/backup`, ...).
   // - Web: đi cùng origin trang đang mở (bỏ qua CORS) nên dùng `Uri.base`.

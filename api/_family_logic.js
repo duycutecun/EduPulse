@@ -1,5 +1,5 @@
 // Logic thuần của API `family.js` — tách riêng để test bằng Node mà KHÔNG cần
-// Supabase/Firebase hay biến môi trường. Chỉ tính toán và soạn chuỗi, không
+// mạng/Supabase hay biến môi trường. Chỉ tính toán và soạn chuỗi, không
 // gọi mạng. `family.js` require lại các hàm/hằng ở đây để hành vi không đổi.
 const crypto = require('crypto');
 

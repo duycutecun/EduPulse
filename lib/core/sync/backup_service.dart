@@ -35,7 +35,7 @@ import 'sync_state.dart';
 /// 3. **Không bao giờ mất cục bộ.** Dữ liệu ghi vào SharedPreferences trước,
 ///    cloud là bản sao lưu. Mất mạng thì chỉ là hoãn đẩy, không mất gì.
 ///
-/// Sao lưu chỉ chạy khi **đã đăng nhập**: Firebase UID mới là danh tính ổn
+/// Sao lưu chỉ chạy khi **đã đăng nhập**: UUID Supabase mới là danh tính ổn
 /// định nối mọi thiết bị. Chưa đăng nhập thì mỗi máy một `user_id` riêng — đó
 /// chính là lý do trước đây "bản gốc" và "bản sao lưu" không có linking.
 class BackupService {
@@ -45,11 +45,11 @@ class BackupService {
   /// thống quản lý. Đưa chúng lên cloud sẽ làm máy khác mất cấu hình riêng
   /// (URL/khoá Supabase) hoặc tưởng đã đăng nhập/xác minh khi chưa.
   static const Set<String> deviceLocalKeys = {
-    'user_uuid', // danh tính cục bộ, thay bằng Firebase UID khi đăng nhập
+    'user_uuid', // danh tính cục bộ, thay bằng UUID Supabase khi đăng nhập
     'supabase_url',
     'supabase_anon_key',
     'onboarding_done', // mỗi thiết bị tự trải qua onboarding một lần
-    'email_verified', // suy ra từ Firebase, không phải dữ liệu người dùng
+    'email_verified', // suy ra từ auth, không phải dữ liệu người dùng
     'free_models_cache_v1',
     'free_models_cache_time_v1', // cache danh sách model, tự tải lại
     'exam_pending_deletes', // hàng đợi xoá riêng của máy
@@ -111,7 +111,7 @@ class BackupService {
   // ─── Realtime (đẩy tin nhắn, không kéo dữ liệu) ────────────────────────────
 
   /// Kênh Realtime của tài khoản này, do server sinh từ hash(uid + key) nên
-  /// không đoán được. Server chỉ trả cho chính người đã xác thực Firebase.
+  /// không đoán được. Server chỉ trả cho chính người đã xác thực Supabase.
   static String? _topic;
 
   /// `revision` mới nhất mà máy này đã biết. Dùng để bỏ qua tín hiệu cũ
@@ -727,7 +727,7 @@ class BackupService {
 
   /// Gọi `/api/backup` (cùng origin của bản deploy).
   ///
-  /// Server tự xác thực Firebase ID token nên 401 nghĩa là phiên hết hạn và
+  /// Server tự xác thực access token Supabase nên 401 nghĩa là phiên hết hạn và
   /// cần đăng nhập lại — chỉ log, không báo động: dữ liệu trên máy vẫn an toàn
   /// và sẽ tự đẩy lại ở lần sau.
   static Future<Map<String, dynamic>> _get(Map<String, String> query) async {
@@ -769,10 +769,8 @@ class BackupService {
   }
 
   static Future<String?> _idToken() async {
-    final user = AuthService.currentUser;
-    if (user == null) return null;
     try {
-      return await user.getIdToken();
+      return await AuthService.idToken();
     } catch (_) {
       return null;
     }

@@ -104,11 +104,11 @@ class _ParentHomeScreenState extends State<ParentHomeScreen>
     });
   }
 
-  /// Firebase có thể chưa init xong ở frame đầu (main.dart khởi tạo sau frame
-  /// đầu để app mở nhanh). Chờ tới khi Auth sẵn sàng rồi mới đọc trạng thái —
-  /// nếu không, ba mẹ đã đăng nhập rồi vẫn bị hỏi đăng nhập.
+  /// AuthService có thể chưa sẵn sàng ở frame đầu (main.dart khởi tạo sau
+  /// frame đầu để app mở nhanh). Chờ tới khi Auth sẵn sàng rồi mới đọc trạng
+  /// thái — nếu không, ba mẹ đã đăng nhập rồi vẫn bị hỏi đăng nhập.
   ///
-  /// Có giới hạn thời gian chờ: chưa cấu hình Firebase (hoặc chạy trong test)
+  /// Có giới hạn thời gian chờ: chưa cấu hình Supabase (hoặc chạy trong test)
   /// thì `whenReady` không bao giờ hoàn tất, và màn phụ huynh phải hiện nút
   /// đăng nhập chứ không được treo spinner vô hạn.
   Future<void> _bootstrap() async {

@@ -9,11 +9,14 @@
 // lời nhắn, token thông báo), và người dùng có thể là HỌC SINH hoặc PHỤ HUYNH —
 // nên việc xoá phải phủ cả hai vai trò.
 //
-// QUYỀN: server xác thực Firebase ID token rồi dùng SUPABASE_SERVICE_ROLE_KEY,
+// QUYỀN: server xác thực access token Supabase rồi dùng SUPABASE_SERVICE_ROLE_KEY,
 // bỏ qua RLS, nhưng MỖI lệnh xoá đều ràng buộc `.eq(column, uid)` — không bao
 // giờ xoá rộng. Danh sách bảng/cột ở `_account_logic.js` (có test `node --test`).
+// Lưu ý dữ liệu cũ: các dòng ghi thời còn Firebase (UID Firebase 28 ký tự,
+// không dấu gạch) không khớp uid Supabase mới nên không bị xoá — chỉ dữ liệu
+// keyed theo uid mới bị chạm (an toàn, xóa nhầm không xảy ra).
 const {
-  getFirebaseUser,
+  getSupabaseUser,
   getSupabase,
   readJson,
   ok,
@@ -63,7 +66,7 @@ module.exports = async function handler(req, res) {
 
   let user;
   try {
-    user = await getFirebaseUser(idToken);
+    user = await getSupabaseUser(idToken);
   } catch (e) {
     return fail(res, 401, e.message || 'Phiên đăng nhập đã hết hạn.');
   }

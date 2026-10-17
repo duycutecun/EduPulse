@@ -479,7 +479,8 @@ void main() {
         theme: AppTheme.lightTheme,
         home: const ParentHomeScreen(),
       ));
-      // Firebase chưa init trong test → hết thời gian chờ (4s) là hiện nút.
+      // AuthService/Supabase chưa init trong test → chờ `whenReady` hết
+      // thời gian (4s) là hiện nút (giữ nguyên hành vi cũ của Firebase era).
       await tester.pump(const Duration(seconds: 5));
       await tester.pump();
 

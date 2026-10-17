@@ -1,4 +1,4 @@
-// Test phần THUẦN của `_guard.js` (không gọi mạng, không cần Firebase).
+// Test phần THUẦN của `_guard.js` (không gọi mạng, không cần Supabase).
 // Trọng tâm: `rateLimit` — caller quên truyền `limit` KHÔNG được rơi vào chế
 // độ vô hạn (so sánh với `undefined` luôn sai ⇒ mọi request đều lọt).
 const test = require('node:test');

@@ -1,11 +1,13 @@
 // Shared helpers for EduPulse serverless API (send/verify email OTP).
 //
-// KHÔNG dùng firebase-admin (vì org policy chặn tạo service account key).
-// Xác thực người dùng bằng Firebase REST `accounts:lookup` — Google tự kiểm
-// tra ID token với API key công khai của project.
+// Xác thực người dùng bằng Supabase Auth: client gửi access token của phiên
+// Supabase (`Authorization: Bearer <access_token>` hoặc body `{ idToken }` —
+// giữ đúng shape body cũ), server gọi `auth.getUser(token)` qua supabase-js —
+// máy chủ GoTrue của Supabase tự kiểm tra chữ ký/hạn token, không cần secret
+// nào ở server ngoài service_role key đã dùng để đọc/ghi bảng.
+// (Đã bỏ Firebase: ID token Firebase không còn dùng cho bất kỳ endpoint nào.)
 //
 // Env vars (đặt trong Vercel — chỉ phía server, không bao giờ lộ ra client):
-//   FIREBASE_API_KEY           — API key của Firebase web app (công khai)
 //   SUPABASE_URL               — https://nygkogzdemplbfydhspd.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY  — service_role key (chỉ dùng server-side)
 //   SMTP_USER / SMTP_PASS      — Gmail app-password để gửi email mã xác minh
@@ -13,10 +15,6 @@
 // Mã OTP/bí mật phải dùng nguồn ngẫu nhiên mật mã (không dùng Math.random —
 // trạng thái bộ sinh có thể bị khôi phục từ vài mẫu output).
 const { randomInt } = require('node:crypto');
-
-const LOOKUP_URL =
-  'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' +
-  encodeURIComponent(process.env.FIREBASE_API_KEY || '');
 
 /** Error kèm HTTP status để handler trả đúng mã (401 khi thiếu/hết hạn token). */
 function httpError(status, message) {
@@ -27,43 +25,50 @@ function httpError(status, message) {
 
 let _supabase;
 let _transporter;
-let _initError;
 
-/** Xác thực ID token bằng Firebase REST, trả về { uid, email, emailVerified }. */
-async function getFirebaseUser(idToken) {
-  if (!process.env.FIREBASE_API_KEY) {
-    throw new Error('FIREBASE_API_KEY chưa được cấu hình.');
+/**
+ * Xác thực access token Supabase, trả về { uid, email, emailVerified }.
+ * Ném lỗi 401 khi token thiếu/không hợp lệ/hết hạn (cùng chữ ký lỗi cũ).
+ */
+async function getSupabaseUser(idToken) {
+  const token = String(idToken || '').trim();
+  if (!token) {
+    throw httpError(401, 'Thiếu token đăng nhập.');
   }
-  const resp = await fetch(LOOKUP_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !data.users || !data.users.length) {
+  // Client dùng service_role key làm apikey (đã có sẵn, chỉ server-side) —
+  // GoTrue xác thực JWT trong header Authorization, không phụ thuộc apikey.
+  let supabase;
+  try {
+    supabase = getSupabase();
+  } catch (e) {
+    throw httpError(500, e.message || 'Máy chủ chưa cấu hình Supabase.');
+  }
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data || !data.user) {
     throw httpError(401, 'Token đăng nhập không hợp lệ hoặc đã hết hạn.');
   }
-  const u = data.users[0];
+  const u = data.user;
   return {
-    uid: u.localId,
-    email: (u.email || '').trim().toLowerCase(),
-    emailVerified: !!u.emailVerified,
-    providerId: ((u.providerUserInfo || []).map((p) => p.providerId) || []),
+    uid: u.id,
+    email: String(u.email || '').trim().toLowerCase(),
+    // Supabase User set `email_confirmed_at` khi email đã xác nhận.
+    emailVerified: !!u.email_confirmed_at,
+    appMetadata: u.app_metadata || {},
   };
 }
 
-/** Gửi request có idToken; trả về response parse sẵn + status. */
-function requireFirebaseUser(req) {
+/** Đọc request có `idToken` (shape body cũ — giữ cho 5 endpoint đổi verify). */
+function requireSupabaseUser(req) {
   return new Promise((resolve, reject) => {
     readJson(req)
       .then(async (body) => {
-        const idToken = String(body.idToken || '');
+        const idToken = String(body.idToken || body.token || '');
         if (!idToken) {
           reject(httpError(401, 'Thiếu token đăng nhập.'));
           return;
         }
         try {
-          resolve(await getFirebaseUser(idToken));
+          resolve(await getSupabaseUser(idToken));
         } catch (e) {
           reject(e);
         }
@@ -156,8 +161,8 @@ function fail(res, status, message) {
 }
 
 module.exports = {
-  getFirebaseUser,
-  requireFirebaseUser,
+  getSupabaseUser,
+  requireSupabaseUser,
   getSupabase,
   getTransporter,
   newCode,

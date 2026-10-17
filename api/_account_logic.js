@@ -1,5 +1,5 @@
 // Logic thuần của API `account.js` — tách riêng để test bằng `node --test` mà
-// KHÔNG cần Firebase/Supabase. Chỉ soạn danh sách việc cần xoá và mô tả chính
+// KHÔNG cần mạng/Supabase. Chỉ soạn danh sách việc cần xoá và mô tả chính
 // sách lưu trữ; handler thực thi bằng service_role.
 //
 // BỐI CẢNH (đặc tả mục 8, dòng 214): ảnh đề bài, lịch sử chat và dữ liệu AI

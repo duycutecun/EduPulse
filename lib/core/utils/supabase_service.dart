@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/exams/domain/models/exam_model.dart';
 import '../../features/exams/domain/exam_repository.dart';
 import '../../features/study/domain/models/study_models.dart';
@@ -61,12 +60,13 @@ class SupabaseService {
   /// các hàm của service này, đừng tự gọi client ở nơi khác.
   static SupabaseClient? get client => _client;
 
-  /// Xác thực giờ do Firebase quản lý (AuthService) — trả user Firebase hiện tại.
+  /// Xác thực giờ do Supabase Auth quản lý (AuthService) — trả user Supabase
+  /// hiện tại.
   static User? get currentUser => AuthService.currentUser;
 
   static bool get isLoggedIn => AuthService.isLoggedIn;
 
-  /// Đăng xuất — ủy quyền cho Firebase.
+  /// Đăng xuất — ủy quyền cho Supabase Auth.
   static Future<void> signOut() => AuthService.signOut();
 
   // ─── INITIALIZATION ───────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ class SupabaseService {
   // ─── DATA SYNC ────────────────────────────────────────────────────────────
 
   static String get _userId {
-    // Ưu tiên dùng Firebase auth user id, fallback về local uuid
+    // Ưu tiên dùng Supabase auth user id (UUID), fallback về local uuid
     return AuthService.persistentUserId;
   }
 

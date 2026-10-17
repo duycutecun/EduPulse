@@ -5,8 +5,8 @@
 // lớp phòng vệ tối thiểu nhưng không phá vỡ luồng ẩn danh:
 //
 //   1. **Định danh (tuỳ chọn nhưng ưu tiên).** Nếu client gửi `Authorization:
-//      Bearer <Firebase ID token>`, xác thực token và dùng `uid` làm khoá hạn
-//      mức. Không có token (người dùng chưa đăng nhập, ví dụ lúc onboarding) thì
+//      Bearer <access token Supabase>`, xác thực token và dùng `uid` làm khoá
+//      hạn mức. Không có token (người dùng chưa đăng nhập, ví dụ lúc onboarding) thì
 //      rơi về IP — vẫn hoạt động, chỉ bị giới hạn theo IP.
 //   2. **Giới hạn tần suất theo cửa sổ trượt** (mặc định 30 phút tuỳ chỉnh).
 //      Bộ đếm trong RAM của instance; Vercel tái dùng instance ấm nên có tác
@@ -19,10 +19,11 @@
 //   4. **Nhật ký kiểm toán đã khử nhạy cảm** — chỉ ghi endpoint, uid/IP rút gọn,
 //      trạng thái và mô hình. KHÔNG bao giờ ghi key, prompt hay nội dung body.
 //
-// Env vars liên quan: FIREBASE_API_KEY (để xác thực token), xem `_lib.js`.
+// Env vars liên quan: SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY (để xác thực token
+// qua `auth.getUser`), xem `_lib.js`.
 // Có thể tuỳ chỉnh quota/endpoint qua env: AI_DAILY_QUOTA, AI_DAILY_QUOTA_ANON.
 
-const { getFirebaseUser } = require('./_lib');
+const { getSupabaseUser } = require('./_lib');
 const {
   quotaKey,
   quotaLimitFor,
@@ -70,7 +71,7 @@ function clientIp(req) {
 }
 
 /**
- * Xác thực header `Authorization: Bearer <idToken>` nếu có.
+ * Xác thực header `Authorization: Bearer <access token Supabase>` nếu có.
  *
  * Trả về `{ uid, email }` khi hợp lệ, `null` khi không có token. Ném lỗi khi
  * token CÓ nhưng không hợp lệ — lúc đó phải từ chối, không được âm thầm hạ cấp
@@ -82,7 +83,7 @@ async function authenticate(req) {
   if (!value || typeof value !== 'string') return null;
   const match = value.match(/^Bearer\s+(.+)$/i);
   if (!match) return null;
-  return getFirebaseUser(match[1].trim());
+  return getSupabaseUser(match[1].trim());
 }
 
 /**

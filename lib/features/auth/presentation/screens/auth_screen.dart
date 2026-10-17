@@ -66,8 +66,13 @@ class _AuthScreenState extends State<AuthScreen> {
   final _regConfirmCtrl = TextEditingController();
   final _forgotEmailCtrl = TextEditingController();
   final _forgotCodeCtrl = TextEditingController();
+  final _forgotPwCtrl = TextEditingController();
+  final _forgotConfirmCtrl = TextEditingController();
   final _verifyEmailCtrl = TextEditingController();
   final _verifyCodeCtrl = TextEditingController();
+
+  bool _obscureForgotPw = true;
+  bool _obscureForgotConfirm = true;
 
   static const _rememberKey = 'auth_remember_email';
 
@@ -92,6 +97,8 @@ class _AuthScreenState extends State<AuthScreen> {
     _regConfirmCtrl.dispose();
     _forgotEmailCtrl.dispose();
     _forgotCodeCtrl.dispose();
+    _forgotPwCtrl.dispose();
+    _forgotConfirmCtrl.dispose();
     _verifyEmailCtrl.dispose();
     _verifyCodeCtrl.dispose();
     super.dispose();
@@ -238,11 +245,14 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  /// Bước 2 quên mật khẩu: nhập mã 8 chữ số → server kích hoạt email đặt lại
-  /// mật khẩu Firebase (bấm link trong email để đặt mật khẩu mới).
+  /// Bước 2 quên mật khẩu: nhập mã 8 chữ số + mật khẩu mới → server xác thực
+  /// mã rồi đặt mật khẩu thẳng qua admin API Supabase; AuthService tự đăng
+  /// nhập lại bằng mật khẩu vừa đặt.
   Future<void> _doResetPassword() async {
     final email = _forgotEmailCtrl.text.trim();
     final code = _forgotCodeCtrl.text.trim();
+    final pw = _forgotPwCtrl.text;
+    final confirm = _forgotConfirmCtrl.text;
     if (email.isEmpty) {
       _showMessage('Vui lòng nhập email.', false);
       return;
@@ -251,9 +261,20 @@ class _AuthScreenState extends State<AuthScreen> {
       _showMessage('Vui lòng nhập đủ mã 8 chữ số.', false);
       return;
     }
+    if (pw.length < 6) {
+      _showMessage('Mật khẩu phải có ít nhất 6 ký tự.', false);
+      return;
+    }
+    if (pw != confirm) {
+      _showMessage('Mật khẩu xác nhận không khớp!', false);
+      return;
+    }
     setState(() => _isLoading = true);
-    final result =
-        await AuthService.resetPasswordByCode(email: email, code: code);
+    final result = await AuthService.resetPasswordByCode(
+      email: email,
+      code: code,
+      newPassword: pw,
+    );
     if (!mounted) return;
     setState(() => _isLoading = false);
 
@@ -267,9 +288,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
     _showMessage(result.message, result.success);
     if (result.success) {
+      // resetPasswordByCode đã tự đăng nhập lại bằng mật khẩu mới — kết thúc
+      // luồng quên mật khẩu như một lần đăng nhập thành công.
       await Future.delayed(const Duration(milliseconds: 600));
       if (!mounted) return;
-      _switchView(_AuthView.login);
+      await _finishSuccess();
     }
   }
 
@@ -820,7 +843,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _ViewHeader(
           title: isCodeStep ? 'Nhập mã xác minh' : 'Đặt lại mật khẩu',
           subtitle: isCodeStep
-              ? 'Nhập mã 8 chữ số chúng tôi vừa gửi. Mã đúng sẽ gửi liên kết đặt lại mật khẩu về email.'
+              ? 'Nhập mã 8 chữ số chúng tôi vừa gửi. Mã đúng thì đặt mật khẩu mới ngay tại đây — không cần bấm link trong email.'
               : 'Nhập email đã đăng ký — chúng tôi kiểm tra rồi gửi mã 8 chữ số về hộp thư.',
         ),
         const SizedBox(height: 22),
@@ -835,6 +858,26 @@ class _AuthScreenState extends State<AuthScreen> {
           const _FieldLabel('Mã đặt lại'),
           const SizedBox(height: 8),
           _OtpBoxes(controller: _forgotCodeCtrl, length: 8),
+          const SizedBox(height: 16),
+          _authField(
+            label: 'Mật khẩu mới',
+            ctrl: _forgotPwCtrl,
+            hint: 'Tối thiểu 6 ký tự',
+            obscure: _obscureForgotPw,
+            suffix: _eyeToggle(_obscureForgotPw,
+                () => setState(() => _obscureForgotPw = !_obscureForgotPw)),
+          ),
+          const SizedBox(height: 16),
+          _authField(
+            label: 'Xác nhận mật khẩu',
+            ctrl: _forgotConfirmCtrl,
+            hint: 'Nhập lại mật khẩu mới',
+            obscure: _obscureForgotConfirm,
+            suffix: _eyeToggle(
+                _obscureForgotConfirm,
+                () => setState(
+                    () => _obscureForgotConfirm = !_obscureForgotConfirm)),
+          ),
           const SizedBox(height: 16),
           Center(
             child: GestureDetector(
@@ -853,7 +896,7 @@ class _AuthScreenState extends State<AuthScreen> {
         ],
         const SizedBox(height: 22),
         _primaryButton(
-          label: isCodeStep ? 'Xác nhận mã' : 'Kiểm tra email',
+          label: isCodeStep ? 'Đặt mật khẩu mới' : 'Kiểm tra email',
           onTap: _isLoading
               ? null
               : (isCodeStep ? _doResetPassword : _doSendResetCode),

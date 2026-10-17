@@ -21,7 +21,8 @@ mục 8 (Bảo mật và quyền riêng tư, dòng 208–214) và mục 7.1.
 | Cache AI / lịch sử trò chuyện trên máy | `SharedPreferences` (local) | xoá được bằng nút trong "Tôi" |
 
 Không có API key của chủ hệ thống trong binary/bundle: AI managed đi qua backend
-(`/api/openrouter`, `/api/gemini`, `/api/search`) với xác thực Firebase, rate limit,
+(`/api/openrouter`, `/api/gemini`, `/api/search`) với xác thực token Supabase,
+rate limit,
 **quota theo ngày** và audit log đã lọc dữ liệu nhạy cảm (`api/_guard.js`).
 
 ## 2. Thời hạn lưu / cache
@@ -54,8 +55,11 @@ có bản sao trên máy chủ để cron xoá.
 ## 3. Cơ chế xoá dữ liệu cá nhân
 
 Endpoint: **`POST /api/account`** (`api/account.js`)
-– xác thực Firebase ID token, server dùng service_role, **mỗi lệnh xoá đều ràng
-buộc `.eq(cột, uid)`** (không bao giờ xoá rộng).
+– xác thực access token Supabase, server dùng service_role, **mỗi lệnh xoá đều
+ràng buộc `.eq(cột, uid)`** (không bao giờ xoá rộng).
+> Lưu ý dữ liệu cũ: các dòng từng được ghi thời app còn dùng Firebase (UID
+Firebase không phải UUID Supabase) sẽ không khớp `uid` mới — xoá theo uid mới
+không chạm tới chúng; muốn dọn phần đó cần xử lý thủ công bằng service_role.
 
 ```json
 { "action": "delete_my_data", "confirm": true }

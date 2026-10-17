@@ -70,6 +70,16 @@
 				<string>edupulse</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- Deep link quay lại app khi đăng nhập Google OAuth trên native
+			     (supabase_flutter dùng scheme `io.supabase.flutter.*`). -->
+			<key>CFBundleURLName</key>
+			<string>supabase-auth-callback</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.flutter</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

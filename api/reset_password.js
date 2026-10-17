@@ -1,16 +1,28 @@
 // POST /api/reset_password
-// Bước 2 quên mật khẩu: kiểm tra mã 8 chữ số (purpose='reset'). Nếu đúng, kích
-// hoạt email đặt lại mật khẩu Firebase (PASSWORD_RESET) ngay lúc đó để người
-// dùng bấm link đặt mật khẩu mới.
-// Body: { email, code } — KHÔNG cần đăng nhập.
-// Không xài firebase-admin (org policy chặn tạo service account key); chỉ gọi
-// REST accounts:sendOobCode với API key công khai như các endpoint khác.
+// Bước 2 quên mật khẩu (HỢP ĐỒNG MỚI): kiểm tra mã 8 chữ số (purpose='reset')
+// rồi đặt mật khẩu mới NGAY TẠI ĐÂY bằng Admin API của Supabase — client Flutter
+// không còn nhận link đặt lại mật khẩu như thời cũ (đã bỏ Firebase).
+//
+// Body: { email, code, newPassword } — KHÔNG cần token (người quên mật khẩu
+// không đăng nhập).
+//
+// Thao tác đổi mật khẩu phải dùng service_role key (đã có sẵn server-side):
+//   ① `auth.admin.listUsers({ page, perPage })` — lặp từng trang, lọc email
+//     phía JS (GoTrue admin API không có filter email trực tiếp).
+//   ② `auth.admin.updateUserById(userId, { password })`.
+//   ③ Xoá dòng `email_codes` vừa dùng để tránh dùng lại.
+// Mật khẩu mới yếu (< 8 ký tự) → 400; mã sai/hết hạn → 400 kèm thông báo
+// tiếng Việt; thành công → 200 `{ ok: true }`. KHÔNG còn oobCode/continueUrl
+// (thời còn Firebase).
 const { getSupabase, readJson, ok, fail } = require('./_lib');
 const { guard } = require('./_guard');
 
-const SEND_RESET_URL =
-  'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' +
-  encodeURIComponent(process.env.FIREBASE_API_KEY || '');
+/** Độ dài tối thiểu của mật khẩu mới (khớp thông báo tiếng Việt). */
+const MIN_PASSWORD_LEN = 8;
+/** Kích thước trang khi lặp listUsers (GoTrue trả theo per_page). */
+const LIST_PAGE_SIZE = 200;
+/** Tran trang an toàn: đủ cho hàng chục nghìn người dùng, tránh lặp vô hạn. */
+const MAX_PAGES = 50;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Chỉ hỗ trợ POST.');
@@ -23,10 +35,15 @@ module.exports = async function handler(req, res) {
     const body = await readJson(req);
     const email = String(body.email || '').trim().toLowerCase();
     const code = String(body.code || '').trim();
+    const newPassword = String(body.newPassword || '');
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
       return fail(res, 400, 'Email không hợp lệ.');
     }
     if (!/^\d{8}$/.test(code)) return fail(res, 400, 'Mã gồm 8 chữ số.');
+    if (newPassword.length < MIN_PASSWORD_LEN) {
+      return fail(res, 400, 'Mật khẩu mới phải có ít nhất 8 ký tự.');
+    }
 
     const supabase = getSupabase();
     const { data: rows, error } = await supabase
@@ -50,42 +67,45 @@ module.exports = async function handler(req, res) {
       return fail(res, 400, 'Mã không đúng. Kiểm tra lại!');
     }
 
-    // Mã đúng → kích hoạt email đặt lại mật khẩu Firebase gửi về đúng email này.
-    // continueUrl trỏ về chính app để khi người dùng bấm link, app nhận được
-    // oobCode và hiện màn hình "Đặt mật khẩu mới" (đặt ngay trong app).
-    const proto = String(req.headers['x-forwarded-proto'] || 'https')
-      .split(',')[0]
-      .trim();
-    const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-    const origin = `${proto}://${host}`;
-    const continueUrl = `${origin}/auth/reset?email=${encodeURIComponent(email)}`;
-    const resp = await fetch(SEND_RESET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestType: 'PASSWORD_RESET',
-        email,
-        continueUrl,
-      }),
-    });
-    const data = await resp.json().catch(() => ({}));
-
-    // Xoá mã vừa dùng trong mọi trường hợp để tránh dùng lại.
-    await supabase.from('email_codes').delete().eq('id', row.id);
-
-    if (!resp.ok) {
-      const msg =
-        data.error && data.error.message === 'EMAIL_NOT_FOUND'
-          ? 'Email này chưa đăng ký tài khoản EduPulse.'
-          : 'Không gửi được email đặt lại mật khẩu. Thử lại sau.';
-      return fail(res, 400, msg);
+    // ① Tìm user theo email trong Supabase Auth (service_role → admin scope).
+    let userId = null;
+    try {
+      for (let page = 1; page <= MAX_PAGES && !userId; page++) {
+        const { data, error: listError } = await supabase.auth.admin.listUsers({
+          page,
+          perPage: LIST_PAGE_SIZE,
+        });
+        if (listError) break;
+        const users = (data && data.users) || [];
+        if (!users.length) break;
+        const hit = users.find((u) => String(u.email || '').toLowerCase() === email);
+        if (hit) userId = hit.id;
+        if (users.length < LIST_PAGE_SIZE) break; // hết danh sách
+      }
+    } catch (_) {
+      userId = null;
     }
+    if (!userId) {
+      return fail(res, 400, 'Email này chưa đăng ký tài khoản EduPulse.');
+    }
+
+    // ② Đặt mật khẩu mới bằng Admin API.
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { password: newPassword }
+    );
+    if (updateError) {
+      return fail(res, 500, 'Không đổi được mật khẩu. Thử lại sau.');
+    }
+
+    // ③ Xoá mã vừa dùng: một mã chỉ đổi được mật khẩu một lần.
+    await supabase.from('email_codes').delete().eq('id', row.id);
 
     return ok(res, {
       ok: true,
-      message: 'Mã chính xác! Email đặt lại mật khẩu đã được gửi.',
+      message: 'Đã đổi mật khẩu thành công. Hãy đăng nhập lại bằng mật khẩu mới.',
     });
   } catch (e) {
-    return fail(res, 500, e.message || 'Xác minh mã thất bại. Thử lại sau.');
+    return fail(res, e.status || 500, e.message || 'Xác minh mã thất bại. Thử lại sau.');
   }
 };

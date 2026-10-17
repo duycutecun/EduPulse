@@ -1,17 +1,18 @@
 // "Cửa sổ tin cậy" — liên kết tài khoản phụ huynh ↔ học sinh.
 //
 // VÌ SAO CẦN ENDPOINT RIÊNG (không gọi thẳng Supabase từ app):
-//   App đăng nhập bằng FIREBASE còn RLS của Supabase so với `auth.uid()`
-//   (Supabase Auth) → luôn NULL → chặn trắng. Ở đây server xác thực ID token
-//   bằng Firebase REST (getFirebaseUser) rồi ghi bằng
-//   SUPABASE_SERVICE_ROLE_KEY, và TỰ KIỂM SOÁT QUYỀN:
+//   RLS của Supabase so với `auth.uid()` cho phép session có tương ứng, nhưng
+//   quyền liên kết gia đình نیاز tới logic phức tạp (ai được đọc báo cáo của
+//   ai, ngắt liên kết mất quyền ngay). Ở đây server xác thực access token bằng
+//   Supabase (getSupabaseUser) rồi ghi bằng SUPABASE_SERVICE_ROLE_KEY, và TỰ
+//   KIỂM SOÁT QUYỀN:
 //     • Chỉ học sinh tạo được mã mời của chính mình.
 //     • Chỉ người nhập đúng mã mới thành phụ huynh của học sinh đó.
 //     • Phụ huynh CHỈ đọc được báo cáo của con đã liên kết, và chỉ những báo
 //       cáo con chủ động gửi.
 //     • Ngắt liên kết ⇒ mất quyền ngay (mọi truy vấn đều kiểm tra lại liên kết).
 //
-// Route: POST /api/family.js  (Firebase ID token trong body `idToken`)
+// Route: POST /api/family.js  (Supabase access token trong body `idToken`)
 //   action = 'invite'        → học sinh tạo mã mời 8 chữ số (mã cũ bị thay)
 //   action = 'my_family'     → trạng thái của tôi: mã đang chờ / ba mẹ đã nối /
 //                              các con đã nối (kèm mốc báo cáo, bản trực tiếp,
@@ -40,7 +41,7 @@
 //   App của con tự đẩy báo cáo mỗi khi số liệu đổi; ngắt liên kết là dừng.
 const crypto = require('crypto');
 const {
-  getFirebaseUser,
+  getSupabaseUser,
   getSupabase,
   readJson,
   ok,
@@ -73,8 +74,8 @@ const MSG_TABLE = 'family_messages';
 // ── Realtime: báo cho máy ba mẹ biết con vừa cập nhật ───────────────────────
 //
 // Cùng cách làm với `/api/backup.js`: broadcast REST của Supabase Realtime,
-// KHÔNG dùng `postgres_changes` (nó lọc theo RLS + cần Supabase session, mà app
-// đăng nhập bằng Firebase nên sẽ âm thầm không gửi gì). Tín hiệu đi trên kênh
+// KHÔNG dùng `postgres_changes` (nó lọc theo RLS — bảng family_* bật RLS không
+// policy nên sẽ âm thầm không gửi gì). Tín hiệu đi trên kênh
 // riêng của TỪNG người nhận và CHỈ mang con số thời gian — payload học tập vẫn
 // phải kéo qua API có xác thực, không đi qua kênh broadcast (kênh không mã hoá).
 //
@@ -121,55 +122,21 @@ async function linkedParents(supabase, studentUserId) {
 
 // ── Thông báo đẩy (app ba mẹ đã đóng) ──────────────────────────────────────
 //
-// Hai kênh, một hàm gửi:
-//   • Web Push (VAPID, `web-push`) — web/PWA, kể cả iOS 16.4+ khi thêm vào
-//     Màn hình chính.
-//   • FCM (`firebase-admin`) — Android native (đã có trong package.json). Cần
-//     `FIREBASE_SERVICE_ACCOUNT` (JSON base64 hoặc JSON thô) trong Vercel;
-//     thiếu khoá thì bỏ qua êm, không đăng ký gì.
+// Kênh duy nhất: Web Push (VAPID, `web-push`) — web/PWA, kể cả iOS 16.4+ khi
+// thêm vào Màn hình chính.
 //
-// Cả hai đều là optional: cài/lib thiếu khoá thì bỏ qua, KHÔNG làm hỏng thao
-// tác lưu. Token chết (Web Push 404/410, FCM unregistered) bị xoá để không
-// đọng rác.
+// (Lịch sử: trước đây còn FCM native qua `firebase-admin`, đã bỏ — ứng dụng
+// chạy được trên mọi nền tảng bằng Web Push và không phải giữ service account
+// key. Token `kind:'fcm'` còn sót trong bảng hoặc còn client cũ gửi lên được
+// BỎ QUA êm khi gửi, không gây lỗi.)
+//
+// Gửi đẩy là optional: cấu hình thiếu khoá thì bỏ qua, KHÔNG làm hỏng thao tác
+// lưu. Token chết (Web Push 404/410) bị xoá để không đọng rác.
 let webpush = null;
 try {
   webpush = require('web-push');
 } catch (_) {
   webpush = null;
-}
-
-let admin = null;
-try {
-  admin = require('firebase-admin');
-} catch (_) {
-  admin = null;
-}
-
-let adminApp = null;
-function firebaseAdmin() {
-  if (adminApp) return adminApp;
-  if (!admin) return null;
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!raw) return null;
-  let cred = null;
-  try {
-    cred = JSON.parse(raw);
-  } catch (_) {
-    try {
-      cred = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
-    } catch (_) {
-      return null;
-    }
-  }
-  if (!cred || !cred.project_id) return null;
-  try {
-    adminApp = admin.apps && admin.apps.length
-      ? admin.app()
-      : admin.initializeApp({ credential: admin.credential.cert(cred) });
-    return adminApp;
-  } catch (_) {
-    return null;
-  }
 }
 
 function webPushConfigured() {
@@ -183,7 +150,7 @@ function webPushConfigured() {
 
 /** Có kênh đẩy nào sẵn sàng? (Dùng để `push_info` nói thật cho client.) */
 function pushConfigured() {
-  return webPushConfigured() || !!firebaseAdmin();
+  return webPushConfigured();
 }
 
 async function sendWebPush(supabase, tokens, title, body, data) {
@@ -210,23 +177,6 @@ async function sendWebPush(supabase, tokens, title, body, data) {
   }
 }
 
-async function sendFcm(tokens, title, body, data) {
-  const app = firebaseAdmin();
-  if (!app || !tokens.length) return;
-  try {
-    await app.messaging().sendEachForMulticast({
-      tokens,
-      notification: { title, body },
-      data: Object.fromEntries(
-        Object.entries(data || {}).map(([k, v]) => [k, String(v)])
-      ),
-      android: { priority: 'high', notification: { channelId: 'edupulse_family' } },
-    });
-  } catch (_) {
-    // Gửi hỏng (vd token sai định dạng) — bỏ qua, lần sau dọn.
-  }
-}
-
 // Xoá token Web Push chết — dọn dẹp là việc tốt-nhất, không chặn luồng gửi.
 
 async function sendPushTo(supabase, parentId, message) {
@@ -236,19 +186,14 @@ async function sendPushTo(supabase, parentId, message) {
     .select('token, kind')
     .eq('user_id', parentId);
   const rows = tokens || [];
+  // Chỉ Web Push là kênh gửi (FCM đã bỏ). Token `kind` lạ/fcm còn sót được
+  // BỎ QUA êm — không nổ, lần sau cron/token chết sẽ được dọn.
   const web = rows.filter((r) => (r.kind || 'web') === 'web');
-  const fcm = rows.filter((r) => r.kind === 'fcm');
   const data = {
     at: message.at || Date.now(),
     kind: message.kind || 'live',
   };
   await sendWebPush(supabase, web, message.title, message.body, data);
-  await sendFcm(
-    fcm.map((r) => r.token),
-    message.title,
-    message.body,
-    data
-  );
 }
 
 /** Báo cho mọi ba mẹ đã liên kết rằng con vừa có gì đó mới. */
@@ -591,7 +536,7 @@ module.exports = async function handler(req, res) {
 
   let user;
   try {
-    user = await getFirebaseUser(idToken);
+    user = await getSupabaseUser(idToken);
   } catch (e) {
     return fail(res, 401, e.message || 'Phiên đăng nhập đã hết hạn.');
   }
@@ -688,9 +633,10 @@ async function invite(supabase, user, body, res) {
 
 /** Trạng thái gia đình của người đang gọi — dùng chung cho cả hai vai. */
 async function myFamily(supabase, user, res) {
-  // uid lấy từ token đã xác thực, nhưng vẫn chặn ký tự lạ trước khi ghép vào
-  // bộ lọc PostgREST (`.or()` nội suy chuỗi — phòng vệ theo chiều sâu).
-  if (!/^[A-Za-z0-9]{1,128}$/.test(String(user.uid || ''))) {
+  // uid lấy từ token đã xác thực (UUID Supabase, có dấu `-`), nhưng vẫn chặn
+  // ký tự lạ trước khi ghép vào bộ lọc PostgREST (`.or()` nội suy chuỗi —
+  // phòng vệ theo chiều sâu). Cho phép `-` vì UUID Supabase có gạch ngang.
+  if (!/^[A-Za-z0-9-]{1,128}$/.test(String(user.uid || ''))) {
     return fail(res, 500, 'Không đọc được liên kết gia đình.');
   }
   const { data, error } = await supabase
@@ -842,7 +788,7 @@ async function myFamily(supabase, user, res) {
     parents,
     children,
     topic: topicFor(user.uid),
-    // Cho app biết máy chủ có kênh push (Web Push/FCM) sẵn sàng hay không.
+    // Cho app biết máy chủ có kênh push (Web Push) sẵn sàng hay không.
     pushEnabled: pushConfigured(),
     emailDigestAvailable: !!(process.env.SMTP_USER && process.env.SMTP_USER.trim()),
   });
@@ -1185,7 +1131,8 @@ async function pushToken(supabase, user, body, res) {
   // Token hợp lệ dài vài trăm ký tự; dài bất thường = dữ liệu rác/tấn công.
   if (token.length > 4096) return fail(res, 400, 'Token thiết bị quá dài.');
 
-  // `kind` phân biệt Web Push (web) và FCM native (fcm) — mặc định web.
+  // `kind` phân biệt token: 'web' (Web Push) là kênh duy nhất máy chủ gửi.
+  // Giữ nhận 'fcm' (client cũ còn gửi) nhưng bỏ qua khi đẩy — không nổ.
   const kind = body.kind === 'fcm' ? 'fcm' : 'web';
 
   if (body.remove === true) {

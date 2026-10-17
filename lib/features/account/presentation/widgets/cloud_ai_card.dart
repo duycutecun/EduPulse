@@ -9,7 +9,7 @@ import '../../../../shared/widgets/glass_card.dart';
 
 /// Thẻ "Cloud & AI": nhập cấu hình ngay trong app.
 ///
-/// Bản web lấy Supabase/Firebase/API key từ biến môi trường của Vercel lúc
+/// Bản web lấy Supabase/API key từ biến môi trường của Vercel lúc
 /// build. Bản cài trên máy (`.ipa`/`.apk`) chỉ có những giá trị đó nếu người
 /// build truyền `--dart-define` — thiếu là "không kết nối được database,
 /// không dùng được AI" mà người dùng không có cách nào sửa. Thẻ này cho dán

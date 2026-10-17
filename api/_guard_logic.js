@@ -1,5 +1,5 @@
 // Logic thuần của `_guard.js` — tách riêng để test bằng `node --test` mà KHÔNG
-// cần Firebase/Supabase hay biến môi trường. Chỉ tính toán, không gọi mạng.
+// cần mạng/Supabase hay biến môi trường. Chỉ tính toán, không gọi mạng.
 //
 // Vì sao cần quota theo NGÀY (ngoài rate limit theo phút): rate limit chỉ chặn
 // burst trong 1 phút, nhưng một client vẫn có thể rải đều 30 req/phút suốt ngày
