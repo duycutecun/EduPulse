@@ -5,6 +5,11 @@ import '../config.dart';
 class StorageService {
   static SharedPreferences? _prefs;
 
+  /// Hook được BackupService gắn lúc start: mọi ghi ảnh hưởng tới dữ liệu
+  /// cloud (điểm, nhật ký, hồ sơ, XP/streak) sẽ bắn qua đây để push trong
+  /// ~2s thay vì chờ poll 20s/lô 15 phút.
+  static void Function()? cloudDirtyHook;
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     // Vai trò đọc từ đĩa phải nạp vào notifier trước khi UI dựng lần đầu, nếu
@@ -15,6 +20,22 @@ class StorageService {
   static SharedPreferences get prefs {
     if (_prefs == null) throw Exception('StorageService not initialized');
     return _prefs!;
+  }
+
+  /// Báo cho kênh sao lưu biết dữ liệu cloud vừa thay đổi.
+  ///
+  /// Gọi ở CUỐI mỗi method public ghi dữ liệu cloud-relevant. Cố ý KHÔNG
+  /// import BackupService (tạo vòng phụ thuộc) — hook được BackupService tự
+  /// gắn lúc `start()`. Hook ném lỗi thì lần ghi chính vẫn phải giữ được dữ
+  /// liệu: poll định kỳ vẫn là lưới an toàn chậm hơn nhưng chắc chắn.
+  static void _notifyCloudDirty() {
+    final hook = cloudDirtyHook;
+    if (hook == null) return;
+    try {
+      hook();
+    } catch (_) {
+      // Kênh sync hỏng không được làm hỏng lần ghi của người dùng.
+    }
   }
 
   // Onboarding
@@ -29,13 +50,16 @@ class StorageService {
 
   static String? getExamJson(String id) => _prefs?.getString('exam_$id');
 
-  static void setExamJson(String id, String json) =>
-      _prefs?.setString('exam_$id', json);
+  static void setExamJson(String id, String json) {
+    _prefs?.setString('exam_$id', json);
+    _notifyCloudDirty();
+  }
 
   static void removeExam(String id) {
     _prefs?.remove('exam_$id');
     final ids = getExamIds()..remove(id);
     setExamIds(ids);
+    _notifyCloudDirty();
   }
 
   static String? getPrimaryExamId() => _prefs?.getString('primary_exam_id');
@@ -45,15 +69,23 @@ class StorageService {
 
   // Streak
   static int getStreak() => _prefs?.getInt('streak') ?? 0;
-  static void setStreak(int v) => _prefs?.setInt('streak', v);
+  static void setStreak(int v) {
+    _prefs?.setInt('streak', v);
+    _notifyCloudDirty();
+  }
 
   static int getStreakRecord() => _prefs?.getInt('streak_record') ?? 0;
-  static void setStreakRecord(int v) => _prefs?.setInt('streak_record', v);
+  static void setStreakRecord(int v) {
+    _prefs?.setInt('streak_record', v);
+    _notifyCloudDirty();
+  }
 
   // Lá bùa giữ chuỗi (streak freeze)
   static int getStreakFreezes() => _prefs?.getInt('streak_freeze_count') ?? 0;
-  static void setStreakFreezes(int v) =>
-      _prefs?.setInt('streak_freeze_count', v);
+  static void setStreakFreezes(int v) {
+    _prefs?.setInt('streak_freeze_count', v);
+    _notifyCloudDirty();
+  }
 
   /// Mua lá bùa bằng EXP gắn kết linh vật (tối đa giữ 3 lá).
   /// Trả về true nếu mua thành công.
@@ -125,7 +157,10 @@ class StorageService {
 
   // XP / Level
   static int getXp() => _prefs?.getInt('user_xp') ?? 0;
-  static void setXp(int v) => _prefs?.setInt('user_xp', v);
+  static void setXp(int v) {
+    _prefs?.setInt('user_xp', v);
+    _notifyCloudDirty();
+  }
 
   static void addXp(int delta) {
     if (delta <= 0) return;
@@ -171,12 +206,16 @@ class StorageService {
       _prefs?.setStringList('study_log_ids', ids);
   static String? getStudyLogJson(String id) =>
       _prefs?.getString('study_log_$id');
-  static void setStudyLogJson(String id, String json) =>
-      _prefs?.setString('study_log_$id', json);
+  static void setStudyLogJson(String id, String json) {
+    _prefs?.setString('study_log_$id', json);
+    _notifyCloudDirty();
+  }
+
   static void removeStudyLog(String id) {
     _prefs?.remove('study_log_$id');
     final ids = getStudyLogIds()..remove(id);
     setStudyLogIds(ids);
+    _notifyCloudDirty();
   }
 
   // Notes (local-first; ready for a future sync layer).
@@ -186,12 +225,16 @@ class StorageService {
       _prefs?.setStringList('study_note_ids', ids);
   static String? getStudyNoteJson(String id) =>
       _prefs?.getString('study_note_$id');
-  static void setStudyNoteJson(String id, String json) =>
-      _prefs?.setString('study_note_$id', json);
+  static void setStudyNoteJson(String id, String json) {
+    _prefs?.setString('study_note_$id', json);
+    _notifyCloudDirty();
+  }
+
   static void removeStudyNote(String id) {
     _prefs?.remove('study_note_$id');
     final ids = getStudyNoteIds()..remove(id);
     setStudyNoteIds(ids);
+    _notifyCloudDirty();
   }
 
   // Focus sessions (linked to a task when one was selected).
@@ -201,12 +244,16 @@ class StorageService {
       _prefs?.setStringList('study_session_ids', ids);
   static String? getStudySessionJson(String id) =>
       _prefs?.getString('study_session_$id');
-  static void setStudySessionJson(String id, String json) =>
-      _prefs?.setString('study_session_$id', json);
+  static void setStudySessionJson(String id, String json) {
+    _prefs?.setString('study_session_$id', json);
+    _notifyCloudDirty();
+  }
+
   static void removeStudySession(String id) {
     _prefs?.remove('study_session_$id');
     final ids = getStudySessionIds()..remove(id);
     setStudySessionIds(ids);
+    _notifyCloudDirty();
   }
 
   // Tài liệu đính kèm của nhiệm vụ (FE-2.2).
@@ -232,10 +279,16 @@ class StorageService {
   // Profile
   static String getUserName() =>
       _prefs?.getString('user_name') ?? 'Sĩ tử EduPulse';
-  static void setUserName(String v) => _prefs?.setString('user_name', v);
+  static void setUserName(String v) {
+    _prefs?.setString('user_name', v);
+    _notifyCloudDirty();
+  }
 
   static String getUserTarget() => _prefs?.getString('user_target') ?? '';
-  static void setUserTarget(String v) => _prefs?.setString('user_target', v);
+  static void setUserTarget(String v) {
+    _prefs?.setString('user_target', v);
+    _notifyCloudDirty();
+  }
 
   // Trạng thái xác minh email (dùng cho tài khoản đăng ký bằng email/password).
   // Firebase email verification mặc định là link — app dùng mã 8 chữ số tự phát
@@ -244,7 +297,10 @@ class StorageService {
   static void setEmailVerified(bool v) => _prefs?.setBool('email_verified', v);
 
   static String getAiModel() => _prefs?.getString('ai_model') ?? '';
-  static void setAiModel(String v) => _prefs?.setString('ai_model', v);
+  static void setAiModel(String v) {
+    _prefs?.setString('ai_model', v);
+    _notifyCloudDirty();
+  }
 
   // Vai trò tài khoản ("Cửa sổ tin cậy"): 'student' (mặc định) hoặc 'parent'.
   // Quyết định màn hình mở đầu sau khi đăng nhập: học sinh vào app học tập,
@@ -267,6 +323,7 @@ class StorageService {
   static void setAccountRole(String v) {
     _prefs?.setString('account_role', v);
     if (roleNotifier.value != v) roleNotifier.value = v;
+    _notifyCloudDirty();
   }
 
   static bool get isParentAccount => getAccountRole() == roleParent;
@@ -274,8 +331,10 @@ class StorageService {
   // Chế độ tự động đọc ảnh: khi gắn ảnh, AI tự phân tích mà không cần gõ prompt.
   static bool getAiAutoReadImage() =>
       _prefs?.getBool('ai_auto_read_image') ?? false;
-  static void setAiAutoReadImage(bool v) =>
-      _prefs?.setBool('ai_auto_read_image', v);
+  static void setAiAutoReadImage(bool v) {
+    _prefs?.setBool('ai_auto_read_image', v);
+    _notifyCloudDirty();
+  }
 
   // Danh sách model miễn phí của OpenRouter (cache 24h, FreeModelsCatalog).
   static String? getFreeModelsCache() =>
@@ -289,8 +348,11 @@ class StorageService {
 
   // AI Coach Chat History (cục bộ, miễn phí, lưu tối đa 40 tin)
   static String? getAiChatHistory() => _prefs?.getString('ai_chat_history_v1');
-  static void setAiChatHistory(String json) =>
-      _prefs?.setString('ai_chat_history_v1', json);
+  static void setAiChatHistory(String json) {
+    _prefs?.setString('ai_chat_history_v1', json);
+    _notifyCloudDirty();
+  }
+
   static void clearAiChatHistory() => _prefs?.remove('ai_chat_history_v1');
 
   // Today mission
@@ -314,12 +376,16 @@ class StorageService {
       _prefs?.setStringList('mock_score_ids', ids);
   static String? getMockScoreJson(String id) =>
       _prefs?.getString('mock_score_$id');
-  static void setMockScoreJson(String id, String json) =>
-      _prefs?.setString('mock_score_$id', json);
+  static void setMockScoreJson(String id, String json) {
+    _prefs?.setString('mock_score_$id', json);
+    _notifyCloudDirty();
+  }
+
   static void removeMockScore(String id) {
     _prefs?.remove('mock_score_$id');
     final ids = getMockScoreIds()..remove(id);
     setMockScoreIds(ids);
+    _notifyCloudDirty();
   }
 
   // Supabase Cloud Config
@@ -355,27 +421,36 @@ class StorageService {
   static String getMascotAccessory() =>
       _prefs?.getString('mascot_equipped_accessory') ?? 'sprout';
 
-  static void setMascotAccessory(String id) =>
-      _prefs?.setString('mascot_equipped_accessory', id);
+  static void setMascotAccessory(String id) {
+    _prefs?.setString('mascot_equipped_accessory', id);
+    _notifyCloudDirty();
+  }
 
   static String? getLastFortuneDate() =>
       _prefs?.getString('mascot_last_fortune_date');
 
-  static void setLastFortuneDate(String dateStr) =>
-      _prefs?.setString('mascot_last_fortune_date', dateStr);
+  static void setLastFortuneDate(String dateStr) {
+    _prefs?.setString('mascot_last_fortune_date', dateStr);
+    _notifyCloudDirty();
+  }
 
   static String? getLastFortuneText() =>
       _prefs?.getString('mascot_last_fortune_text');
 
-  static void setLastFortuneText(String text) =>
-      _prefs?.setString('mascot_last_fortune_text', text);
+  static void setLastFortuneText(String text) {
+    _prefs?.setString('mascot_last_fortune_text', text);
+    _notifyCloudDirty();
+  }
 
   static int getMascotBondExp() => _prefs?.getInt('mascot_bond_exp') ?? 120;
 
-  static void setMascotBondExp(int v) => _prefs?.setInt('mascot_bond_exp', v);
+  static void setMascotBondExp(int v) {
+    _prefs?.setInt('mascot_bond_exp', v);
+    _notifyCloudDirty();
+  }
 
   static void addMascotBondExp(int delta) {
-    final cur = getMascotBondExp();
-    _prefs?.setInt('mascot_bond_exp', cur + delta);
+    // Qua setMascotBondExp để cùng một đường ghi + cùng được đánh dấu sync.
+    setMascotBondExp(getMascotBondExp() + delta);
   }
 }

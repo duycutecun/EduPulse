@@ -220,6 +220,12 @@ class BackupService {
   static void start() {
     _started = true;
     stopTimers();
+    // Một điểm chốt duy nhất cho "mọi hành động đều được đánh dấu": các đường
+    // ghi thẳng vào StorageService (điểm thi thử, nhật ký, hồ sơ, XP/streak,
+    // linh vật…) sẽ bắn hook này → push sau ~2s debounce thay vì chờ poll 20s
+    // hoặc vòng sync 15 phút. Hướng phụ thuộc đi từ dịch vụ về kho lưu trữ
+    // nên không tạo vòng import (StorageService không hề biết BackupService).
+    StorageService.cloudDirtyHook = notifyLocalChange;
     unawaited(syncNow());
     // Timer luôn chạy (kể cả lúc chưa đăng nhập) vì người dùng có thể đăng
     // nhập giữa phiên: nếu chỉ bật timer lúc `isActive` thì việc đăng nhập sau
@@ -243,6 +249,11 @@ class BackupService {
     _authSubscription = null;
     _started = false;
     _rerunRequested = false;
+    // Dọn hook gắn lúc [start] — chỉ dọn khi chính mình là chủ của nó, tránh
+    // xoá nhầm hook người khác gắn sau đó.
+    if (StorageService.cloudDirtyHook == notifyLocalChange) {
+      StorageService.cloudDirtyHook = null;
+    }
   }
 
   static void stopTimers() {
