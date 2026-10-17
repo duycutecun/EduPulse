@@ -13,7 +13,8 @@ import '../utils/storage_service.dart';
 /// - Gọi `GET https://openrouter.ai/api/v1/models` một lần mỗi 24h.
 /// - Lọc các model giá 0đ (hậu tố `:free` hoặc pricing 0) và cache kết quả
 ///   vào SharedPreferences để lần mở app sau không cần gọi lại mạng.
-/// - Luôn giữ `openrouter/free` (Auto) và Gemini (Key) trong danh sách runtime
+/// - Luôn giữ model mặc định (Groq 20b từ 10/2026) và các model chạy key
+///   riêng (`groq/...`, `gemini/...`) trong danh sách runtime
 ///   để người dùng luôn có phương án dự phòng kể cả khi offline / API đổi cấu
 ///   trúc.
 class FreeModelsCatalog {
@@ -94,11 +95,14 @@ class FreeModelsCatalog {
       // Sắp xếp: model mới nhất lên đầu (trừ Auto luôn đứng đầu).
       free.sort((a, b) => _createdOrder(a.slug, b.slug, data));
       final result = <AIModel>[AIModel.defaultModel, ...free];
-      // Giữ các model chạy bằng key riêng của chủ app (slug 'gemini/...') —
-      // chúng không nằm trong danh sách free của OpenRouter nhưng luôn dùng được.
+      // Giữ các model chạy bằng key riêng của chủ app (slug `gemini/...` và
+      // `groq/...`) — chúng không nằm trong danh sách free của OpenRouter
+      // nhưng luôn dùng được. Groq là AI mặc định từ 10/2026; catalog cache
+      // cũ chưa chứa nó nên luôn nạp lại từ definitions tĩnh.
       for (final m in AIModel.definitions) {
-        if (m.slug.startsWith('gemini/') &&
-            !result.any((r) => r.slug == m.slug)) {
+        final isAppKeyed =
+            m.slug.startsWith('gemini/') || m.slug.startsWith('groq/');
+        if (isAppKeyed && !result.any((r) => r.slug == m.slug)) {
           result.add(m);
         }
       }

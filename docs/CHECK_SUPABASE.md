@@ -59,7 +59,9 @@
 ## 3. Vercel (máy chủ app + API)
 
 - [ ] Giữ nguyên: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, SMTP keys,
-  `SUPABASE_SERVICE_ROLE_KEY` (server), khoá AI.
+  `SUPABASE_SERVICE_ROLE_KEY` (server), khoá AI `OPENROUTER_API_KEY`,
+  `GEMINI_API_KEY` và (mới 10/2026) `GROQ_API_KEY` — key Groq tạo miễn phí
+  tại console.groq.com/keys, không cần thẻ; chi tiết ở `docs/AI_GROQ.md`.
 - [ ] **Có thể xoá** (không còn code nào đọc): 
   `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`,
   `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`,

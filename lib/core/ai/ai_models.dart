@@ -4,9 +4,12 @@ import 'free_models_catalog.dart';
 
 /// Định nghĩa model AI có sẵn trong AI Coach.
 ///
-/// Hiện tại tất cả model đều chạy qua OpenRouter (một API key duy nhất,
-/// tự động failover khi một provider hết quota). Các model có hậu tố `:free`
-/// là các variant miễn phí do OpenRouter định tuyến.
+/// Provider mặc định là **Groq** (free, first-token nhanh nhất — model
+/// `groq/...` chạy qua proxy `/api/groq` bằng key `GROQ_API_KEY` của chủ app).
+/// Model `gemini/...` chạy bằng key Gemini riêng (ưu tiên khi có ảnh).
+/// Các model còn lại chạy qua OpenRouter (một API key duy nhất, tự động
+/// failover khi một provider hết quota). Model có hậu tố `:free` là variant
+/// miễn phí do OpenRouter định tuyến.
 class AIModel {
   /// Slug model dùng trong request OpenRouter (vd: `meta-llama/llama-3.3-70b`).
   final String slug;
@@ -29,9 +32,24 @@ class AIModel {
 
   /// Danh sách model có sẵn để người dùng chọn (mặc định lên đầu).
   ///
+  /// 10/2026: thêm Groq làm mặc định (free & nhanh nhất — BAN_THAY_DOI V2
+  /// M3.4). Groq free KHÔNG đọc ảnh → `supportsVision: false`, ảnh vẫn đi
+  /// Gemini (decided). Người dùng đã ghim model riêng vẫn giữ lựa chọn cũ:
+  /// chỉ người dùng đang dùng mặc định (`AUTO` = slug rỗng) mới nhận Groq.
+  ///
   /// Cập nhật 09/2026 theo danh sách model miễn phí của OpenRouter
   /// (https://openrouter.ai/collections/free-models).
   static const List<AIModel> definitions = [
+    AIModel(
+      slug: 'groq/openai/gpt-oss-20b',
+      label: 'Groq 20B (Nhanh nhất, free)',
+      description: 'Groq · gpt-oss-20b — first-token ~0.35s (khuyên dùng)',
+    ),
+    AIModel(
+      slug: 'groq/openai/gpt-oss-120b',
+      label: 'Groq 120B (Mạnh hơn)',
+      description: 'Groq · gpt-oss-120b — lý luận mạnh hơn, vẫn free',
+    ),
     AIModel(
       slug: 'openrouter/free',
       label: 'Auto (Free)',
@@ -106,7 +124,9 @@ class AIModel {
     ),
   ];
 
-  /// Model mặc định khi chưa chọn.
+  /// Model mặc định khi chưa chọn — Groq `gpt-oss-20b` (nhanh nhất, free;
+  /// BAN_THAY_DOI V2 M3.4). AiRouter có fallback nên nếu Groq quá tải thì
+  /// tự thử model kế tiếp rồi Gemini — không treo câu trả lời.
   static AIModel get defaultModel => definitions.first;
 
   /// Tìm model theo slug trong danh sách runtime (nếu có) hoặc danh sách tĩnh;
@@ -147,6 +167,7 @@ class AIModel {
 
 /// Nhận diện logo/icon hiển thị cho từng model.
 IconData aiModelIcon(String slug) {
+  if (slug.startsWith('groq/')) return Icons.flash_on_rounded;
   if (slug.startsWith('openai')) return Icons.bolt_rounded;
   if (slug.startsWith('google') || slug.startsWith('gemini')) {
     return Icons.auto_awesome_rounded;

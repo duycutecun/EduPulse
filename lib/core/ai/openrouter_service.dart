@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'ai_config.dart';
 import '../../features/study/domain/models/study_models.dart';
@@ -85,11 +84,14 @@ class OpenRouterService {
         : {'Authorization': 'Bearer $token'};
   }
 
-  /// Dựng payload messages gửi lên OpenRouter.
+  /// Dựng payload messages gửi lên OpenRouter (chuẩn OpenAI-compatible).
   ///
   /// Tách riêng khỏi [chat] để test được thứ tự & nội dung các message mà
   /// không cần gọi mạng thật.
-  @visibleForTesting
+  ///
+  /// Cũng được `GroqService` tái dùng: Groq thay OpenRouter làm AI mặc định
+  /// nhưng cùng chuẩn OpenAI-compatible, và persona/ngữ cảnh học tập phải
+  /// thống nhất — không nhân bản logic persona ở mỗi service.
   static List<Map<String, dynamic>> buildMessages({
     required List<ChatMessage> history,
     required String userMessage,
