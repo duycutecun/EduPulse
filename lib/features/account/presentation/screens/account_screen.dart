@@ -13,6 +13,7 @@ import '../../../../core/ai/ai_models.dart';
 import '../../../../core/utils/supabase_service.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/app_icon.dart';
+import '../../../../shared/widgets/ios_segmented.dart';
 import '../../../../shared/widgets/sync_status_bar.dart';
 import '../../../auth/presentation/screens/auth_screen.dart';
 import '../../../progress/presentation/screens/deep_report_screen.dart';
@@ -22,7 +23,9 @@ import '../widgets/family_report_sheet.dart';
 import '../widgets/account_family_entries.dart';
 import '../widgets/appearance_card.dart';
 import '../widgets/beta_feedback_sheet.dart';
+import '../widgets/cloud_ai_card.dart';
 import '../../../../core/feedback/beta_feedback.dart';
+import '../../../../core/share/share_text.dart';
 import 'learning_profile_screen.dart';
 import 'privacy_data_screen.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -43,6 +46,23 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
+  /// Phiên bản app — phải khớp `version` trong pubspec.yaml (không có
+  /// package_info trong dependencies nên đọc trực tiếp được; khi nâng cấp
+  /// version nhớ đổi cả đây).
+  static const String _appVersion = '2.0.0+1';
+
+  /// Số lần bấm liên tục vào hàng "Phiên bản" để mở nhóm "Chủ app".
+  static const int _ownerUnlockTaps = 7;
+
+  /// Tab con đang mở (0 Hồ sơ · 1 Cài đặt · 2 Thông tin app).
+  int _segment = 0;
+
+  /// Đếm bấm hàng "Phiên bản" — chỉ trong SESSION này, không lưu prefs.
+  int _versionTaps = 0;
+
+  /// Nhóm "Chủ app" đã mở khoá chưa (unlock chỉ sống đến khi restart app).
+  bool _ownerUnlocked = false;
+
   late String _userName;
   late String _userTarget;
 
@@ -146,20 +166,44 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileAndSettings(),
+          // Segmented control kiểu iOS mở màn — 3 tab con của tab "Tôi".
+          IosSegmentedControl(
+            key: const Key('account-segments'),
+            items: const [
+              IosSegmentItem(label: 'Hồ sơ', icon: Icons.person_rounded),
+              IosSegmentItem(label: 'Cài đặt', icon: Icons.settings_rounded),
+              // Nhãn ngắn để 3 segment đều vừa trong màn 320px (FittedBox
+              // chỉ là lưới an toàn cuối — không nên dựa vào để cắt chữ).
+              IosSegmentItem(label: 'Thông tin', icon: Icons.info_rounded),
+            ],
+            index: _segment,
+            onChanged: (i) {
+              if (i == _segment) return;
+              FeedbackService.selection();
+              setState(() => _segment = i);
+            },
+          ),
+          const SizedBox(height: 14),
+          switch (_segment) {
+            0 => _buildProfileTab(),
+            1 => _buildSettingsTab(),
+            _ => _buildAboutTab(),
+          },
         ],
       ),
     );
   }
 
-  Widget _buildProfileAndSettings() {
-    final isLoggedIn = SupabaseService.isLoggedIn;
-    final user = SupabaseService.currentUser;
-
+  /// ══════════ TAB CON 1 — 🧑 HỒ SƠ ══════════
+  ///
+  /// Mục user cần thấy hằng ngày: danh tính, đăng nhập/đăng xuất, trạng thái
+  /// đồng bộ/sao lưu, thống kê học tập chính và cửa sổ tin cậy với gia đình.
+  Widget _buildProfileTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (isLoggedIn && user != null) ...[
+        if (SupabaseService.isLoggedIn &&
+            SupabaseService.currentUser != null) ...[
           GlassCard(
             padding: const EdgeInsets.all(18),
             child: Row(
@@ -176,7 +220,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.email ?? 'EduPulse',
+                      Text(SupabaseService.currentUser!.email ?? 'EduPulse',
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -238,12 +282,12 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
         const SizedBox(height: 14),
         // Trạng thái đồng bộ nằm ngay trên hồ sơ: đây là câu người dùng tự hỏi
-        // khi mở cài đặt ("dữ liệu của tôi đã lên cloud chưa?"), và là chỗ đồng
-        // bộ lại ngay khi còn thay đổi chưa gửi (kế hoạch 7.2).
+        // khi mở tab "Tôi" ("dữ liệu của tôi đã lên cloud chưa?"), và là chỗ
+        // đồng bộ lại ngay khi còn thay đổi chưa gửi (kế hoạch 7.2).
         const SyncStatusCard(),
         const SizedBox(height: 16),
-        // Danh tính luôn hiện — khối hồ sơ đầu tab "Tôi" (nhóm 1 trong bố cục
-        // kiểu iOS Settings): thấy ngay mình là ai và mục tiêu gì.
+        // Danh tính luôn hiện — khối hồ sơ đầu tab "Hồ sơ": thấy ngay mình là
+        // ai và mục tiêu gì.
         _buildProfileSummary(),
 
         // ══════════════ Nhóm HỌC TẬP ══════════════
@@ -298,8 +342,27 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ),
 
-        // ══════════════ Nhóm CẢNH BÁO & NHẮC ══════════════
+        // ══════════════ Nhóm GIA ĐÌNH ══════════════
         const SizedBox(height: 28),
+        _buildSectionHeader('GIA ĐÌNH'),
+        FamilyReportEntry(
+          onTap: () => FamilyReportSheet.show(context),
+        ),
+        const SizedBox(height: 10),
+        ParentModeEntry(onEnterParentMode: _openParentMode),
+      ],
+    );
+  }
+
+  /// ══════════ TAB CON 2 — ⚙️ CÀI ĐẶT ══════════
+  ///
+  /// Các tuỳ chỉnh hành vi app: thông báo/nhắc học, theme & hiển thị, AI
+  /// (model, quyền AI), dữ liệu & riêng tư — người dùng chỉnh 1 lần rồi quên.
+  Widget _buildSettingsTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ══════════════ Nhóm CẢNH BÁO & NHẮC ══════════════
         _buildSectionHeader('CẢNH BÁO & NHẮC'),
         // Nhắc học + digest 20:30 + thông báo nâng cao (báo cáo tuần Chủ nhật,
         // streak guard) — giữ nguyên logic của ReminderCard.
@@ -317,19 +380,87 @@ class _AccountScreenState extends State<AccountScreen> {
         _buildSectionHeader('DỮ LIỆU & RIÊNG TƯ',
             subtitle: 'AI chỉ sử dụng dữ liệu khi bạn cho phép.'),
         _buildDataPrefsCard(),
+      ],
+    );
+  }
 
-        // ══════════════ Nhóm GIA ĐÌNH ══════════════
+  /// ══════════ TAB CON 3 — 📄 THÔNG TIN APP ══════════
+  ///
+  /// Các mục information/tĩnh: phiên bản, về app, liên kết, hỗ trợ — và nhóm
+  /// "Chủ app" ẨN mặc định (bấm 7 lần vào hàng "Phiên bản" để mở, chỉ trong
+  /// session này).
+  Widget _buildAboutTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ══════════════ Nhóm PHIÊN BẢN ══════════════
+        _buildSectionHeader('PHIÊN BẢN'),
+        // Hàng bấm 7 lần để mở nhóm "Chủ app" (easter egg của chủ app).
+        GestureDetector(
+          key: const Key('account-version-row'),
+          behavior: HitTestBehavior.opaque,
+          onTap: _handleVersionTap,
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: ListTile(
+              contentPadding: _tilePadding,
+              leading: const AppIcon(
+                Icons.school_rounded,
+                tileSize: 36,
+                iconSize: 18,
+                color: AppColors.iosPrimary,
+                bg: AppColors.iosPrimarySoft,
+              ),
+              title: const Text('Phiên bản'),
+              subtitle: const Text('EduPulse — Trợ lý học tập cho Sĩ tử THPT',
+                  style: TextStyle(fontSize: 11)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_appVersion,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.iosTextSecondary)),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.iosTextMuted, size: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // ══════════════ Nhóm GIỚI THIỆU & LIÊN KẾT ══════════════
         const SizedBox(height: 28),
-        _buildSectionHeader('GIA ĐÌNH'),
-        FamilyReportEntry(
-          onTap: () => FamilyReportSheet.show(context),
+        _buildSectionHeader('GIỚI THIỆU & LIÊN KẾT'),
+        _buildSectionRow(
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.help_outline_rounded,
+                color: AppColors.iosSecondary),
+            title: const Text('Về EduPulse'),
+            subtitle: const Text(
+                'Trợ lý Sĩ tử & Đếm ngược Kỳ thi (THPTQG, TSA, HSA, HSG)',
+                style: TextStyle(fontSize: 11)),
+            onTap: () => _showAboutDialog(),
+          ),
         ),
         const SizedBox(height: 10),
-        ParentModeEntry(onEnterParentMode: _openParentMode),
+        _buildSectionRow(
+          ListTile(
+            contentPadding: _tilePadding,
+            leading: const Icon(Icons.link_rounded, color: AppColors.iosInfo),
+            title: const Text('Liên kết bản web'),
+            subtitle:
+                Text(ShareText.appLink, style: const TextStyle(fontSize: 11)),
+            onTap: _copyWebLink,
+          ),
+        ),
 
-        // ══════════════ Nhóm TRỢ GIÚP & GIỚI THIỆU ══════════════
+        // ══════════════ Nhóm HỖ TRỢ ══════════════
         const SizedBox(height: 28),
-        _buildSectionHeader('TRỢ GIÚP & GIỚI THIỆU'),
+        _buildSectionHeader('HỖ TRỢ'),
         _buildSectionRow(
           ListTile(
             contentPadding: _tilePadding,
@@ -344,8 +475,78 @@ class _AccountScreenState extends State<AccountScreen> {
             onTap: () => showBetaFeedbackSheet(context),
           ),
         ),
+
+        // ══════════════ Nhóm CHỦ APP (ẨN) ══════════════
+        // Mở bằng cách bấm liên tục 7 lần vào hàng "Phiên bản" ở trên.
+        // Unlock KHÔNG lưu preference — restart app tự khóa lại.
+        if (_ownerUnlocked) ...[
+          const SizedBox(height: 28),
+          // Anim nhẹ: phần hiện ra trượt nở từ 0 theo kích thước nội dung.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            child: _buildOwnerToolsSection(),
+          ),
+        ],
       ],
     );
+  }
+
+  /// Nhóm "Chủ app" — các công cụ cấu hình/chuẩn đoán chỉ dành cho người vận
+  /// hành app, ẩn khỏi người dùng phổ thông.
+  Widget _buildOwnerToolsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      key: const Key('account-owner-section'),
+      children: [
+        _buildSectionHeader('CHỦ APP',
+            subtitle: 'Cấu hình nâng cao — chỉ dành cho chủ app.'),
+        const CloudAiCard(),
+      ],
+    );
+  }
+
+  /// Bấm hàng "Phiên bản": 7 lần liên tục → mở nhóm "Chủ app" kèm haptic.
+  /// Trước khi đạt ngưỡng, mỗi lần bấm chỉ haptic nhẹ kiểu chọn (selection).
+  void _handleVersionTap() {
+    if (_ownerUnlocked) return;
+    _versionTaps++;
+    if (_versionTaps >= _ownerUnlockTaps) {
+      FeedbackService.heavy();
+      setState(() => _ownerUnlocked = true);
+    } else {
+      FeedbackService.selection();
+    }
+  }
+
+  /// Sheet "Về EduPulse" — thông tin tổng quan của app.
+  void _showAboutDialog() {
+    showAboutDialog(
+      context: context,
+      applicationName: 'EduPulse',
+      applicationVersion: _appVersion,
+      applicationIcon: Container(
+        width: 56,
+        height: 56,
+        decoration: const BoxDecoration(
+          color: AppColors.iosPrimary,
+          shape: BoxShape.circle,
+        ),
+        child: const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
+      ),
+      applicationLegalese:
+          'Trợ lý Sĩ tử & Đếm ngược Kỳ thi — học cùng mục tiêu, thi tự tin.',
+    );
+  }
+
+  /// Sao chép link bản web để gửi bạn bè (không có url_launcher trong
+  /// dependencies nên chỉ chép vào clipboard + snackbar xác nhận).
+  void _copyWebLink() {
+    Clipboard.setData(ClipboardData(text: ShareText.appLink));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Đã sao chép liên kết bản web vào clipboard.'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   /// Cách lề chuẩn của hàng List trong nhóm (iOS inset grouped): 16 trái/phải.

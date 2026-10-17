@@ -2047,8 +2047,10 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
-    // Tab Tôi là các nhóm phẳng kiểu iOS Settings (không còn accordion gập/mở)
-    // — thẻ Cỡ chữ hiện ngay khi vào tab, không cần bấm mở nhóm.
+    // Tab "Tôi" giờ chia 3 tab con: "Cỡ chữ" nằm ở tab con CÀI ĐẶT
+    // (segment 1) — bấm segment trước rồi mới tìm thẻ Cỡ chữ.
+    await tester.tap(find.byKey(const Key('ios-segment-1')));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Cỡ chữ'), findsOneWidget);
 
     // Chọn L — fontScale tăng ngay.
