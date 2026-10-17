@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import '../../features/ai_coach/domain/quiz_models.dart';
 import '../../features/ai_coach/presentation/screens/quiz_play_screen.dart';
 import '../../features/exams/domain/models/exam_model.dart';
+import '../../features/exams/domain/exam_repository.dart';
+import '../../features/exams/presentation/screens/exams_page.dart';
 import '../../features/notes/presentation/screens/notes_screen.dart';
 import '../../features/study/domain/models/study_models.dart';
 import '../../features/study/presentation/screens/study_page.dart';
@@ -12,7 +14,9 @@ import '../../features/tasks/presentation/widgets/delete_task_dialog.dart';
 import '../../features/tasks/presentation/widgets/task_edit_sheet.dart';
 import '../../features/tasks/domain/repositories/task_repository.dart';
 import '../constants/app_colors.dart';
+import 'ai_action.dart';
 import 'ai_consent.dart';
+import 'ai_sprint4_planner.dart';
 import '../constants/subject_catalog.dart';
 import '../analytics/product_analytics.dart';
 import '../analytics/product_events.dart';
@@ -21,41 +25,7 @@ import '../utils/storage_service.dart';
 import 'ai_models.dart';
 import 'ai_router.dart';
 
-/// Các loại hành động AI có thể can thiệp và thực thi trực tiếp trong app
-enum AiActionType {
-  startFocus,
-  addTask,
-  saveNote,
-  takeQuiz,
-  openExams,
-  openNotes,
-
-  /// Sửa nhiệm vụ đang có (AI-2.1) — mở form sửa, không tự ý đổi.
-  editTask,
-
-  /// Dời lịch nhiệm vụ (AI-2.1) — có xác nhận.
-  rescheduleTask,
-
-  /// Xoá nhiệm vụ (AI-2.1) — **bắt buộc xác nhận** trước khi xoá.
-  deleteTask,
-}
-
-/// Một hành động cụ thể có thể bấm để thực thi ngay (1-click actionable)
-class AiCopilotAction {
-  final AiActionType type;
-  final String label;
-  final IconData icon;
-  final Color? color;
-  final Map<String, dynamic> payload;
-
-  const AiCopilotAction({
-    required this.type,
-    required this.label,
-    required this.icon,
-    this.color,
-    this.payload = const {},
-  });
-}
+export 'ai_action.dart';
 
 /// Báo cáo tình huống học tập thực tế của học sinh (đọc trực tiếp từ local DB)
 class AiSituationReport {
@@ -830,6 +800,12 @@ class AiCopilotService {
           );
         }
         break;
+
+      case AiActionType.plan:
+        // Kế hoạch nhiều ngày KHÔNG BAO GIỜ tự áp dụng (một lệnh = 10–30
+        // task): màn chat luôn xử lý bằng AiPlanPreviewSheet. Nút thủ công
+        // nếu vẫn gặp type này thì không làm gì cả — an toàn tuyệt đối.
+        break;
     }
     // Dọn callback ra khỏi payload sau khi chạy xong để payload trở lại
     // trạng thái thuần dữ liệu (không giữ reference UI).
@@ -973,6 +949,602 @@ class AiCopilotService {
       default:
         break;
     }
+  }
+
+  // ─── AI-2.2: executor TỰ THỰC THI (agentic) ─────────────────────────────
+
+  /// Thực thi **ngay lập tức** một hành động AI và trả về kết quả dạng chip.
+  ///
+  /// Khác [executeAction] (đường bấm thủ công, kết quả hiện bằng SnackBar),
+  /// hàm này phục vụ luồng AI tự làm việc ngay khi vừa trả lời:
+  /// - trả [AiActionResult] để màn chat hiển thị chip ✅/⚠️/❌ kèm nút Hoàn tác;
+  /// - các thao tác ghi **không cần context** được tách thành hàm `perform*`
+  ///   để test unit chạy không cần dựng widget;
+  /// - `deleteTask` luôn đi qua hộp thoại xác nhận của người dùng (FE-2.5);
+  /// - `plan` không bao giờ tự áp dụng — màn chat sẽ mở `AiPlanPreviewSheet`.
+  ///
+  /// [context] chỉ bắt buộc với loại hành động cần điều hướng (focus, mở màn)
+  /// hoặc dialog xác nhận; bằng `null` thì các loại đó trả kết quả `failed`.
+  static Future<AiActionResult> executeAuto(
+    BuildContext? context,
+    AiCopilotAction action, {
+    int actionIndex = 0,
+    VoidCallback? onTasksChanged,
+    VoidCallback? onStreakChanged,
+  }) async {
+    ProductAnalytics.instance.track(ProductEvents.aiActionRequested,
+        props: {'kind': action.type.name});
+
+    late final AiActionResult res;
+    switch (action.type) {
+      case AiActionType.addTask:
+      case AiActionType.saveNote:
+      case AiActionType.editTask:
+      case AiActionType.rescheduleTask:
+        res = await _dataMutationResult(context, action, actionIndex,
+            onTasksChanged: onTasksChanged);
+        break;
+      case AiActionType.deleteTask:
+        res = await _deleteWithConfirm(context, action, actionIndex);
+        break;
+      case AiActionType.startFocus:
+        res = await _openFocus(context, action, actionIndex, onStreakChanged);
+        break;
+      case AiActionType.openNotes:
+        res = await _openNotes(context, actionIndex);
+        break;
+      case AiActionType.openExams:
+        res = await _openExams(context, actionIndex);
+        break;
+      case AiActionType.takeQuiz:
+        // Quiz cần soạn câu hỏi và loading dialog — giữ đường bấm thủ công,
+        // không tự bấm giùm người học.
+        res = AiActionResult(
+          actionIndex: actionIndex,
+          kind: AiActionResultKind.failed,
+          message: 'Quiz cần bạn bấm nút để bắt đầu',
+        );
+        break;
+      case AiActionType.plan:
+        res = AiActionResult(
+          actionIndex: actionIndex,
+          kind: AiActionResultKind.failed,
+          message: 'Kế hoạch cần xem trước rồi mới áp dụng',
+        );
+        break;
+    }
+    action.clearUiCallbacks();
+    ProductAnalytics.instance.track(ProductEvents.aiActionApplied,
+        props: {'kind': action.type.name, 'result': 'ok'});
+    return res;
+  }
+
+  /// Đường thực thi cho các hành động **ghi dữ liệu không cần màn hình**:
+  /// add/edit/reschedule task và ghi chú. Mỗi loại tự chặn trùng, tự chụp
+  /// snapshot trước khi sửa (đặc tả 5.5) và tự đóng gói closure hoàn tác.
+  static Future<AiActionResult> _dataMutationResult(
+    BuildContext? context,
+    AiCopilotAction action,
+    int actionIndex, {
+    VoidCallback? onTasksChanged,
+  }) async {
+    final AiMutationOutcome outcome;
+    switch (action.type) {
+      case AiActionType.addTask:
+        outcome = await performAddTask(action.payload);
+        break;
+      case AiActionType.saveNote:
+        outcome = await performSaveNote(action.payload);
+        break;
+      case AiActionType.editTask:
+        // AI chỉ đọc tên task mà không đưa giá trị mới → mở form sửa (luồng
+        // cũ) cho người dùng tự điền; tự sửa hộ là mất quyền của người dùng.
+        if (!hasEditFields(action.payload)) {
+          return _editViaSheet(context, action, actionIndex);
+        }
+        outcome = await performEditTask(action.payload);
+        break;
+      case AiActionType.rescheduleTask:
+        outcome = await performRescheduleTask(action.payload);
+        break;
+      default:
+        outcome = const AiMutationOutcome(
+          AiActionResultKind.failed,
+          'Hành động không hợp lệ',
+        );
+    }
+    // Task đổi → báo UI (Home, kế hoạch hôm nay) đọc lại.
+    if (action.type != AiActionType.saveNote) {
+      onTasksChanged?.call();
+    }
+    return AiActionResult(
+      actionIndex: actionIndex,
+      kind: outcome.kind,
+      message: outcome.message,
+      undo: outcome.undo,
+    );
+  }
+
+  /// **addTask** tự động: tạo qua `TaskRepository.createTaskIfMissing` —
+  /// trùng là bị chặn, AI không bao giờ được tự tay ghi storage.
+  static Future<AiMutationOutcome> performAddTask(
+      Map<String, dynamic> payload) async {
+    final title = (payload['title'] ?? 'Nhiệm vụ mới').toString().trim();
+    final subject =
+        AppSubjects.normalize((payload['subject'] ?? 'Toán').toString());
+    final minutes = (payload['minutes'] as num?)?.toInt() ?? 25;
+    final priority = (payload['priority'] ?? 'medium').toString();
+    final when = parseAiWhen(payload['scheduledAt'] ?? payload['when']);
+
+    final task = TodayTask(
+      id: _uuid.v4(),
+      title: title.isEmpty ? 'Nhiệm vụ mới' : title,
+      subject: subject,
+      priority: priority,
+      estimateMinutes: minutes.clamp(5, 180).toInt(),
+      scheduledAt: when ?? DateTime.now(),
+    );
+
+    final result = await TaskRepository.instance.createTaskIfMissing(task);
+    if (result.isDuplicate) {
+      return AiMutationOutcome(
+        AiActionResultKind.duplicate,
+        result.error ?? 'Nhiệm vụ này đã có trong kế hoạch rồi',
+      );
+    }
+    if (result.failed || result.task == null) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        result.error ?? 'Không thêm được nhiệm vụ',
+      );
+    }
+    final created = result.task ?? task;
+    return AiMutationOutcome(
+      AiActionResultKind.done,
+      'Đã tạo nhiệm vụ: "${created.title}" '
+      '(${created.subject}, ${created.estimateMinutes} phút)',
+      undo: () async {
+        try {
+          // Hoàn tác "thêm" là xoá đúng nhiệm vụ AI vừa tạo.
+          await TaskRepository.instance.deleteTask(created.id);
+        } catch (_) {
+          // Hoàn tác là nỗ lực tốt nhất — không chọc lỗi lên chip nữa.
+        }
+      },
+    );
+  }
+
+  /// **saveNote** tự động: ghi StudyNote qua `StorageService`; hoàn tác là
+  /// xoá đúng ghi chú AI vừa tạo (chỉ đụng id AI tự đặt, không xoá nhầm của
+  /// người dùng).
+  static Future<AiMutationOutcome> performSaveNote(
+      Map<String, dynamic> payload) async {
+    final title = (payload['title'] ?? 'Ghi chú từ AI').toString().trim();
+    final body = (payload['body'] ?? '').toString();
+    final subject = (payload['subject'] ?? 'Tổng hợp').toString();
+
+    final note = StudyNote(
+      id: _uuid.v4(),
+      title: title.isEmpty ? 'Ghi chú từ AI' : title,
+      body: body,
+      subject: subject,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      tags: ['AI Coach', subject],
+    );
+
+    StorageService.setStudyNoteJson(note.id, note.toJsonString());
+    final noteIds = StorageService.getStudyNoteIds();
+    if (!noteIds.contains(note.id)) {
+      noteIds.add(note.id);
+      StorageService.setStudyNoteIds(noteIds);
+    }
+
+    return AiMutationOutcome(
+      AiActionResultKind.done,
+      'Đã lưu ghi chú: "${note.title}"',
+      undo: () async {
+        try {
+          StorageService.removeStudyNote(note.id);
+        } catch (_) {}
+      },
+    );
+  }
+
+  /// **editTask** tự động: chỉ áp dụng khi AI đưa ít nhất một giá trị mới.
+  static Future<AiMutationOutcome> performEditTask(
+      Map<String, dynamic> payload) async {
+    final title = (payload['title'] ?? payload['task'] ?? '').toString().trim();
+    if (title.isEmpty) {
+      return const AiMutationOutcome(
+        AiActionResultKind.failed,
+        'AI chưa nói rõ nhiệm vụ cần sửa',
+      );
+    }
+    final match = _findTaskByTitle(title, payload['subject']?.toString());
+    if (match == null) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        'Không tìm thấy nhiệm vụ "$title" trong kế hoạch',
+      );
+    }
+
+    final newTitle = (payload['newTitle'] ?? '').toString().trim();
+    final minutes = (payload['minutes'] as num?)?.toInt();
+    final priority = (payload['priority'] ?? '').toString().trim();
+    final when = parseAiWhen(
+        payload['scheduledAt'] ?? payload['newDate'] ?? payload['date']);
+    final deadline = parseAiWhen(payload['deadline']);
+
+    if (newTitle.isEmpty &&
+        minutes == null &&
+        priority.isEmpty &&
+        when == null &&
+        deadline == null) {
+      return const AiMutationOutcome(
+        AiActionResultKind.rejected,
+        'AI chưa đưa giá trị thay đổi — cần bạn điền bằng form',
+      );
+    }
+
+    // Chụp trạng thái cũ trước khi sửa để luôn có đường hoàn tác (đặc tả 5.5).
+    final before = TodayTask.fromJsonString(match.toJsonString());
+    final updated = TodayTask.fromJsonString(match.toJsonString());
+    if (newTitle.isNotEmpty) updated.title = newTitle;
+    if (minutes != null) {
+      updated.estimateMinutes = minutes.clamp(5, 180).toInt();
+    }
+    if (priority.isNotEmpty) updated.priority = priority;
+    if (when != null) updated.scheduledAt = when;
+    if (deadline != null) updated.deadline = deadline;
+
+    final result = await TaskRepository.instance.updateTask(updated);
+    if (result.failed) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        result.error ?? 'Không lưu được thay đổi',
+      );
+    }
+    return AiMutationOutcome(
+      AiActionResultKind.done,
+      'Đã cập nhật "${match.title}"',
+      undo: () async {
+        try {
+          await TaskRepository.instance.updateTask(before);
+        } catch (_) {}
+      },
+    );
+  }
+
+  /// **rescheduleTask** tự động: thiếu ngày → dời +1 ngày như hành vi cũ.
+  static Future<AiMutationOutcome> performRescheduleTask(
+      Map<String, dynamic> payload) async {
+    final title = (payload['title'] ?? '').toString().trim();
+    if (title.isEmpty) {
+      return const AiMutationOutcome(
+        AiActionResultKind.failed,
+        'AI chưa nói rõ nhiệm vụ cần dời',
+      );
+    }
+    final match = _findTaskByTitle(title, payload['subject']?.toString());
+    if (match == null) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        'Không tìm thấy nhiệm vụ "$title" trong kế hoạch',
+      );
+    }
+    if (match.isDone) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        '"${match.title}" đã hoàn thành nên không dời lịch được',
+      );
+    }
+
+    final parsed = parseAiWhen(payload['date'] ?? payload['newDate']);
+    final extraDays = (payload['days'] as num?)?.toInt() ?? 1;
+    final newDate = parsed ??
+        DateTime.now().add(Duration(days: extraDays < 0 ? 1 : extraDays));
+
+    final before = TodayTask.fromJsonString(match.toJsonString());
+    final result =
+        await TaskRepository.instance.rescheduleTask(match.id, newDate);
+    if (result.failed) {
+      return AiMutationOutcome(
+        AiActionResultKind.failed,
+        result.error ?? 'Không dời lịch được',
+      );
+    }
+    return AiMutationOutcome(
+      AiActionResultKind.done,
+      'Đã dời "${match.title}" sang ${newDate.day}/${newDate.month}',
+      undo: () async {
+        try {
+          await TaskRepository.instance.updateTask(before);
+        } catch (_) {}
+      },
+    );
+  }
+
+  /// **deleteTask**: AI chỉ được *đề nghị*; thật sự xoá phải đi qua hộp thoại
+  /// của người dùng (FE-2.5). Chốt "Xóa" mới ghi dữ liệu và vẫn luôn có đường
+  /// hoàn tác (`restoreTask`).
+  static Future<AiActionResult> _deleteWithConfirm(
+    BuildContext? context,
+    AiCopilotAction action,
+    int actionIndex,
+  ) async {
+    final title = (action.payload['title'] ?? '').toString().trim();
+    if (context == null || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Không thể hiện hộp thoại xác nhận ngay bây giờ',
+      );
+    }
+    if (title.isEmpty) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'AI chưa nói rõ nhiệm vụ cần xoá',
+      );
+    }
+    final match =
+        _findTaskByTitle(title, action.payload['subject']?.toString());
+    if (match == null) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Không tìm thấy nhiệm vụ "$title" trong kế hoạch',
+      );
+    }
+
+    final confirmed = await showConfirmDelete(context, match);
+    if (confirmed != true || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.rejected,
+        message: 'Đã giữ lại "${match.title}"',
+      );
+    }
+    final ref = await TaskRepository.instance.deleteTask(match.id);
+    return AiActionResult(
+      actionIndex: actionIndex,
+      kind: AiActionResultKind.done,
+      message: 'Đã xoá "${match.title}"',
+      undo: () async {
+        try {
+          await TaskRepository.instance.restoreTask(ref);
+        } catch (_) {}
+      },
+    );
+  }
+
+  /// editTask mà AI **không** đưa giá trị mới → mở form sửa (như luồng cũ)
+  /// và đóng gói kết quả thành chip hoàn tác được.
+  static Future<AiActionResult> _editViaSheet(
+    BuildContext? context,
+    AiCopilotAction action,
+    int actionIndex,
+  ) async {
+    if (context == null || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Không tìm thấy nhiệm vụ để sửa',
+      );
+    }
+    final match = _findTaskByTitle(
+      (action.payload['title'] ?? '').toString(),
+      action.payload['subject']?.toString(),
+    );
+    if (match == null) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message:
+            'Không tìm thấy nhiệm vụ "${action.payload['title'] ?? ''}" trong kế hoạch',
+      );
+    }
+
+    // Chụp trước khi sửa để hoàn tác đúng đặc tả 5.5.
+    final beforeEdit = TodayTask.fromJsonString(match.toJsonString());
+    final edited = await TaskEditSheet.show(context, initialTask: match);
+    if (edited == null || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.rejected,
+        message: 'Bạn đã đóng form sửa không đổi gì',
+      );
+    }
+    final dirty = edited.task.title != match.title ||
+        edited.task.estimateMinutes != match.estimateMinutes ||
+        edited.task.subject != match.subject ||
+        edited.task.deadline != match.deadline ||
+        edited.task.scheduledAt != match.scheduledAt ||
+        edited.task.priority != match.priority ||
+        edited.task.note != match.note;
+    if (!dirty) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.rejected,
+        message: 'Bạn đã đóng form sửa không đổi gì',
+      );
+    }
+    final result = await TaskRepository.instance.updateTask(edited.task);
+    return AiActionResult(
+      actionIndex: actionIndex,
+      kind: result.failed ? AiActionResultKind.failed : AiActionResultKind.done,
+      message: result.failed
+          ? (result.error ?? 'Không lưu được thay đổi')
+          : 'Đã cập nhật "${match.title}"',
+      undo: result.failed
+          ? null
+          : () async {
+              try {
+                await TaskRepository.instance.updateTask(beforeEdit);
+              } catch (_) {}
+            },
+    );
+  }
+
+  /// Mở phiên tập trung ngay (StudyPage `autoStart`) — đúng đường của nút ▶ cũ.
+  static Future<AiActionResult> _openFocus(
+    BuildContext? context,
+    AiCopilotAction action,
+    int actionIndex,
+    VoidCallback? onStreakChanged,
+  ) async {
+    final subject = (action.payload['subject'] ?? 'Toán').toString();
+    final minutes = (action.payload['minutes'] as num?)?.toInt() ?? 25;
+    final task = action.payload['task'] as TodayTask?;
+    if (context == null || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Không mở được phiên tập trung ngay bây giờ',
+      );
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => StudyPage(
+          onStreakChanged: onStreakChanged,
+          initialSubject: subject,
+          initialMinutes: minutes,
+          initialTask: task,
+          autoStart: true,
+        ),
+      ),
+    );
+    return AiActionResult(
+      actionIndex: actionIndex,
+      kind: AiActionResultKind.done,
+      message: 'Đã mở phiên tập trung $minutes phút môn $subject',
+    );
+  }
+
+  /// Mở màn Ghi chú.
+  static Future<AiActionResult> _openNotes(
+    BuildContext? context,
+    int actionIndex,
+  ) async {
+    if (context == null || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Không mở được Ghi chú ngay bây giờ',
+      );
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const NotesScreen(),
+      ),
+    );
+    return AiActionResult(
+      actionIndex: actionIndex,
+      kind: AiActionResultKind.done,
+      message: 'Đã mở màn Ghi chú',
+    );
+  }
+
+  /// Mở màn Mục tiêu (kỳ thi). Callback gắn thẳng vào [ExamRepository] —
+  /// repository tự bắn revision nên mọi phần của app vẽ lại theo dữ liệu mới.
+  static Future<AiActionResult> _openExams(
+    BuildContext? context,
+    int actionIndex,
+  ) async {
+    if (context == null || !context.mounted) {
+      return AiActionResult(
+        actionIndex: actionIndex,
+        kind: AiActionResultKind.failed,
+        message: 'Không mở được Mục tiêu ngay bây giờ',
+      );
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ExamsPage(
+          onSetPrimary: (exam) => ExamRepository.instance.setPrimary(exam.id),
+          onAddExam: (exam) => ExamRepository.instance.save(exam),
+          onUpdateExam: (exam) => ExamRepository.instance.save(exam),
+          onDeleteExam: (id) => ExamRepository.instance.delete(id),
+        ),
+      ),
+    );
+    return AiActionResult(
+      actionIndex: actionIndex,
+      kind: AiActionResultKind.done,
+      message: 'Đã mở màn Mục tiêu (kỳ thi)',
+    );
+  }
+
+  /// Ngày/giờ AI gửi về dạng ISO hoặc chuỗi tự do — đọc dịu dàng: chuỗi rỗng
+  /// hay parse hỏng trả `null` thay vì nhảy vào 1/1/1970.
+  static DateTime? parseAiWhen(Object? value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    final s = value.toString().trim();
+    if (s.isEmpty) return null;
+    return DateTime.tryParse(s);
+  }
+
+  /// editTask có thực sự mang giá trị mới? Chỉ có tên task là không đủ để tự
+  /// áp dụng — cần ít nhất tên mới / số phút / độ ưu tiên / ngày học /
+  /// deadline.
+  static bool hasEditFields(Map<String, dynamic> payload) =>
+      (payload['newTitle'] ?? '').toString().trim().isNotEmpty ||
+      payload['minutes'] != null ||
+      (payload['priority'] ?? '').toString().trim().isNotEmpty ||
+      parseAiWhen(payload['scheduledAt'] ??
+              payload['newDate'] ??
+              payload['date']) !=
+          null ||
+      parseAiWhen(payload['deadline']) != null;
+
+  /// Chuyển payload hành động `plan` (JSON từ AI) thành [AiStudyPlan] cho
+  /// `AiPlanPreviewSheet`. Không áp dụng gì — chờ người dùng bấm "Áp dụng".
+  static AiStudyPlan planFromAction(
+    AiCopilotAction action, {
+    DateTime? now,
+  }) {
+    final ref = now ?? DateTime.now();
+    final base = DateTime(ref.year, ref.month, ref.day);
+    final raw = action.payload['tasks'];
+    final tasks = <AiPlannedTask>[];
+    if (raw is List) {
+      for (final e in raw) {
+        if (e is! Map) continue;
+        final m = Map<String, dynamic>.from(e);
+        final title = (m['title'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+        final dayOffset =
+            ((m['dayOffset'] ?? m['day'] ?? 0) as num).toInt().clamp(0, 30);
+        tasks.add(AiPlannedTask(
+          id: _uuid.v4(),
+          title: title,
+          subject:
+              AppSubjects.normalize((m['subject'] ?? 'Tổng hợp').toString()),
+          estimateMinutes: ((m['minutes'] ?? m['estimateMinutes'] ?? 25) as num)
+              .toInt()
+              .clamp(10, 120)
+              .toInt(),
+          priority: (m['priority'] ?? 'medium').toString(),
+          scheduledAt: base.add(Duration(days: dayOffset)),
+          day: dayOffset + 1,
+          reason: m['reason']?.toString(),
+        ));
+      }
+    }
+    final summary = (action.payload['summary'] ?? action.payload['title'] ?? '')
+        .toString()
+        .trim();
+    return AiStudyPlan(
+      tasks: tasks,
+      summary: summary.isEmpty
+          ? 'Kế hoạch AI đề xuất (${tasks.length} nhiệm vụ)'
+          : summary,
+    );
   }
 
   /// Tìm task theo tên mà AI đưa ra — so khớp "chứa" sau khi bỏ dấu/emoji.

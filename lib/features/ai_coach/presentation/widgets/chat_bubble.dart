@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/ai/ai_copilot_service.dart';
 import '../../../../core/ai/ai_feedback.dart';
+import '../../../../core/ai/ai_sprint4_planner.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../study/domain/models/study_models.dart';
@@ -20,12 +21,23 @@ class ChatBubble extends StatelessWidget {
   /// Bỏ lỗi và quay về tự học — lỗi AI không bao giờ chặn người học.
   final VoidCallback? onContinueSelfStudy;
 
+  /// Nhận sự kiện chip tự thực thi (AI-2.2): hoàn tác / chốt xoá / bỏ qua.
+  /// Màn chat xử lý thật sự (mutation + lưu lịch sử) — bubble chỉ vẽ.
+  final Future<void> Function(ChatMessage msg, int actionIndex, AiChipEvent e)?
+      onAiChip;
+
+  /// Cho biết hành động nào còn đường hoàn tác trong phiên hiện tại
+  /// (closure undo không serialize được vào lịch sử chat).
+  final bool Function(ChatMessage msg, int actionIndex)? isUndoAvailable;
+
   const ChatBubble({
     super.key,
     required this.msg,
     this.onRegenerate,
     this.onRetry,
     this.onContinueSelfStudy,
+    this.onAiChip,
+    this.isUndoAvailable,
   });
 
   @override
@@ -237,10 +249,22 @@ class ChatBubble extends StatelessWidget {
                 ),
               ),
             ],
-            // Chat biết HÀNH ĐỘNG: ưu tiên actions có cấu trúc AI chèn
-            // (đúng chủ đề, đúng số phút...); chỉ fallback suy đoán keyword
-            // khi AI không chèn khối ACTIONS và lời trả lời đủ dài.
-            if (!isUser && msg.actions.isNotEmpty) ...[
+            // Chat TỰ THỰC THI (AI-2.2): chip kết quả của các hành động AI
+            // đã tự chạy — mỗi mutation một chip, có nút Hoàn tác inline.
+            if (!isUser && msg.actionResults.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _AiResultChips(
+                msg: msg,
+                onAiChip: onAiChip,
+                isUndoAvailable: isUndoAvailable,
+              ),
+              // Hành động KHÔNG có kết quả (ví dụ quiz) → chip bấm thủ công
+              // như luồng cũ, để người dùng vẫn chủ động.
+              if (_manualActions.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _AiActionRow(actions: _manualActions),
+              ],
+            ] else if (!isUser && msg.actions.isNotEmpty) ...[
               const SizedBox(height: 10),
               _AiActionRow(actions: msg.actions),
             ] else if (!isUser && msg.text.trim().length > 30) ...[
@@ -304,6 +328,19 @@ class ChatBubble extends StatelessWidget {
     }
 
     return TextSpan(children: spans);
+  }
+
+  /// Hành động còn đủ điều kiện bấm thủ công: những cái lẻ (quiz) hoặc chưa
+  /// có kết quả tự thực thi trong phiên này.
+  List<AiCopilotAction> get _manualActions {
+    final withResult = <int>{
+      for (final e in msg.actionResults) ((e['a'] as num?)?.toInt() ?? 0),
+    };
+    return [
+      for (var i = 0; i < msg.actions.length; i++)
+        if (!withResult.contains(i) && msg.actions[i].type != AiActionType.plan)
+          msg.actions[i],
+    ];
   }
 }
 
@@ -448,7 +485,6 @@ class _AiActionRow extends StatelessWidget {
   final List<dynamic> actions;
 
   const _AiActionRow({required this.actions});
-
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -490,6 +526,283 @@ class _AiActionRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Chip kết quả tự thực thi (AI-2.2): một hàng cho **mỗi** hành động AI đã
+/// tự làm khi trả lời. iOS-style: chip xanh ✅ là mutation có Hoàn tác inline,
+/// ⚠️ chặn trùng, ❌ lỗi, card cam là đề nghị xoá chờ người dùng chốt.
+class _AiResultChips extends StatelessWidget {
+  final ChatMessage msg;
+
+  final Future<void> Function(ChatMessage msg, int actionIndex, AiChipEvent e)?
+      onAiChip;
+
+  final bool Function(ChatMessage msg, int actionIndex)? isUndoAvailable;
+
+  const _AiResultChips({
+    required this.msg,
+    this.onAiChip,
+    this.isUndoAvailable,
+  });
+
+  AiActionResultKind _kindOf(Map<String, dynamic> entry) {
+    final raw = (entry['k'] ?? '').toString();
+    for (final k in AiActionResultKind.values) {
+      if (k.name == raw) return k;
+    }
+    return AiActionResultKind.done;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final entry in msg.actionResults) _resultChip(context, entry),
+      ],
+    );
+  }
+
+  Widget _resultChip(BuildContext context, Map<String, dynamic> entry) {
+    final actionIndex = (entry['a'] as num?)?.toInt() ?? 0;
+    final kind = _kindOf(entry);
+    final message = (entry['m'] ?? '').toString();
+
+    switch (kind) {
+      case AiActionResultKind.pendingDelete:
+        return _deleteCard(context, actionIndex, message);
+      case AiActionResultKind.plan:
+        return _planChip(context, actionIndex, message);
+      case AiActionResultKind.rejected:
+        return _pill(
+          icon: Icons.skip_next_rounded,
+          label: message.isEmpty ? 'Bạn đã bỏ qua' : message,
+          color: AppColors.iosTextMuted,
+        );
+      case AiActionResultKind.undone:
+        return _pill(
+          icon: Icons.undo_rounded,
+          label: message.isEmpty ? '↩ Đã hoàn tác' : message,
+          color: AppColors.iosTextMuted,
+        );
+      case AiActionResultKind.duplicate:
+        return _pill(
+          icon: Icons.error_outline_rounded,
+          label: message,
+          color: AppColors.iosWarning,
+        );
+      case AiActionResultKind.failed:
+        return _pill(
+          icon: Icons.error_outline_rounded,
+          label: message,
+          color: AppColors.iosError,
+        );
+      case AiActionResultKind.done:
+        final canUndo = isUndoAvailable?.call(msg, actionIndex) ?? false;
+        return _pill(
+          icon: Icons.check_circle_outline_rounded,
+          label: message,
+          color: AppColors.iosSuccess,
+          trailing: canUndo && onAiChip != null
+              ? GestureDetector(
+                  onTap: () => onAiChip!(msg, actionIndex, AiChipEvent.undo),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.undo_rounded,
+                          size: 13, color: AppColors.iosSuccess),
+                      const SizedBox(width: 4),
+                      Text('Hoàn tác',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.iosSuccess,
+                          )),
+                    ]),
+                  ),
+                )
+              : null,
+        );
+    }
+  }
+
+  /// Chip dạng viên thuốc với icon + nhãn; [trailing] là nút Hoàn tác inline
+  /// nếu mutation đó còn đường quay lại.
+  Widget _pill(
+      {required IconData icon,
+      required String label,
+      required Color color,
+      Widget? trailing}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  /// Card "AI đề nghị xoá" — xoá task là hành động không được tự tay kể cả
+  /// khi AI đề nghị: người dùng chốt, rồi dialog của app xác nhận lần cuối.
+  Widget _deleteCard(BuildContext context, int actionIndex, String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.iosWarningSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.iosWarning.withValues(alpha: 0.45),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.delete_outline_rounded,
+                  size: 15, color: AppColors.iosError),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.iosTextPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (onAiChip != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _cardButton(
+                  label: 'Xác nhận xoá',
+                  color: AppColors.iosError,
+                  onTap: () =>
+                      onAiChip!(msg, actionIndex, AiChipEvent.confirmDelete),
+                ),
+                const SizedBox(width: 8),
+                _cardButton(
+                  label: 'Bỏ qua',
+                  color: AppColors.iosTextMuted,
+                  onTap: () =>
+                      onAiChip!(msg, actionIndex, AiChipEvent.skipAction),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Chip "Xem kế hoạch (n nhiệm vụ)" — bấm mở `AiPlanPreviewSheet`, áp dụng
+  /// cần 1 chạm xác nhận của người dùng (không tự áp dụng hàng loạt).
+  Widget _planChip(BuildContext context, int actionIndex, String message) {
+    AiCopilotAction? action;
+    if (actionIndex < msg.actions.length) {
+      action = msg.actions[actionIndex];
+      if (action.type != AiActionType.plan) action = null;
+    }
+    final hasTasks = (action?.payload['tasks'] as List?)?.isNotEmpty ?? false;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: (action == null || !hasTasks)
+          ? null
+          : () {
+              final plan = AiCopilotService.planFromAction(action!);
+              AiPlanPreviewSheet.show(context, plan: plan);
+            },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.iosSecondary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.iosSecondary.withValues(alpha: 0.35),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_month_rounded,
+                size: 14, color: AppColors.iosSecondary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.iosSecondary,
+                ),
+              ),
+            ),
+            if (action != null && hasTasks) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  size: 10, color: AppColors.iosSecondary),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardButton({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }

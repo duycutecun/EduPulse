@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../../../../core/ai/ai_action.dart';
+
 class StudyLog {
   final String id;
   final DateTime date;
@@ -401,15 +403,20 @@ class ChatMessage {
   final String? imageName;
 
   /// Nguồn web trích dẫn (mục 10.9 — AI citations): title + url.
-  /// Không lưu vào JSON history (nguồn chỉ gắn với phiên hiện tại —
-  /// lịch sử cũ không có nguồn thì không hiển thị gì, trung thực).
+  /// AI-2.2: **có** lưu JSON history (null-safe) để lịch sử nạp lại vẫn hiện
+  /// thẻ nguồn — không có gì hiện gì, trung thực như cũ.
   String? sourceTitle;
   String? sourceUrl;
 
-  /// Hành động AI đề xuất (chat biết HÀNH ĐỘNG): được parse từ khối
-  /// `<<<ACTIONS>>>` trong câu trả lời. Không lưu vào JSON history — hành động
-  /// chỉ gắn với phiên hiện tại, lịch sử cũ vẫn hiển thị text thuần.
-  final List<dynamic> actions;
+  /// Hành động AI đề xuất (chat biết HÀNH ĐỘNG + TỰ THỰC THI): parse từ khối
+  /// `<<<ACTIONS>>>`. Lưu JSON history để nạp lại lịch sử chip vẫn render đúng.
+  final List<AiCopilotAction> actions;
+
+  /// Kết quả các hành động AI **đã tự thực thi** (AI-2.2): danh sách map
+  /// `{a: actionIndex, k: kind, m: message}` — done/failed/duplicate/pending…
+  /// Nạp lại lịch sử chip vẫn hiện đúng **trạng thái** đã làm; nút hoàn tác
+  /// chỉ sống trong phiên hiện tại (closure không serialize được — chủ đích).
+  final List<Map<String, dynamic>> actionResults;
 
   /// Tin nhắn lỗi của AI (đặc tả 12 / 30): hiện kèm [Thử lại] và
   /// [Tiếp tục tự học] thay vì chỉ báo lỗi. `retryPrompt` giữ nguyên câu hỏi
@@ -428,6 +435,7 @@ class ChatMessage {
     this.sourceTitle,
     this.sourceUrl,
     this.actions = const [],
+    this.actionResults = const [],
     this.isError = false,
     this.retryPrompt,
   });
@@ -442,19 +450,50 @@ class ChatMessage {
         // "Thử lại" với đúng câu hỏi gốc (UX 12 / AI-30).
         'isError': isError,
         'retryPrompt': retryPrompt,
+        // AI-2.2: actions + kết quả tự thực thi sống qua lịch sử (null-safe —
+        // dữ liệu cũ không có key vẫn đọc bình thường).
+        'actions': [for (final a in actions) a.toJson()],
+        'actionResults': actionResults,
+        if (sourceTitle != null) 'sourceTitle': sourceTitle,
+        if (sourceUrl != null) 'sourceUrl': sourceUrl,
       };
 
-  factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
-        id: j['id'] ?? '',
-        text: j['text'] ?? '',
-        isUser: j['isUser'] ?? false,
-        timestamp: j['timestamp'] != null
-            ? DateTime.tryParse(j['timestamp']) ?? DateTime.now()
-            : DateTime.now(),
-        imageName: j['imageName'],
-        isError: j['isError'] ?? false,
-        retryPrompt: j['retryPrompt'],
-      );
+  factory ChatMessage.fromJson(Map<String, dynamic> j) {
+    final actions = <AiCopilotAction>[];
+    final rawActions = j['actions'];
+    if (rawActions is List) {
+      for (final raw in rawActions) {
+        if (raw is Map<String, dynamic>) {
+          final a = AiCopilotAction.fromJson(raw);
+          if (a != null) actions.add(a);
+        }
+      }
+    }
+    final actionResults = <Map<String, dynamic>>[];
+    final rawResults = j['actionResults'];
+    if (rawResults is List) {
+      for (final raw in rawResults) {
+        if (raw is Map) {
+          actionResults.add(Map<String, dynamic>.from(raw));
+        }
+      }
+    }
+    return ChatMessage(
+      id: j['id'] ?? '',
+      text: j['text'] ?? '',
+      isUser: j['isUser'] ?? false,
+      timestamp: j['timestamp'] != null
+          ? DateTime.tryParse(j['timestamp']) ?? DateTime.now()
+          : DateTime.now(),
+      imageName: j['imageName'],
+      isError: j['isError'] ?? false,
+      retryPrompt: j['retryPrompt'],
+      actions: actions,
+      actionResults: actionResults,
+      sourceTitle: j['sourceTitle']?.toString(),
+      sourceUrl: j['sourceUrl']?.toString(),
+    );
+  }
 }
 
 /// Một lần ghi điểm đề thi thử (theo môn, thang 10).

@@ -327,7 +327,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
 
   /// Đẩy một câu trả lời AI cục bộ (không cần mạng) vào hội thoại, kèm nút
   /// hành động. Dùng cho gợi ý tức thời như "Tôi nên học gì?" (AI-4.2).
-  void _pushAiMessage(String text, {List<dynamic> actions = const []}) {
+  void _pushAiMessage(String text, {List<AiCopilotAction> actions = const []}) {
     setState(() {
       _messages.add(ChatMessage(
         id: _uuid.v4(),
@@ -841,15 +841,19 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
       return;
     }
 
-    // AI biết HÀNH ĐỘNG: tách khối <<<ACTIONS>>> khỏi câu trả lời — phần
-    // text sạch hiển thị, phần hành động thành nút bấm thật trong bubble.
+    // AI biết HÀNH ĐỘNG + TỰ THỰC THI (AI-2.2): tách khối actions khỏi câu
+    // trả lời, **tự chạy ngay** các lệnh an toàn (thêm/sửa/mở), chụp kết quả
+    // thành chip ✅/⚠️/❌ kèm nút Hoàn tác dưới bubble.
     if (!mounted) return;
     final parsed = AiChatActionParser.parse(response);
+    final aiId = _uuid.v4();
+    final results = await _autoExecuteActions(parsed.actions, aiId);
+    if (!mounted) return;
 
     setState(() {
       _messages.remove(loadingMsg);
       _messages.add(ChatMessage(
-        id: _uuid.v4(),
+        id: aiId,
         text: parsed.text,
         isUser: false,
         timestamp: DateTime.now(),
@@ -857,11 +861,179 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
         sourceTitle: AiRouter.lastWebSource?.title,
         sourceUrl: AiRouter.lastWebSource?.pageUrl,
         actions: parsed.actions,
+        actionResults: results,
       ));
       _isLoading = false;
     });
     _saveChatHistory();
     _scrollToBottom();
+  }
+
+  /// Các loại lệnh AI **tự chạy ngay** không cần hỏi (AI-2.2). Kế hoạch nhiều
+  /// ngày (`plan`) và xoá task (`deleteTask`) đi ngược này: một cái phải xem
+  /// trước (10–30 task/lượt), một cái bắt buộc xác nhận.
+  static const Set<AiActionType> _autoImmediateTypes = {
+    AiActionType.addTask,
+    AiActionType.saveNote,
+    AiActionType.startFocus,
+    AiActionType.openExams,
+    AiActionType.openNotes,
+    AiActionType.editTask,
+    AiActionType.rescheduleTask,
+  };
+
+  /// Tự thực thi tuần tự danh sách hành động AI và chụp kết quả từng cái.
+  ///
+  /// - types trong `_autoImmediateTypes`: chạy ngay qua
+  ///   [AiCopilotService.executeAuto], hoàn tác lưu trong `_undoHandlers`
+  ///   (chỉ sống trong phiên này — chủ đích của serialize lịch sử).
+  /// - `plan` / `deleteTask` / `takeQuiz`: KHÔNG chạy — trả trạng thái để
+  ///   bubble vẽ card chờ quyết định của người dùng / chip thủ công.
+  Future<List<Map<String, dynamic>>> _autoExecuteActions(
+    List<AiCopilotAction> actions,
+    String msgId,
+  ) async {
+    final results = <Map<String, dynamic>>[];
+    for (var i = 0; i < actions.length; i++) {
+      final action = actions[i];
+
+      // Kế hoạch nhiều ngày: KHÔNG tự áp dụng — 1 lệnh = 10–30 task, phải có
+      // bước xem trước 1 chạm "Áp dụng" (AiPlanPreviewSheet).
+      if (action.type == AiActionType.plan) {
+        final plan = AiCopilotService.planFromAction(action);
+        results.add(
+          AiActionResult(
+            actionIndex: i,
+            kind: AiActionResultKind.plan,
+            message: plan.isEmpty
+                ? 'AI chưa đủ thông tin để dựng kế hoạch'
+                : 'Xem trước kế hoạch ${plan.tasks.length} nhiệm vụ',
+          ).toJson(),
+        );
+        continue;
+      }
+
+      // Xoá task: chỉ HIỆN đề nghị — người dùng chốt thì mới qua dialog xoá.
+      if (action.type == AiActionType.deleteTask) {
+        final title = (action.payload['title'] ?? 'nhiệm vụ').toString();
+        results.add(
+          AiActionResult(
+            actionIndex: i,
+            kind: AiActionResultKind.pendingDelete,
+            message: 'AI đề nghị xoá: "$title"',
+          ).toJson(),
+        );
+        continue;
+      }
+
+      // Quiz cần dialog soạn câu hỏi — giữ chip bấm thủ công.
+      if (!_autoImmediateTypes.contains(action.type)) continue;
+
+      if (!mounted || !context.mounted) {
+        results.add(
+          AiActionResult(
+            actionIndex: i,
+            kind: AiActionResultKind.failed,
+            message: 'Bỏ qua — màn chat đã không còn hoạt động',
+          ).toJson(),
+        );
+        continue;
+      }
+      final screenContext = context;
+      final result = await AiCopilotService.executeAuto(
+        screenContext,
+        action,
+        actionIndex: i,
+      );
+      if (result.undo != null) {
+        _undoHandlers[_undoKey(msgId, i)] = result.undo!;
+      }
+      results.add(result.toJson());
+    }
+    return results;
+  }
+
+  /// Hoàn tác ở mức chip: `${msgId}:${actionIndex}` — id message được
+  /// serialize nên cùng một chip luôn tìm đúng closure của nó.
+  String _undoKey(String msgId, int actionIndex) => '$msgId:$actionIndex';
+
+  final Map<String, Future<void> Function()> _undoHandlers = {};
+
+  /// Điểm nhận các sự kiện chip dưới bubble: hoàn tác / chốt xoá / bỏ qua.
+  Future<void> _handleAiChip(
+    ChatMessage msg,
+    int actionIndex,
+    AiChipEvent event,
+  ) async {
+    final key = _undoKey(msg.id, actionIndex);
+    switch (event) {
+      case AiChipEvent.undo:
+        final undo = _undoHandlers[key];
+        if (undo == null) return;
+        await undo();
+        if (!mounted) return;
+        _undoHandlers.remove(key);
+        _updateActionResult(msg, actionIndex, (entry) {
+          entry['k'] = AiActionResultKind.undone.name;
+          entry['m'] = '↩ Đã hoàn tác';
+        });
+        _saveChatHistory();
+
+      case AiChipEvent.confirmDelete:
+        if (actionIndex >= msg.actions.length) return;
+        if (!mounted || !context.mounted) return;
+        final result = await AiCopilotService.executeAuto(
+          context,
+          msg.actions[actionIndex],
+          actionIndex: actionIndex,
+        );
+        if (result.undo != null) {
+          _undoHandlers[key] = result.undo!;
+        }
+        if (!mounted) return;
+        _setActionResult(msg, result);
+        _saveChatHistory();
+
+      case AiChipEvent.skipAction:
+        if (!mounted) return;
+        _undoHandlers.remove(key);
+        _updateActionResult(msg, actionIndex, (entry) {
+          entry['k'] = AiActionResultKind.rejected.name;
+          entry['m'] = 'Bạn đã bỏ qua đề nghị xoá';
+        });
+        _saveChatHistory();
+    }
+  }
+
+  /// Đổi trạng thái chip kết quả của một hành động trong bubble AI.
+  void _updateActionResult(
+    ChatMessage msg,
+    int actionIndex,
+    void Function(Map<String, dynamic> entry) mutate,
+  ) {
+    if (msg.actionResults.isEmpty) return;
+    for (final entry in msg.actionResults) {
+      if ((entry['a'] as num?)?.toInt() == actionIndex) {
+        setState(() => mutate(entry));
+        return;
+      }
+    }
+  }
+
+  /// Thay nguyên kết quả của một hành động (dùng khi người dùng chốt một đề
+  /// nghị của AI — ví dụ bấm "Xác nhận xoá").
+  void _setActionResult(ChatMessage msg, AiActionResult result) {
+    if (msg.actionResults.isEmpty) return;
+    for (final entry in msg.actionResults) {
+      if ((entry['a'] as num?)?.toInt() == result.actionIndex) {
+        setState(() {
+          entry
+            ..['k'] = result.kind.name
+            ..['m'] = result.message;
+        });
+        return;
+      }
+    }
   }
 
   /// Thử lại một câu hỏi bị lỗi — giữ nguyên nội dung gốc (đặc tả 12).
@@ -925,9 +1097,13 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
 
     if (!mounted) return;
     final parsed = AiChatActionParser.parse(response);
+    final aiId = _uuid.v4();
+    final results = await _autoExecuteActions(parsed.actions, aiId);
+    if (!mounted) return;
+
     setState(() {
       _messages[index] = ChatMessage(
-        id: _uuid.v4(),
+        id: aiId,
         text: parsed.text,
         isUser: false,
         timestamp: DateTime.now(),
@@ -935,6 +1111,7 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
         sourceTitle: AiRouter.lastWebSource?.title,
         sourceUrl: AiRouter.lastWebSource?.pageUrl,
         actions: parsed.actions,
+        actionResults: results,
       );
       _isLoading = false;
     });
@@ -1113,6 +1290,11 @@ Trả lời ngắn gọn, súc tích, dùng bullet.
                     ? null
                     : () => _closeErrorAndGoToday(
                         _messages[i - (_isIntroOnly ? 1 : 0)]),
+                // AI-2.2: chip kết quả tự thực thi — hoàn tác / chốt xoá /
+                // bỏ qua đều về màn chat xử lý rồi lưu lịch sử.
+                onAiChip: _handleAiChip,
+                isUndoAvailable: (msg, actionIndex) =>
+                    _undoHandlers.containsKey(_undoKey(msg.id, actionIndex)),
               );
             },
           ),
