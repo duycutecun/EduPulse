@@ -6,60 +6,18 @@ import '../../../../core/utils/storage_service.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../../shared/widgets/glass_card.dart';
 
-/// Thẻ Hiển thị (đặc tả mục 20): font size adaptive S/M/L toàn app.
+/// Thẻ **Cỡ chữ** (đặc tả mục 20): font size adaptive S/M/L toàn app.
+///
+/// v2.8: tách khỏi AppearanceCard cũ — trang "Cài đặt" cho user phổ thông
+/// chỉ còn 2 mục (Nhắc học hằng ngày + Cỡ chữ); phần nâng cao (tương phản
+/// cao, chế độ yên lặng) chuyển xuống nhóm CHỦ APP ở trang "Thông tin app"
+/// ([AdvancedAppearanceCard]).
 ///
 /// Dark mode chưa cung cấp - palette tối chưa đạt chuẩn production, không fake
 /// switch (nguyên tắc trung thực với người dùng). Tự lắng nghe
-/// [AppearanceService.fontScale] / [AppearanceService.highContrast] nên không
-/// cần màn cha gọi setState.
-class AppearanceCard extends StatefulWidget {
-  const AppearanceCard({super.key});
-
-  @override
-  State<AppearanceCard> createState() => _AppearanceCardState();
-}
-
-class _AppearanceCardState extends State<AppearanceCard> {
-  bool _quietStreak = false;
-  bool _quietMascot = false;
-  bool _quietSound = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _quietStreak = StorageService.getBool('quiet_mode_streak') ?? false;
-    _quietMascot = StorageService.getBool('quiet_mode_mascot') ?? false;
-    _quietSound = StorageService.getBool('quiet_mode_sound') ?? false;
-  }
-
-  Widget _quietSwitch(
-      String label, String sublabel, bool value, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.space4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 13.0, fontWeight: FontWeight.w700)),
-                Text(sublabel,
-                    style: TextStyle(
-                        fontSize: 11.0, color: AppColors.iosTextMuted)),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            activeThumbColor: AppColors.iosPrimary,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
+/// [AppearanceService.fontScale] nên không cần màn cha gọi setState.
+class FontSizeCard extends StatelessWidget {
+  const FontSizeCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +66,117 @@ class _AppearanceCardState extends State<AppearanceCard> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+        ],
+      ),
+    );
+  }
+
+  Widget _fontChoice(String key, String letter, String label) {
+    final selected = AppearanceService.fontScaleKey == key;
+    return GestureDetector(
+      onTap: () => AppearanceService.setFontScaleByKey(key),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.iosInfoSoft : AppColors.iosBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.iosInfo : AppColors.iosSeparator,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(letter,
+                style: TextStyle(
+                    fontSize: key == 'small'
+                        ? 14
+                        : key == 'large'
+                            ? 20
+                            : 17,
+                    fontWeight: FontWeight.w800,
+                    color: selected
+                        ? AppColors.iosInfoDark
+                        : AppColors.iosTextPrimary)),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: selected
+                        ? AppColors.iosInfoDark
+                        : AppColors.iosTextMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Thẻ hiển thị **nâng cao** — thành viên nhóm CHỦ APP (trang "Thông tin
+/// app", mở bằng unlock 7 bấm vào hàng "Phiên bản"):
+///
+/// - Tương phản cao (lắng nghe [AppearanceService.highContrast])
+/// - Chế độ yên lặng: ẩn rim streak / mascot / âm thanh phản hồi — dữ liệu
+///   vẫn được ghi nên không "nói dối" về tiến độ.
+///
+/// Tách khỏi [FontSizeCard] để trang Cài đặt giữ gọn cho user phổ thông.
+class AdvancedAppearanceCard extends StatefulWidget {
+  const AdvancedAppearanceCard({super.key});
+
+  @override
+  State<AdvancedAppearanceCard> createState() => _AdvancedAppearanceCardState();
+}
+
+class _AdvancedAppearanceCardState extends State<AdvancedAppearanceCard> {
+  bool _quietStreak = false;
+  bool _quietMascot = false;
+  bool _quietSound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quietStreak = StorageService.getBool('quiet_mode_streak') ?? false;
+    _quietMascot = StorageService.getBool('quiet_mode_mascot') ?? false;
+    _quietSound = StorageService.getBool('quiet_mode_sound') ?? false;
+  }
+
+  Widget _quietSwitch(
+      String label, String sublabel, bool value, ValueChanged<bool> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.space4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 13.0, fontWeight: FontWeight.w700)),
+                Text(sublabel,
+                    style: TextStyle(
+                        fontSize: 11.0, color: AppColors.iosTextMuted)),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeThumbColor: AppColors.iosPrimary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(children: [
             const Expanded(
               child: Text('Tương phản cao',
@@ -171,47 +239,6 @@ class _AppearanceCardState extends State<AppearanceCard> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _fontChoice(String key, String letter, String label) {
-    final selected = AppearanceService.fontScaleKey == key;
-    return GestureDetector(
-      onTap: () => AppearanceService.setFontScaleByKey(key),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.iosInfoSoft : AppColors.iosBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.iosInfo : AppColors.iosSeparator,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(letter,
-                style: TextStyle(
-                    fontSize: key == 'small'
-                        ? 14
-                        : key == 'large'
-                            ? 20
-                            : 17,
-                    fontWeight: FontWeight.w800,
-                    color: selected
-                        ? AppColors.iosInfoDark
-                        : AppColors.iosTextPrimary)),
-            const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: selected
-                        ? AppColors.iosInfoDark
-                        : AppColors.iosTextMuted)),
-          ],
-        ),
       ),
     );
   }

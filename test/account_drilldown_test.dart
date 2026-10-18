@@ -15,8 +15,9 @@ import 'package:edupulse/features/account/presentation/screens/account_screen.da
 ///    CHI TIẾT nằm trên màn của nó, không phải đổi tại chỗ; nút back quay lại.
 /// 3. Unlock nhóm "Chủ app": bấm 7 lần hàng "Phiên bản" (ở trang con Thông
 ///    tin app) → hiện; 6 lần → ẩn; restart (re-pump) → ẩn lại.
-/// 4. Guard chống mất mục: 22 entry cũ phải còn — mỗi entry nằm ở đúng 1
-///    trong 3 trang con, KHÔNG mất mục, KHÔNG trúng 2 lần.
+/// 4. Guard chống mất mục: 23 entry cũ phải còn — mỗi entry nằm ở đúng 1
+///    trong 3 trang con (2 mục user tab Cài đặt; 12 mục nâng cao trong nhóm
+///    CHỦ APP ẨN của Thông tin app), KHÔNG mất mục, KHÔNG trúng 2 lần.
 void main() {
   setUp(() async {
     // Tên/mục tiêu mock giống các test shell — card hồ sơ trên trang chính
@@ -67,6 +68,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Unlock nhóm "Chủ app": bấm 7 lần liên tục vào hàng "Phiên bản"
+  /// (trong trang "Thông tin app"; unlock chỉ sống trong session).
+  Future<void> unlockOwner(WidgetTester tester) async {
+    final row = find.byKey(const Key('account-version-row'));
+    for (var i = 0; i < 7; i++) {
+      await tester.tap(row);
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+    await tester.pumpAndSettle();
+  }
+
   Future<Set<String>> collectTexts(WidgetTester tester) async {
     final texts = <String>{};
     tester.allWidgets
@@ -99,9 +111,13 @@ void main() {
       await pumpAccount(tester);
       await openSettings(tester);
 
-      // Đã sang trang con: tiêu đề "Cài đặt" + nội dung chi tiết hiện.
+      // Đã sang trang con: chỉ còn 2 mục user — ① Nhắc học hằng ngày,
+      // ② Cỡ chữ (card riêng, tách khỏi AppearanceCard cũ).
       expect(find.text('Cỡ chữ'), findsOneWidget);
-      expect(find.text('AI nâng cao'), findsOneWidget);
+      expect(find.text('Nhắc học hằng ngày'), findsOneWidget);
+      // Phần nâng cao (AI nâng cao...) đã chuyển sang nhóm CHỦ APP trong
+      // trang "Thông tin app" — không còn ở trang Cài đặt.
+      expect(find.text('AI nâng cao'), findsNothing);
       // Card hồ sơ không còn trên top — thật sự là push, không phải đổi tại chỗ.
       expect(find.byKey(const Key('account-profile-card')), findsNothing);
 
@@ -202,8 +218,10 @@ void main() {
 
       /// Entry cũ → trang con chứa nó (0 Hồ sơ · 1 Cài đặt · 2 Thông tin app).
       ///
-      /// Toàn bộ 22 mục của tab "Tôi" cũ phải sống sót qua việc tái cấu trúc
-      /// drill-down — không mất mục nào, không lặp ở 2 nơi.
+      /// Toàn bộ 23 mục của tab "Tôi" cũ phải sống sót qua việc tái cấu trúc
+      /// drill-down — không mất mục nào, không lặp ở 2 nơi. v2.8: trang Cài
+      /// đặt gọn còn 2 mục user; phần nâng cao nằm trong nhóm CHỦ APP của
+      /// trang "Thông tin app" (cần unlock 7 bấm mới thấy).
       const entries = <String, int>{
         // Trang con Hồ sơ (đăng nhập + đồng bộ + học tập + gia đình)
         'Tạo tài khoản': 0,
@@ -213,31 +231,35 @@ void main() {
         'Thành tích & huy hiệu': 0,
         'Cửa sổ tin cậy': 0,
         'Chế độ phụ huynh': 0,
-        // Trang con Cài đặt (cảnh báo & nhắc + giao diện & âm thanh + dữ liệu
-        // & riêng tư)
+        // Trang con Cài đặt — chỉ 2 mục user (Nhắc học + Cỡ chữ card riêng)
         'Nhắc học hằng ngày': 1,
         'Cỡ chữ': 1,
-        'Tương phản cao': 1,
-        'Chế độ yên lặng': 1,
-        'Hiện linh vật': 1,
-        'Giảm chuyển động': 1,
-        'Rung': 1,
-        'Âm thanh': 1,
-        'AI đọc nhiệm vụ và phiên học': 1,
-        'AI phân tích tiến độ': 1,
-        'AI nâng cao': 1,
-        'Xuất / nhập dữ liệu': 1,
-        'Quyền riêng tư & dữ liệu': 1,
-        'Xóa lịch sử trò chuyện AI': 1,
-        // Trang con Thông tin app (phiên bản + giới thiệu & liên kết + hỗ trợ)
+        // Trang con Thông tin app: mục tĩnh + nhóm CHỦ APP ẨN (12 mục chuyển
+        // từ Cài đặt xuống: tương phản, yên lặng, giao diện & âm thanh, AI,
+        // dữ liệu & riêng tư)
         'Phiên bản': 2,
         'Gửi phản hồi beta': 2,
+        'Tương phản cao': 2,
+        'Chế độ yên lặng': 2,
+        'Hiện linh vật': 2,
+        'Giảm chuyển động': 2,
+        'Rung': 2,
+        'Âm thanh': 2,
+        'AI đọc nhiệm vụ và phiên học': 2,
+        'AI phân tích tiến độ': 2,
+        'AI nâng cao': 2,
+        'Xuất / nhập dữ liệu': 2,
+        'Quyền riêng tư & dữ liệu': 2,
+        'Xóa lịch sử trò chuyện AI': 2,
       };
 
       final screenOpeners = [openProfileDetail, openSettings, openAbout];
 
       for (var screen = 0; screen < 3; screen++) {
         await screenOpeners[screen](tester);
+        // Trang "Thông tin app": 12 mục nâng cao nằm trong nhóm CHỦ APP ẨN —
+        // phải unlock 7 bấm trước khi kiểm tra.
+        if (screen == 2) await unlockOwner(tester);
         final texts = await collectTexts(tester);
 
         final inThisScreen =
@@ -260,13 +282,15 @@ void main() {
       }
     });
 
-    testWidgets('tổng các entry cũ phải >= 21 mục tồn tại qua 3 trang con',
+    testWidgets('tổng các entry cũ phải còn đủ 23 mục tồn tại qua 3 trang con',
         (tester) async {
       await pumpAccount(tester);
 
       final all = <String>{};
       for (final opener in [openProfileDetail, openSettings, openAbout]) {
         await opener(tester);
+        // Trang "Thông tin app": unlock 7 bấm để nhóm CHỦ APP hiển thị.
+        if (opener == openAbout) await unlockOwner(tester);
         all.addAll(await collectTexts(tester));
         await tester.tap(find.byTooltip('Back'));
         await tester.pumpAndSettle();
@@ -282,6 +306,8 @@ void main() {
         'Chế độ phụ huynh',
         'Nhắc học hằng ngày',
         'Cỡ chữ',
+        'Tương phản cao',
+        'Chế độ yên lặng',
         'Hiện linh vật',
         'Giảm chuyển động',
         'Rung',

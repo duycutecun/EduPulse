@@ -7,8 +7,10 @@ import '../../../../core/share/share_text.dart';
 import '../../../../shared/widgets/app_icon.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../widgets/account_page_shared.dart';
+import '../widgets/appearance_card.dart';
 import '../widgets/beta_feedback_sheet.dart';
 import '../widgets/cloud_ai_card.dart';
+import '../widgets/owner_settings_cards.dart';
 import '../../../../core/feedback/beta_feedback.dart';
 
 /// Trang con **Thông tin app** của tab "Tôi" — mở bằng cách bấm row "Thông
@@ -197,6 +199,14 @@ class _AboutScreenState extends State<AboutScreen> {
 
   /// Nhóm "Chủ app" — các công cụ cấu hình/chuẩn đoán chỉ dành cho người vận
   /// hành app, ẩn khỏi người dùng phổ thông.
+  ///
+  /// v2.8: gọn trang "Cài đặt" — toàn bộ phần nâng cao chuyển XUỐNG ĐÂY
+  /// (copy nguyên logic của các card, giữ storage key/haptic/dismiss):
+  /// - [AdvancedAppearanceCard]: tương phản cao + chế độ yên lặng.
+  /// - [DisplayPrefsCard]: linh vật, giảm chuyển động, rung, âm thanh.
+  /// - [DataPrefsCard]: quyền AI, AI nâng cao, xuất/nhập dữ liệu, quyền
+  ///   riêng tư, xóa lịch sử AI.
+  /// CloudAiCard giữ nguyên vị trí nhóm này (là member CHỦ APP từ trước).
   Widget _buildOwnerToolsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,6 +215,12 @@ class _AboutScreenState extends State<AboutScreen> {
         const AccountSectionHeader('CHỦ APP',
             subtitle: 'Cấu hình nâng cao — chỉ dành cho chủ app.'),
         const CloudAiCard(),
+        const SizedBox(height: 10),
+        const AdvancedAppearanceCard(),
+        const SizedBox(height: 10),
+        const DisplayPrefsCard(),
+        const SizedBox(height: 10),
+        const DataPrefsCard(),
       ],
     );
   }
