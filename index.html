@@ -8,7 +8,10 @@
   <meta name="description" content="EduPulse — Trợ lý Sĩ tử & Đếm ngược Kỳ thi (THPTQG, TSA, HSA, IELTS). Tích hợp AI Coach giải đề & Pomodoro Lo-Fi.">
 
   <!-- Mobile Viewport with Safe Area Fit for Notch & Dynamic Island -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- Không chặn zoom (bỏ maximum-scale/user-scalable): vi phạm WCAG 1.4.4 và
+       người học không phóng được công thức/đề thi. Zoom đếm theo từng cột nội
+       dung vẫn ổn vì Flutter web render canvas, không Lindt layout reflow. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="format-detection" content="telephone=no">
 
   <!-- PWA / Web App meta tags for iOS and WebKit -->
@@ -79,8 +82,10 @@
       -webkit-overflow-scrolling: touch;
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
-      user-select: none;
-      -webkit-user-select: none;
+      /* Cho phép select/copy chữ (content ôn thi cần copy công thức, câu hỏi);
+         Flutter web vẽ bằng canvas nên DOM select không ảnh hưởng render. */
+      user-select: text;
+      -webkit-user-select: text;
       touch-action: manipulation;
     }
   </style>
