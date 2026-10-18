@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/storage_service.dart';
@@ -48,6 +50,28 @@ class MascotAvatar extends StatefulWidget {
 
 class _MascotAvatarState extends State<MascotAvatar> {
   String? _currentQuote;
+
+  /// Bubble thoại tự tắt sau một nhịp đọc: bubble được vẽ đè tuyệt đối
+  /// (`Positioned`) lên nội dung kế bên avatar, nên nếu đứng yên mãi nó
+  /// che chữ "Chào …" trên header và người dùng không cách nào thoát
+  /// ngoài chạm lại mascot. Khối lượng chữ đủ đọc trong 6 giây.
+  static const Duration _quoteVisibleFor = Duration(seconds: 6);
+  Timer? _quoteTimer;
+
+  void _showQuote(String quote) {
+    _quoteTimer?.cancel();
+    setState(() => _currentQuote = quote);
+    _quoteTimer = Timer(_quoteVisibleFor, () {
+      if (mounted) setState(() => _currentQuote = null);
+    });
+  }
+
+  void _hideQuote() {
+    _quoteTimer?.cancel();
+    _quoteTimer = null;
+    if (mounted) setState(() => _currentQuote = null);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +79,7 @@ class _MascotAvatarState extends State<MascotAvatar> {
 
   @override
   void dispose() {
+    _quoteTimer?.cancel();
     super.dispose();
   }
 
@@ -150,13 +175,12 @@ class _MascotAvatarState extends State<MascotAvatar> {
 
   void _onTap() {
     AudioSynthService.playChirp();
-    setState(() {
-      _currentQuote = _getContextualQuote();
-    });
+    _showQuote(_getContextualQuote());
     widget.onTap?.call();
   }
 
   void _openCompanionModal() {
+    _hideQuote(); // Mở modal rồi bubble vẫn treo đè phía dưới là rối mắt.
     if (!widget.enableCompanionModal) return;
     MascotCompanionModal.show(
       context,
@@ -359,11 +383,13 @@ class _MascotAvatarState extends State<MascotAvatar> {
                   ],
                 ),
                 child: Column(
+                  key: const ValueKey('mascot-quote-bubble'),
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       _currentQuote!,
+                      key: const ValueKey('mascot-quote-text'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
