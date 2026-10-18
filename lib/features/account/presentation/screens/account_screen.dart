@@ -1,38 +1,26 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:convert';
-import '../../../../core/utils/data_transfer.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/notifications/adaptive_policy.dart';
-import '../../../../core/notifications/notification_service.dart';
-import '../../../../core/utils/storage_service.dart';
-import '../../../../core/utils/feedback_service.dart';
-import '../../../../core/ai/ai_models.dart';
-import '../../../../core/utils/supabase_service.dart';
-import '../../../../shared/widgets/glass_card.dart';
-import '../../../../shared/widgets/app_icon.dart';
-import '../../../../shared/widgets/ios_segmented.dart';
-import '../../../../shared/widgets/sync_status_bar.dart';
-import '../../../auth/presentation/screens/auth_screen.dart';
-import '../../../progress/presentation/screens/deep_report_screen.dart';
-import '../../../gamification/presentation/sheets/achievements_sheet.dart';
-import '../../../leaderboard/presentation/screens/leaderboard_screen.dart';
-import '../widgets/family_report_sheet.dart';
-import '../widgets/account_family_entries.dart';
-import '../widgets/appearance_card.dart';
-import '../widgets/beta_feedback_sheet.dart';
-import '../widgets/cloud_ai_card.dart';
-import '../../../../core/feedback/beta_feedback.dart';
-import '../../../../core/share/share_text.dart';
-import 'learning_profile_screen.dart';
-import 'privacy_data_screen.dart';
-import '../../../study/domain/models/study_models.dart';
-import '../../../study/domain/repositories/study_session_repository.dart';
-import '../../../../core/analytics/product_analytics.dart';
-import '../../../../core/privacy/share_audit_log.dart';
 
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/feedback_service.dart';
+import '../../../../core/utils/storage_service.dart';
+import '../../../../core/utils/supabase_service.dart';
+import '../../../../shared/widgets/app_icon.dart';
+import '../../../../shared/widgets/glass_card.dart';
+import '../widgets/account_page_shared.dart';
+import 'about_screen.dart';
+import 'profile_detail_screen.dart';
+import 'settings_screen.dart';
+
+/// Tab "Tôi" — trang chính kiểu drill-down iOS Settings thật:
+///
+/// - Card hồ sơ lớn trên đầu (avatar + tên + badge "Sĩ tử 2026" + trạng thái
+///   đăng nhập) — bấm mở trang con **Hồ sơ** (push, có nút back/vuốt quay lại).
+/// - 2 row nhóm kiểu iOS Settings: **Cài đặt** và **Thông tin app** — bấm mở
+///   trang con tương ứng.
+///
+/// Nội dung chi tiết nằm ở 3 trang con riêng
+/// (profile_detail_screen / settings_screen / about_screen) — trang này chỉ
+/// đóng vai "menu gốc" gọn nhẹ như màn chính của Settings trên iOS.
 class AccountScreen extends StatefulWidget {
   final VoidCallback onDataChanged;
 
@@ -46,37 +34,8 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  /// Phiên bản app — phải khớp `version` trong pubspec.yaml (không có
-  /// package_info trong dependencies nên đọc trực tiếp được; khi nâng cấp
-  /// version nhớ đổi cả đây).
-  static const String _appVersion = '2.0.0+1';
-
-  /// Số lần bấm liên tục vào hàng "Phiên bản" để mở nhóm "Chủ app".
-  static const int _ownerUnlockTaps = 7;
-
-  /// Tab con đang mở (0 Hồ sơ · 1 Cài đặt · 2 Thông tin app).
-  int _segment = 0;
-
-  /// Đếm bấm hàng "Phiên bản" — chỉ trong SESSION này, không lưu prefs.
-  int _versionTaps = 0;
-
-  /// Nhóm "Chủ app" đã mở khoá chưa (unlock chỉ sống đến khi restart app).
-  bool _ownerUnlocked = false;
-
   late String _userName;
   late String _userTarget;
-
-  // Nhắc học hằng ngày
-  bool _reminderEnabled = false;
-  int _reminderHour = 19;
-  int _reminderMinute = 0;
-  bool _digestEnabled = false;
-  bool _advancedReminderEnabled = false;
-  bool _analyticsEnabled = false;
-  bool _aiMayRead = true;
-  bool _aiMayAnalyze = true;
-  bool _mascotEnabled = true;
-  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -87,75 +46,15 @@ class _AccountScreenState extends State<AccountScreen> {
   void _loadData() {
     _userName = StorageService.getUserName();
     _userTarget = StorageService.getUserTarget();
-    _reminderEnabled = StorageService.getBool('reminder_enabled') ?? false;
-    _reminderHour = StorageService.getInt('reminder_hour') ?? 19;
-    _reminderMinute = StorageService.getInt('reminder_minute') ?? 0;
-    _digestEnabled = StorageService.getBool('notif_digest_enabled') ?? false;
-    _advancedReminderEnabled =
-        StorageService.getBool('notif_advanced_enabled') ?? false;
-    _analyticsEnabled = ProductAnalytics.instance.enabled;
-    _aiMayRead = StorageService.getBool('ai_permission_read') ?? true;
-    _aiMayAnalyze = StorageService.getBool('ai_permission_analyze') ?? true;
-    _mascotEnabled = StorageService.getBool('mascot_enabled') ?? true;
-    _reduceMotion = StorageService.getBool('reduce_motion') ?? false;
   }
 
-  void _updateProfile(String name, String target) {
-    StorageService.setUserName(name);
-    StorageService.setUserTarget(target);
-    setState(() {
-      _userName = name;
-      _userTarget = target;
-    });
-    widget.onDataChanged();
-  }
-
-  void _openAuthScreen() {
-    Navigator.of(context).push(CupertinoPageRoute(
-      builder: (ctx) => AuthScreen(
-        onAuthSuccess: () async {
-          Navigator.pop(ctx);
-          _loadData();
-          if (mounted) setState(() {});
-        },
-        onSkip: () => Navigator.pop(ctx),
-      ),
-    ));
-  }
-
-  void _handleSignOut() async {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.iosSeparator, width: 2)),
-        title: const Text('Đăng xuất?',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: const Text(
-            'Dữ liệu cục bộ vẫn được giữ. Hãy sao lưu trước khi đăng xuất.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted))),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await SupabaseService.signOut();
-              if (mounted) {
-                setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã đăng xuất')));
-              }
-            },
-            child: const Text('Đăng xuất',
-                style: TextStyle(
-                    color: AppColors.iosError, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
-    );
+  /// Mở một trang con của tab "Tôi" (drill-down — push màn, iOS có sẵn
+  /// swipe-back). Khi quay lại, tên/mục tiêu/đăng nhập có thể đã đổi trong
+  /// trang con → nạp lại dữ liệu cho card hồ sơ.
+  Future<void> _openChild(WidgetBuilder builder) async {
+    FeedbackService.selection();
+    await Navigator.of(context).push(MaterialPageRoute(builder: builder));
+    if (mounted) setState(_loadData);
   }
 
   @override
@@ -166,1343 +65,159 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Segmented control kiểu iOS mở màn — 3 tab con của tab "Tôi".
-          IosSegmentedControl(
-            key: const Key('account-segments'),
-            items: const [
-              IosSegmentItem(label: 'Hồ sơ', icon: Icons.person_rounded),
-              IosSegmentItem(label: 'Cài đặt', icon: Icons.settings_rounded),
-              // Nhãn ngắn để 3 segment đều vừa trong màn 320px (FittedBox
-              // chỉ là lưới an toàn cuối — không nên dựa vào để cắt chữ).
-              IosSegmentItem(label: 'Thông tin', icon: Icons.info_rounded),
-            ],
-            index: _segment,
-            onChanged: (i) {
-              if (i == _segment) return;
-              FeedbackService.selection();
-              setState(() => _segment = i);
-            },
-          ),
-          const SizedBox(height: 14),
-          switch (_segment) {
-            0 => _buildProfileTab(),
-            1 => _buildSettingsTab(),
-            _ => _buildAboutTab(),
-          },
+          _buildProfileCard(),
+          const SizedBox(height: 16),
+          _buildGroupRows(),
         ],
       ),
     );
   }
 
-  /// ══════════ TAB CON 1 — 🧑 HỒ SƠ ══════════
-  ///
-  /// Mục user cần thấy hằng ngày: danh tính, đăng nhập/đăng xuất, trạng thái
-  /// đồng bộ/sao lưu, thống kê học tập chính và cửa sổ tin cậy với gia đình.
-  Widget _buildProfileTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (SupabaseService.isLoggedIn &&
-            SupabaseService.currentUser != null) ...[
-          GlassCard(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                const AppIcon(
-                  Icons.cloud_done_rounded,
-                  tileSize: 44,
-                  iconSize: 24,
-                  color: AppColors.iosPrimary,
-                  bg: AppColors.iosSuccessSoft,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(SupabaseService.currentUser!.email ?? 'EduPulse',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.iosTextPrimary)),
-                      Text('Đã đăng nhập · dữ liệu lưu trên máy',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.iosTextMuted)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Đăng xuất',
-                  onPressed: _handleSignOut,
-                  icon: const Icon(Icons.logout,
-                      color: AppColors.iosError, size: 22),
-                ),
-              ],
-            ),
-          ),
-        ] else ...[
-          GestureDetector(
-            onTap: _openAuthScreen,
-            child: GlassCard(
-              padding: const EdgeInsets.all(18),
-              borderColor: AppColors.iosPrimary,
-              borderWidth: 3,
-              child: Row(
-                children: [
-                  const AppIcon(
-                    Icons.person_add_rounded,
-                    tileSize: 44,
-                    iconSize: 24,
-                    color: AppColors.iosPrimary,
-                    bg: AppColors.iosSuccessSoft,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tạo tài khoản',
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.iosTextPrimary)),
-                        SizedBox(height: 2),
-                        Text('Quản lý hồ sơ và cài đặt trên thiết bị này',
-                            style: TextStyle(
-                                fontSize: 12, color: AppColors.iosTextMuted)),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right,
-                      color: AppColors.iosPrimary, size: 18),
-                ],
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 14),
-        // Trạng thái đồng bộ nằm ngay trên hồ sơ: đây là câu người dùng tự hỏi
-        // khi mở tab "Tôi" ("dữ liệu của tôi đã lên cloud chưa?"), và là chỗ
-        // đồng bộ lại ngay khi còn thay đổi chưa gửi (kế hoạch 7.2).
-        const SyncStatusCard(),
-        const SizedBox(height: 16),
-        // Danh tính luôn hiện — khối hồ sơ đầu tab "Hồ sơ": thấy ngay mình là
-        // ai và mục tiêu gì.
-        _buildProfileSummary(),
+  /// Card hồ sơ lớn trên đầu — như row "Apple ID" trên đầu iOS Settings.
+  /// Bấm vào mở trang con "Hồ sơ" chi tiết (đăng nhập, đồng bộ, học tập,
+  /// gia đình).
+  Widget _buildProfileCard() {
+    final loggedIn =
+        SupabaseService.isLoggedIn && SupabaseService.currentUser != null;
 
-        // ══════════════ Nhóm HỌC TẬP ══════════════
-        const SizedBox(height: 28),
-        _buildSectionHeader('HỌC TẬP'),
-        // Hồ sơ học tập — mục quan trọng nhất của nhóm (đặc tả mục 17).
-        LearningProfileEntry(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => const LearningProfileScreen(),
-          )),
-        ),
-        const SizedBox(height: 10),
-        _buildSectionRow(
-          ListTile(
-            contentPadding: _tilePadding,
-            leading:
-                const Icon(Icons.insights_rounded, color: AppColors.iosSuccess),
-            title: const Text('Báo cáo học tập sâu'),
-            subtitle: const Text(
-                'Xu hướng điểm, năng lực chủ đề, thời gian học',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const DeepReportScreen(),
-            )),
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildSectionRow(
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.emoji_events_rounded,
-                color: AppColors.iosStreak),
-            title: const Text('Bảng vàng kỷ lục'),
-            subtitle: const Text(
-                'Phiên dài nhất, tuần học nhiều nhất, điểm cao nhất',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const LeaderboardScreen(),
-            )),
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildSectionRow(
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.emoji_events_outlined,
-                color: AppColors.iosWarning),
-            title: const Text('Thành tích & huy hiệu'),
-            subtitle: const Text('Cấp độ, chuỗi ngày và bộ huy hiệu đã đạt',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => showAchievementsSheet(context),
-          ),
-        ),
-
-        // ══════════════ Nhóm GIA ĐÌNH ══════════════
-        const SizedBox(height: 28),
-        _buildSectionHeader('GIA ĐÌNH'),
-        FamilyReportEntry(
-          onTap: () => FamilyReportSheet.show(context),
-        ),
-        const SizedBox(height: 10),
-        ParentModeEntry(onEnterParentMode: _openParentMode),
-      ],
-    );
-  }
-
-  /// ══════════ TAB CON 2 — ⚙️ CÀI ĐẶT ══════════
-  ///
-  /// Các tuỳ chỉnh hành vi app: thông báo/nhắc học, theme & hiển thị, AI
-  /// (model, quyền AI), dữ liệu & riêng tư — người dùng chỉnh 1 lần rồi quên.
-  Widget _buildSettingsTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ══════════════ Nhóm CẢNH BÁO & NHẮC ══════════════
-        _buildSectionHeader('CẢNH BÁO & NHẮC'),
-        // Nhắc học + digest 20:30 + thông báo nâng cao (báo cáo tuần Chủ nhật,
-        // streak guard) — giữ nguyên logic của ReminderCard.
-        _buildReminderCard(),
-
-        // ══════════════ Nhóm GIAO DIỆN & ÂM THANH ══════════════
-        const SizedBox(height: 28),
-        _buildSectionHeader('GIAO DIỆN & ÂM THANH'),
-        const AppearanceCard(),
-        const SizedBox(height: 10),
-        _buildDisplayPrefsCard(),
-
-        // ══════════════ Nhóm DỮ LIỆU & RIÊNG TƯ ══════════════
-        const SizedBox(height: 28),
-        _buildSectionHeader('DỮ LIỆU & RIÊNG TƯ',
-            subtitle: 'AI chỉ sử dụng dữ liệu khi bạn cho phép.'),
-        _buildDataPrefsCard(),
-      ],
-    );
-  }
-
-  /// ══════════ TAB CON 3 — 📄 THÔNG TIN APP ══════════
-  ///
-  /// Các mục information/tĩnh: phiên bản, về app, liên kết, hỗ trợ — và nhóm
-  /// "Chủ app" ẨN mặc định (bấm 7 lần vào hàng "Phiên bản" để mở, chỉ trong
-  /// session này).
-  Widget _buildAboutTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ══════════════ Nhóm PHIÊN BẢN ══════════════
-        _buildSectionHeader('PHIÊN BẢN'),
-        // Hàng bấm 7 lần để mở nhóm "Chủ app" (easter egg của chủ app).
-        GestureDetector(
-          key: const Key('account-version-row'),
-          behavior: HitTestBehavior.opaque,
-          onTap: _handleVersionTap,
-          child: GlassCard(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: ListTile(
-              contentPadding: _tilePadding,
-              leading: const AppIcon(
-                Icons.school_rounded,
-                tileSize: 36,
-                iconSize: 18,
-                color: AppColors.iosPrimary,
-                bg: AppColors.iosPrimarySoft,
-              ),
-              title: const Text('Phiên bản'),
-              subtitle: const Text('EduPulse — Trợ lý học tập cho Sĩ tử THPT',
-                  style: TextStyle(fontSize: 11)),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_appVersion,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.iosTextSecondary)),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.iosTextMuted, size: 20),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // ══════════════ Nhóm GIỚI THIỆU & LIÊN KẾT ══════════════
-        const SizedBox(height: 28),
-        _buildSectionHeader('GIỚI THIỆU & LIÊN KẾT'),
-        _buildSectionRow(
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.help_outline_rounded,
-                color: AppColors.iosSecondary),
-            title: const Text('Về EduPulse'),
-            subtitle: const Text(
-                'Trợ lý Sĩ tử & Đếm ngược Kỳ thi (THPTQG, TSA, HSA, HSG)',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => _showAboutDialog(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildSectionRow(
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.link_rounded, color: AppColors.iosInfo),
-            title: const Text('Liên kết bản web'),
-            subtitle:
-                Text(ShareText.appLink, style: const TextStyle(fontSize: 11)),
-            onTap: _copyWebLink,
-          ),
-        ),
-
-        // ══════════════ Nhóm HỖ TRỢ ══════════════
-        const SizedBox(height: 28),
-        _buildSectionHeader('HỖ TRỢ'),
-        _buildSectionRow(
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.feedback_outlined,
-                color: AppColors.iosSecondary),
-            title: const Text('Gửi phản hồi beta'),
-            subtitle: Text(
-                BetaFeedbackService.instance.count > 0
-                    ? '${BetaFeedbackService.instance.count} phản hồi đã lưu trên máy này'
-                    : 'Báo lỗi, góp ý trải nghiệm cho nhóm phát triển',
-                style: const TextStyle(fontSize: 11)),
-            onTap: () => showBetaFeedbackSheet(context),
-          ),
-        ),
-
-        // ══════════════ Nhóm CHỦ APP (ẨN) ══════════════
-        // Mở bằng cách bấm liên tục 7 lần vào hàng "Phiên bản" ở trên.
-        // Unlock KHÔNG lưu preference — restart app tự khóa lại.
-        if (_ownerUnlocked) ...[
-          const SizedBox(height: 28),
-          // Anim nhẹ: phần hiện ra trượt nở từ 0 theo kích thước nội dung.
-          AnimatedSize(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            child: _buildOwnerToolsSection(),
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// Nhóm "Chủ app" — các công cụ cấu hình/chuẩn đoán chỉ dành cho người vận
-  /// hành app, ẩn khỏi người dùng phổ thông.
-  Widget _buildOwnerToolsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      key: const Key('account-owner-section'),
-      children: [
-        _buildSectionHeader('CHỦ APP',
-            subtitle: 'Cấu hình nâng cao — chỉ dành cho chủ app.'),
-        const CloudAiCard(),
-      ],
-    );
-  }
-
-  /// Bấm hàng "Phiên bản": 7 lần liên tục → mở nhóm "Chủ app" kèm haptic.
-  /// Trước khi đạt ngưỡng, mỗi lần bấm chỉ haptic nhẹ kiểu chọn (selection).
-  void _handleVersionTap() {
-    if (_ownerUnlocked) return;
-    _versionTaps++;
-    if (_versionTaps >= _ownerUnlockTaps) {
-      FeedbackService.heavy();
-      setState(() => _ownerUnlocked = true);
-    } else {
-      FeedbackService.selection();
-    }
-  }
-
-  /// Sheet "Về EduPulse" — thông tin tổng quan của app.
-  void _showAboutDialog() {
-    showAboutDialog(
-      context: context,
-      applicationName: 'EduPulse',
-      applicationVersion: _appVersion,
-      applicationIcon: Container(
-        width: 56,
-        height: 56,
-        decoration: const BoxDecoration(
-          color: AppColors.iosPrimary,
-          shape: BoxShape.circle,
-        ),
-        child: const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
+    return GestureDetector(
+      key: const Key('account-profile-card'),
+      onTap: () => _openChild(
+        (_) => ProfileDetailScreen(onDataChanged: widget.onDataChanged),
       ),
-      applicationLegalese:
-          'Trợ lý Sĩ tử & Đếm ngược Kỳ thi — học cùng mục tiêu, thi tự tin.',
-    );
-  }
-
-  /// Sao chép link bản web để gửi bạn bè (không có url_launcher trong
-  /// dependencies nên chỉ chép vào clipboard + snackbar xác nhận).
-  void _copyWebLink() {
-    Clipboard.setData(ClipboardData(text: ShareText.appLink));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Đã sao chép liên kết bản web vào clipboard.'),
-      behavior: SnackBarBehavior.floating,
-    ));
-  }
-
-  /// Cách lề chuẩn của hàng List trong nhóm (iOS inset grouped): 16 trái/phải.
-  static const EdgeInsets _tilePadding = EdgeInsets.symmetric(horizontal: 16);
-
-  /// Tiêu đề nhóm kiểu iOS Settings: nhãn chữ nhỏ, màu muted — chỉ là nhãn
-  /// tĩnh, KHÔNG nhấn được và không đóng/mở gì cả (khác accordion cũ).
-  Widget _buildSectionHeader(String title, {String? subtitle}) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                  color: AppColors.iosTextMuted)),
-          if (subtitle != null) ...[
-            const SizedBox(height: 2),
-            Text(subtitle,
-                style: const TextStyle(
-                    fontSize: 11, color: AppColors.iosTextMuted)),
-          ],
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  /// Một hàng List bọc trong thẻ inset — cùng ngôn ngữ GlassCard của app.
-  /// Tile tự cách hai lề 16 như các ListTile cũ.
-  Widget _buildSectionRow(Widget child) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: child,
-    );
-  }
-
-  /// Thẻ công tắc trải nghiệm hiển thị/âm thanh.
-  ///
-  /// Đặc tả 5.14 — hai mục rung/âm thanh phải tắt được thật, nên mọi rung /
-  /// âm thanh đều đi qua FeedbackService thay vì gọi thẳng platform.
-  Widget _buildDisplayPrefsCard() {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Column(
-        children: [
-          SwitchListTile.adaptive(
-            contentPadding: _tilePadding,
-            title: const Text('Hiện linh vật'),
-            value: _mascotEnabled,
-            onChanged: (value) => setState(() {
-              _mascotEnabled = value;
-              StorageService.setBool('mascot_enabled', value);
-            }),
-          ),
-          const Divider(height: 1, indent: 16),
-          SwitchListTile.adaptive(
-            contentPadding: _tilePadding,
-            title: const Text('Giảm chuyển động'),
-            value: _reduceMotion,
-            onChanged: (value) => setState(() {
-              _reduceMotion = value;
-              StorageService.setBool('reduce_motion', value);
-            }),
-          ),
-          const Divider(height: 1, indent: 16),
-          SwitchListTile.adaptive(
-            contentPadding: _tilePadding,
-            title: const Text('Rung'),
-            subtitle: const Text('Rung nhẹ khi bấm nút, tick nhiệm vụ, hết giờ',
-                style: TextStyle(fontSize: 11)),
-            value: FeedbackService.hapticsEnabled,
-            onChanged: (value) =>
-                setState(() => FeedbackService.setHaptics(value)),
-          ),
-          const Divider(height: 1, indent: 16),
-          SwitchListTile.adaptive(
-            contentPadding: _tilePadding,
-            title: const Text('Âm thanh'),
-            subtitle: const Text(
-                'Âm báo hoàn thành phiên và tương tác linh vật',
-                style: TextStyle(fontSize: 11)),
-            value: FeedbackService.soundEnabled,
-            onChanged: (value) =>
-                setState(() => FeedbackService.setSound(value)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Thẻ nhóm DỮ LIỆU & RIÊNG TƯ: quyền AI, AI nâng cao, xuất nhập dữ liệu,
-  /// quyền riêng tư và xóa dữ liệu AI. Thứ tự từ đọc-hiểu đến hành động phá
-  /// hủy (xóa lịch sử AI) — mục phá hủy luôn nằm cùng.
-  Widget _buildDataPrefsCard() {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Column(
-        children: [
-          SwitchListTile.adaptive(
-            contentPadding: _tilePadding,
-            title: const Text('AI đọc nhiệm vụ và phiên học'),
-            subtitle: const Text('Dùng để trả lời theo ngữ cảnh',
-                style: TextStyle(fontSize: 11)),
-            value: _aiMayRead,
-            onChanged: (value) => setState(() {
-              _aiMayRead = value;
-              StorageService.setBool('ai_permission_read', value);
-              ShareAuditLog.log(ShareAuditKinds.aiRead, value ? 'bật' : 'tắt');
-            }),
-          ),
-          const Divider(height: 1, indent: 16),
-          SwitchListTile.adaptive(
-            contentPadding: _tilePadding,
-            title: const Text('AI phân tích tiến độ'),
-            subtitle: const Text(
-                'Tạo insight và đề xuất, không tự sửa kế hoạch',
-                style: TextStyle(fontSize: 11)),
-            value: _aiMayAnalyze,
-            onChanged: _aiMayRead
-                ? (value) => setState(() {
-                      _aiMayAnalyze = value;
-                      StorageService.setBool('ai_permission_analyze', value);
-                      ShareAuditLog.log(
-                          ShareAuditKinds.aiAnalyze, value ? 'bật' : 'tắt');
-                    })
-                : null,
-          ),
-          const Divider(height: 1, indent: 16),
-          ListTile(
-            contentPadding: _tilePadding,
-            leading:
-                const Icon(Icons.tune_rounded, color: AppColors.iosSecondary),
-            title: const Text('AI nâng cao'),
-            subtitle: const Text('Chọn model, quyền AI, lịch sử hội thoại',
-                style: TextStyle(fontSize: 11)),
-            onTap: _openAiAdvancedSheet,
-          ),
-          const Divider(height: 1, indent: 16),
-          ListTile(
-            contentPadding: _tilePadding,
-            leading:
-                const Icon(Icons.ios_share_rounded, color: AppColors.iosInfo),
-            title: const Text('Xuất / nhập dữ liệu'),
-            subtitle: const Text('JSON đầy đủ, CSV nhật ký, Markdown ghi chú',
-                style: TextStyle(fontSize: 11)),
-            onTap: _openDataSheet,
-          ),
-          const Divider(height: 1, indent: 16),
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.privacy_tip_outlined,
-                color: AppColors.iosSuccess),
-            title: const Text('Quyền riêng tư & dữ liệu'),
-            subtitle: const Text('Thời hạn lưu, xoá dữ liệu cá nhân',
-                style: TextStyle(fontSize: 11)),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const PrivacyDataScreen(),
-            )),
-          ),
-          const Divider(height: 1, indent: 16),
-          ListTile(
-            contentPadding: _tilePadding,
-            leading: const Icon(Icons.delete_sweep_outlined,
-                color: AppColors.iosError),
-            title: const Text('Xóa lịch sử trò chuyện AI'),
-            onTap: _clearAiHistory,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Thẻ tóm tắt hồ sơ (tên, mục tiêu, linh vật) — khối lớn đầu nhóm Hồ sơ.
-  Widget _buildProfileSummary() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.iosCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.iosSeparator, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.iosPrimary,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.iosPrimaryDark.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child:
-                const Center(child: Text('🎓', style: TextStyle(fontSize: 28))),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_userName,
-                    style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.iosTextPrimary)),
-                const SizedBox(height: 2),
-                Text(
-                  _userTarget.isNotEmpty
-                      ? 'Mục tiêu: $_userTarget'
-                      : 'Chưa đặt mục tiêu',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.iosTextSecondary),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.iosPrimarySoft,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.iosPrimary, width: 1),
-                  ),
-                  child: const Text('⚡ Sĩ tử 2026',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.iosPrimary)),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: _showEditProfileDialog,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.iosFill,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.iosSeparator, width: 1),
-              ),
-              child: const Icon(Icons.edit_rounded,
-                  color: AppColors.iosInfo, size: 18),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Đặc tả UX 5.11 — "AI nâng cao": chọn model, hành vi AI, lịch sử hội thoại.
-  ///
-  /// Mặc định app tự chọn model phù hợp (Auto); chỉ khi học sinh chủ động ghim
-  /// model ở đây thì màn AI mới dùng model đó. Không lộ tên nhà cung cấp /
-  /// thông số kỹ thuật ra UI chính (UX 5.11 "Never show").
-  void _openAiAdvancedSheet() {
-    final runtime = AIModel.runtimeDefinitions;
-    final models =
-        (runtime != null && runtime.isNotEmpty) ? runtime : AIModel.definitions;
-
-    Widget modelRow(AIModel? model, {required bool isAuto}) {
-      final slug = isAuto ? '' : model!.slug;
-      final selected = StorageService.getAiModel() == slug;
-      return ListTile(
-        contentPadding: EdgeInsets.zero,
-        dense: true,
-        leading: Icon(
-          isAuto ? Icons.auto_awesome_rounded : aiModelIcon(model!.slug),
-          color: selected ? AppColors.iosPrimary : AppColors.iosTextMuted,
-          size: 20,
-        ),
-        title: Text(
-          isAuto ? 'Tự động (khuyên dùng)' : model!.label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          isAuto
-              ? 'Tự chuyển model theo độ khó câu hỏi.'
-              : (model!.description.isEmpty ? model.slug : model.description),
-          style: const TextStyle(fontSize: 11, color: AppColors.iosTextMuted),
-        ),
-        trailing: selected
-            ? const Icon(Icons.check_circle_rounded,
-                color: AppColors.iosPrimary, size: 20)
-            : null,
-        onTap: () {
-          StorageService.setAiModel(slug);
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isAuto
-                  ? 'Đã chuyển AI về chế độ tự động chọn model.'
-                  : 'Đã ghim model ${model!.label}.'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
-      );
-    }
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.iosCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: StatefulBuilder(
-          builder: (sheetContext, setSheetState) => ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
-            ),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                const Text('AI nâng cao',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                const Text(
-                  'EduPulse tự chọn model phù hợp với từng câu hỏi. Bạn có thể '
-                  'ghin một model nếu muốn.',
-                  style: TextStyle(fontSize: 12, color: AppColors.iosTextMuted),
-                ),
-                const SizedBox(height: 10),
-                modelRow(null, isAuto: true),
-                const Divider(),
-                for (final m in models) modelRow(m, isAuto: false),
-                const Divider(),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Tự phân tích ảnh kèm theo'),
-                  subtitle: const Text(
-                      'Gửi ảnh chụp bài/đề vào AI ngay khi chọn, không cần gõ prompt.',
-                      style: TextStyle(fontSize: 11)),
-                  value: StorageService.getAiAutoReadImage(),
-                  onChanged: (v) {
-                    StorageService.setAiAutoReadImage(v);
-                    ShareAuditLog.log(
-                        ShareAuditKinds.aiAutoImage, v ? 'bật' : 'tắt');
-                    setSheetState(() {});
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.delete_sweep_outlined,
-                      color: AppColors.iosError),
-                  title: const Text('Xóa lịch sử trò chuyện AI',
-                      style: TextStyle(color: AppColors.iosError)),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _clearAiHistory();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Sheet Xuất / nhập / xóa dữ liệu cục bộ (đặc tả mục 19).
-  void _openDataSheet() {
-    final c = DataTransfer.counts();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.iosCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Dữ liệu của bạn',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(
-                '${c.tasks} nhiệm vụ • ${c.notes} ghi chú • ${c.sessions} phiên focus • ${c.exams} kỳ thi • ${c.logs} nhật ký',
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.iosTextMuted),
-              ),
-              const SizedBox(height: 14),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.data_object_rounded,
-                    color: AppColors.iosInfo),
-                title: const Text('Xuất JSON (đầy đủ — dùng để nhập lại)'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  Clipboard.setData(
-                      ClipboardData(text: DataTransfer.exportJson()));
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Đã sao chép JSON đầy đủ vào clipboard.')));
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.table_chart_rounded,
-                    color: AppColors.iosPrimary),
-                title: const Text('Xuất nhật ký học (CSV)'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  Clipboard.setData(
-                      ClipboardData(text: DataTransfer.exportStudyLogCsv()));
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Đã sao chép CSV nhật ký vào clipboard.')));
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.description_rounded,
-                    color: AppColors.iosWarning),
-                title: const Text('Xuất ghi chú (Markdown)'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  Clipboard.setData(
-                      ClipboardData(text: DataTransfer.exportNotesMarkdown()));
-                  ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Đã sao chép Markdown ghi chú vào clipboard.')));
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.download_rounded,
-                    color: AppColors.iosSecondary),
-                title: const Text('Nhập từ JSON'),
-                subtitle: const Text(
-                    'Chỉ thêm bản ghi mới, không ghi đè dữ liệu hiện có.',
-                    style: TextStyle(fontSize: 11)),
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  final picked = await FilePicker.pickFiles(
-                    type: FileType.custom,
-                    allowedExtensions: ['json'],
-                  );
-                  if (picked.isEmpty) return;
-                  final bytes = await picked.first.readAsBytes();
-                  final text = utf8.decode(bytes, allowMalformed: true);
-                  if (!mounted) return;
-                  final result = DataTransfer.importJson(text);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(result.error.isNotEmpty
-                        ? result.error
-                        : 'Đã nhập ${result.imported} bản ghi, bỏ qua ${result.skipped} bản trùng.'),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-                },
-              ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.delete_forever_rounded,
-                    color: AppColors.iosError),
-                title: const Text('Xóa dữ liệu học cục bộ',
-                    style: TextStyle(color: AppColors.iosError)),
-                subtitle: const Text(
-                    'Nhiệm vụ, ghi chú, phiên, kỳ thi, nhật ký. Cài đặt và lịch sử AI giữ nguyên.',
-                    style: TextStyle(fontSize: 11)),
-                onTap: () => _confirmDeleteStudyData(sheetContext),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmDeleteStudyData(BuildContext sheetContext) async {
-    final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: sheetContext,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Xóa dữ liệu học?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-                'Hành động này không thể hoàn tác. Xuất JSON trước nếu muốn giữ lại.'),
-            const SizedBox(height: 10),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Gõ XÓA để xác nhận',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Hủy')),
-          TextButton(
-            onPressed: () => Navigator.pop(
-                dialogContext, controller.text.trim().toUpperCase() == 'XÓA'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.iosError),
-            child: const Text('Xóa vĩnh viễn'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    DataTransfer.deleteAllStudyData();
-    if (!sheetContext.mounted) return;
-    Navigator.pop(sheetContext);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã xóa dữ liệu học cục bộ.')));
-  }
-
-  /// Xóa AI memory (mục 19 — Delete): lịch sử chat + feedback + nháp
-  /// note — toàn bộ thứ AI dùng để cá nhân hóa. Có backup trong phiên
-  /// để Undo ngay (undo window).
-  Future<void> _clearAiHistory() async {
-    final accepted = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-              title: const Text('Xóa bộ nhớ AI?'),
-              content: const Text(
-                  'Lịch sử trò chuyện, phản hồi 👍/👎 và bản nháp ghi chú '
-                  'trên thiết bị này sẽ bị xóa. AI sẽ quay về trạng thái như mới cài.'),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Hủy')),
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('Xóa',
-                        style: TextStyle(
-                            color: AppColors.iosError,
-                            fontWeight: FontWeight.w800)))
-              ],
-            ));
-    if (accepted != true) return;
-
-    // Backup để Undo trong phiên (undo window — mục 19).
-    final chatBackup = StorageService.getAiChatHistory();
-    final feedbackIds =
-        StorageService.prefs.getStringList('ai_feedback_ids') ?? [];
-    final feedbackBackup = <String, String?>{
-      for (final id in feedbackIds)
-        'ai_feedback_$id': StorageService.getString('ai_feedback_$id'),
-      'ai_feedback_ids': feedbackIds.isNotEmpty ? feedbackIds.join(',') : null,
-    };
-    final draftBackup = StorageService.getString('note_draft_v1');
-
-    // Xóa toàn bộ AI memory.
-    StorageService.clearAiChatHistory();
-    for (final id in feedbackIds) {
-      StorageService.prefs.remove('ai_feedback_$id');
-    }
-    StorageService.prefs.remove('ai_feedback_ids');
-    StorageService.prefs.remove('note_draft_v1');
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: const Text('Đã xóa bộ nhớ AI.'),
-        duration: const Duration(seconds: 6),
-        action: SnackBarAction(
-          label: 'Hoàn tác',
-          onPressed: () {
-            // Undo: khôi phục nguyên trạng.
-            if (chatBackup != null) {
-              StorageService.setAiChatHistory(chatBackup);
-            }
-            feedbackBackup.forEach((key, value) {
-              if (value != null && key != 'ai_feedback_ids') {
-                StorageService.setString(key, value);
-              }
-            });
-            final ids = feedbackBackup['ai_feedback_ids'];
-            if (ids != null) {
-              StorageService.prefs
-                  .setStringList('ai_feedback_ids', ids.split(','));
-            }
-            if (draftBackup != null) {
-              StorageService.setString('note_draft_v1', draftBackup);
-            }
-          },
-        ),
-      ));
-  }
-
-  /// "Cửa sổ tin cậy" — học sinh chủ động chia sẻ tiến độ với gia đình:
-  /// liên kết tài khoản ba mẹ bằng mã mời, gửi báo cáo tuần, tạo ảnh thành tựu.
-  void _openParentMode() {
-    if (SupabaseService.isLoggedIn) {
-      StorageService.setAccountRole(StorageService.roleParent);
-      ShareAuditLog.log(ShareAuditKinds.parentMode, 'bật');
-      return;
-    }
-    Navigator.of(context).push(CupertinoPageRoute(
-      builder: (ctx) => AuthScreen(
-        initialRole: StorageService.roleParent,
-        onAuthSuccess: () {
-          Navigator.pop(ctx);
-          StorageService.setAccountRole(StorageService.roleParent);
-          ShareAuditLog.log(ShareAuditKinds.parentMode, 'bật');
-        },
-        onSkip: () => Navigator.pop(ctx),
-      ),
-    ));
-  }
-
-  /// Thẻ cài đặt nhắc học hằng ngày — chỉ trên mobile native.
-  Widget _buildReminderCard() {
-    if (!NotificationService.isSupported) {
-      return GlassCard(
-        padding: const EdgeInsets.all(16),
+      child: GlassCard(
+        padding: const EdgeInsets.all(18),
         child: Row(
           children: [
-            const AppIcon(
-              Icons.notifications_active_rounded,
+            // Avatar tròn như iOS — dùng chính emoji 🎓 của app (không có
+            // service đổi ảnh nên giữ nguyên tính trung thực).
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.iosPrimary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.iosPrimaryDark.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                  child: Text('🎓', style: TextStyle(fontSize: 28))),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_userName,
+                      style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.iosTextPrimary)),
+                  const SizedBox(height: 2),
+                  Text(
+                    _userTarget.isNotEmpty
+                        ? 'Mục tiêu: $_userTarget'
+                        : 'Chưa đặt mục tiêu',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.iosTextSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Badge "Sĩ tử 2026" + trạng thái tài khoản (email khi đã
+                  // đăng nhập, "chưa đăng nhập" khi chưa).
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.iosPrimarySoft,
+                          borderRadius: BorderRadius.circular(6),
+                          border:
+                              Border.all(color: AppColors.iosPrimary, width: 1),
+                        ),
+                        child: const Text('⚡ Sĩ tử 2026',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.iosPrimary)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          loggedIn
+                              ? (SupabaseService.currentUser!.email ??
+                                  'Đã đăng nhập')
+                              : 'Chưa đăng nhập · dữ liệu lưu trên máy',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.iosTextMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Chevron phải như iOS Settings — hàng này có trang con.
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.iosTextMuted, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Nhóm 2 row drill-down (Cài đặt | Thông tin app) trong cùng một thẻ —
+  /// đúng dạng inset grouped của iOS Settings: chevron phải, phụ đề ngắn.
+  Widget _buildGroupRows() {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Column(
+        children: [
+          ListTile(
+            key: const Key('account-row-settings'),
+            contentPadding: accountTilePadding,
+            leading: const AppIcon(
+              Icons.settings_rounded,
               tileSize: 36,
               iconSize: 18,
-              color: AppColors.iosWarning,
-              bg: AppColors.iosWarningSoft,
+              color: AppColors.iosTextSecondary,
+              bg: AppColors.iosFill,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Nhắc học hằng ngày chỉ khả dụng trên ứng dụng Android/iOS.',
-                style: TextStyle(
-                    fontSize: 12.5, color: AppColors.iosTextSecondary),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final timeLabel =
-        '${_reminderHour.toString().padLeft(2, '0')}:${_reminderMinute.toString().padLeft(2, '0')}';
-
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const AppIcon(
-                Icons.notifications_active_rounded,
-                tileSize: 36,
-                iconSize: 18,
-                color: AppColors.iosWarning,
-                bg: AppColors.iosWarningSoft,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text('Nhắc học hằng ngày',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.iosTextPrimary)),
-              ),
-              Switch(
-                value: _reminderEnabled,
-                activeTrackColor: AppColors.iosPrimary,
-                onChanged: (v) => _setReminderEnabled(v),
-              ),
-            ],
+            title: const Text('Cài đặt',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: const Text('Cỡ chữ, nhắc học, quyền AI & dữ liệu',
+                style: TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.chevron_right_rounded,
+                color: AppColors.iosTextMuted, size: 20),
+            onTap: () => _openChild((_) => const SettingsScreen()),
           ),
-          if (_reminderEnabled) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _pickReminderTime,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.iosBackground,
-                        borderRadius: BorderRadius.circular(12),
-                        border:
-                            Border.all(color: AppColors.iosSeparator, width: 2),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.schedule_rounded,
-                              size: 18, color: AppColors.iosWarning),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Nhắc lúc: $timeLabel',
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.iosTextPrimary),
-                          ),
-                          const Spacer(),
-                          Icon(Icons.edit_calendar_rounded,
-                              size: 18, color: AppColors.iosTextMuted),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () async {
-                    await NotificationService.cancel();
-                    _setReminderEnabled(false);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.iosError.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.delete_outline_rounded,
-                        color: AppColors.iosError, size: 20),
-                  ),
-                ),
-              ],
+          const Divider(height: 1, indent: 16),
+          ListTile(
+            key: const Key('account-row-about'),
+            contentPadding: accountTilePadding,
+            leading: const AppIcon(
+              Icons.info_rounded,
+              tileSize: 36,
+              iconSize: 18,
+              color: AppColors.iosInfo,
+              bg: AppColors.iosInfoSoft,
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Giữ vững thói quen — nhắc nhẹ nhàng mỗi ngày, thưa dần nếu bạn ít mở app. Không dùng để tạo áp lực.',
-              style: TextStyle(fontSize: 11.5, color: AppColors.iosTextMuted),
-            ),
-            const Divider(height: 18),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Tóm tắt cuối ngày (Digest)',
-                  style:
-                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-              subtitle: const Text(
-                  'Một thông báo duy nhất lúc 20:30: nhiệm vụ còn lại, phút focus và đếm ngược kỳ thi.',
-                  style: TextStyle(fontSize: 11)),
-              value: _digestEnabled,
-              onChanged: (v) async {
-                setState(() => _digestEnabled = v);
-                StorageService.setBool('notif_digest_enabled', v);
-                if (v) {
-                  // Digest cũng là thông báo thật → phải có quyền trên iOS.
-                  if (!await _ensureNotificationPermission()) return;
-                  await AdaptivePolicy.scheduleDigest(
-                    tasks: _digestTasks(),
-                    sessions: const [],
-                    primaryExam: null,
-                  );
-                } else {
-                  await NotificationService.cancelId(
-                      NotificationService.digestId);
-                }
-              },
-            ),
-            const Divider(height: 18),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Thông báo nâng cao (P2)',
-                  style:
-                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-              subtitle: const Text(
-                  'Báo cáo tuần vào Chủ nhật + nhắc bảo vệ chuỗi (ngôn ngữ nhẹ nhàng).',
-                  style: TextStyle(fontSize: 11)),
-              value: _advancedReminderEnabled,
-              onChanged: (v) async {
-                setState(() => _advancedReminderEnabled = v);
-                StorageService.setBool('notif_advanced_enabled', v);
-                if (v && !await _ensureNotificationPermission()) {
-                  setState(() => _advancedReminderEnabled = false);
-                  StorageService.setBool('notif_advanced_enabled', false);
-                  return;
-                }
-                // Tự đồng bộ lại nhắc khi bật/tắt — syncReminders xử lý toàn bộ.
-                await AdaptivePolicy.syncReminders(
-                  reminderEnabled: _reminderEnabled,
-                  reminderHour: _reminderHour,
-                  reminderMinute: _reminderMinute,
-                  tasks: _digestTasks(),
-                  sessions: StudySessionRepository.instance.getAll(),
-                  primaryExam: null,
-                  advancedEnabled: _advancedReminderEnabled,
-                  weeklyReportEnabled: _advancedReminderEnabled,
-                  streakGuardEnabled: _advancedReminderEnabled,
-                );
-              },
-            ),
-            const Divider(height: 18),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Số liệu cải thiện trải nghiệm',
-                  style:
-                      TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-              subtitle: const Text(
-                  'Mặc định TẮT. Chỉ lưu tại máy số đếm thao tác (không gửi lên mạng, không chứa nội dung học tập).',
-                  style: TextStyle(fontSize: 11)),
-              value: _analyticsEnabled,
-              onChanged: (v) async {
-                setState(() => _analyticsEnabled = v);
-                ProductAnalytics.instance.setEnabled(v);
-              },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  List<TodayTask> _digestTasks() => StorageService.getTodayTaskIds()
-      .map(StorageService.getTodayTaskJson)
-      .whereType<String>()
-      .map((json) {
-        try {
-          return TodayTask.fromJsonString(json);
-        } catch (_) {
-          return null;
-        }
-      })
-      .whereType<TodayTask>()
-      .toList();
-
-  /// Xin quyền thông báo **đúng lúc người dùng bật tính năng**.
-  ///
-  /// iOS chỉ hỏi một lần duy nhất trong đời app: nếu hỏi sớm lúc mở app mà
-  /// người dùng bấm "Không cho phép" thì nhắc học coi như chết vĩnh viễn.
-  /// Trả về `false` chỉ khi máy chặn rõ ràng (`null` = Android cũ không cần
-  /// quyền runtime → vẫn cho đặt lịch).
-  Future<bool> _ensureNotificationPermission() async {
-    final granted = await NotificationService.requestPermission();
-    if (granted == false && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            'Máy đang chặn thông báo. Mở Cài đặt hệ thống → EduPulse → Thông báo để bật nhé.'),
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
-    return granted != false;
-  }
-
-  Future<void> _setReminderEnabled(bool v) async {
-    setState(() => _reminderEnabled = v);
-    StorageService.setBool('reminder_enabled', v);
-    if (v) {
-      if (!await _ensureNotificationPermission()) {
-        // Máy chặn thông báo ⇒ không lịch nào được đặt; trả công tắc về OFF để
-        // UI/prefs không "nói dối" (trước đây switch vẫn ON dù không có lịch).
-        if (mounted) setState(() => _reminderEnabled = false);
-        StorageService.setBool('reminder_enabled', false);
-        return;
-      }
-      await NotificationService.scheduleDaily(
-        hour: _reminderHour,
-        minute: _reminderMinute,
-      );
-    } else {
-      await NotificationService.cancel();
-    }
-  }
-
-  Future<void> _pickReminderTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: _reminderHour, minute: _reminderMinute),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context)
-              .colorScheme
-              .copyWith(primary: AppColors.iosWarning),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked == null || !mounted) return;
-    setState(() {
-      _reminderHour = picked.hour;
-      _reminderMinute = picked.minute;
-    });
-    StorageService.setInt('reminder_hour', picked.hour);
-    StorageService.setInt('reminder_minute', picked.minute);
-    if (_reminderEnabled) {
-      await NotificationService.scheduleDaily(
-          hour: picked.hour, minute: picked.minute);
-    }
-  }
-
-  void _showEditProfileDialog() {
-    final nameCtrl = TextEditingController(text: _userName);
-    final targetCtrl = TextEditingController(text: _userTarget);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.iosSeparator, width: 2)),
-        title: const Text('Chỉnh sửa hồ sơ',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(hintText: 'Họ tên')),
-            const SizedBox(height: 10),
-            TextField(
-                controller: targetCtrl,
-                decoration: const InputDecoration(hintText: 'Mục tiêu trường')),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Hủy', style: TextStyle(color: AppColors.iosTextMuted))),
-          TextButton(
-            onPressed: () {
-              if (nameCtrl.text.trim().isNotEmpty) {
-                _updateProfile(nameCtrl.text.trim(), targetCtrl.text.trim());
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Lưu',
-                style: TextStyle(
-                    color: AppColors.iosPrimary, fontWeight: FontWeight.w800)),
+            title: const Text('Thông tin app',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: const Text('Phiên bản, giới thiệu & hỗ trợ',
+                style: TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.chevron_right_rounded,
+                color: AppColors.iosTextMuted, size: 20),
+            onTap: () => _openChild((_) => const AboutScreen()),
           ),
         ],
       ),

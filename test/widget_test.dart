@@ -134,14 +134,19 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Vào Account tab — không còn segment Bảng vàng, hiện thẳng hồ sơ.
+    // Vào Account tab qua nav tab "Tôi".
     await tester.tap(navIcon(Icons.person_outline));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sĩ tử 2k9'), findsOneWidget);
     expect(find.text('Bảng vàng'), findsNothing);
-    // Nhóm GIA ĐÌNH (tiêu đề nhóm iOS Settings) — thay cho accordion cũ
-    // "Hồ sơ & Gia đình" sau khi tab Tôi được tổ chức lại thành các nhóm phẳng.
+    // Tab "Tôi" giờ là drill-down kiểu iOS Settings: trang chính chỉ có card
+    // hồ sơ + 2 row nhóm. Nhóm GIA ĐÌNH chuyển vào trang con Hồ sơ — bấm
+    // card hồ sơ để push vào.
+    await tester.tap(find.byKey(const Key('account-profile-card')));
+    await tester.pumpAndSettle();
     expect(find.text('GIA ĐÌNH'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
 
     // Storage round-trip TodayTask
     final task = TodayTask(
@@ -2047,9 +2052,11 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 300));
-    // Tab "Tôi" giờ chia 3 tab con: "Cỡ chữ" nằm ở tab con CÀI ĐẶT
-    // (segment 1) — bấm segment trước rồi mới tìm thẻ Cỡ chữ.
-    await tester.tap(find.byKey(const Key('ios-segment-1')));
+    // Tab "Tôi" giờ là drill-down kiểu iOS Settings: "Cỡ chữ" nằm trong
+    // trang con Cài đặt — bấm row "Cài đặt" trên trang chính (push màn qua
+    // Navigator) rồi mới tìm thẻ Cỡ chữ.
+    await tester.tap(find.text('Cài đặt').first);
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Cỡ chữ'), findsOneWidget);
 
@@ -2059,6 +2066,11 @@ void main() {
     expect(AppearanceService.fontScale.value, greaterThan(1.0));
     expect(AppearanceService.fontScaleKey, 'large');
     expect(StorageService.getString('appearance_font_scale'), 'large');
+
+    // Trang "Cài đặt" là màn con đã PUSH (che cả Main Shell) — phải bấm back
+    // về trang chính của tab "Tôi" trước, rồi mới test phím tắt Ctrl+3 đổi tab.
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
 
     // Ctrl+3 sang tab Tiến độ vẫn hoạt động với font lớn (không overflow).
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
